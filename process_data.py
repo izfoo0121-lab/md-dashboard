@@ -444,14 +444,21 @@ def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_con
 def calc_newbie_scheme(df, targets, agents, cur_month):
     """
     For agents flagged as newbie:
-      - CTN tiers: global thresholds (same for all newbies)
-      - New account bonus: debtors appearing for first time this month
+      - CTN tiers: per-agent thresholds and rewards (from agent.newbie_tiers)
+      - New account bonus: global tiers (same for all newbies)
     """
     log("Calculating Newbie Scheme...")
 
-    newbie_config   = targets.get("newbie_scheme", {})
-    ctn_tiers       = newbie_config.get("ctn_tiers", [])      # [{threshold, reward}]
-    account_tiers   = newbie_config.get("account_tiers", [])  # [{count, reward}]
+    newbie_config  = targets.get("newbie_scheme", {})
+    account_tiers  = newbie_config.get("account_tiers", [])  # [{count, reward}] — global
+    agents_cfg     = targets.get("agents", {})
+
+    # Default CTN tiers fallback (if agent has no individual tiers set)
+    DEFAULT_CTN_TIERS = [
+        {"threshold": 1000, "reward": 1200},
+        {"threshold": 1342, "reward": 1800},
+        {"threshold": 1592, "reward": 2400},
+    ]
 
     # Canggih paid this month
     canggih_paid_cur = df[
@@ -465,12 +472,17 @@ def calc_newbie_scheme(df, targets, agents, cur_month):
     result = {}
 
     for agent in agents:
-        ag_info = targets.get("agents", {}).get(agent, {})
+        ag_info = agents_cfg.get(agent, {})
         if not ag_info.get("is_newbie", False):
             continue  # Skip non-newbie agents
 
-        # CTN: Normal tier only (same filter as sales progression Normal)
-        ag_paid = canggih_paid_cur[canggih_paid_cur["agent"] == agent]
+        # Per-agent CTN tiers (falls back to global default if not set)
+        ctn_tiers = ag_info.get("newbie_tiers", DEFAULT_CTN_TIERS)
+        if not ctn_tiers:
+            ctn_tiers = DEFAULT_CTN_TIERS
+
+        # CTN: Normal tier only
+        ag_paid    = canggih_paid_cur[canggih_paid_cur["agent"] == agent]
         normal_ctn = round(float(
             ag_paid[ag_paid["sales_type"].map(SALES_TYPE_MAP) == "normal"]["qty_ctn"].sum()
         ), 2)
@@ -483,8 +495,7 @@ def calc_newbie_scheme(df, targets, agents, cur_month):
                 ctn_tier_hit = tier["threshold"]
                 ctn_reward   = tier["reward"]
 
-        # New accounts: debtors this agent transacted with this month
-        # who have NEVER appeared in previous months data
+        # New accounts this month vs all previous
         cur_debtors  = set(df[
             (df["agent"] == agent) & (df["paid_on"] == cur_month)
         ]["debtor_code"].unique())
@@ -492,27 +503,26 @@ def calc_newbie_scheme(df, targets, agents, cur_month):
         new_accounts = cur_debtors - prev_debtors
         new_acc_count = len(new_accounts)
 
-        # Determine account bonus tier
-        acc_tier_hit   = None
-        acc_reward     = 0
+        # Account bonus tier (global)
+        acc_tier_hit = None
+        acc_reward   = 0
         for tier in sorted(account_tiers, key=lambda x: x["count"]):
             if new_acc_count >= tier["count"]:
                 acc_tier_hit = tier["count"]
                 acc_reward   = tier["reward"]
 
         result[agent] = {
-            "is_newbie":      True,
-            "normal_ctn":     normal_ctn,
-            "ctn_tiers":      ctn_tiers,
-            "ctn_tier_hit":   ctn_tier_hit,
-            "ctn_reward":     ctn_reward,
-            "new_accounts":   new_acc_count,
-            "account_tiers":  account_tiers,
-            "acc_tier_hit":   acc_tier_hit,
-            "acc_reward":     acc_reward,
+            "is_newbie":       True,
+            "normal_ctn":      normal_ctn,
+            "ctn_tiers":       ctn_tiers,       # per-agent tiers
+            "ctn_tier_hit":    ctn_tier_hit,
+            "ctn_reward":      ctn_reward,
+            "new_accounts":    new_acc_count,
+            "account_tiers":   account_tiers,   # global tiers
+            "acc_tier_hit":    acc_tier_hit,
+            "acc_reward":      acc_reward,
             "total_incentive": ctn_reward + acc_reward,
-            # Progress to next tier
-            "next_ctn_tier": next(
+            "next_ctn_tier":   next(
                 (t for t in sorted(ctn_tiers, key=lambda x: x["threshold"])
                  if t["threshold"] > normal_ctn), None
             ),
