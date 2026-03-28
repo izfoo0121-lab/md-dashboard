@@ -272,6 +272,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
     <button class="filter-chip" data-val="new" onclick="setSpecialFilter('new',this)">🆕 New</button>
     <button class="filter-chip" data-val="birthday" onclick="setSpecialFilter('birthday',this)">🎂 Birthday</button>
     <button class="filter-chip" data-val="drop" onclick="setSpecialFilter('drop',this)">📉 Drop</button>
+    <button class="filter-chip" data-val="newsku" onclick="setSpecialFilter('newsku',this)">✨ 新增SKU</button>
   </div>
   <div class="filter-row" id="type-filter-row">
     <span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">Type:</span>
@@ -559,6 +560,7 @@ function renderDebtors() {
     if (filters.special === 'new'      && !d.is_new)             return false;
     if (filters.special === 'birthday' && !d.birthday_this_month) return false;
     if (filters.special === 'drop'     && !d.volume_drop_pct)    return false;
+    if (filters.special === 'newsku'   && !(d.new_sku_count > 0)) return false;
     if (filters.type !== 'all'         && d.debtor_type !== filters.type) return false;
     if (filters.brand !== 'all') {
       const grp = SKU_GRP[filters.brand] || filters.brand;
@@ -581,8 +583,16 @@ function renderDebtors() {
     bannerEl.style.display = 'flex';
     bannerEl.innerHTML = `<span class="brand-banner-text">还未购买 ${filters.brand} — ${filtered.length} 户口</span>
       <button class="brand-banner-close" onclick="setBrandFilter('all',document.querySelector('#brand-filter-row .filter-chip[data-brand=\\'all\\']'))">×</button>`;
+  } else if (filters.special === 'newsku') {
+    bannerEl.style.display = 'flex';
+    bannerEl.style.background = 'rgba(167,139,250,.1)';
+    bannerEl.style.borderColor = 'rgba(167,139,250,.3)';
+    bannerEl.innerHTML = `<span style="font-family:var(--mono);font-size:11px;color:var(--purple);">✨ 新增SKU 本月 — ${filtered.length} 户口</span>
+      <button class="brand-banner-close" onclick="setSpecialFilter('newsku',document.querySelector('[data-val=\\'newsku\\']'))">×</button>`;
   } else {
     bannerEl.style.display = 'none';
+    bannerEl.style.background = '';
+    bannerEl.style.borderColor = '';
   }
 
   // Paginate
@@ -665,11 +675,20 @@ function renderDebtors() {
         <div class="sku-row">${skuHtml}</div>
       </div>
 
-      ${d.new_sku_count > 0 ? `
-      <div style="margin-top:8px;padding:7px 10px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-family:var(--mono);font-size:9px;color:var(--purple);">新增SKU</span>
-        <span style="font-family:var(--display);font-size:18px;color:var(--purple);">+${d.new_sku_count}<span style="font-family:var(--mono);font-size:10px;color:var(--muted)"> / ${d.new_sku_total}</span></span>
-      </div>` : ''}
+      ${d.new_sku_count > 0 ? (() => {
+        const addedSkus = Object.entries(d.new_sku_status || {})
+          .filter(([,st]) => st === 'new')
+          .map(([grp]) => grp);
+        return `<div style="margin-top:8px;padding:7px 10px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-family:var(--mono);font-size:8px;color:var(--purple);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">✨ 新增SKU 本月</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">${addedSkus.map(s =>
+              `<span style="font-family:var(--mono);font-size:10px;background:rgba(167,139,250,.2);color:var(--purple);padding:2px 8px;border-radius:10px;font-weight:500;">${s}</span>`
+            ).join('')}</div>
+          </div>
+          <div style="font-family:var(--display);font-size:22px;color:var(--purple);letter-spacing:.03em;">+${d.new_sku_count}</div>
+        </div>`;
+      })() : ''}
     </div>`;
   }).join('');
 
