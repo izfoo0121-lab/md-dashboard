@@ -1,0 +1,16 @@
+# Excel source files (too large for GitHub)
+*.xlsx
+*.xls
+*.csv
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Keep dashboard_data.json (this is what Streamlit reads)
+!dashboard_data.json
