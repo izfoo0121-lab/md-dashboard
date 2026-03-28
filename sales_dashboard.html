@@ -601,7 +601,10 @@ function renderDebtors() {
     bannerEl.style.borderColor = '';
   }
 
-  // Paginate
+  // Sort — if drop filter active, sort by drop % highest first
+  if (filters.special === 'drop') {
+    filtered.sort((a, b) => (b.volume_drop_pct || 0) - (a.volume_drop_pct || 0));
+  }
   const totalF = filtered.length;
   const pages  = Math.max(1, Math.ceil(totalF / PAGE_SIZE));
   currentPage  = Math.min(currentPage, pages);
