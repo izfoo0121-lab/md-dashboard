@@ -671,8 +671,20 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month):
         "SUKUN":   ["SKNW", "SKNR"],
         "EVO":     ["EVO"],
         "BISON":   ["BISON-R", "BISON-M", "BISON-G"],
-        "TR20":    ["TR20", "TR-002"],
+        "TR20":    ["TR20"],
         "LAM+LWM": ["LAM", "LWM"],
+    }
+
+    # 新增SKU groups — separate from display SKU dots
+    # Logic: didn't buy last 3 months BUT bought this month = +1
+    new_sku_groups = {
+        "SUKUN": ["SKNW", "SKNR"],
+        "EVO":   ["EVO"],
+        "CM":    ["CM-002"],
+        "IMP":   ["IMP-001"],
+        "LF":    ["LF-002"],
+        "TR12":  ["TR-002"],
+        "TR20":  ["TR20"],
     }
 
     result = {}
@@ -771,6 +783,21 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month):
                 except Exception:
                     pass
 
+            # 新增SKU — count groups where didn't buy last 3 months but bought this month
+            new_sku_status = {}
+            new_sku_count  = 0
+            for grp, codes in new_sku_groups.items():
+                grp_rows = d_rows[d_rows["item_code"].isin(codes)]
+                bought_this  = cur_m in grp_rows["paid_on"].values
+                bought_past  = any(m in grp_rows["paid_on"].values for m in [prev1_m, prev2_m, prev3_m])
+                if bought_this and not bought_past:
+                    new_sku_status[grp] = "new"   # counts!
+                    new_sku_count += 1
+                elif bought_past or bought_this:
+                    new_sku_status[grp] = "existing"
+                else:
+                    new_sku_status[grp] = "none"
+
             # Sales type for this debtor this month
             cur_sales_types = d_rows[d_rows["paid_on"] == cur_m]["sales_type"].unique().tolist()
 
@@ -793,6 +820,9 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month):
                 "sku_status":         sku_status,
                 "sku_bought_groups":  sku_bought_groups,
                 "sku_total_groups":   len(sku_groups),
+                "new_sku_count":      new_sku_count,
+                "new_sku_status":     new_sku_status,
+                "new_sku_total":      len(new_sku_groups),
                 "sales_types":        cur_sales_types,
             })
 
@@ -815,17 +845,20 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month):
         np_active      = sum(1 for d in non_personal if d["status"] == "active")
         activation_rate = round(np_active / np_total * 100, 1) if np_total > 0 else 0
 
+        # Agent total 新增SKU this month
+        total_new_sku = sum(d["new_sku_count"] for d in debtor_cards)
+
         result[agent] = {
             "debtors":            debtor_cards,
             "total_debtors":      total,
             "active_count":       active_count,
             "pending_count":      pending_count,
             "reactivation_count": reactiv_count,
-            "activation_rate":    activation_rate,   # 持续光顾率 % (excl. Personal)
-            "activation_base":    np_total,          # denominator used for rate
-            "activation_active":  np_active,         # numerator used for rate
-            # 激活户口 = need reactivation (待激活)
+            "activation_rate":    activation_rate,
+            "activation_base":    np_total,
+            "activation_active":  np_active,
             "pending_activation": reactiv_count,
+            "total_new_sku":      total_new_sku,
         }
 
     return result

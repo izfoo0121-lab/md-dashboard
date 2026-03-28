@@ -58,10 +58,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .stat-val{font-family:var(--mono);font-size:13px;font-weight:500;}
 
 /* ── View 1: Debtors (Phase 1) ── */
-.summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px;}
-.summary-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px;text-align:center;}
-.summary-box .val{font-family:var(--display);font-size:22px;letter-spacing:.03em;line-height:1;}
-.summary-box .lbl{font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+.summary-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:6px;}
+.summary-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:7px 6px;text-align:center;}
+.summary-box .val{font-family:var(--display);font-size:20px;letter-spacing:.03em;line-height:1;}
+.summary-box .lbl{font-family:var(--mono);font-size:7px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
 
 .search-bar{width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:10px;font-family:var(--body);font-size:13px;margin-bottom:8px;}
 .filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
@@ -84,8 +84,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .dc-left{flex:1;}
 .dc-name{font-weight:600;font-size:13px;line-height:1.2;margin-bottom:2px;}
 .dc-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
-.dc-code{font-family:var(--mono);font-size:10px;color:var(--blue);}
-.dc-type{font-family:var(--mono);font-size:9px;background:rgba(255,255,255,.08);color:var(--muted);padding:1px 6px;border-radius:8px;}
+.dc-code{font-family:var(--mono);font-size:12px;color:var(--blue);font-weight:500;}
+.dc-type{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.08);color:var(--text);padding:2px 8px;border-radius:8px;}
 .dc-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
 .dc-phone{color:var(--blue);text-decoration:none;font-family:var(--mono);font-size:10px;display:flex;align-items:center;gap:3px;}
 .dc-badges{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;}
@@ -253,6 +253,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
     <div class="summary-box">
       <div class="val" style="color:var(--blue)" id="sum-rate">—</div>
       <div class="lbl">光顾率*</div>
+    </div>
+    <div class="summary-box">
+      <div class="val" style="color:var(--purple)" id="sum-newsku">—</div>
+      <div class="lbl">新增SKU</div>
     </div>
   </div>
   <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:2px 2px 6px;"> * 持续光顾率 excludes P-Personal</div>
@@ -539,6 +543,7 @@ function renderDebtors() {
   const rateEl = document.getElementById('sum-rate');
   rateEl.textContent = rate + '%';
   rateEl.title = `${npActive} / ${npTotal} (excl. Personal)`;
+  document.getElementById('sum-newsku').textContent  = agData.total_new_sku ?? '—';
 
   // Filter
   const search = (document.getElementById('debtor-search')?.value || '').toLowerCase();
@@ -592,7 +597,8 @@ function renderDebtors() {
   document.getElementById('btn-next').disabled = currentPage >= pages;
 
   // Render cards
-  const html = items.map(d => {
+  const html = items.map((d, idx) => {
+    const runNo = start + idx + 1;
     // Status label — Chinese
     const stCls = d.status==='active' ? 'si-active' : d.status==='pending' ? 'si-pending' : 'si-reactiv';
     const stTxt = d.status==='active' ? '已激活' : d.status==='pending' ? '❌ Pending' : '待激活';
@@ -626,7 +632,7 @@ function renderDebtors() {
     return `<div class="debtor-card">
       <div class="dc-top">
         <div class="dc-left">
-          <div class="dc-name">${d.company_name || d.debtor_code}</div>
+          <div class="dc-name"><span style="font-family:var(--display);font-size:14px;color:var(--muted);margin-right:8px;letter-spacing:.03em;">${runNo}.</span>${d.company_name || d.debtor_code}</div>
           <div class="dc-meta">
             <span class="dc-code">${d.debtor_code}</span>
             ${d.debtor_type ? `<span class="dc-type">${d.debtor_type}</span>` : ''}
@@ -658,6 +664,12 @@ function renderDebtors() {
         </div>
         <div class="sku-row">${skuHtml}</div>
       </div>
+
+      ${d.new_sku_count > 0 ? `
+      <div style="margin-top:8px;padding:7px 10px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-family:var(--mono);font-size:9px;color:var(--purple);">新增SKU</span>
+        <span style="font-family:var(--display);font-size:18px;color:var(--purple);">+${d.new_sku_count}<span style="font-family:var(--mono);font-size:10px;color:var(--muted)"> / ${d.new_sku_total}</span></span>
+      </div>` : ''}
     </div>`;
   }).join('');
 
