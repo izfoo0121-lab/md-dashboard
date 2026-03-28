@@ -1,65 +1,87 @@
 import streamlit as st
 import json
 import os
-from pathlib import Path
 
+# ── Page config ───────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="MD Sales Dashboard",
+    page_title="Touro MD Sales Dashboard",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed",
 )
 
-# ── Load data ──────────────────────────────────────────────────────────────────
-DATA_FILE = Path(__file__).parent / "dashboard_data.json"
+# ── Hide Streamlit chrome ─────────────────────────────────────────────────
+st.markdown("""
+<style>
+  #MainMenu, header, footer { visibility: hidden; }
+  .block-container { padding: 0 !important; max-width: 100% !important; }
+  iframe { border: none; }
+</style>
+""", unsafe_allow_html=True)
 
-@st.cache_data(ttl=300)  # cache 5 mins
-def load_data():
-    if not DATA_FILE.exists():
+# ── File paths ────────────────────────────────────────────────────────────
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def read_file(filename):
+    path = os.path.join(BASE_DIR, filename)
+    if not os.path.exists(path):
         return None
-    with open(DATA_FILE, "r", encoding="utf-8") as f:
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
+
+def read_json(filename):
+    path = os.path.join(BASE_DIR, filename)
+    if not os.path.exists(path):
+        return {}
+    with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
-RAW = load_data()
+# ── Query params for routing ──────────────────────────────────────────────
+params = st.query_params
+page = params.get("page", "agent")  # agent | management | admin
 
-# ── Inject full HTML dashboard ─────────────────────────────────────────────────
-HTML_FILE = Path(__file__).parent / "sales_dashboard.html"
+# ── Route to correct page ─────────────────────────────────────────────────
+if page == "management":
+    html_content = read_file("management.html")
+    if html_content is None:
+        st.error("management.html not found in dashboard folder.")
+    else:
+        # Inject dashboard_data.json inline so management.html can load it
+        data = read_json("dashboard_data.json")
+        data_json = json.dumps(data)
+        html_content = html_content.replace(
+            "fetch('dashboard_data.json')",
+            f"Promise.resolve({{ json: () => Promise.resolve({data_json}) }})"
+        )
+        st.components.v1.html(html_content, height=900, scrolling=True)
 
-if RAW is None:
-    st.error("⚠️ dashboard_data.json not found. Please run process_data.py first.")
-    st.stop()
+elif page == "admin":
+    html_content = read_file("admin.html")
+    if html_content is None:
+        st.error("admin.html not found in dashboard folder.")
+    else:
+        st.components.v1.html(html_content, height=900, scrolling=True)
 
-# Read the HTML dashboard
-if not HTML_FILE.exists():
-    st.error("⚠️ sales_dashboard.html not found in the same folder.")
-    st.stop()
+else:
+    # Default: agent dashboard
+    html_content = read_file("sales_dashboard.html")
+    if html_content is None:
+        st.error("sales_dashboard.html not found in dashboard folder.")
+    else:
+        # Inject dashboard_data.json inline
+        data = read_json("dashboard_data.json")
+        data_json = json.dumps(data)
+        html_content = html_content.replace(
+            "fetch('dashboard_data.json')",
+            f"Promise.resolve({{ json: () => Promise.resolve({data_json}) }})"
+        )
+        st.components.v1.html(html_content, height=900, scrolling=True)
 
-with open(HTML_FILE, "r", encoding="utf-8") as f:
-    html_content = f.read()
-
-# Inject the JSON data directly into the HTML so agents don't need to load a file
-json_str = json.dumps(RAW, ensure_ascii=False)
-
-# Replace the load screen with auto-loaded data
-injected_html = html_content.replace(
-    "let RAW = null, jsonFile = null;",
-    f"let RAW = {json_str}; let jsonFile = null; let _autoLoaded = true;"
-).replace(
-    "showScreen('load');",
-    """
-if(_autoLoaded && RAW) {
-    initDashboard();
-} else {
-    showScreen('load');
-}
-"""
-)
-
-# Display fullscreen
-st.components.v1.html(injected_html, height=900, scrolling=True)
-
-# Footer
-st.markdown(
-    f"<div style='text-align:center;font-size:11px;color:#475569;padding:8px'>Updated: {RAW.get('generatedAt','—')}</div>",
-    unsafe_allow_html=True
-)
+# ── Navigation links (hidden but functional) ──────────────────────────────
+st.markdown("""
+<div style="position:fixed;bottom:0;right:0;padding:4px 8px;background:rgba(0,0,0,.4);border-radius:6px 0 0 0;z-index:9999;">
+  <a href="?page=agent" style="color:#888;font-size:9px;margin-right:6px;text-decoration:none;">Agent</a>
+  <a href="?page=management" style="color:#888;font-size:9px;margin-right:6px;text-decoration:none;">Mgmt</a>
+  <a href="?page=admin" style="color:#888;font-size:9px;text-decoration:none;">Admin</a>
+</div>
+""", unsafe_allow_html=True)
