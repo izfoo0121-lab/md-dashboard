@@ -224,7 +224,7 @@ def load_debtors():
         return pd.DataFrame()
     df = pd.read_excel(DEBTOR_FILE, dtype=str, engine="openpyxl")
     df.columns = [str(c).strip() for c in df.columns]
-    log(f"  ALL Debtor columns: {list(df.columns)}")
+    log(f"  Debtor columns: {list(df.columns)}")
     log(f"  Total rows: {len(df)}")
     return df
 
@@ -619,50 +619,42 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month):
         cols = list(debtor_df.columns)
         log(f"  Debtor columns: {cols}")
 
-        # Try name-based matching first, then fall back to column index
-        def find_col(keywords, fallback_idx=None):
-            for col in cols:
-                cl = str(col).lower().strip()
-                if any(k in cl for k in keywords):
-                    return col
-            # Fallback to positional index
-            if fallback_idx is not None and fallback_idx < len(cols):
-                log(f"  ⚠ Using col index {fallback_idx} ({cols[fallback_idx]}) as fallback for {keywords}")
-                return cols[fallback_idx]
-            return None
+        # Exact column names from Debtor Maintenance.xlsx
+        # Code, Company Name, Attention, Debtor Type, Phone 1, Area, Agent,
+        # Active, Open Acct Date, Birth Date
+        CODE_COL  = next((c for c in cols if c.strip() in ('Code','Debtor Code')), cols[0] if cols else None)
+        NAME_COL  = next((c for c in cols if 'Company' in c or 'Name' in c), None)
+        ATT_COL   = next((c for c in cols if 'Attention' in c), None)
+        TYPE_COL  = next((c for c in cols if 'Debtor Type' in c or c=='Type'), None)
+        PHONE_COL = next((c for c in cols if 'Phone' in c), None)  # Phone 1
+        OPEN_COL  = next((c for c in cols if 'Open Acct' in c or 'Open' in c), None)
+        BIRTH_COL = next((c for c in cols if 'Birth' in c), None)
+        AGENT_COL = next((c for c in cols if c.strip() == 'Agent'), None)
 
-        # Debtor Maintenance typical layout:
-        # A=Debtor Code, B=Company Name, C=Debtor Type, D=Attention/VIP,
-        # E=Phone, F=Birth Date, G=Open Acct Date  (adjust if different)
-        code_col  = find_col(['debtor code', 'code'],          0)
-        name_col  = find_col(['company', 'name'],               1)
-        type_col  = find_col(['type'],                          2)
-        vip_col   = find_col(['attention', 'vip', 'remark'],   3)
-        phone_col = find_col(['phone', 'tel', 'mobile', 'hp'], 4)  # Col E
-        birth_col = find_col(['birth'],                         5)
-        open_col  = find_col(['open', 'acc'],                   6)
-
-        log(f"  Col mapping → code:{code_col} name:{name_col} type:{type_col} vip:{vip_col} phone:{phone_col} birth:{birth_col} open:{open_col}")
+        log(f"  Mapped → code:{CODE_COL} name:{NAME_COL} phone:{PHONE_COL} type:{TYPE_COL} vip:{ATT_COL} agent:{AGENT_COL}")
 
         for _, row in debtor_df.iterrows():
-            code = str(row.get(code_col, '') if code_col else '').strip()
+            code = str(row.get(CODE_COL, '') if CODE_COL else '').strip()
             if not code or code.lower() in ('nan', 'none', ''):
                 continue
 
-            phone_raw = str(row.get(phone_col, '') if phone_col else '').strip()
+            phone_raw = str(row.get(PHONE_COL, '') if PHONE_COL else '').strip()
             phone_raw = '' if phone_raw.lower() in ('nan', 'none') else phone_raw
 
-            vip_raw = str(row.get(vip_col, '') if vip_col else '').strip().upper()
-            type_raw = str(row.get(type_col, '') if type_col else '').strip()
-            type_raw = '' if type_raw.lower() in ('nan', 'none') else type_raw
+            vip_raw   = str(row.get(ATT_COL, '') if ATT_COL else '').strip().upper()
+            type_raw  = str(row.get(TYPE_COL, '') if TYPE_COL else '').strip()
+            type_raw  = '' if type_raw.lower() in ('nan', 'none') else type_raw
+            agent_raw = str(row.get(AGENT_COL, '') if AGENT_COL else '').strip()
+            agent_raw = '' if agent_raw.lower() in ('nan', 'none') else agent_raw
 
             debtor_info[code] = {
-                "name":       str(row.get(name_col, code) if name_col else code).strip(),
+                "name":       str(row.get(NAME_COL, code) if NAME_COL else code).strip(),
                 "phone":      phone_raw,
                 "vip":        vip_raw == "VIP",
-                "birth_date": row.get(birth_col, None) if birth_col else None,
-                "open_date":  row.get(open_col, None)  if open_col  else None,
+                "birth_date": row.get(BIRTH_COL, None) if BIRTH_COL else None,
+                "open_date":  row.get(OPEN_COL, None)  if OPEN_COL  else None,
                 "type":       type_raw,
+                "agent":      agent_raw,
             }
 
     # SKU groups
@@ -692,32 +684,52 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month):
     for agent in agents:
         ag_data = canggih_paid[canggih_paid["agent"] == agent]
 
-        # All debtors this agent has transacted with (any month in data)
-        all_debtor_codes = ag_data["debtor_code"].unique()
+        # ── Base debtor list from Debtor Maintenance (official assigned list) ──
+        # Use debtors assigned to this agent in debtor_info
+        dm_debtor_codes = [
+            code for code, info in debtor_info.items()
+            if info.get("agent", "").strip().upper() == agent.upper()
+        ]
+
+        # Also include any debtors found in transaction data (fallback)
+        tx_debtor_codes = list(ag_data["debtor_code"].unique())
+
+        # Merge: DM list is primary, tx adds any missing
+        all_debtor_codes = list(dict.fromkeys(dm_debtor_codes + [
+            c for c in tx_debtor_codes if c not in dm_debtor_codes
+        ]))
+
+        if not all_debtor_codes:
+            # If debtor maintenance has no agent column match, fall back to tx data
+            all_debtor_codes = tx_debtor_codes
+
+        log(f"  {agent}: {len(dm_debtor_codes)} from DM + {len([c for c in tx_debtor_codes if c not in dm_debtor_codes])} from TX = {len(all_debtor_codes)} total")
 
         debtor_cards = []
         for dcode in all_debtor_codes:
             d_rows = ag_data[ag_data["debtor_code"] == dcode]
 
-            # Activation status
-            bought_cur   = cur_m  in d_rows["paid_on"].values
-            bought_prev1 = prev1_m in d_rows["paid_on"].values
-
-            if bought_cur:
-                status = "active"
-            elif bought_prev1:
-                status = "pending"
-            else:
+            # Activation status — debtors with no transactions = need_reactivation
+            if d_rows.empty:
                 status = "need_reactivation"
+            else:
+                bought_cur   = cur_m   in d_rows["paid_on"].values
+                bought_prev1 = prev1_m in d_rows["paid_on"].values
+                if bought_cur:
+                    status = "active"
+                elif bought_prev1:
+                    status = "pending"
+                else:
+                    status = "need_reactivation"
 
             # Last purchase date
-            last_date = d_rows["date_parsed"].max()
-            last_date_str = last_date.strftime("%d/%m/%Y") if pd.notnull(last_date) else ""
+            last_date = d_rows["date_parsed"].max() if not d_rows.empty else None
+            last_date_str = last_date.strftime("%d/%m/%Y") if last_date and pd.notnull(last_date) else ""
 
             # 3-month CTN
-            ctn_cur   = round(float(d_rows[d_rows["paid_on"] == cur_m]["qty_ctn"].sum()), 2)
-            ctn_prev1 = round(float(d_rows[d_rows["paid_on"] == prev1_m]["qty_ctn"].sum()), 2)
-            ctn_prev2 = round(float(d_rows[d_rows["paid_on"] == prev2_m]["qty_ctn"].sum()), 2)
+            ctn_cur   = round(float(d_rows[d_rows["paid_on"] == cur_m]["qty_ctn"].sum()), 2)   if not d_rows.empty else 0.0
+            ctn_prev1 = round(float(d_rows[d_rows["paid_on"] == prev1_m]["qty_ctn"].sum()), 2) if not d_rows.empty else 0.0
+            ctn_prev2 = round(float(d_rows[d_rows["paid_on"] == prev2_m]["qty_ctn"].sum()), 2) if not d_rows.empty else 0.0
 
             # Volume drop
             volume_drop_pct = None
@@ -799,7 +811,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month):
                     new_sku_status[grp] = "none"
 
             # Sales type for this debtor this month
-            cur_sales_types = d_rows[d_rows["paid_on"] == cur_m]["sales_type"].unique().tolist()
+            cur_sales_types = d_rows[d_rows["paid_on"] == cur_m]["sales_type"].unique().tolist() if not d_rows.empty else []
 
             debtor_cards.append({
                 "debtor_code":        dcode,
