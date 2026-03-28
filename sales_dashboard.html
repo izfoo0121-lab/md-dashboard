@@ -68,37 +68,47 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .filter-chip{font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
 .filter-chip.active{background:var(--accent);color:#000;border-color:var(--accent);}
 
-.debtor-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;}
-.debtor-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
-.debtor-name{font-weight:600;font-size:13px;line-height:1.2;}
-.debtor-code{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px;}
-.badge-row{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;}
-.badge{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:10px;}
-.badge-active{background:rgba(61,220,132,.15);color:var(--green);}
-.badge-pending{background:rgba(255,95,95,.15);color:var(--red);}
-.badge-reactiv{background:rgba(255,154,60,.15);color:var(--orange);}
-.badge-vip{background:rgba(240,192,64,.2);color:var(--accent);}
-.badge-new{background:rgba(77,166,255,.15);color:var(--blue);}
-.badge-bday{background:rgba(167,139,250,.15);color:var(--purple);}
-.badge-type{background:rgba(255,255,255,.08);color:var(--muted);}
+.sku-dot{width:32px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:7px;text-align:center;line-height:1.2;flex-direction:column;}
+.sku-green{background:rgba(61,220,132,.2);color:var(--green);border:1px solid rgba(61,220,132,.4);}   /* new penetration */
+.sku-yellow{background:rgba(240,192,64,.15);color:var(--accent);border:1px solid rgba(240,192,64,.3);} /* regular buyer */
+.sku-red{background:rgba(255,95,95,.15);color:var(--red);border:1px solid rgba(255,95,95,.3);}         /* lapsed */
 
-.debtor-metrics{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;}
-.metric-box{background:var(--surface);border-radius:8px;padding:7px 10px;}
-.metric-lbl{font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
-.metric-val{font-family:var(--mono);font-size:14px;margin-top:2px;}
+/* Brand filter banner */
+.brand-banner{background:rgba(240,192,64,.12);border:1px solid rgba(240,192,64,.3);border-radius:10px;padding:8px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.brand-banner-text{font-family:var(--mono);font-size:11px;color:var(--accent);}
+.brand-banner-close{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0;line-height:1;}
 
-.ctn-bars{display:flex;gap:4px;align-items:flex-end;height:30px;margin-bottom:8px;}
-.ctn-bar{flex:1;background:var(--border);border-radius:2px;position:relative;}
-.ctn-bar-fill{position:absolute;bottom:0;left:0;right:0;border-radius:2px;background:var(--blue);transition:height .4s ease;}
-.ctn-bar-label{font-family:var(--mono);font-size:7px;color:var(--muted);text-align:center;margin-top:3px;}
+/* Debtor card new layout */
+.dc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.dc-left{flex:1;}
+.dc-name{font-weight:600;font-size:13px;line-height:1.2;margin-bottom:2px;}
+.dc-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.dc-code{font-family:var(--mono);font-size:10px;color:var(--blue);}
+.dc-type{font-family:var(--mono);font-size:9px;background:rgba(255,255,255,.08);color:var(--muted);padding:1px 6px;border-radius:8px;}
+.dc-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.dc-phone{color:var(--blue);text-decoration:none;font-family:var(--mono);font-size:10px;display:flex;align-items:center;gap:3px;}
+.dc-badges{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;}
 
+/* CTN 3-month bars */
+.ctn-section{margin:8px 0;}
+.ctn-header{display:flex;justify-content:space-between;margin-bottom:4px;}
+.ctn-header-lbl{font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+.ctn-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
+.ctn-col{background:var(--surface);border-radius:6px;padding:5px 6px;text-align:center;}
+.ctn-col-val{font-family:var(--mono);font-size:12px;font-weight:500;}
+.ctn-col-lbl{font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:1px;}
+.ctn-col.cur{background:rgba(77,166,255,.1);border:1px solid rgba(77,166,255,.2);}
+
+/* SKU row */
+.sku-section{margin-top:8px;}
+.sku-section-lbl{font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
 .sku-row{display:flex;gap:4px;flex-wrap:wrap;}
-.sku-dot{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:7px;text-align:center;line-height:1.1;}
-.sku-this{background:rgba(61,220,132,.15);color:var(--green);}
-.sku-past{background:rgba(240,192,64,.12);color:var(--accent);}
-.sku-never{background:rgba(255,255,255,.05);color:var(--muted);}
 
-.phone-link{color:var(--blue);text-decoration:none;font-family:var(--mono);font-size:11px;}
+/* Status badge inline */
+.status-inline{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:10px;}
+.si-active{background:rgba(61,220,132,.15);color:var(--green);}
+.si-pending{background:rgba(255,95,95,.15);color:var(--red);}
+.si-reactiv{background:rgba(255,154,60,.15);color:var(--orange);}
 
 /* pagination */
 .pagination{display:flex;justify-content:space-between;align-items:center;margin-top:10px;}
@@ -227,19 +237,32 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 <!-- ── View 1: Debtors ── -->
 <div id="view-debtors" class="view active">
   <div class="summary-strip" id="summary-strip">
-    <div class="summary-box"><div class="val" id="sum-total">—</div><div class="lbl">Total</div></div>
-    <div class="summary-box"><div class="val" style="color:var(--green)" id="sum-active">—</div><div class="lbl">Active</div></div>
-    <div class="summary-box"><div class="val" style="color:var(--red)" id="sum-pending">—</div><div class="lbl">Pending</div></div>
-    <div class="summary-box"><div class="val" style="color:var(--orange)" id="sum-reactiv">—</div><div class="lbl">Reactivate</div></div>
+    <div class="summary-box">
+      <div class="val" id="sum-total">—</div>
+      <div class="lbl">Total</div>
+    </div>
+    <div class="summary-box">
+      <div class="val" style="color:var(--green)" id="sum-active">—</div>
+      <div class="lbl">Active</div>
+    </div>
+    <div class="summary-box">
+      <div class="val" style="color:var(--orange)" id="sum-reactiv">—</div>
+      <div class="lbl">待激活</div>
+    </div>
+    <div class="summary-box">
+      <div class="val" style="color:var(--blue)" id="sum-rate">—</div>
+      <div class="lbl">光顾率*</div>
+    </div>
   </div>
+  <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:2px 2px 6px;"> * 持续光顾率 excludes P-Personal debtor type</div>
   <input class="search-bar" id="debtor-search" placeholder="Search debtor name or code..." oninput="renderDebtors()">
-  <div class="filter-row">
-    <button class="filter-chip active" onclick="setFilter('status','all',this)">All</button>
-    <button class="filter-chip" onclick="setFilter('status','active',this)">✅ Active</button>
-    <button class="filter-chip" onclick="setFilter('status','pending',this)">❌ Pending</button>
-    <button class="filter-chip" onclick="setFilter('status','need_reactivation',this)">⚠️ Reactivate</button>
+  <div class="filter-row" id="status-filter-row">
+    <button class="filter-chip active" data-val="all" onclick="setFilter('status','all',this)">All</button>
+    <button class="filter-chip" data-val="active" onclick="setFilter('status','active',this)">✅ Active</button>
+    <button class="filter-chip" data-val="pending" onclick="setFilter('status','pending',this)">❌ Pending</button>
+    <button class="filter-chip" data-val="need_reactivation" onclick="setFilter('status','need_reactivation',this)">⚠️ Reactivate</button>
   </div>
-  <div class="filter-row">
+  <div class="filter-row" id="special-filter-row">
     <button class="filter-chip" onclick="setFilter('special','vip',this)">⭐ VIP</button>
     <button class="filter-chip" onclick="setFilter('special','new',this)">🆕 New</button>
     <button class="filter-chip" onclick="setFilter('special','birthday',this)">🎂 Birthday</button>
@@ -475,117 +498,137 @@ function setBrandFilter(val, el) {
 
 function renderDebtors() {
   if (!currentAgent || !DATA) return;
-  const agData = DATA.agents[currentAgent]?.debtor_cards || {};
+  const agData  = DATA.agents[currentAgent]?.debtor_cards || {};
   const debtors = agData.debtors || [];
 
-  // Summary strip
-  document.getElementById('sum-total').textContent   = agData.total_debtors || 0;
-  document.getElementById('sum-active').textContent  = agData.active_count || 0;
-  document.getElementById('sum-pending').textContent = agData.pending_count || 0;
-  document.getElementById('sum-reactiv').textContent = agData.reactivation_count || 0;
+  // Summary strip — activation rate (excl. Personal) + 待激活
+  const total   = agData.total_debtors || 0;
+  const active  = agData.active_count  || 0;
+  const pending = agData.pending_count || 0;
+  const reactiv = agData.reactivation_count || 0;
+  const rate    = agData.activation_rate ?? 0;
+  const npTotal = agData.activation_base   ?? total;
+  const npActive= agData.activation_active ?? active;
+
+  document.getElementById('sum-total').textContent   = total;
+  document.getElementById('sum-active').textContent  = active;
+  document.getElementById('sum-reactiv').textContent = reactiv;
+  const rateEl = document.getElementById('sum-rate');
+  rateEl.textContent = rate + '%';
+  rateEl.title = `${npActive} / ${npTotal} (excl. Personal)`;
 
   // Filter
-  const search = document.getElementById('debtor-search').value.toLowerCase();
+  const search = (document.getElementById('debtor-search')?.value || '').toLowerCase();
+  const SKU_GRP = {'IFACE':'IFACE','SUKUN':'SUKUN','EVO':'EVO','BISON':'BISON','LAM+LWM':'LAM+LWM'};
+
   let filtered = debtors.filter(d => {
     if (search && !d.company_name.toLowerCase().includes(search) && !d.debtor_code.toLowerCase().includes(search)) return false;
     if (filters.status !== 'all' && d.status !== filters.status) return false;
-    if (filters.special === 'vip' && !d.vip) return false;
-    if (filters.special === 'new' && !d.is_new) return false;
+    if (filters.special === 'vip'      && !d.vip)                return false;
+    if (filters.special === 'new'      && !d.is_new)             return false;
     if (filters.special === 'birthday' && !d.birthday_this_month) return false;
-    if (filters.special === 'drop' && !d.volume_drop_pct) return false;
-    if (filters.type !== 'all' && d.debtor_type !== filters.type) return false;
-    // Brand filter: show debtors who NEVER bought that brand
+    if (filters.special === 'drop'     && !d.volume_drop_pct)    return false;
+    if (filters.type !== 'all'         && d.debtor_type !== filters.type) return false;
     if (filters.brand !== 'all') {
-      const skuMap = { 'IFACE':'IFACE', 'SUKUN':'SUKUN', 'EVO':'EVO', 'BISON':'BISON', 'LAM+LWM':'LAM+LWM' };
-      const grp = skuMap[filters.brand] || filters.brand;
-      const sku = d.sku_status || {};
-      if (sku[grp] !== 'never') return false;
+      const grp = SKU_GRP[filters.brand] || filters.brand;
+      const st  = (d.sku_status || {})[grp];
+      if (st !== 'lapsed') return false;
     }
     return true;
   });
 
-  // Paginate
-  const total = filtered.length;
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  currentPage = Math.min(currentPage, pages);
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const pageItems = filtered.slice(start, start + PAGE_SIZE);
+  // Brand banner
+  let bannerEl = document.getElementById('brand-banner');
+  if (!bannerEl) {
+    bannerEl = document.createElement('div');
+    bannerEl.id = 'brand-banner';
+    bannerEl.className = 'brand-banner';
+    bannerEl.style.display = 'none';
+    document.getElementById('debtor-list').before(bannerEl);
+  }
+  if (filters.brand !== 'all') {
+    bannerEl.style.display = 'flex';
+    bannerEl.innerHTML = `<span class="brand-banner-text">Not purchased ${filters.brand} — ${filtered.length} debtors</span>
+      <button class="brand-banner-close" onclick="setBrandFilter('all',document.querySelector('#brand-filter-row .filter-chip'))">×</button>`;
+  } else {
+    bannerEl.style.display = 'none';
+  }
 
-  document.getElementById('page-info').textContent = `${start+1}–${Math.min(start+PAGE_SIZE,total)} of ${total}`;
+  // Paginate
+  const totalF = filtered.length;
+  const pages  = Math.max(1, Math.ceil(totalF / PAGE_SIZE));
+  currentPage  = Math.min(currentPage, pages);
+  const start  = (currentPage - 1) * PAGE_SIZE;
+  const items  = filtered.slice(start, start + PAGE_SIZE);
+
+  document.getElementById('page-info').textContent  = `${start+1}–${Math.min(start+PAGE_SIZE,totalF)} of ${totalF}`;
   document.getElementById('btn-prev').disabled = currentPage <= 1;
   document.getElementById('btn-next').disabled = currentPage >= pages;
 
   // Render cards
-  const maxCTN = Math.max(...debtors.map(d => Math.max(d.ctn_cur||0, d.ctn_prev1||0, d.ctn_prev2||0)), 1);
+  const html = items.map(d => {
+    const stCls = d.status==='active' ? 'si-active' : d.status==='pending' ? 'si-pending' : 'si-reactiv';
+    const stTxt = d.status==='active' ? '✅ Active'  : d.status==='pending' ? '❌ Pending' : '⚠️ Reactivate';
 
-  const html = pageItems.map(d => {
-    const statusBadge = d.status === 'active'
-      ? '<span class="badge badge-active">✅ Active</span>'
-      : d.status === 'pending'
-      ? '<span class="badge badge-pending">❌ Pending</span>'
-      : '<span class="badge badge-reactiv">⚠️ Reactivate</span>';
+    const badges = [
+      `<span class="status-inline ${stCls}">${stTxt}</span>`,
+      d.vip             ? `<span class="status-inline" style="background:rgba(240,192,64,.2);color:var(--accent)">⭐ VIP</span>` : '',
+      d.is_new          ? `<span class="status-inline" style="background:rgba(77,166,255,.15);color:var(--blue)">🆕 New</span>` : '',
+      d.birthday_this_month ? `<span class="status-inline" style="background:rgba(167,139,250,.15);color:var(--purple)">🎂 ${d.days_to_birthday??''}d</span>` : '',
+      d.volume_drop_pct ? `<span class="status-inline" style="background:rgba(255,95,95,.15);color:var(--red)">📉 -${d.volume_drop_pct}%</span>` : '',
+    ].filter(Boolean).join('');
 
-    const extraBadges = [
-      d.vip ? '<span class="badge badge-vip">⭐ VIP</span>' : '',
-      d.is_new ? '<span class="badge badge-new">🆕 New</span>' : '',
-      d.birthday_this_month ? `<span class="badge badge-bday">🎂 ${d.days_to_birthday}d</span>` : '',
-      d.volume_drop_pct ? `<span class="badge badge-reactiv">📉 -${d.volume_drop_pct}%</span>` : '',
-      d.debtor_type ? `<span class="badge badge-type">${d.debtor_type}</span>` : '',
-    ].join('');
+    const ctn0 = d.ctn_prev2 ?? 0;
+    const ctn1 = d.ctn_prev1 ?? 0;
+    const ctn2 = d.ctn_cur   ?? 0;
+    const trendIcon  = ctn2 > ctn1 ? '▲' : ctn2 < ctn1 ? '▼' : '→';
+    const trendColor = ctn2 > ctn1 ? 'var(--green)' : ctn2 < ctn1 ? 'var(--red)' : 'var(--muted)';
 
-    const trendIcon = d.trend === 'up' ? '▲' : d.trend === 'down' ? '▼' : '→';
-    const trendColor = d.trend === 'up' ? 'var(--green)' : d.trend === 'down' ? 'var(--red)' : 'var(--muted)';
+    const skuHtml = Object.entries(d.sku_status || {}).map(([grp, st]) => {
+      const cls = st==='new_penetration' ? 'sku-green' : st==='regular' ? 'sku-yellow' : 'sku-red';
+      const lbl = grp.replace('LAM+LWM','L+L').replace('IFACE','iFACE');
+      const tip = st==='new_penetration' ? 'New this month!' : st==='regular' ? 'Regular buyer' : 'Not purchased';
+      return `<div class="sku-dot ${cls}" title="${grp}: ${tip}">${lbl}</div>`;
+    }).join('');
 
-    const h1 = Math.round((d.ctn_prev2||0)/maxCTN*100);
-    const h2 = Math.round((d.ctn_prev1||0)/maxCTN*100);
-    const h3 = Math.round((d.ctn_cur||0)/maxCTN*100);
-
-    const skuHtml = Object.entries(d.sku_status||{}).map(([grp, st]) =>
-      `<div class="sku-dot sku-${st === 'this_month' ? 'this' : st === 'past_months' ? 'past' : 'never'}">${grp.replace('+','<br>+')}</div>`
-    ).join('');
+    const phone = d.phone && d.phone !== 'nan' && d.phone.trim() !== '' ? d.phone : '';
 
     return `<div class="debtor-card">
-      <div class="debtor-header">
-        <div>
-          <div class="debtor-name">${d.company_name}</div>
-          <div class="debtor-code">${d.debtor_code}</div>
+      <div class="dc-top">
+        <div class="dc-left">
+          <div class="dc-name">${d.company_name || d.debtor_code}</div>
+          <div class="dc-meta">
+            <span class="dc-code">${d.debtor_code}</span>
+            ${d.debtor_type ? `<span class="dc-type">${d.debtor_type}</span>` : ''}
+          </div>
         </div>
-        ${d.phone ? `<a href="tel:${d.phone}" class="phone-link">📞 ${d.phone}</a>` : ''}
-      </div>
-      <div class="badge-row">${statusBadge}${extraBadges}</div>
-      <div class="debtor-metrics">
-        <div class="metric-box">
-          <div class="metric-lbl">CTN This Month</div>
-          <div class="metric-val" style="color:var(--accent)">${fmtNum(d.ctn_cur)} <span style="color:${trendColor};font-size:12px">${trendIcon}</span></div>
-        </div>
-        <div class="metric-box">
-          <div class="metric-lbl">Last Purchase</div>
-          <div class="metric-val" style="font-size:11px;color:var(--muted)">${d.last_purchase_date||'—'}</div>
+        <div class="dc-right">
+          ${phone ? `<a href="tel:${phone}" class="dc-phone">📞 ${phone}</a>` : ''}
+          <div class="dc-badges">${badges}</div>
         </div>
       </div>
-      <div class="ctn-bars">
-        <div class="ctn-bar" style="height:100%">
-          <div class="ctn-bar-fill" style="height:${h1}%"></div>
-          <div class="ctn-bar-label">M-2</div>
+
+      <div class="ctn-section">
+        <div class="ctn-header">
+          <span class="ctn-header-lbl">3-Month CTN</span>
+          <span style="font-family:var(--mono);font-size:9px;color:${trendColor}">${trendIcon} ${ctn2>0?fmtNum(ctn2)+' CTN':'No purchase this month'}</span>
         </div>
-        <div class="ctn-bar" style="height:100%">
-          <div class="ctn-bar-fill" style="height:${h2}%"></div>
-          <div class="ctn-bar-label">M-1</div>
-        </div>
-        <div class="ctn-bar" style="height:100%">
-          <div class="ctn-bar-fill" style="height:${h3}%"></div>
-          <div class="ctn-bar-label">Now</div>
+        <div class="ctn-grid">
+          <div class="ctn-col"><div class="ctn-col-val" style="color:var(--muted)">${fmtNum(ctn0)}</div><div class="ctn-col-lbl">M-2</div></div>
+          <div class="ctn-col"><div class="ctn-col-val" style="color:var(--muted)">${fmtNum(ctn1)}</div><div class="ctn-col-lbl">M-1</div></div>
+          <div class="ctn-col cur"><div class="ctn-col-val" style="color:var(--blue)">${fmtNum(ctn2)}</div><div class="ctn-col-lbl">This Month</div></div>
         </div>
       </div>
-      <div class="sku-row">${skuHtml}</div>
-      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:6px;">
-        SKU ${d.sku_bought_groups}/${d.sku_total_groups} groups bought
-        ${d.sales_types?.length ? ' · ' + d.sales_types.join(', ') : ''}
+
+      <div class="sku-section">
+        <div class="sku-section-lbl">SKU Group &nbsp;·&nbsp; Last: ${d.last_purchase_date||'—'} &nbsp;·&nbsp; <span style="color:var(--green)">🟢</span>New &nbsp;<span style="color:var(--accent)">🟡</span>Regular &nbsp;<span style="color:var(--red)">🔴</span>Lapsed</div>
+        <div class="sku-row">${skuHtml}</div>
       </div>
     </div>`;
   }).join('');
 
-  document.getElementById('debtor-list').innerHTML = html || '<div style="text-align:center;padding:30px;font-family:var(--mono);font-size:11px;color:var(--muted);">No debtors match filter</div>';
+  document.getElementById('debtor-list').innerHTML = html ||
+    `<div style="text-align:center;padding:30px;font-family:var(--mono);font-size:11px;color:var(--muted);">No debtors match filter</div>`;
 }
 
 function changePage(dir) { currentPage += dir; renderDebtors(); }

@@ -698,21 +698,26 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month):
                 trend = "flat"
 
             # SKU group status per group
+            # green  = didn't buy last 3 months BUT bought this month (new penetration)
+            # yellow = bought in last 3 months (regular — may or may not buy this month)
+            # red    = not bought in last 3 months AND not this month (lapsed)
             sku_status = {}
             sku_bought_groups = 0
             for grp, codes in sku_groups.items():
                 grp_rows = d_rows[d_rows["item_code"].isin(codes)]
-                bought_this_month  = cur_m  in grp_rows["paid_on"].values
+                bought_this_month  = cur_m in grp_rows["paid_on"].values
                 bought_past_months = any(
                     m in grp_rows["paid_on"].values for m in [prev1_m, prev2_m, prev3_m]
                 )
-                if bought_this_month:
-                    sku_status[grp] = "this_month"
+                if bought_this_month and not bought_past_months:
+                    sku_status[grp] = "new_penetration"  # 🟢 green
                     sku_bought_groups += 1
                 elif bought_past_months:
-                    sku_status[grp] = "past_months"
+                    sku_status[grp] = "regular"          # 🟡 yellow
+                    if bought_this_month:
+                        sku_bought_groups += 1
                 else:
-                    sku_status[grp] = "never"
+                    sku_status[grp] = "lapsed"           # 🔴 red
 
             # Debtor info
             info = debtor_info.get(dcode, {})
@@ -776,13 +781,28 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month):
         active_count   = sum(1 for d in debtor_cards if d["status"] == "active")
         pending_count  = sum(1 for d in debtor_cards if d["status"] == "pending")
         reactiv_count  = sum(1 for d in debtor_cards if d["status"] == "need_reactivation")
+        total          = len(debtor_cards)
+
+        # 持续光顾率 = active (excl. Personal) ÷ total (excl. Personal)
+        # Exclude P-Personal debtor type from this calculation
+        PERSONAL_TYPES = {"P-Personal", "P-PERSONAL", "personal", "Personal", "PERSONAL"}
+        non_personal   = [d for d in debtor_cards if d.get("type","") not in PERSONAL_TYPES
+                          and d.get("debtor_type","") not in PERSONAL_TYPES]
+        np_total       = len(non_personal)
+        np_active      = sum(1 for d in non_personal if d["status"] == "active")
+        activation_rate = round(np_active / np_total * 100, 1) if np_total > 0 else 0
 
         result[agent] = {
-            "debtors":         debtor_cards,
-            "total_debtors":   len(debtor_cards),
-            "active_count":    active_count,
-            "pending_count":   pending_count,
+            "debtors":            debtor_cards,
+            "total_debtors":      total,
+            "active_count":       active_count,
+            "pending_count":      pending_count,
             "reactivation_count": reactiv_count,
+            "activation_rate":    activation_rate,   # 持续光顾率 % (excl. Personal)
+            "activation_base":    np_total,          # denominator used for rate
+            "activation_active":  np_active,         # numerator used for rate
+            # 激活户口 = need reactivation (待激活)
+            "pending_activation": reactiv_count,
         }
 
     return result
