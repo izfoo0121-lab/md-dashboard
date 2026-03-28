@@ -750,21 +750,30 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month):
             # red    = not bought in last 3 months AND not this month (lapsed)
             sku_status = {}
             sku_bought_groups = 0
+            sku_sales_type = {}  # sales type per SKU group this month
             for grp, codes in sku_groups.items():
                 grp_rows = d_rows[d_rows["item_code"].isin(codes)]
-                bought_this_month  = cur_m in grp_rows["paid_on"].values
-                bought_past_months = any(
-                    m in grp_rows["paid_on"].values for m in [prev1_m, prev2_m, prev3_m]
-                )
-                if bought_this_month and not bought_past_months:
-                    sku_status[grp] = "new_penetration"  # 🟢 green
+                bought_this  = cur_m in grp_rows["paid_on"].values
+                bought_past  = any(m in grp_rows["paid_on"].values for m in [prev1_m, prev2_m, prev3_m])
+                if bought_this and not bought_past:
+                    sku_status[grp] = "new_penetration"
                     sku_bought_groups += 1
-                elif bought_past_months:
-                    sku_status[grp] = "regular"          # 🟡 yellow
-                    if bought_this_month:
+                elif bought_past:
+                    sku_status[grp] = "regular"
+                    if bought_this:
                         sku_bought_groups += 1
                 else:
-                    sku_status[grp] = "lapsed"           # 🔴 red
+                    sku_status[grp] = "lapsed"
+
+                # Sales type for this SKU group this month
+                if bought_this:
+                    cur_grp_rows = grp_rows[grp_rows["paid_on"] == cur_m]
+                    types = cur_grp_rows["sales_type"].unique().tolist()
+                    # Pick best tier: Target > Grey Area > MA > MA Promo > Below MA
+                    tier_order = ["Target", "Grey Area", "Master Agent 35/45/55",
+                                  "Master Agent/Promo", "Below Master Agent"]
+                    best = next((t for t in tier_order if t in types), types[0] if types else "")
+                    sku_sales_type[grp] = best
 
             # Debtor info
             info = debtor_info.get(dcode, {})
@@ -830,6 +839,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month):
                 "volume_drop_pct":    volume_drop_pct,
                 "trend":              trend,
                 "sku_status":         sku_status,
+                "sku_sales_type":     sku_sales_type,
                 "sku_bought_groups":  sku_bought_groups,
                 "sku_total_groups":   len(sku_groups),
                 "new_sku_count":      new_sku_count,
