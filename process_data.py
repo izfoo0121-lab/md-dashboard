@@ -223,7 +223,9 @@ def load_debtors():
         log("⚠  Debtor file not found — debtor info will be empty")
         return pd.DataFrame()
     df = pd.read_excel(DEBTOR_FILE, dtype=str, engine="openpyxl")
-    df.columns = [c.strip() for c in df.columns]
+    df.columns = [str(c).strip() for c in df.columns]
+    log(f"  ALL Debtor columns: {list(df.columns)}")
+    log(f"  Total rows: {len(df)}")
     return df
 
 
@@ -614,34 +616,54 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month):
     # Build debtor lookup from Debtor Maintenance
     debtor_info = {}
     if not debtor_df.empty:
-        # Log actual columns to help debug mismatches
-        log(f"  Debtor columns: {list(debtor_df.columns[:10])}")
+        cols = list(debtor_df.columns)
+        log(f"  Debtor columns: {cols}")
 
-        # Flexible column name matching — lowercase comparison
-        col_map = {}
-        for col in debtor_df.columns:
-            cl = col.strip().lower()
-            if 'debtor' in cl and 'code' in cl:      col_map['code']  = col
-            elif 'company' in cl or 'name' in cl:    col_map.setdefault('name', col)
-            elif 'phone' in cl or 'tel' in cl or 'mobile' in cl: col_map['phone'] = col
-            elif 'attention' in cl or 'remark' in cl: col_map['vip']  = col
-            elif 'birth' in cl:                       col_map['birth'] = col
-            elif 'open' in cl and ('acc' in cl or 'date' in cl): col_map['open']  = col
-            elif 'type' in cl:                        col_map.setdefault('type', col)
-        log(f"  Debtor col_map: {col_map}")
+        # Try name-based matching first, then fall back to column index
+        def find_col(keywords, fallback_idx=None):
+            for col in cols:
+                cl = str(col).lower().strip()
+                if any(k in cl for k in keywords):
+                    return col
+            # Fallback to positional index
+            if fallback_idx is not None and fallback_idx < len(cols):
+                log(f"  ⚠ Using col index {fallback_idx} ({cols[fallback_idx]}) as fallback for {keywords}")
+                return cols[fallback_idx]
+            return None
+
+        # Debtor Maintenance typical layout:
+        # A=Debtor Code, B=Company Name, C=Debtor Type, D=Attention/VIP,
+        # E=Phone, F=Birth Date, G=Open Acct Date  (adjust if different)
+        code_col  = find_col(['debtor code', 'code'],          0)
+        name_col  = find_col(['company', 'name'],               1)
+        type_col  = find_col(['type'],                          2)
+        vip_col   = find_col(['attention', 'vip', 'remark'],   3)
+        phone_col = find_col(['phone', 'tel', 'mobile', 'hp'], 4)  # Col E
+        birth_col = find_col(['birth'],                         5)
+        open_col  = find_col(['open', 'acc'],                   6)
+
+        log(f"  Col mapping → code:{code_col} name:{name_col} type:{type_col} vip:{vip_col} phone:{phone_col} birth:{birth_col} open:{open_col}")
 
         for _, row in debtor_df.iterrows():
-            code = str(row.get(col_map.get('code', 'Debtor Code'), '')).strip()
-            if code and code != 'nan':
-                vip_raw = str(row.get(col_map.get('vip', 'Attention'), '')).strip().upper()
-                debtor_info[code] = {
-                    "name":       str(row.get(col_map.get('name', 'Company Name'), '')).strip(),
-                    "phone":      str(row.get(col_map.get('phone', 'Phone'), '')).strip().replace('nan',''),
-                    "vip":        vip_raw == "VIP",
-                    "birth_date": row.get(col_map.get('birth', 'Birth Date'), None),
-                    "open_date":  row.get(col_map.get('open', 'Open Acct Date'), None),
-                    "type":       str(row.get(col_map.get('type', 'Debtor Type'), '')).strip().replace('nan',''),
-                }
+            code = str(row.get(code_col, '') if code_col else '').strip()
+            if not code or code.lower() in ('nan', 'none', ''):
+                continue
+
+            phone_raw = str(row.get(phone_col, '') if phone_col else '').strip()
+            phone_raw = '' if phone_raw.lower() in ('nan', 'none') else phone_raw
+
+            vip_raw = str(row.get(vip_col, '') if vip_col else '').strip().upper()
+            type_raw = str(row.get(type_col, '') if type_col else '').strip()
+            type_raw = '' if type_raw.lower() in ('nan', 'none') else type_raw
+
+            debtor_info[code] = {
+                "name":       str(row.get(name_col, code) if name_col else code).strip(),
+                "phone":      phone_raw,
+                "vip":        vip_raw == "VIP",
+                "birth_date": row.get(birth_col, None) if birth_col else None,
+                "open_date":  row.get(open_col, None)  if open_col  else None,
+                "type":       type_raw,
+            }
 
     # SKU groups
     sku_groups = {
@@ -649,6 +671,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month):
         "SUKUN":   ["SKNW", "SKNR"],
         "EVO":     ["EVO"],
         "BISON":   ["BISON-R", "BISON-M", "BISON-G"],
+        "TR20":    ["TR20", "TR-002"],
         "LAM+LWM": ["LAM", "LWM"],
     }
 
