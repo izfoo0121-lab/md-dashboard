@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-03-28 23:54:34",
+  "generated_at": "2026-03-29 00:11:38",
   "current_month": "Mar 26",
   "working_days": {
-    "date": "2026-03-28",
+    "date": "2026-03-29",
     "month_label": "Mar 2026",
     "total_working_days": 26,
     "elapsed_working_days": 24,
@@ -241,7 +241,7 @@
             "debtor_code": "300-BR077",
             "company_name": "MAS (KH240 FRIEND)",
             "invoice_date": "12/01/2026",
-            "days_outstanding": 75,
+            "days_outstanding": 76,
             "qty_ctn": 2.0,
             "item_code": "SKNR"
           },
@@ -250,7 +250,7 @@
             "debtor_code": "300-BR077",
             "company_name": "MAS (KH240 FRIEND)",
             "invoice_date": "12/01/2026",
-            "days_outstanding": 75,
+            "days_outstanding": 76,
             "qty_ctn": 2.0,
             "item_code": "DPM EVO"
           }
@@ -28700,7 +28700,7 @@
             "debtor_code": "3EV-D0087",
             "company_name": "ZUHA",
             "invoice_date": "08/01/2026",
-            "days_outstanding": 79,
+            "days_outstanding": 80,
             "qty_ctn": 1.0,
             "item_code": "LWM"
           },
@@ -28709,7 +28709,7 @@
             "debtor_code": "3EV-D0087",
             "company_name": "ZUHA",
             "invoice_date": "08/01/2026",
-            "days_outstanding": 79,
+            "days_outstanding": 80,
             "qty_ctn": 1.0,
             "item_code": "SKNR"
           },
@@ -28718,7 +28718,7 @@
             "debtor_code": "3EV-D0087",
             "company_name": "ZUHA",
             "invoice_date": "08/01/2026",
-            "days_outstanding": 79,
+            "days_outstanding": 80,
             "qty_ctn": 1.0,
             "item_code": "IFACE R"
           },
@@ -28727,7 +28727,7 @@
             "debtor_code": "3EV-D0087",
             "company_name": "ZUHA",
             "invoice_date": "08/01/2026",
-            "days_outstanding": 79,
+            "days_outstanding": 80,
             "qty_ctn": 1.0,
             "item_code": "BISON-R"
           },
@@ -28736,7 +28736,7 @@
             "debtor_code": "3EV-D0160",
             "company_name": "DADDY MIE",
             "invoice_date": "14/01/2026",
-            "days_outstanding": 73,
+            "days_outstanding": 74,
             "qty_ctn": 2.0,
             "item_code": "SKNW"
           },
@@ -28745,7 +28745,7 @@
             "debtor_code": "3EV-D0160",
             "company_name": "DADDY MIE",
             "invoice_date": "14/01/2026",
-            "days_outstanding": 73,
+            "days_outstanding": 74,
             "qty_ctn": 2.0,
             "item_code": "SKNR"
           },
@@ -28754,7 +28754,7 @@
             "debtor_code": "3EV-D0160",
             "company_name": "DADDY MIE",
             "invoice_date": "14/01/2026",
-            "days_outstanding": 73,
+            "days_outstanding": 74,
             "qty_ctn": 2.0,
             "item_code": "CMP"
           },
@@ -28763,7 +28763,7 @@
             "debtor_code": "3EV-D0160",
             "company_name": "DADDY MIE",
             "invoice_date": "14/01/2026",
-            "days_outstanding": 73,
+            "days_outstanding": 74,
             "qty_ctn": 1.0,
             "item_code": "IFACE M"
           },
@@ -28772,7 +28772,7 @@
             "debtor_code": "3EV-D0160",
             "company_name": "DADDY MIE",
             "invoice_date": "14/01/2026",
-            "days_outstanding": 73,
+            "days_outstanding": 74,
             "qty_ctn": 2.0,
             "item_code": "IFACE B"
           },
@@ -28781,7 +28781,7 @@
             "debtor_code": "3EV-J0319",
             "company_name": "FALSUL",
             "invoice_date": "20/01/2026",
-            "days_outstanding": 67,
+            "days_outstanding": 68,
             "qty_ctn": 1.0,
             "item_code": "TR-002"
           }
@@ -44217,7 +44217,7 @@
             "debtor_code": "300-KV140",
             "company_name": "LISA (HIGHWAY隔壁里面)",
             "invoice_date": "12/12/2025",
-            "days_outstanding": 106,
+            "days_outstanding": 107,
             "qty_ctn": 10.0,
             "item_code": "CMX"
           },
@@ -44226,7 +44226,7 @@
             "debtor_code": "300-KV140",
             "company_name": "LISA (HIGHWAY隔壁里面)",
             "invoice_date": "12/12/2025",
-            "days_outstanding": 106,
+            "days_outstanding": 107,
             "qty_ctn": 6.0,
             "item_code": "DPM EVO"
           },
@@ -44235,7 +44235,7 @@
             "debtor_code": "300-KV140",
             "company_name": "LISA (HIGHWAY隔壁里面)",
             "invoice_date": "12/12/2025",
-            "days_outstanding": 106,
+            "days_outstanding": 107,
             "qty_ctn": 2.0,
             "item_code": "CM-002"
           },
@@ -44244,7 +44244,7 @@
             "debtor_code": "300-KV140",
             "company_name": "LISA (HIGHWAY隔壁里面)",
             "invoice_date": "12/12/2025",
-            "days_outstanding": 106,
+            "days_outstanding": 107,
             "qty_ctn": 10.0,
             "item_code": "SKNR"
           },
@@ -44253,7 +44253,7 @@
             "debtor_code": "3EV-E0146",
             "company_name": "MAKCIK NOR (whatsapp call only)",
             "invoice_date": "24/12/2025",
-            "days_outstanding": 94,
+            "days_outstanding": 95,
             "qty_ctn": 5.0,
             "item_code": "IFACE B"
           },
@@ -44262,7 +44262,7 @@
             "debtor_code": "3EV-E0146",
             "company_name": "MAKCIK NOR (whatsapp call only)",
             "invoice_date": "24/12/2025",
-            "days_outstanding": 94,
+            "days_outstanding": 95,
             "qty_ctn": 5.0,
             "item_code": "SKNW"
           },
@@ -44271,7 +44271,7 @@
             "debtor_code": "300-KV140",
             "company_name": "LISA (HIGHWAY隔壁里面)",
             "invoice_date": "25/12/2025",
-            "days_outstanding": 93,
+            "days_outstanding": 94,
             "qty_ctn": 4.0,
             "item_code": "CM-002"
           },
@@ -44280,7 +44280,7 @@
             "debtor_code": "300-KV140",
             "company_name": "LISA (HIGHWAY隔壁里面)",
             "invoice_date": "25/12/2025",
-            "days_outstanding": 93,
+            "days_outstanding": 94,
             "qty_ctn": 4.0,
             "item_code": "CMP"
           },
@@ -44289,7 +44289,7 @@
             "debtor_code": "300-KV140",
             "company_name": "LISA (HIGHWAY隔壁里面)",
             "invoice_date": "25/12/2025",
-            "days_outstanding": 93,
+            "days_outstanding": 94,
             "qty_ctn": 4.0,
             "item_code": "CMX"
           },
@@ -44298,7 +44298,7 @@
             "debtor_code": "300-KV140",
             "company_name": "LISA (HIGHWAY隔壁里面)",
             "invoice_date": "25/12/2025",
-            "days_outstanding": 93,
+            "days_outstanding": 94,
             "qty_ctn": 4.0,
             "item_code": "DPM EVO"
           },
@@ -44307,7 +44307,7 @@
             "debtor_code": "300-KV140",
             "company_name": "LISA (HIGHWAY隔壁里面)",
             "invoice_date": "25/12/2025",
-            "days_outstanding": 93,
+            "days_outstanding": 94,
             "qty_ctn": 2.0,
             "item_code": "SKNR"
           },
@@ -44316,7 +44316,7 @@
             "debtor_code": "3EV-E0146",
             "company_name": "MAKCIK NOR (whatsapp call only)",
             "invoice_date": "15/01/2026",
-            "days_outstanding": 72,
+            "days_outstanding": 73,
             "qty_ctn": 2.0,
             "item_code": "SKNW"
           },
@@ -44325,7 +44325,7 @@
             "debtor_code": "3EV-E0146",
             "company_name": "MAKCIK NOR (whatsapp call only)",
             "invoice_date": "15/01/2026",
-            "days_outstanding": 72,
+            "days_outstanding": 73,
             "qty_ctn": 2.0,
             "item_code": "IFACE B"
           }

@@ -239,11 +239,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
   <div class="summary-strip" id="summary-strip">
     <div class="summary-box">
       <div class="val" id="sum-total">—</div>
-      <div class="lbl">Total</div>
+      <div class="lbl">总户口</div>
     </div>
     <div class="summary-box">
       <div class="val" style="color:var(--green)" id="sum-active">—</div>
-      <div class="lbl">Active</div>
+      <div class="lbl">已激活</div>
     </div>
     <div class="summary-box">
       <div class="val" style="color:var(--orange)" id="sum-reactiv">—</div>
@@ -254,32 +254,33 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
       <div class="lbl">光顾率*</div>
     </div>
   </div>
-  <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:2px 2px 6px;"> * 持续光顾率 excludes P-Personal debtor type</div>
+  <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:2px 2px 6px;"> * 持续光顾率 excludes P-Personal</div>
   <input class="search-bar" id="debtor-search" placeholder="Search debtor name or code..." oninput="renderDebtors()">
   <div class="filter-row" id="status-filter-row">
-    <button class="filter-chip active" data-val="all" onclick="setFilter('status','all',this)">All</button>
-    <button class="filter-chip" data-val="active" onclick="setFilter('status','active',this)">✅ Active</button>
+    <button class="filter-chip active" data-val="all" onclick="setFilter('status','all',this)">全部 All</button>
+    <button class="filter-chip" data-val="active" onclick="setFilter('status','active',this)">已激活</button>
     <button class="filter-chip" data-val="pending" onclick="setFilter('status','pending',this)">❌ Pending</button>
-    <button class="filter-chip" data-val="need_reactivation" onclick="setFilter('status','need_reactivation',this)">⚠️ Reactivate</button>
+    <button class="filter-chip" data-val="need_reactivation" onclick="setFilter('status','need_reactivation',this)">待激活</button>
   </div>
   <div class="filter-row" id="special-filter-row">
-    <button class="filter-chip" onclick="setFilter('special','vip',this)">⭐ VIP</button>
-    <button class="filter-chip" onclick="setFilter('special','new',this)">🆕 New</button>
-    <button class="filter-chip" onclick="setFilter('special','birthday',this)">🎂 Birthday</button>
-    <button class="filter-chip" onclick="setFilter('special','drop',this)">📉 Drop</button>
+    <button class="filter-chip" data-val="vip" onclick="setSpecialFilter('vip',this)">⭐ VIP</button>
+    <button class="filter-chip" data-val="new" onclick="setSpecialFilter('new',this)">🆕 New</button>
+    <button class="filter-chip" data-val="birthday" onclick="setSpecialFilter('birthday',this)">🎂 Birthday</button>
+    <button class="filter-chip" data-val="drop" onclick="setSpecialFilter('drop',this)">📉 Drop</button>
   </div>
   <div class="filter-row" id="type-filter-row">
     <span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">Type:</span>
     <button class="filter-chip active" onclick="setTypeFilter('all',this)">All</button>
   </div>
   <div class="filter-row" id="brand-filter-row">
-    <span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">Not bought:</span>
-    <button class="filter-chip active" onclick="setBrandFilter('all',this)">All</button>
-    <button class="filter-chip" onclick="setBrandFilter('IFACE',this)">iFACE</button>
-    <button class="filter-chip" onclick="setBrandFilter('SUKUN',this)">SUKUN</button>
-    <button class="filter-chip" onclick="setBrandFilter('EVO',this)">EVO</button>
-    <button class="filter-chip" onclick="setBrandFilter('BISON',this)">BISON</button>
-    <button class="filter-chip" onclick="setBrandFilter('LAM+LWM',this)">LAM+LWM</button>
+    <span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">未购买:</span>
+    <button class="filter-chip active" data-brand="all" onclick="setBrandFilter('all',this)">All</button>
+    <button class="filter-chip" data-brand="IFACE" onclick="setBrandFilter('IFACE',this)">iFACE</button>
+    <button class="filter-chip" data-brand="SUKUN" onclick="setBrandFilter('SUKUN',this)">SUKUN</button>
+    <button class="filter-chip" data-brand="EVO" onclick="setBrandFilter('EVO',this)">EVO</button>
+    <button class="filter-chip" data-brand="BISON" onclick="setBrandFilter('BISON',this)">BISON</button>
+    <button class="filter-chip" data-brand="TR20" onclick="setBrandFilter('TR20',this)">TR20</button>
+    <button class="filter-chip" data-brand="LAM+LWM" onclick="setBrandFilter('LAM+LWM',this)">LAM+LWM</button>
   </div>
   <div id="debtor-list"></div>
   <div class="pagination">
@@ -430,24 +431,23 @@ function selectAgent(agent) {
   currentPage = 1;
   filters = { status: 'all', special: null, type: 'all', brand: 'all' };
 
-  // Reset all filter chips
-  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-  document.querySelectorAll('.filter-chip:first-of-type').forEach(c => {});
-
   if (!agent || !DATA) return;
 
-  // Build dynamic debtor type filter
+  // Reset status filter — first chip active
+  document.querySelectorAll('#status-filter-row .filter-chip').forEach((c,i) => c.classList.toggle('active', i===0));
+  // Clear special
+  document.querySelectorAll('#special-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
+  // Reset brand filter
+  document.querySelectorAll('#brand-filter-row .filter-chip').forEach((c,i) => c.classList.toggle('active', i===0));
+
+  // Build dynamic debtor type filter from agent's actual types
   const debtors = DATA.agents[agent]?.debtor_cards?.debtors || [];
-  const types = [...new Set(debtors.map(d => d.debtor_type).filter(Boolean))].sort();
+  const types = [...new Set(debtors.map(d => d.debtor_type).filter(t => t && t !== 'nan' && t.trim()))].sort();
   const typeRow = document.getElementById('type-filter-row');
-  typeRow.innerHTML = `<span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">Type:</span>
+  typeRow.innerHTML = `
+    <span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">Type:</span>
     <button class="filter-chip active" onclick="setTypeFilter('all',this)">All</button>
     ${types.map(t => `<button class="filter-chip" onclick="setTypeFilter('${t}',this)">${t}</button>`).join('')}`;
-
-  // Reset brand filter
-  document.querySelectorAll('#brand-filter-row .filter-chip').forEach((c,i) => {
-    c.classList.toggle('active', i === 0);
-  });
 
   renderAll();
 }
@@ -474,10 +474,29 @@ function fmtRM(n) { return 'RM ' + parseFloat(n||0).toFixed(2); }
 
 // ── View 1: Debtors ────────────────────────────────────────────────────────
 function setFilter(type, val, el) {
-  document.querySelectorAll('.filter-row:nth-child(2) .filter-chip, .filter-row:nth-child(3) .filter-chip').forEach(c => c.classList.remove('active'));
+  // Status filter row — clear status row chips only
+  document.querySelectorAll('#status-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
-  if (type === 'status') { filters.status = val; filters.special = null; }
-  else { filters.special = val; filters.status = 'all'; }
+  filters.status = val;
+  filters.special = null;
+  // Clear special filter active state too
+  document.querySelectorAll('#special-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
+  currentPage = 1;
+  renderDebtors();
+}
+function setSpecialFilter(val, el) {
+  // Toggle — click again to unselect
+  const isActive = el.classList.contains('active');
+  document.querySelectorAll('#special-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
+  if (isActive) {
+    filters.special = null; // unclick = clear
+  } else {
+    el.classList.add('active');
+    filters.special = val;
+    // Clear status filter back to all
+    filters.status = 'all';
+    document.querySelectorAll('#status-filter-row .filter-chip').forEach((c,i) => c.classList.toggle('active', i===0));
+  }
   currentPage = 1;
   renderDebtors();
 }
@@ -489,9 +508,17 @@ function setTypeFilter(val, el) {
   renderDebtors();
 }
 function setBrandFilter(val, el) {
+  // Toggle — click active brand again to clear
+  const isActive = el.classList.contains('active') && val !== 'all';
   document.querySelectorAll('#brand-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-  filters.brand = val;
+  if (isActive) {
+    // Unclick — reset to All
+    document.querySelector('#brand-filter-row .filter-chip[data-brand="all"]').classList.add('active');
+    filters.brand = 'all';
+  } else {
+    el.classList.add('active');
+    filters.brand = val;
+  }
   currentPage = 1;
   renderDebtors();
 }
@@ -519,7 +546,10 @@ function renderDebtors() {
 
   // Filter
   const search = (document.getElementById('debtor-search')?.value || '').toLowerCase();
-  const SKU_GRP = {'IFACE':'IFACE','SUKUN':'SUKUN','EVO':'EVO','BISON':'BISON','LAM+LWM':'LAM+LWM'};
+  const SKU_GRP = {
+    'IFACE':'IFACE','SUKUN':'SUKUN','EVO':'EVO',
+    'BISON':'BISON','TR20':'TR20','LAM+LWM':'LAM+LWM'
+  };
 
   let filtered = debtors.filter(d => {
     if (search && !d.company_name.toLowerCase().includes(search) && !d.debtor_code.toLowerCase().includes(search)) return false;
@@ -548,8 +578,8 @@ function renderDebtors() {
   }
   if (filters.brand !== 'all') {
     bannerEl.style.display = 'flex';
-    bannerEl.innerHTML = `<span class="brand-banner-text">Not purchased ${filters.brand} — ${filtered.length} debtors</span>
-      <button class="brand-banner-close" onclick="setBrandFilter('all',document.querySelector('#brand-filter-row .filter-chip'))">×</button>`;
+    bannerEl.innerHTML = `<span class="brand-banner-text">还未购买 ${filters.brand} — ${filtered.length} 户口</span>
+      <button class="brand-banner-close" onclick="setBrandFilter('all',document.querySelector('#brand-filter-row .filter-chip[data-brand=\\'all\\']'))">×</button>`;
   } else {
     bannerEl.style.display = 'none';
   }
@@ -567,9 +597,11 @@ function renderDebtors() {
 
   // Render cards
   const html = items.map(d => {
+    // Status label — Chinese
     const stCls = d.status==='active' ? 'si-active' : d.status==='pending' ? 'si-pending' : 'si-reactiv';
-    const stTxt = d.status==='active' ? '✅ Active'  : d.status==='pending' ? '❌ Pending' : '⚠️ Reactivate';
+    const stTxt = d.status==='active' ? '已激活' : d.status==='pending' ? '❌ Pending' : '待激活';
 
+    // Badges
     const badges = [
       `<span class="status-inline ${stCls}">${stTxt}</span>`,
       d.vip             ? `<span class="status-inline" style="background:rgba(240,192,64,.2);color:var(--accent)">⭐ VIP</span>` : '',
@@ -584,14 +616,16 @@ function renderDebtors() {
     const trendIcon  = ctn2 > ctn1 ? '▲' : ctn2 < ctn1 ? '▼' : '→';
     const trendColor = ctn2 > ctn1 ? 'var(--green)' : ctn2 < ctn1 ? 'var(--red)' : 'var(--muted)';
 
+    // SKU dots — Chinese labels
     const skuHtml = Object.entries(d.sku_status || {}).map(([grp, st]) => {
       const cls = st==='new_penetration' ? 'sku-green' : st==='regular' ? 'sku-yellow' : 'sku-red';
       const lbl = grp.replace('LAM+LWM','L+L').replace('IFACE','iFACE');
-      const tip = st==='new_penetration' ? 'New this month!' : st==='regular' ? 'Regular buyer' : 'Not purchased';
+      const tip = st==='new_penetration' ? '当月购买' : st==='regular' ? '3个月内购买' : '还未购买';
       return `<div class="sku-dot ${cls}" title="${grp}: ${tip}">${lbl}</div>`;
     }).join('');
 
-    const phone = d.phone && d.phone !== 'nan' && d.phone.trim() !== '' ? d.phone : '';
+    // Phone — clean null/nan
+    const phone = d.phone && d.phone !== 'nan' && d.phone !== 'None' && d.phone.trim() !== '' ? d.phone.trim() : '';
 
     return `<div class="debtor-card">
       <div class="dc-top">
@@ -611,17 +645,21 @@ function renderDebtors() {
       <div class="ctn-section">
         <div class="ctn-header">
           <span class="ctn-header-lbl">3-Month CTN</span>
-          <span style="font-family:var(--mono);font-size:9px;color:${trendColor}">${trendIcon} ${ctn2>0?fmtNum(ctn2)+' CTN':'No purchase this month'}</span>
+          <span style="font-family:var(--mono);font-size:9px;color:${trendColor}">${trendIcon} ${ctn2>0?fmtNum(ctn2)+' CTN':'本月未购买'}</span>
         </div>
         <div class="ctn-grid">
           <div class="ctn-col"><div class="ctn-col-val" style="color:var(--muted)">${fmtNum(ctn0)}</div><div class="ctn-col-lbl">M-2</div></div>
           <div class="ctn-col"><div class="ctn-col-val" style="color:var(--muted)">${fmtNum(ctn1)}</div><div class="ctn-col-lbl">M-1</div></div>
-          <div class="ctn-col cur"><div class="ctn-col-val" style="color:var(--blue)">${fmtNum(ctn2)}</div><div class="ctn-col-lbl">This Month</div></div>
+          <div class="ctn-col cur"><div class="ctn-col-val" style="color:var(--blue)">${fmtNum(ctn2)}</div><div class="ctn-col-lbl">本月</div></div>
         </div>
       </div>
 
       <div class="sku-section">
-        <div class="sku-section-lbl">SKU Group &nbsp;·&nbsp; Last: ${d.last_purchase_date||'—'} &nbsp;·&nbsp; <span style="color:var(--green)">🟢</span>New &nbsp;<span style="color:var(--accent)">🟡</span>Regular &nbsp;<span style="color:var(--red)">🔴</span>Lapsed</div>
+        <div class="sku-section-lbl">SKU · Last: ${d.last_purchase_date||'—'} &nbsp;
+          <span style="color:var(--green)">●</span>当月购买
+          <span style="color:var(--accent)">●</span>3个月内购买
+          <span style="color:var(--red)">●</span>还未购买
+        </div>
         <div class="sku-row">${skuHtml}</div>
       </div>
     </div>`;
