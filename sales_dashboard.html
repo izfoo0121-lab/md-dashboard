@@ -601,9 +601,13 @@ function renderDebtors() {
     bannerEl.style.borderColor = '';
   }
 
-  // Sort — if drop filter active, sort by drop % highest first
+  // Sort — if drop filter active, sort by CTN drop (M-1 minus this month) highest first
   if (filters.special === 'drop') {
-    filtered.sort((a, b) => (b.volume_drop_pct || 0) - (a.volume_drop_pct || 0));
+    filtered.sort((a, b) => {
+      const dropA = (a.ctn_prev1 || 0) - (a.ctn_cur || 0);
+      const dropB = (b.ctn_prev1 || 0) - (b.ctn_cur || 0);
+      return dropB - dropA;
+    });
   }
   const totalF = filtered.length;
   const pages  = Math.max(1, Math.ceil(totalF / PAGE_SIZE));
