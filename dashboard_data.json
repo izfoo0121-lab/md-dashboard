@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-28 23:16:20",
+  "generated_at": "2026-03-28 23:29:13",
   "current_month": "Mar 26",
   "working_days": {
     "date": "2026-03-28",
@@ -95,37 +95,43 @@
         "eightcom_unpaid_ctn": 0.0,
         "tiers": {
           "normal_t1": {
-            "target": null,
+            "target": 921,
             "actual": 506.0,
-            "gap": null,
-            "pct": null,
-            "color": "gray"
+            "gap": -415.0,
+            "pct": 54.9,
+            "color": "amber"
           },
           "normal_t2": {
-            "target": null,
+            "target": 1171,
             "actual": 506.0,
-            "gap": null,
-            "pct": null,
-            "color": "gray"
+            "gap": -665.0,
+            "pct": 43.2,
+            "color": "red"
           },
           "ga": null,
-          "ma": null
+          "ma": {
+            "target": 230,
+            "actual": 7.0,
+            "gap": -223.0,
+            "pct": 3.0,
+            "color": "red"
+          }
         }
       },
       "brand_commission": {
         "iFACE": {
           "penetration": {
-            "count": 0,
+            "count": 1,
             "target": 4,
             "hit": false,
-            "pct": 0.0
+            "pct": 25.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 42.0,
             "target": 104,
             "hit": false,
-            "gap": -104.0,
-            "pct": 0.0
+            "gap": -62.0,
+            "pct": 40.4
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -133,17 +139,17 @@
         },
         "SUKUN": {
           "penetration": {
-            "count": 0,
+            "count": 2,
             "target": 4,
             "hit": false,
-            "pct": 0.0
+            "pct": 50.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 261.0,
             "target": 358,
             "hit": false,
-            "gap": -358.0,
-            "pct": 0.0
+            "gap": -97.0,
+            "pct": 72.9
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -157,11 +163,11 @@
             "pct": 0.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 6.0,
             "target": 29,
             "hit": false,
-            "gap": -29.0,
-            "pct": 0.0
+            "gap": -23.0,
+            "pct": 20.7
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -169,17 +175,17 @@
         },
         "BISON": {
           "penetration": {
-            "count": 0,
+            "count": 1,
             "target": 4,
             "hit": false,
-            "pct": 0.0
+            "pct": 25.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 8.0,
             "target": 36,
             "hit": false,
-            "gap": -36.0,
-            "pct": 0.0
+            "gap": -28.0,
+            "pct": 22.2
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -211,11 +217,11 @@
             "pct": 0.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 2.0,
             "target": 20,
             "hit": false,
-            "gap": -20.0,
-            "pct": 0.0
+            "gap": -18.0,
+            "pct": 10.0
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -2622,71 +2628,71 @@
       "brand_commission": {
         "iFACE": {
           "penetration": {
-            "count": 0,
+            "count": 6,
             "target": 4,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 150.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 278.0,
             "target": 240,
-            "hit": false,
-            "gap": -240.0,
-            "pct": 0.0
+            "hit": true,
+            "gap": 38.0,
+            "pct": 115.8
           },
-          "status": "none_hit",
-          "comm_earned": 0.0,
-          "both_hit": false
+          "status": "both_hit",
+          "comm_earned": 500.4,
+          "both_hit": true
         },
         "SUKUN": {
           "penetration": {
-            "count": 0,
+            "count": 7,
             "target": 4,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 175.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 657.0,
             "target": 780,
             "hit": false,
-            "gap": -780.0,
-            "pct": 0.0
+            "gap": -123.0,
+            "pct": 84.2
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
         "EVO": {
           "penetration": {
-            "count": 0,
+            "count": 6,
             "target": 5,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 120.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 112.0,
             "target": 92,
-            "hit": false,
-            "gap": -92.0,
-            "pct": 0.0
+            "hit": true,
+            "gap": 20.0,
+            "pct": 121.7
           },
-          "status": "none_hit",
-          "comm_earned": 0.0,
-          "both_hit": false
+          "status": "both_hit",
+          "comm_earned": 201.6,
+          "both_hit": true
         },
         "BISON": {
           "penetration": {
-            "count": 0,
+            "count": 3,
             "target": 4,
             "hit": false,
-            "pct": 0.0
+            "pct": 75.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 97.0,
             "target": 148,
             "hit": false,
-            "gap": -148.0,
-            "pct": 0.0
+            "gap": -51.0,
+            "pct": 65.5
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -2694,37 +2700,37 @@
         },
         "TR20": {
           "penetration": {
-            "count": 0,
+            "count": 3,
             "target": 3,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 100.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 379.0,
             "target": 505,
             "hit": false,
-            "gap": -505.0,
-            "pct": 0.0
+            "gap": -126.0,
+            "pct": 75.0
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
         "LAM+LWM": {
           "penetration": {
-            "count": 0,
+            "count": 3,
             "target": 3,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 100.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 18.0,
             "target": 50,
             "hit": false,
-            "gap": -50.0,
-            "pct": 0.0
+            "gap": -32.0,
+            "pct": 36.0
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         }
@@ -6015,35 +6021,35 @@
       "brand_commission": {
         "iFACE": {
           "penetration": {
-            "count": 0,
+            "count": 1,
             "target": 6,
             "hit": false,
-            "pct": 0.0
+            "pct": 16.7
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 56.75,
             "target": 50,
-            "hit": false,
-            "gap": -50.0,
-            "pct": 0.0
+            "hit": true,
+            "gap": 6.75,
+            "pct": 113.5
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
         "SUKUN": {
           "penetration": {
-            "count": 0,
+            "count": 1,
             "target": 4,
             "hit": false,
-            "pct": 0.0
+            "pct": 25.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 150.0,
             "target": 205,
             "hit": false,
-            "gap": -205.0,
-            "pct": 0.0
+            "gap": -55.0,
+            "pct": 73.2
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -6051,17 +6057,17 @@
         },
         "EVO": {
           "penetration": {
-            "count": 0,
+            "count": 2,
             "target": 5,
             "hit": false,
-            "pct": 0.0
+            "pct": 40.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 334.0,
             "target": 381,
             "hit": false,
-            "gap": -381.0,
-            "pct": 0.0
+            "gap": -47.0,
+            "pct": 87.7
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -6075,13 +6081,13 @@
             "pct": 0.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 162.0,
             "target": 97,
-            "hit": false,
-            "gap": -97.0,
-            "pct": 0.0
+            "hit": true,
+            "gap": 65.0,
+            "pct": 167.0
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
@@ -6093,11 +6099,11 @@
             "pct": 0.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 80.0,
             "target": 92,
             "hit": false,
-            "gap": -92.0,
-            "pct": 0.0
+            "gap": -12.0,
+            "pct": 87.0
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -8943,89 +8949,89 @@
       "brand_commission": {
         "iFACE": {
           "penetration": {
-            "count": 0,
+            "count": 4,
             "target": 4,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 100.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 324.0,
             "target": 515,
             "hit": false,
-            "gap": -515.0,
-            "pct": 0.0
+            "gap": -191.0,
+            "pct": 62.9
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
         "SUKUN": {
           "penetration": {
-            "count": 0,
+            "count": 4,
             "target": 4,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 100.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 445.0,
             "target": 610,
             "hit": false,
-            "gap": -610.0,
-            "pct": 0.0
+            "gap": -165.0,
+            "pct": 73.0
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
         "EVO": {
           "penetration": {
-            "count": 0,
+            "count": 8,
             "target": 6,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 133.3
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 530.0,
             "target": 511,
-            "hit": false,
-            "gap": -511.0,
-            "pct": 0.0
+            "hit": true,
+            "gap": 19.0,
+            "pct": 103.7
           },
-          "status": "none_hit",
-          "comm_earned": 0.0,
-          "both_hit": false
+          "status": "both_hit",
+          "comm_earned": 954.0,
+          "both_hit": true
         },
         "BISON": {
           "penetration": {
-            "count": 0,
+            "count": 6,
             "target": 5,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 120.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 127.0,
             "target": 169,
             "hit": false,
-            "gap": -169.0,
-            "pct": 0.0
+            "gap": -42.0,
+            "pct": 75.1
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
         "TR20": {
           "penetration": {
-            "count": 0,
+            "count": 1,
             "target": 3,
             "hit": false,
-            "pct": 0.0
+            "pct": 33.3
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 12.0,
             "target": 34,
             "hit": false,
-            "gap": -34.0,
-            "pct": 0.0
+            "gap": -22.0,
+            "pct": 35.3
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -9039,11 +9045,11 @@
             "pct": 0.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 4.0,
             "target": 40,
             "hit": false,
-            "gap": -40.0,
-            "pct": 0.0
+            "gap": -36.0,
+            "pct": 10.0
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -13498,71 +13504,71 @@
       "brand_commission": {
         "iFACE": {
           "penetration": {
-            "count": 0,
+            "count": 2,
             "target": 0,
             "hit": false,
             "pct": null
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 25.0,
             "target": 7,
-            "hit": false,
-            "gap": -7.0,
-            "pct": 0.0
+            "hit": true,
+            "gap": 18.0,
+            "pct": 357.1
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
         "SUKUN": {
           "penetration": {
-            "count": 0,
+            "count": 4,
             "target": 0,
             "hit": false,
             "pct": null
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 166.0,
             "target": 130,
-            "hit": false,
-            "gap": -130.0,
-            "pct": 0.0
+            "hit": true,
+            "gap": 36.0,
+            "pct": 127.7
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
         "EVO": {
           "penetration": {
-            "count": 0,
+            "count": 6,
             "target": 5,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 120.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 40.0,
             "target": 100,
             "hit": false,
-            "gap": -100.0,
-            "pct": 0.0
+            "gap": -60.0,
+            "pct": 40.0
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
         "BISON": {
           "penetration": {
-            "count": 0,
+            "count": 3,
             "target": 4,
             "hit": false,
-            "pct": 0.0
+            "pct": 75.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 52.0,
             "target": 86,
             "hit": false,
-            "gap": -86.0,
-            "pct": 0.0
+            "gap": -34.0,
+            "pct": 60.5
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -13588,17 +13594,17 @@
         },
         "LAM+LWM": {
           "penetration": {
-            "count": 0,
+            "count": 2,
             "target": 0,
             "hit": false,
             "pct": null
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 4.0,
             "target": 10,
             "hit": false,
-            "gap": -10.0,
-            "pct": 0.0
+            "gap": -6.0,
+            "pct": 40.0
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -15688,73 +15694,73 @@
       "brand_commission": {
         "iFACE": {
           "penetration": {
-            "count": 0,
+            "count": 6,
             "target": 5,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 120.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 137.0,
             "target": 95,
-            "hit": false,
-            "gap": -95.0,
-            "pct": 0.0
+            "hit": true,
+            "gap": 42.0,
+            "pct": 144.2
           },
-          "status": "none_hit",
-          "comm_earned": 0.0,
-          "both_hit": false
+          "status": "both_hit",
+          "comm_earned": 246.6,
+          "both_hit": true
         },
         "SUKUN": {
           "penetration": {
-            "count": 0,
+            "count": 7,
             "target": 4,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 175.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 1027.0,
             "target": 812,
-            "hit": false,
-            "gap": -812.0,
-            "pct": 0.0
+            "hit": true,
+            "gap": 215.0,
+            "pct": 126.5
           },
-          "status": "none_hit",
-          "comm_earned": 0.0,
-          "both_hit": false
+          "status": "both_hit",
+          "comm_earned": 1848.6,
+          "both_hit": true
         },
         "EVO": {
           "penetration": {
-            "count": 0,
+            "count": 6,
             "target": 5,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 120.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 165.0,
             "target": 158,
-            "hit": false,
-            "gap": -158.0,
-            "pct": 0.0
+            "hit": true,
+            "gap": 7.0,
+            "pct": 104.4
           },
-          "status": "none_hit",
-          "comm_earned": 0.0,
-          "both_hit": false
+          "status": "both_hit",
+          "comm_earned": 297.0,
+          "both_hit": true
         },
         "BISON": {
           "penetration": {
-            "count": 0,
+            "count": 7,
             "target": 5,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 140.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 125.0,
             "target": 143,
             "hit": false,
-            "gap": -143.0,
-            "pct": 0.0
+            "gap": -18.0,
+            "pct": 87.4
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
@@ -15766,29 +15772,29 @@
             "pct": 0.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 110.0,
             "target": 82,
-            "hit": false,
-            "gap": -82.0,
-            "pct": 0.0
+            "hit": true,
+            "gap": 28.0,
+            "pct": 134.1
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
         "LAM+LWM": {
           "penetration": {
-            "count": 0,
+            "count": 1,
             "target": 3,
             "hit": false,
-            "pct": 0.0
+            "pct": 33.3
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 2.0,
             "target": 50,
             "hit": false,
-            "gap": -50.0,
-            "pct": 0.0
+            "gap": -48.0,
+            "pct": 4.0
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -20219,11 +20225,11 @@
             "pct": 0.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 42.0,
             "target": 74,
             "hit": false,
-            "gap": -74.0,
-            "pct": 0.0
+            "gap": -32.0,
+            "pct": 56.8
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -20231,35 +20237,35 @@
         },
         "SUKUN": {
           "penetration": {
-            "count": 0,
+            "count": 5,
             "target": 4,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 125.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 553.0,
             "target": 810,
             "hit": false,
-            "gap": -810.0,
-            "pct": 0.0
+            "gap": -257.0,
+            "pct": 68.3
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
         "EVO": {
           "penetration": {
-            "count": 0,
+            "count": 1,
             "target": 5,
             "hit": false,
-            "pct": 0.0
+            "pct": 20.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 364.0,
             "target": 455,
             "hit": false,
-            "gap": -455.0,
-            "pct": 0.0
+            "gap": -91.0,
+            "pct": 80.0
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -20273,11 +20279,11 @@
             "pct": 0.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 28.0,
             "target": 200,
             "hit": false,
-            "gap": -200.0,
-            "pct": 0.0
+            "gap": -172.0,
+            "pct": 14.0
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -20285,17 +20291,17 @@
         },
         "TR20": {
           "penetration": {
-            "count": 0,
+            "count": 3,
             "target": 5,
             "hit": false,
-            "pct": 0.0
+            "pct": 60.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 416.0,
             "target": 508,
             "hit": false,
-            "gap": -508.0,
-            "pct": 0.0
+            "gap": -92.0,
+            "pct": 81.9
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -20309,11 +20315,11 @@
             "pct": 0.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 6.0,
             "target": 40,
             "hit": false,
-            "gap": -40.0,
-            "pct": 0.0
+            "gap": -34.0,
+            "pct": 15.0
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -24229,17 +24235,17 @@
       "brand_commission": {
         "iFACE": {
           "penetration": {
-            "count": 0,
+            "count": 2,
             "target": 6,
             "hit": false,
-            "pct": 0.0
+            "pct": 33.3
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 250.0,
             "target": 357,
             "hit": false,
-            "gap": -357.0,
-            "pct": 0.0
+            "gap": -107.0,
+            "pct": 70.0
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -24247,17 +24253,17 @@
         },
         "SUKUN": {
           "penetration": {
-            "count": 0,
+            "count": 3,
             "target": 4,
             "hit": false,
-            "pct": 0.0
+            "pct": 75.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 601.0,
             "target": 725,
             "hit": false,
-            "gap": -725.0,
-            "pct": 0.0
+            "gap": -124.0,
+            "pct": 82.9
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -24265,35 +24271,35 @@
         },
         "EVO": {
           "penetration": {
-            "count": 0,
+            "count": 8,
             "target": 6,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 133.3
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 1640.0,
             "target": 1666,
             "hit": false,
-            "gap": -1666.0,
-            "pct": 0.0
+            "gap": -26.0,
+            "pct": 98.4
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
         "BISON": {
           "penetration": {
-            "count": 0,
+            "count": 1,
             "target": 6,
             "hit": false,
-            "pct": 0.0
+            "pct": 16.7
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 167.0,
             "target": 249,
             "hit": false,
-            "gap": -249.0,
-            "pct": 0.0
+            "gap": -82.0,
+            "pct": 67.1
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -24319,17 +24325,17 @@
         },
         "LAM+LWM": {
           "penetration": {
-            "count": 0,
+            "count": 2,
             "target": 3,
             "hit": false,
-            "pct": 0.0
+            "pct": 66.7
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 12.0,
             "target": 30,
             "hit": false,
-            "gap": -30.0,
-            "pct": 0.0
+            "gap": -18.0,
+            "pct": 40.0
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -28548,11 +28554,11 @@
             "pct": 0.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 110.0,
             "target": 128,
             "hit": false,
-            "gap": -128.0,
-            "pct": 0.0
+            "gap": -18.0,
+            "pct": 85.9
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -28560,17 +28566,17 @@
         },
         "SUKUN": {
           "penetration": {
-            "count": 0,
+            "count": 3,
             "target": 4,
             "hit": false,
-            "pct": 0.0
+            "pct": 75.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 444.0,
             "target": 580,
             "hit": false,
-            "gap": -580.0,
-            "pct": 0.0
+            "gap": -136.0,
+            "pct": 76.6
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -28578,17 +28584,17 @@
         },
         "EVO": {
           "penetration": {
-            "count": 0,
+            "count": 1,
             "target": 6,
             "hit": false,
-            "pct": 0.0
+            "pct": 16.7
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 47.0,
             "target": 82,
             "hit": false,
-            "gap": -82.0,
-            "pct": 0.0
+            "gap": -35.0,
+            "pct": 57.3
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -28596,17 +28602,17 @@
         },
         "BISON": {
           "penetration": {
-            "count": 0,
+            "count": 2,
             "target": 6,
             "hit": false,
-            "pct": 0.0
+            "pct": 33.3
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 73.0,
             "target": 83,
             "hit": false,
-            "gap": -83.0,
-            "pct": 0.0
+            "gap": -10.0,
+            "pct": 88.0
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -28632,19 +28638,19 @@
         },
         "LAM+LWM": {
           "penetration": {
-            "count": 0,
+            "count": 1,
             "target": 3,
             "hit": false,
-            "pct": 0.0
+            "pct": 33.3
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 46.0,
             "target": 20,
-            "hit": false,
-            "gap": -20.0,
-            "pct": 0.0
+            "hit": true,
+            "gap": 26.0,
+            "pct": 230.0
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         }
@@ -32722,71 +32728,71 @@
       "brand_commission": {
         "iFACE": {
           "penetration": {
-            "count": 0,
+            "count": 6,
             "target": 5,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 120.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 320.0,
             "target": 350,
             "hit": false,
-            "gap": -350.0,
-            "pct": 0.0
+            "gap": -30.0,
+            "pct": 91.4
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
         "SUKUN": {
           "penetration": {
-            "count": 0,
+            "count": 9,
             "target": 4,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 225.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 1084.0,
             "target": 1080,
-            "hit": false,
-            "gap": -1080.0,
-            "pct": 0.0
+            "hit": true,
+            "gap": 4.0,
+            "pct": 100.4
           },
-          "status": "none_hit",
-          "comm_earned": 0.0,
-          "both_hit": false
+          "status": "both_hit",
+          "comm_earned": 1951.2,
+          "both_hit": true
         },
         "EVO": {
           "penetration": {
-            "count": 0,
+            "count": 4,
             "target": 5,
             "hit": false,
-            "pct": 0.0
+            "pct": 80.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 456.0,
             "target": 424,
-            "hit": false,
-            "gap": -424.0,
-            "pct": 0.0
+            "hit": true,
+            "gap": 32.0,
+            "pct": 107.5
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
         "BISON": {
           "penetration": {
-            "count": 0,
+            "count": 1,
             "target": 5,
             "hit": false,
-            "pct": 0.0
+            "pct": 20.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 288.0,
             "target": 435,
             "hit": false,
-            "gap": -435.0,
-            "pct": 0.0
+            "gap": -147.0,
+            "pct": 66.2
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -32794,35 +32800,35 @@
         },
         "TR20": {
           "penetration": {
-            "count": 0,
+            "count": 1,
             "target": 5,
             "hit": false,
-            "pct": 0.0
+            "pct": 20.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 71.0,
             "target": 45,
-            "hit": false,
-            "gap": -45.0,
-            "pct": 0.0
+            "hit": true,
+            "gap": 26.0,
+            "pct": 157.8
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
         "LAM+LWM": {
           "penetration": {
-            "count": 0,
+            "count": 1,
             "target": 3,
             "hit": false,
-            "pct": 0.0
+            "pct": 33.3
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 1.0,
             "target": 60,
             "hit": false,
-            "gap": -60.0,
-            "pct": 0.0
+            "gap": -59.0,
+            "pct": 1.7
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -36361,55 +36367,55 @@
       "brand_commission": {
         "iFACE": {
           "penetration": {
-            "count": 0,
+            "count": 9,
             "target": 4,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 225.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 144.0,
             "target": 135,
-            "hit": false,
-            "gap": -135.0,
-            "pct": 0.0
+            "hit": true,
+            "gap": 9.0,
+            "pct": 106.7
           },
-          "status": "none_hit",
-          "comm_earned": 0.0,
-          "both_hit": false
+          "status": "both_hit",
+          "comm_earned": 259.2,
+          "both_hit": true
         },
         "SUKUN": {
           "penetration": {
-            "count": 0,
+            "count": 9,
             "target": 4,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 225.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 633.0,
             "target": 490,
-            "hit": false,
-            "gap": -490.0,
-            "pct": 0.0
+            "hit": true,
+            "gap": 143.0,
+            "pct": 129.2
           },
-          "status": "none_hit",
-          "comm_earned": 0.0,
-          "both_hit": false
+          "status": "both_hit",
+          "comm_earned": 1139.4,
+          "both_hit": true
         },
         "EVO": {
           "penetration": {
-            "count": 0,
+            "count": 4,
             "target": 5,
             "hit": false,
-            "pct": 0.0
+            "pct": 80.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 243.0,
             "target": 214,
-            "hit": false,
-            "gap": -214.0,
-            "pct": 0.0
+            "hit": true,
+            "gap": 29.0,
+            "pct": 113.6
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
@@ -36421,11 +36427,11 @@
             "pct": 0.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 141.0,
             "target": 209,
             "hit": false,
-            "gap": -209.0,
-            "pct": 0.0
+            "gap": -68.0,
+            "pct": 67.5
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -36433,37 +36439,37 @@
         },
         "TR20": {
           "penetration": {
-            "count": 0,
+            "count": 4,
             "target": 4,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 100.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 150.0,
             "target": 104,
-            "hit": false,
-            "gap": -104.0,
-            "pct": 0.0
+            "hit": true,
+            "gap": 46.0,
+            "pct": 144.2
           },
-          "status": "none_hit",
-          "comm_earned": 0.0,
-          "both_hit": false
+          "status": "both_hit",
+          "comm_earned": 270.0,
+          "both_hit": true
         },
         "LAM+LWM": {
           "penetration": {
-            "count": 0,
+            "count": 6,
             "target": 3,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 200.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 30.0,
             "target": 50,
             "hit": false,
-            "gap": -50.0,
-            "pct": 0.0
+            "gap": -20.0,
+            "pct": 60.0
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         }
@@ -40083,17 +40089,17 @@
       "brand_commission": {
         "iFACE": {
           "penetration": {
-            "count": 0,
+            "count": 2,
             "target": 5,
             "hit": false,
-            "pct": 0.0
+            "pct": 40.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 29.0,
             "target": 85,
             "hit": false,
-            "gap": -85.0,
-            "pct": 0.0
+            "gap": -56.0,
+            "pct": 34.1
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -40101,37 +40107,37 @@
         },
         "SUKUN": {
           "penetration": {
-            "count": 0,
+            "count": 4,
             "target": 4,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 100.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 503.0,
             "target": 644,
             "hit": false,
-            "gap": -644.0,
-            "pct": 0.0
+            "gap": -141.0,
+            "pct": 78.1
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
         "EVO": {
           "penetration": {
-            "count": 0,
+            "count": 7,
             "target": 6,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 116.7
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 814.0,
             "target": 884,
             "hit": false,
-            "gap": -884.0,
-            "pct": 0.0
+            "gap": -70.0,
+            "pct": 92.1
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
@@ -40143,11 +40149,11 @@
             "pct": 0.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 42.0,
             "target": 79,
             "hit": false,
-            "gap": -79.0,
-            "pct": 0.0
+            "gap": -37.0,
+            "pct": 53.2
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -40179,11 +40185,11 @@
             "pct": 0.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 6.0,
             "target": 30,
             "hit": false,
-            "gap": -30.0,
-            "pct": 0.0
+            "gap": -24.0,
+            "pct": 20.0
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -44011,11 +44017,11 @@
             "pct": 0.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 176.0,
             "target": 260,
             "hit": false,
-            "gap": -260.0,
-            "pct": 0.0
+            "gap": -84.0,
+            "pct": 67.7
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -44023,35 +44029,35 @@
         },
         "SUKUN": {
           "penetration": {
-            "count": 0,
+            "count": 5,
             "target": 4,
-            "hit": false,
-            "pct": 0.0
+            "hit": true,
+            "pct": 125.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 480.0,
             "target": 576,
             "hit": false,
-            "gap": -576.0,
-            "pct": 0.0
+            "gap": -96.0,
+            "pct": 83.3
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
         "EVO": {
           "penetration": {
-            "count": 0,
+            "count": 3,
             "target": 5,
             "hit": false,
-            "pct": 0.0
+            "pct": 60.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 204.0,
             "target": 278,
             "hit": false,
-            "gap": -278.0,
-            "pct": 0.0
+            "gap": -74.0,
+            "pct": 73.4
           },
           "status": "none_hit",
           "comm_earned": 0.0,
@@ -44059,19 +44065,19 @@
         },
         "BISON": {
           "penetration": {
-            "count": 0,
+            "count": 3,
             "target": 6,
             "hit": false,
-            "pct": 0.0
+            "pct": 50.0
           },
           "ctn": {
-            "sold": 0.0,
+            "sold": 219.0,
             "target": 166,
-            "hit": false,
-            "gap": -166.0,
-            "pct": 0.0
+            "hit": true,
+            "gap": 53.0,
+            "pct": 131.9
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false
         },
@@ -48014,106 +48020,115 @@
     "team_ma_ctn": 10133.0,
     "team_canggih_ctn": 55646.55,
     "team_8com_ctn": 3164.0,
-    "t1_total_target": 44992,
-    "t1_pct": 93.8,
+    "t1_total_target": 45913,
+    "t1_pct": 91.9,
     "t1_color": "green",
     "brand_summary": {
       "iFACE": {
-        "total_comm": 0.0,
-        "both_hit_agents": [],
-        "one_hit_agents": [],
-        "none_hit_agents": [
-          "BEN",
+        "total_comm": 1006.2,
+        "both_hit_agents": [
           "CJ",
+          "KEAN",
+          "LEON"
+        ],
+        "one_hit_agents": [
           "JACKY",
           "JAMES",
           "JW",
-          "KEAN",
+          "KW"
+        ],
+        "none_hit_agents": [
+          "BEN",
           "KEE",
           "KF",
           "KI-MI",
-          "KW",
-          "LEON",
           "NMK",
           "YI"
         ]
       },
       "SUKUN": {
-        "total_comm": 0.0,
-        "both_hit_agents": [],
-        "one_hit_agents": [],
-        "none_hit_agents": [
-          "BEN",
+        "total_comm": 4939.2,
+        "both_hit_agents": [
+          "KEAN",
+          "KW",
+          "LEON"
+        ],
+        "one_hit_agents": [
           "CJ",
-          "JACKY",
           "JAMES",
           "JW",
-          "KEAN",
           "KEE",
-          "KF",
-          "KI-MI",
-          "KW",
-          "LEON",
           "NMK",
           "YI"
+        ],
+        "none_hit_agents": [
+          "BEN",
+          "JACKY",
+          "KF",
+          "KI-MI"
         ]
       },
       "EVO": {
-        "total_comm": 0.0,
-        "both_hit_agents": [],
-        "one_hit_agents": [],
-        "none_hit_agents": [
-          "BEN",
+        "total_comm": 1452.6,
+        "both_hit_agents": [
           "CJ",
-          "JACKY",
           "JAMES",
+          "KEAN"
+        ],
+        "one_hit_agents": [
           "JW",
-          "KEAN",
-          "KEE",
           "KF",
-          "KI-MI",
           "KW",
           "LEON",
-          "NMK",
+          "NMK"
+        ],
+        "none_hit_agents": [
+          "BEN",
+          "JACKY",
+          "KEE",
+          "KI-MI",
           "YI"
         ]
       },
       "BISON": {
         "total_comm": 0.0,
         "both_hit_agents": [],
-        "one_hit_agents": [],
+        "one_hit_agents": [
+          "JACKY",
+          "JAMES",
+          "KEAN",
+          "YI"
+        ],
         "none_hit_agents": [
           "BEN",
           "CJ",
-          "JACKY",
-          "JAMES",
           "JW",
-          "KEAN",
           "KEE",
           "KF",
           "KI-MI",
           "KW",
           "LEON",
-          "NMK",
-          "YI"
+          "NMK"
         ]
       },
       "TR20": {
-        "total_comm": 0.0,
-        "both_hit_agents": [],
-        "one_hit_agents": [],
+        "total_comm": 270.0,
+        "both_hit_agents": [
+          "LEON"
+        ],
+        "one_hit_agents": [
+          "CJ",
+          "KEAN",
+          "KW"
+        ],
         "none_hit_agents": [
           "BEN",
-          "CJ",
           "JACKY",
           "JAMES",
           "JW",
-          "KEAN",
           "KEE",
           "KF",
           "KI-MI",
-          "KW",
-          "LEON",
           "NMK",
           "YI"
         ]
@@ -48121,19 +48136,20 @@
       "LAM+LWM": {
         "total_comm": 0.0,
         "both_hit_agents": [],
-        "one_hit_agents": [],
+        "one_hit_agents": [
+          "CJ",
+          "KI-MI",
+          "LEON"
+        ],
         "none_hit_agents": [
           "BEN",
-          "CJ",
           "JACKY",
           "JAMES",
           "JW",
           "KEAN",
           "KEE",
           "KF",
-          "KI-MI",
           "KW",
-          "LEON",
           "NMK",
           "YI"
         ]
@@ -48155,7 +48171,7 @@
         "t1_target": 5883,
         "t1_pct": 107.5,
         "t1_color": "green",
-        "brands_earned": 0,
+        "brands_earned": 1,
         "rank": 2
       },
       {
@@ -48164,7 +48180,7 @@
         "t1_target": 3491,
         "t1_pct": 103.0,
         "t1_color": "green",
-        "brands_earned": 0,
+        "brands_earned": 3,
         "rank": 3
       },
       {
@@ -48173,7 +48189,7 @@
         "t1_target": 3912,
         "t1_pct": 100.6,
         "t1_color": "green",
-        "brands_earned": 0,
+        "brands_earned": 3,
         "rank": 4
       },
       {
@@ -48182,7 +48198,7 @@
         "t1_target": 4078,
         "t1_pct": 100.2,
         "t1_color": "green",
-        "brands_earned": 0,
+        "brands_earned": 2,
         "rank": 5
       },
       {
@@ -48236,7 +48252,7 @@
         "t1_target": 3334,
         "t1_pct": 80.1,
         "t1_color": "green",
-        "brands_earned": 0,
+        "brands_earned": 1,
         "rank": 11
       },
       {
@@ -48251,9 +48267,9 @@
       {
         "agent": "BEN",
         "normal_ctn": 506.0,
-        "t1_target": null,
-        "t1_pct": null,
-        "t1_color": "gray",
+        "t1_target": 921,
+        "t1_pct": 54.9,
+        "t1_color": "amber",
         "brands_earned": 0,
         "rank": 13
       }
@@ -48261,12 +48277,31 @@
   },
   "config": {
     "brand_config": {
-      "iFACE": [],
-      "SUKUN": [],
-      "EVO": [],
-      "BISON": [],
-      "TR20": [],
-      "LAM+LWM": []
+      "iFACE": [
+        "IFACE B",
+        "IFACE M",
+        "IFACE R",
+        "IFACE DB"
+      ],
+      "SUKUN": [
+        "SKNR",
+        "SKNW"
+      ],
+      "EVO": [
+        "EVO"
+      ],
+      "BISON": [
+        "BISON-G",
+        "BISON-R",
+        "BISON-M"
+      ],
+      "TR20": [
+        "TR20"
+      ],
+      "LAM+LWM": [
+        "LAM",
+        "LWM"
+      ]
     },
     "group_brand_config": {
       "SUKUN": [
@@ -48295,7 +48330,42 @@
         "TR-002"
       ]
     },
-    "inhouse_codes": [],
+    "inhouse_codes": [
+      "90",
+      "DPM EVO",
+      "IMP-001",
+      "LB22",
+      "LF-002",
+      "LIC-001",
+      "LMM-002",
+      "TR-002",
+      "CM-002",
+      "LG22",
+      "LR22",
+      "LBOLD",
+      "MARISE",
+      "HTM-002",
+      "ZYG",
+      "ZL",
+      "EC",
+      "ZPA",
+      "LC20",
+      "CMX",
+      "CMP",
+      "IFACE B",
+      "IFACE M",
+      "IFACE R",
+      "IFACE DB",
+      "SKNR",
+      "SKNW",
+      "EVO",
+      "BISON-G",
+      "BISON-R",
+      "BISON-M",
+      "TR20",
+      "LAM",
+      "LWM"
+    ],
     "scope": "GRP 2A"
   }
 }

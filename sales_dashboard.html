@@ -238,10 +238,25 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
     <button class="filter-chip" onclick="setFilter('status','active',this)">✅ Active</button>
     <button class="filter-chip" onclick="setFilter('status','pending',this)">❌ Pending</button>
     <button class="filter-chip" onclick="setFilter('status','need_reactivation',this)">⚠️ Reactivate</button>
+  </div>
+  <div class="filter-row">
     <button class="filter-chip" onclick="setFilter('special','vip',this)">⭐ VIP</button>
     <button class="filter-chip" onclick="setFilter('special','new',this)">🆕 New</button>
     <button class="filter-chip" onclick="setFilter('special','birthday',this)">🎂 Birthday</button>
     <button class="filter-chip" onclick="setFilter('special','drop',this)">📉 Drop</button>
+  </div>
+  <div class="filter-row" id="type-filter-row">
+    <span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">Type:</span>
+    <button class="filter-chip active" onclick="setTypeFilter('all',this)">All</button>
+  </div>
+  <div class="filter-row" id="brand-filter-row">
+    <span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">Not bought:</span>
+    <button class="filter-chip active" onclick="setBrandFilter('all',this)">All</button>
+    <button class="filter-chip" onclick="setBrandFilter('IFACE',this)">iFACE</button>
+    <button class="filter-chip" onclick="setBrandFilter('SUKUN',this)">SUKUN</button>
+    <button class="filter-chip" onclick="setBrandFilter('EVO',this)">EVO</button>
+    <button class="filter-chip" onclick="setBrandFilter('BISON',this)">BISON</button>
+    <button class="filter-chip" onclick="setBrandFilter('LAM+LWM',this)">LAM+LWM</button>
   </div>
   <div id="debtor-list"></div>
   <div class="pagination">
@@ -338,7 +353,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 let DATA = null;
 let currentAgent = null;
 let currentView = 'debtors';
-let filters = { status: 'all', special: null };
+let filters = { status: 'all', special: null, type: 'all', brand: 'all' };
 let currentPage = 1;
 const PAGE_SIZE = 12;
 
@@ -360,7 +375,6 @@ async function loadData() {
 }
 
 function init() {
-  // Header
   const wd = DATA.working_days || {};
   document.getElementById('month-badge').textContent = (DATA.current_month || '').toUpperCase();
   document.getElementById('day-prog').textContent =
@@ -374,7 +388,7 @@ function init() {
     sel.appendChild(opt);
   });
 
-  // Render group targets immediately (no agent needed)
+  // Render group targets immediately
   renderGroupBrandTargets();
 }
 
@@ -391,7 +405,27 @@ function switchView(view, el) {
 function selectAgent(agent) {
   currentAgent = agent;
   currentPage = 1;
+  filters = { status: 'all', special: null, type: 'all', brand: 'all' };
+
+  // Reset all filter chips
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.filter-chip:first-of-type').forEach(c => {});
+
   if (!agent || !DATA) return;
+
+  // Build dynamic debtor type filter
+  const debtors = DATA.agents[agent]?.debtor_cards?.debtors || [];
+  const types = [...new Set(debtors.map(d => d.debtor_type).filter(Boolean))].sort();
+  const typeRow = document.getElementById('type-filter-row');
+  typeRow.innerHTML = `<span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">Type:</span>
+    <button class="filter-chip active" onclick="setTypeFilter('all',this)">All</button>
+    ${types.map(t => `<button class="filter-chip" onclick="setTypeFilter('${t}',this)">${t}</button>`).join('')}`;
+
+  // Reset brand filter
+  document.querySelectorAll('#brand-filter-row .filter-chip').forEach((c,i) => {
+    c.classList.toggle('active', i === 0);
+  });
+
   renderAll();
 }
 
@@ -417,10 +451,24 @@ function fmtRM(n) { return 'RM ' + parseFloat(n||0).toFixed(2); }
 
 // ── View 1: Debtors ────────────────────────────────────────────────────────
 function setFilter(type, val, el) {
-  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.filter-row:nth-child(2) .filter-chip, .filter-row:nth-child(3) .filter-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   if (type === 'status') { filters.status = val; filters.special = null; }
   else { filters.special = val; filters.status = 'all'; }
+  currentPage = 1;
+  renderDebtors();
+}
+function setTypeFilter(val, el) {
+  document.querySelectorAll('#type-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  filters.type = val;
+  currentPage = 1;
+  renderDebtors();
+}
+function setBrandFilter(val, el) {
+  document.querySelectorAll('#brand-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  filters.brand = val;
   currentPage = 1;
   renderDebtors();
 }
@@ -445,6 +493,14 @@ function renderDebtors() {
     if (filters.special === 'new' && !d.is_new) return false;
     if (filters.special === 'birthday' && !d.birthday_this_month) return false;
     if (filters.special === 'drop' && !d.volume_drop_pct) return false;
+    if (filters.type !== 'all' && d.debtor_type !== filters.type) return false;
+    // Brand filter: show debtors who NEVER bought that brand
+    if (filters.brand !== 'all') {
+      const skuMap = { 'IFACE':'IFACE', 'SUKUN':'SUKUN', 'EVO':'EVO', 'BISON':'BISON', 'LAM+LWM':'LAM+LWM' };
+      const grp = skuMap[filters.brand] || filters.brand;
+      const sku = d.sku_status || {};
+      if (sku[grp] !== 'never') return false;
+    }
     return true;
   });
 
@@ -591,24 +647,37 @@ function renderBrandCommission() {
   if (!currentAgent || !DATA) return;
   const bc = DATA.agents[currentAgent]?.brand_commission || {};
 
+  if (!Object.keys(bc).length) {
+    document.getElementById('brand-cards').innerHTML =
+      '<div style="padding:20px;text-align:center;font-family:var(--mono);color:var(--muted);font-size:11px;">No brand commission data</div>';
+    return;
+  }
+
   let totalComm = 0;
   let bothCount = 0;
   let oneCount  = 0;
 
   const html = Object.entries(bc).map(([brand, data]) => {
+    if (!data) return '';
     totalComm += data.comm_earned || 0;
-    const status = data.status;
+    const status = data.status || 'none_hit';
     if (status === 'both_hit') bothCount++;
     if (status === 'one_hit')  oneCount++;
 
-    const cardClass = status === 'both_hit' ? 'both-hit' : status === 'one_hit' ? 'one-hit' : '';
+    const cardClass  = status === 'both_hit' ? 'both-hit' : status === 'one_hit' ? 'one-hit' : '';
     const badgeClass = status === 'both_hit' ? 'comm-earned' : status === 'one_hit' ? 'comm-pending' : 'comm-locked';
     const badgeText  = status === 'both_hit' ? fmtRM(data.comm_earned) : status === 'one_hit' ? '⚠ 1 of 2' : '✗ Not earned';
 
     const pen = data.penetration || {};
     const ctn = data.ctn || {};
-    const penHit = pen.hit;
-    const ctnHit = ctn.hit;
+    const penHit = pen.hit || false;
+    const ctnHit = ctn.hit || false;
+
+    const penCount  = pen.count  ?? 0;
+    const penTarget = pen.target ?? 0;
+    const ctnSold   = ctn.sold   ?? 0;
+    const ctnTarget = ctn.target ?? 0;
+    const ctnPct    = ctn.pct    ?? 0;
 
     return `<div class="brand-card ${cardClass}">
       <div class="brand-top">
@@ -619,13 +688,13 @@ function renderBrandCommission() {
       <div class="criteria-grid">
         <div class="crit-box ${penHit ? 'hit' : 'miss'}">
           <div class="crit-lbl">Penetration</div>
-          <div class="crit-val" style="color:${penHit ? 'var(--green)' : 'var(--red)'}">${pen.count ?? '—'} <span style="font-size:11px">cust</span></div>
-          <div class="crit-sub">Target ${pen.target ?? '—'} · <span style="color:${penHit ? 'var(--green)' : 'var(--red)'}">${penHit ? '✓ Hit' : `${pen.count ?? 0} / ${pen.target ?? '—'}`}</span></div>
+          <div class="crit-val" style="color:${penHit ? 'var(--green)' : 'var(--red)'}">${penCount} <span style="font-size:11px">cust</span></div>
+          <div class="crit-sub">Target ${penTarget} · <span style="color:${penHit ? 'var(--green)' : 'var(--red)'}">${penHit ? '✓ Hit' : `${penCount}/${penTarget}`}</span></div>
         </div>
         <div class="crit-box ${ctnHit ? 'hit' : 'miss'}">
           <div class="crit-lbl">CTN Sold</div>
-          <div class="crit-val" style="color:${ctnHit ? 'var(--green)' : 'var(--red)'}">${fmtNum(ctn.sold)}</div>
-          <div class="crit-sub">Target ${fmtNum(ctn.target)} · <span style="color:${ctnHit ? 'var(--green)' : 'var(--red)'}">${ctnHit ? '✓ Hit' : `${fmtPct(ctn.pct)}`}</span></div>
+          <div class="crit-val" style="color:${ctnHit ? 'var(--green)' : 'var(--red)'}">${fmtNum(ctnSold)}</div>
+          <div class="crit-sub">Target ${fmtNum(ctnTarget)} · <span style="color:${ctnHit ? 'var(--green)' : 'var(--red)'}">${ctnHit ? '✓ Hit' : fmtPct(ctnPct)}</span></div>
         </div>
       </div>
     </div>`;
@@ -634,7 +703,8 @@ function renderBrandCommission() {
   document.getElementById('total-comm').textContent = fmtRM(totalComm);
   document.getElementById('brands-status').textContent =
     `${bothCount} brands earned · ${oneCount} at 1/2 · ${6 - bothCount - oneCount} not earned`;
-  document.getElementById('brand-cards').innerHTML = html || '<div style="padding:20px;text-align:center;font-family:var(--mono);color:var(--muted);">No data</div>';
+  document.getElementById('brand-cards').innerHTML = html ||
+    '<div style="padding:20px;text-align:center;font-family:var(--mono);color:var(--muted);">No data</div>';
 }
 
 // ── View 4: Newbie Scheme ──────────────────────────────────────────────────

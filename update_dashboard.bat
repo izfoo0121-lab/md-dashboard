@@ -4,9 +4,26 @@ echo  TOURO MD DASHBOARD — Daily Update
 echo ============================================
 echo.
 
+REM ── Find Python ───────────────────────────────────────────────────────────
+set PYTHON=
+where python >nul 2>&1 && set PYTHON=python
+if "%PYTHON%"=="" where python3 >nul 2>&1 && set PYTHON=python3
+if "%PYTHON%"=="" where py >nul 2>&1 && set PYTHON=py
+if "%PYTHON%"=="" (
+    echo ❌ ERROR: Python not found!
+    echo.
+    echo Please install Python from https://www.python.org/downloads/
+    echo Make sure to check "Add Python to PATH" during installation.
+    echo.
+    pause
+    exit /b 1
+)
+echo Using: %PYTHON%
+echo.
+
 REM ── Step 1: Run data processing ──────────────────────────────────────────
 echo [1/3] Processing data...
-python process_data.py
+%PYTHON% process_data.py
 if %errorlevel% neq 0 (
     echo.
     echo ❌ ERROR: process_data.py failed!

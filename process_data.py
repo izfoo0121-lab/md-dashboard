@@ -160,7 +160,7 @@ def load_sales_report():
     # Read columns A:Z (indices 0–25), skip row 1 (special ref row), use row 2 as header
     df = pd.read_excel(
         SALES_FILE,
-        sheet_name="MD",
+        sheet_name=0,        # Read first sheet regardless of name (works for MD, Sheet1, etc.)
         header=1,        # row index 1 = Excel row 2 = actual headers
         usecols="A:Z",
         dtype=str,       # read all as string first, cast later
@@ -614,16 +614,33 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month):
     # Build debtor lookup from Debtor Maintenance
     debtor_info = {}
     if not debtor_df.empty:
+        # Log actual columns to help debug mismatches
+        log(f"  Debtor columns: {list(debtor_df.columns[:10])}")
+
+        # Flexible column name matching — lowercase comparison
+        col_map = {}
+        for col in debtor_df.columns:
+            cl = col.strip().lower()
+            if 'debtor' in cl and 'code' in cl:      col_map['code']  = col
+            elif 'company' in cl or 'name' in cl:    col_map.setdefault('name', col)
+            elif 'phone' in cl or 'tel' in cl or 'mobile' in cl: col_map['phone'] = col
+            elif 'attention' in cl or 'remark' in cl: col_map['vip']  = col
+            elif 'birth' in cl:                       col_map['birth'] = col
+            elif 'open' in cl and ('acc' in cl or 'date' in cl): col_map['open']  = col
+            elif 'type' in cl:                        col_map.setdefault('type', col)
+        log(f"  Debtor col_map: {col_map}")
+
         for _, row in debtor_df.iterrows():
-            code = str(row.get("Debtor Code", "")).strip()
-            if code:
+            code = str(row.get(col_map.get('code', 'Debtor Code'), '')).strip()
+            if code and code != 'nan':
+                vip_raw = str(row.get(col_map.get('vip', 'Attention'), '')).strip().upper()
                 debtor_info[code] = {
-                    "name":       str(row.get("Company Name", "")).strip(),
-                    "phone":      str(row.get("Phone", "")).strip(),
-                    "vip":        str(row.get("Attention", "")).strip().upper() == "VIP",
-                    "birth_date": row.get("Birth Date", None),
-                    "open_date":  row.get("Open Acct Date", None),
-                    "type":       str(row.get("Debtor Type", "")).strip(),
+                    "name":       str(row.get(col_map.get('name', 'Company Name'), '')).strip(),
+                    "phone":      str(row.get(col_map.get('phone', 'Phone'), '')).strip().replace('nan',''),
+                    "vip":        vip_raw == "VIP",
+                    "birth_date": row.get(col_map.get('birth', 'Birth Date'), None),
+                    "open_date":  row.get(col_map.get('open', 'Open Acct Date'), None),
+                    "type":       str(row.get(col_map.get('type', 'Debtor Type'), '')).strip().replace('nan',''),
                 }
 
     # SKU groups

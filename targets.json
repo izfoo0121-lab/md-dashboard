@@ -1,13 +1,70 @@
 {
+  "_comment": "MD Sales Dashboard \u2014 Monthly Targets. Edit via Admin Page or directly here.",
+  "_month": "Mar 2026",
+  "_scope": "GRP 2A (Miracle & SS2)",
   "brand_config": {
-    "iFACE": [],
-    "SUKUN": [],
-    "EVO": [],
-    "BISON": [],
-    "TR20": [],
-    "LAM+LWM": []
+    "iFACE": [
+      "IFACE B",
+      "IFACE M",
+      "IFACE R",
+      "IFACE DB"
+    ],
+    "SUKUN": [
+      "SKNR",
+      "SKNW"
+    ],
+    "EVO": [
+      "EVO"
+    ],
+    "BISON": [
+      "BISON-G",
+      "BISON-R",
+      "BISON-M"
+    ],
+    "TR20": [
+      "TR20"
+    ],
+    "LAM+LWM": [
+      "LAM",
+      "LWM"
+    ]
   },
-  "inhouse_codes": [],
+  "inhouse_codes": [
+    "90",
+    "DPM EVO",
+    "IMP-001",
+    "LB22",
+    "LF-002",
+    "LIC-001",
+    "LMM-002",
+    "TR-002",
+    "CM-002",
+    "LG22",
+    "LR22",
+    "LBOLD",
+    "MARISE",
+    "HTM-002",
+    "ZYG",
+    "ZL",
+    "EC",
+    "ZPA",
+    "LC20",
+    "CMX",
+    "CMP",
+    "IFACE B",
+    "IFACE M",
+    "IFACE R",
+    "IFACE DB",
+    "SKNR",
+    "SKNW",
+    "EVO",
+    "BISON-G",
+    "BISON-R",
+    "BISON-M",
+    "TR20",
+    "LAM",
+    "LWM"
+  ],
   "newbie_scheme": {
     "ctn_tiers": [
       {
@@ -42,10 +99,10 @@
     "BEN": {
       "is_newbie": false,
       "sales_progression": {
-        "normal_t1": null,
-        "normal_t2": null,
+        "normal_t1": 921,
+        "normal_t2": 1171,
         "ga": null,
-        "ma": null
+        "ma": 230
       },
       "brand_commission": {
         "iFACE": {
@@ -494,6 +551,33 @@
         }
       }
     }
+  },
+  "group_brand_config": {
+    "SUKUN": [
+      "SKNR",
+      "SKNW"
+    ],
+    "EVO": [
+      "EVO"
+    ],
+    "IMP": [
+      "IMP-001"
+    ],
+    "LF": [
+      "LF-002"
+    ],
+    "CLASSMILD": [
+      "CM-002"
+    ],
+    "BISON": [
+      "BISON-G",
+      "BISON-M",
+      "BISON-R"
+    ],
+    "TR": [
+      "TR20",
+      "TR-002"
+    ]
   },
   "group_brand_targets": {
     "SUKUN": 7800,
