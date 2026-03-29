@@ -22,7 +22,7 @@ echo Using: %PYTHON%
 echo.
 
 REM ── Step 1: Run data processing ──────────────────────────────────────────
-echo [1/3] Processing data...
+echo [1/4] Processing data...
 %PYTHON% process_data.py
 if %errorlevel% neq 0 (
     echo.
@@ -35,9 +35,18 @@ if %errorlevel% neq 0 (
 echo ✅ dashboard_data.json updated
 echo.
 
-REM ── Step 2: Git add + commit + push ──────────────────────────────────────
-echo [2/3] Pushing to GitHub...
-git add dashboard_data.json
+REM ── Step 2: Save monthly history ─────────────────────────────────────────
+echo [2/4] Saving monthly history...
+%PYTHON% save_history.py
+if %errorlevel% neq 0 (
+    echo ⚠  Warning: save_history.py failed — history not saved, continuing...
+)
+echo ✅ history.xlsx updated
+echo.
+
+REM ── Step 3: Git add + commit + push ──────────────────────────────────────
+echo [3/4] Pushing to GitHub...
+git add dashboard_data.json history.xlsx
 git add targets.json 2>nul
 git commit -m "Daily update %date% %time%"
 git push origin main
@@ -51,8 +60,8 @@ if %errorlevel% neq 0 (
 echo ✅ Pushed to GitHub
 echo.
 
-REM ── Step 3: Done ─────────────────────────────────────────────────────────
-echo [3/3] Done!
+REM ── Step 4: Done ─────────────────────────────────────────────────────────
+echo [4/4] Done!
 echo.
 echo ============================================
 echo  ✅ Dashboard updated successfully!
