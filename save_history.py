@@ -105,6 +105,25 @@ def build_monthly_rows(data, targets):
             # Brand commission
             "Brands Earned":   sum(1 for b in bc.values() if b.get("status") == "both_hit"),
             "Total Comm RM":   round(sum(b.get("comm_earned", 0) for b in bc.values()), 2),
+            # Brand commission detail per brand
+            "iFACE Pen":   bc.get("iFACE",{}).get("new_penetrations", 0) or 0,
+            "iFACE CTN":   bc.get("iFACE",{}).get("cur_ctn", 0) or 0,
+            "iFACE Comm":  "✓" if bc.get("iFACE",{}).get("status")=="both_hit" else "✗",
+            "SUKUN Pen":   bc.get("SUKUN",{}).get("new_penetrations", 0) or 0,
+            "SUKUN CTN":   bc.get("SUKUN",{}).get("cur_ctn", 0) or 0,
+            "SUKUN Comm":  "✓" if bc.get("SUKUN",{}).get("status")=="both_hit" else "✗",
+            "EVO Pen":     bc.get("EVO",{}).get("new_penetrations", 0) or 0,
+            "EVO CTN":     bc.get("EVO",{}).get("cur_ctn", 0) or 0,
+            "EVO Comm":    "✓" if bc.get("EVO",{}).get("status")=="both_hit" else "✗",
+            "BISON Pen":   bc.get("BISON",{}).get("new_penetrations", 0) or 0,
+            "BISON CTN":   bc.get("BISON",{}).get("cur_ctn", 0) or 0,
+            "BISON Comm":  "✓" if bc.get("BISON",{}).get("status")=="both_hit" else "✗",
+            "TR20 Pen":    bc.get("TR20",{}).get("new_penetrations", 0) or 0,
+            "TR20 CTN":    bc.get("TR20",{}).get("cur_ctn", 0) or 0,
+            "TR20 Comm":   "✓" if bc.get("TR20",{}).get("status")=="both_hit" else "✗",
+            "LAM+LWM Pen": bc.get("LAM+LWM",{}).get("new_penetrations", 0) or 0,
+            "LAM+LWM CTN": bc.get("LAM+LWM",{}).get("cur_ctn", 0) or 0,
+            "LAM+LWM Comm":"✓" if bc.get("LAM+LWM",{}).get("status")=="both_hit" else "✗",
             # KPI scores
             "KPI A+B+C Score": round(kpi.get("total_abc", 0) or 0, 2),
             "KPI Grand Total": round(kpi.get("grand_total", 0) or 0, 2),
@@ -121,6 +140,71 @@ def build_monthly_rows(data, targets):
     return rows
 
 def build_sku_rows(data):
+    """Build per-agent per-SKU per-month rows for SKU_History sheet."""
+    month  = data.get("current_month", "")
+    agents = data.get("agents", {})
+    rows   = []
+    for agent, adata in agents.items():
+        sp = adata.get("sales_progression", {})
+        sku_trend = sp.get("sku_trend", {})
+        months = sp.get("month_labels", [])
+        cur_m  = months[-1] if months else month
+        mdata  = {sku: trend.get(cur_m, {}) for sku, trend in sku_trend.items()}
+        for sku, d in mdata.items():
+            rows.append({
+                "Month":   month,
+                "Agent":   agent,
+                "SKU":     sku,
+                "Debtors": d.get("debtors", 0),
+                "CTN":     d.get("ctn", 0),
+            })
+    return rows
+
+
+def build_team_rows(data, targets):
+    """Build team-level monthly summary row."""
+    month   = data.get("current_month", "")
+    quarter = get_quarter(month)
+    wd      = data.get("working_days", {})
+    agents  = data.get("agents", {})
+    team    = data.get("team_summary", {})
+    gb      = data.get("group_brand_targets", {})
+
+    # Aggregate agent stats
+    total_normal_ctn = sum(a.get("sales_progression",{}).get("normal_ctn",0) or 0 for a in agents.values())
+    total_canggih    = sum(a.get("sales_progression",{}).get("total_canggih_ctn",0) or 0 for a in agents.values())
+    total_txns       = sum(a.get("sales_progression",{}).get("txn_count",0) or 0 for a in agents.values())
+    total_active     = sum(a.get("debtor_cards",{}).get("active_count",0) or 0 for a in agents.values())
+    total_debtors    = sum(a.get("debtor_cards",{}).get("total_debtors",0) or 0 for a in agents.values())
+    total_new_acc    = sum(sum(1 for d in a.get("debtor_cards",{}).get("debtors",[]) if d.get("is_new")) for a in agents.values())
+    total_new_sku    = sum(a.get("debtor_cards",{}).get("total_new_sku",0) or 0 for a in agents.values())
+
+    row = {
+        "Year":             datetime.strptime(month, "%b %y").year if month else "",
+        "Month":            month,
+        "Quarter":          quarter,
+        "Working Days":     wd.get("total_working_days", 0),
+        "Agents":           len(agents),
+        "Team Normal CTN":  round(total_normal_ctn, 0),
+        "Team Canggih CTN": round(total_canggih, 0),
+        "Team Txn Count":   total_txns,
+        "Team Active":      total_active,
+        "Team Total Debtors": total_debtors,
+        "Team Act Rate %":  round(total_active/total_debtors*100,1) if total_debtors else 0,
+        "Team New Accts":   total_new_acc,
+        "Team New SKU":     total_new_sku,
+    }
+    # Group brand actuals
+    for brand, bdata in gb.items():
+        row[f"GB {brand} CTN"]    = bdata.get("actual_ctn", 0) or 0
+        row[f"GB {brand} Target"] = bdata.get("target_ctn", 0) or 0
+        row[f"GB {brand} %"]      = bdata.get("pct", 0) or 0
+
+    row["Saved At"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+    return [row]
+
+
+
     """Build per-agent per-SKU per-month rows for SKU_History sheet."""
     month  = data.get("current_month", "")
     agents = data.get("agents", {})
@@ -232,6 +316,11 @@ def save_history():
     sku_rows = build_sku_rows(data)
     added = append_to_sheet(wb, "SKU_History", sku_rows, ["Month", "Agent", "SKU"])
     log(f"  SKU_History: +{added} rows")
+
+    # ── Sheet 3: Team Summary ─────────────────────────────────────────────
+    team_rows = build_team_rows(data, targets)
+    added = append_to_sheet(wb, "Team_Summary", team_rows, ["Month"])
+    log(f"  Team_Summary: +{added} rows")
 
     # ── Save ──────────────────────────────────────────────────────────────
     wb.save(HISTORY_FILE)
