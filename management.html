@@ -495,36 +495,11 @@ function populateMonthSelector(historyRows) {
   sel.style.display = 'block';
 }
 
+// Auto-load history from injected window.HISTORY_DATA (Streamlit injects this)
 function initMonthSelector() {
   const hist = window.HISTORY_DATA;
   if (!hist || !hist.monthly || !hist.monthly.length) return;
-
-  HISTORY_MONTHLY = hist.monthly;
-
-  // Get unique months sorted
-  const months = [...new Set(HISTORY_MONTHLY.map(r => r.Month))]
-    .filter(Boolean)
-    .sort((a, b) => {
-      try { return new Date('01 ' + b) - new Date('01 ' + a); } catch(e) { return 0; }
-    });
-
-  const sel = document.getElementById('month-selector');
-  if (!sel) return;
-
-  // Add current month option first
-  const curMonth = DATA?.current_month || '';
-  sel.innerHTML = `<option value="current">📍 ${curMonth.toUpperCase()} (Current)</option>`;
-
-  months.forEach(m => {
-    if (m !== curMonth) {
-      const opt = document.createElement('option');
-      opt.value = m;
-      opt.textContent = `📅 ${m.toUpperCase()}`;
-      sel.appendChild(opt);
-    }
-  });
-
-  sel.style.display = 'block';
+  populateMonthSelector(hist.monthly);
 }
 
 function onMonthChange(val) {
