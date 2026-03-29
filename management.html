@@ -469,6 +469,32 @@ let CURRENT_DATA = null; // current displayed data (may be historical)
 let HISTORY_MONTHLY = null; // from window.HISTORY_DATA
 
 // ── Month Selector Init ────────────────────────────────────────────────────
+function populateMonthSelector(historyRows) {
+  if (!historyRows || !historyRows.length) return;
+  HISTORY_MONTHLY = historyRows;
+
+  const months = [...new Set(historyRows.map(r => r.Month))]
+    .filter(Boolean)
+    .sort((a, b) => {
+      try { return new Date('01 ' + b) - new Date('01 ' + a); } catch(e) { return 0; }
+    });
+
+  const sel = document.getElementById('month-selector');
+  if (!sel) return;
+
+  const curMonth = DATA?.current_month || '';
+  sel.innerHTML = `<option value="current">📍 ${curMonth.toUpperCase()} (Current)</option>`;
+  months.forEach(m => {
+    if (m !== curMonth) {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = `📅 ${m.toUpperCase()}`;
+      sel.appendChild(opt);
+    }
+  });
+  sel.style.display = 'block';
+}
+
 function initMonthSelector() {
   const hist = window.HISTORY_DATA;
   if (!hist || !hist.monthly || !hist.monthly.length) return;
