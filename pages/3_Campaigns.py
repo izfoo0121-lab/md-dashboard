@@ -1,10 +1,7 @@
-import streamlit as st
-import os
-
+import streamlit as st, os
 st.set_page_config(page_title="Miracle MD — Campaigns", page_icon="📢", layout="wide", initial_sidebar_state="collapsed")
-st.markdown("<style>#MainMenu,header,footer{visibility:hidden}.block-container{padding:0!important;max-width:100%!important}iframe{border:none}</style>", unsafe_allow_html=True)
-
+st.markdown("<style>#MainMenu,header,footer{visibility:hidden}.block-container{padding:0!important;max-width:100%!important}iframe{border:none}[data-testid='stSidebarNav']{display:none}</style>", unsafe_allow_html=True)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-html = open(os.path.join(BASE_DIR, "campaigns.html"), encoding='utf-8').read() if os.path.exists(os.path.join(BASE_DIR, "campaigns.html")) else None
-if html:
-    st.components.v1.html(html, height=900, scrolling=True)
+f = os.path.join(BASE_DIR,"campaigns.html")
+if os.path.exists(f):
+    st.components.v1.html(open(f,encoding='utf-8').read(), height=900, scrolling=True)

@@ -1,89 +1,102 @@
 import streamlit as st
-import json
-import os
+import json, os, pandas as pd
 
-# v2026.03.29 — updated admin, dashboard, process_data
+# v2026.03.29b — fixed routing + persistent history
 
-# ── Page config ───────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Touro MD Sales Dashboard",
-    page_icon="📊",
-    layout="wide",
+    page_title="Miracle MD Sales Dashboard",
+    page_icon="📊", layout="wide",
     initial_sidebar_state="collapsed",
 )
-
-# ── Hide Streamlit chrome ─────────────────────────────────────────────────
 st.markdown("""
 <style>
   #MainMenu, header, footer { visibility: hidden; }
   .block-container { padding: 0 !important; max-width: 100% !important; }
   iframe { border: none; }
-</style>
-""", unsafe_allow_html=True)
+  [data-testid="stSidebarNav"] { display: none; }
+</style>""", unsafe_allow_html=True)
 
-# ── File paths ────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-def read_file(filename):
-    path = os.path.join(BASE_DIR, filename)
-    if not os.path.exists(path):
-        return None
-    with open(path, "r", encoding="utf-8") as f:
-        return f.read()
+def read_file(f):
+    p = os.path.join(BASE_DIR, f)
+    return open(p, encoding='utf-8').read() if os.path.exists(p) else None
 
-def read_json(filename):
-    path = os.path.join(BASE_DIR, filename)
-    if not os.path.exists(path):
-        return {}
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+def read_json(f):
+    p = os.path.join(BASE_DIR, f)
+    return json.load(open(p, encoding='utf-8')) if os.path.exists(p) else {}
 
-# ── Query params for routing ──────────────────────────────────────────────
-params = st.query_params
-page = params.get("page", "agent")  # agent | management | admin
+def get_history_json():
+    """Read history.xlsx and return as JSON string."""
+    hp = os.path.join(BASE_DIR, "history.xlsx")
+    if not os.path.exists(hp):
+        return "null"
+    try:
+        ef  = pd.ExcelFile(hp)
+        df  = pd.read_excel(hp, sheet_name="Monthly_Summary")
+        dt  = pd.read_excel(hp, sheet_name="Team_Summary") if "Team_Summary" in ef.sheet_names else pd.DataFrame()
+        return json.dumps({
+            "monthly": json.loads(df.to_json(orient="records", default_handler=str)),
+            "team":    json.loads(dt.to_json(orient="records", default_handler=str)) if not dt.empty else [],
+        })
+    except Exception as e:
+        return "null"
 
-# ── Route to correct page ─────────────────────────────────────────────────
-if page == "management":
-    html_content = read_file("management.html")
-    if html_content is None:
-        st.error("management.html not found in dashboard folder.")
-    else:
-        # Inject dashboard_data.json inline so management.html can load it
-        data = read_json("dashboard_data.json")
-        data_json = json.dumps(data)
-        html_content = html_content.replace(
-            "fetch('dashboard_data.json')",
-            f"Promise.resolve({{ json: () => Promise.resolve({data_json}) }})"
+def inject_data(html, include_history=False):
+    """Inject dashboard_data.json and optionally history into HTML."""
+    data      = read_json("dashboard_data.json")
+    data_json = json.dumps(data)
+    html = html.replace(
+        "fetch('dashboard_data.json')",
+        f"Promise.resolve({{json:()=>Promise.resolve({data_json})}})"
+    )
+    if include_history:
+        history_json = get_history_json()
+        html = html.replace(
+            "</head>",
+            f"<script>window.HISTORY_DATA={history_json};</script>\n</head>"
         )
-        st.components.v1.html(html_content, height=900, scrolling=True)
+    return html
+
+# ── Routing ───────────────────────────────────────────────────────────────────
+# Support both ?page= (legacy) and path-based routing
+params = st.query_params
+page   = params.get("page", "agent").lower()
+
+# Also detect path from URL
+try:
+    path = st.context.headers.get("X-Forwarded-For", "")
+except:
+    path = ""
+
+# Determine page from query param
+if page == "management":
+    html = read_file("management.html")
+    if html:
+        html = inject_data(html, include_history=True)
+        st.components.v1.html(html, height=900, scrolling=True)
+    else:
+        st.error("management.html not found")
 
 elif page == "admin":
-    html_content = read_file("admin.html")
-    if html_content is None:
-        st.error("admin.html not found in dashboard folder.")
+    html = read_file("admin.html")
+    if html:
+        st.components.v1.html(html, height=900, scrolling=True)
     else:
-        st.components.v1.html(html_content, height=900, scrolling=True)
+        st.error("admin.html not found")
+
+elif page == "campaigns":
+    html = read_file("campaigns.html")
+    if html:
+        st.components.v1.html(html, height=900, scrolling=True)
+    else:
+        st.error("campaigns.html not found")
 
 else:
-    # Default: agent dashboard
-    html_content = read_file("sales_dashboard.html")
-    if html_content is None:
-        st.error("sales_dashboard.html not found in dashboard folder.")
+    # Agent dashboard (default)
+    html = read_file("sales_dashboard.html")
+    if html:
+        html = inject_data(html)
+        st.components.v1.html(html, height=900, scrolling=True)
     else:
-        # Inject dashboard_data.json inline
-        data = read_json("dashboard_data.json")
-        data_json = json.dumps(data)
-        html_content = html_content.replace(
-            "fetch('dashboard_data.json')",
-            f"Promise.resolve({{ json: () => Promise.resolve({data_json}) }})"
-        )
-        st.components.v1.html(html_content, height=900, scrolling=True)
-
-# ── Navigation links (hidden but functional) ──────────────────────────────
-st.markdown("""
-<div style="position:fixed;bottom:0;right:0;padding:4px 8px;background:rgba(0,0,0,.4);border-radius:6px 0 0 0;z-index:9999;">
-  <a href="?page=agent" style="color:#888;font-size:9px;margin-right:6px;text-decoration:none;">Agent</a>
-  <a href="?page=management" style="color:#888;font-size:9px;margin-right:6px;text-decoration:none;">Mgmt</a>
-  <a href="?page=admin" style="color:#888;font-size:9px;text-decoration:none;">Admin</a>
-</div>
-""", unsafe_allow_html=True)
+        st.error("sales_dashboard.html not found")
