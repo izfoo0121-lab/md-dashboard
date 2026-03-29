@@ -780,6 +780,16 @@ function renderDebtors() {
       d.volume_drop_pct ? `<span class="status-inline" style="background:rgba(255,95,95,.15);color:var(--red)">📉 -${d.volume_drop_pct}%</span>` : '',
     ].filter(Boolean).join('');
 
+    // Store month breakdown in global lookup to avoid JSON escaping issues in onclick
+    const mbKey = `${currentAgent}_${d.debtor_code}`;
+    if (!window._ctnBreakdowns) window._ctnBreakdowns = {};
+    window._ctnBreakdowns[mbKey] = d.month_breakdown || {};
+
+    const mbMonths = Object.keys(d.month_breakdown || {});
+    const mb0 = mbMonths[2] || '';  // M-2
+    const mb1 = mbMonths[1] || '';  // M-1
+    const mb2 = mbMonths[0] || '';  // 本月
+
     const ctn0 = d.ctn_prev2 ?? 0;
     const ctn1 = d.ctn_prev1 ?? 0;
     const ctn2 = d.ctn_cur   ?? 0;
@@ -844,13 +854,13 @@ function renderDebtors() {
           <span style="font-family:var(--mono);font-size:9px;color:${trendColor}">${trendIcon} ${ctn2>0?fmtNum(ctn2)+' CTN':'本月未购买'}</span>
         </div>
         <div class="ctn-grid">
-          <div class="ctn-col" onclick="showCtnBreakdown(event,'${d.debtor_code}','M-2','${Object.keys(d.month_breakdown||{})[2]||''}',${JSON.stringify((d.month_breakdown&&Object.values(d.month_breakdown)[2])||[])})">
+          <div class="ctn-col" onclick="showCtnBreakdown('${mbKey}','M-2','${mb0}')">
             <div class="ctn-col-val" style="color:var(--muted)">${fmtNum(ctn0)}</div><div class="ctn-col-lbl">M-2</div>
           </div>
-          <div class="ctn-col" onclick="showCtnBreakdown(event,'${d.debtor_code}','M-1','${Object.keys(d.month_breakdown||{})[1]||''}',${JSON.stringify((d.month_breakdown&&Object.values(d.month_breakdown)[1])||[])})">
+          <div class="ctn-col" onclick="showCtnBreakdown('${mbKey}','M-1','${mb1}')">
             <div class="ctn-col-val" style="color:var(--muted)">${fmtNum(ctn1)}</div><div class="ctn-col-lbl">M-1</div>
           </div>
-          <div class="ctn-col cur" onclick="showCtnBreakdown(event,'${d.debtor_code}','本月','${Object.keys(d.month_breakdown||{})[0]||''}',${JSON.stringify((d.month_breakdown&&Object.values(d.month_breakdown)[0])||[])})">
+          <div class="ctn-col cur" onclick="showCtnBreakdown('${mbKey}','本月','${mb2}')">
             <div class="ctn-col-val" style="color:var(--blue)">${fmtNum(ctn2)}</div><div class="ctn-col-lbl">本月</div>
           </div>
         </div>
@@ -1574,12 +1584,15 @@ function renderKPI() {
 }
 
 // ── CTN Breakdown Tooltip ──────────────────────────────────────────────────
-function showCtnBreakdown(event, debtorCode, label, monthLabel, items) {
-  event.stopPropagation();
-  const totalCtn = items.reduce((s, i) => s + i.ctn, 0);
-  document.getElementById('ctn-tt-title').textContent = `${label}  ·  ${monthLabel || ''}`;
+function showCtnBreakdown(mbKey, label, monthLabel) {
+  const breakdown = window._ctnBreakdowns?.[mbKey] || {};
+  const items = breakdown[monthLabel] || [];
+  const debtorCode = mbKey.split('_').slice(1).join('_');
+  const totalCtn = items.reduce((s, i) => s + (i.ctn || 0), 0);
+
+  document.getElementById('ctn-tt-title').textContent = `${label}  ·  ${monthLabel || '—'}`;
   document.getElementById('ctn-tt-sub').textContent =
-    `${debtorCode}  ·  Total: ${totalCtn.toFixed(1)} CTN  ·  ${items.length} item${items.length!==1?'s':''}`;
+    `${debtorCode}  ·  Total: ${totalCtn % 1 === 0 ? totalCtn.toFixed(0) : totalCtn.toFixed(1)} CTN  ·  ${items.length} item${items.length !== 1 ? 's' : ''}`;
 
   const el = document.getElementById('ctn-tt-items');
   if (!items.length) {
@@ -1588,12 +1601,13 @@ function showCtnBreakdown(event, debtorCode, label, monthLabel, items) {
     el.innerHTML = items.map(item => `
       <div class="ctn-item-row">
         <div class="ctn-item-code">${item.item}</div>
-        <div style="display:flex;align-items:baseline;gap:2px;">
+        <div style="display:flex;align-items:baseline;gap:3px;">
           <div class="ctn-item-ctn">${item.ctn % 1 === 0 ? item.ctn.toFixed(0) : item.ctn.toFixed(1)}</div>
           <div class="ctn-item-unit">CTN</div>
         </div>
       </div>`).join('');
   }
+
   document.getElementById('ctn-tooltip-overlay').style.display = 'flex';
   document.body.style.overflow = 'hidden';
 }
