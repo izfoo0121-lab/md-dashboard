@@ -409,7 +409,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 <div id="view-brand" class="view">
   <div class="card" style="margin-bottom:10px;">
     <div style="display:flex;justify-content:space-between;align-items:center;">
-      <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;">Total Commission</div>
+      <div>
+        <div style="font-family:var(--display);font-size:20px;letter-spacing:.05em;">品牌目标</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:1px;">Brand Commission Target</div>
+      </div>
       <div style="font-family:var(--mono);font-size:20px;color:var(--green);" id="total-comm">RM 0.00</div>
     </div>
     <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:4px;" id="brands-status">Select an agent</div>
@@ -514,7 +517,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 <nav class="bottom-nav">
   <div class="nav-item active" onclick="switchView('debtors',this)"><div class="nav-icon">👥</div><div class="nav-label">Debtors</div></div>
   <div class="nav-item" onclick="switchView('sales',this)"><div class="nav-icon">📈</div><div class="nav-label">Sales</div></div>
-  <div class="nav-item" onclick="switchView('brand',this)"><div class="nav-icon">🏷️</div><div class="nav-label">Comm</div></div>
+  <div class="nav-item" onclick="switchView('brand',this)"><div class="nav-icon">🏷️</div><div class="nav-label" style="font-size:7px;">品牌目标</div></div>
   <div class="nav-item" onclick="switchView('group',this)"><div class="nav-icon">🏢</div><div class="nav-label">Group</div></div>
   <div class="nav-item" onclick="switchView('kpi',this)"><div class="nav-icon">🎯</div><div class="nav-label">KPI</div></div>
   <div class="nav-item" onclick="switchView('newbie',this)"><div class="nav-icon">🎓</div><div class="nav-label">Newbie</div></div>
