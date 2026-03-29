@@ -132,6 +132,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
     <button class="tab-btn" onclick="switchTab('group',this)">Group Brands</button>
     <button class="tab-btn" onclick="switchTab('sku',this)">SKU Config</button>
     <button class="tab-btn" onclick="switchTab('holidays',this)">📅 Holidays</button>
+    <button class="tab-btn" onclick="switchTab('brand_camps',this)">🔥 Brand Promo</button>
     <button class="tab-btn" onclick="switchTab('campaigns',this)">📢 Campaigns</button>
     <button class="tab-btn" onclick="switchTab('export',this)">Export / Import</button>
   </div>
@@ -229,11 +230,146 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
     </div>
   </div>
 
+  <!-- ── Tab: Brand Promo Campaigns ── -->
+  <div id="tab-brand_camps" class="tab-content">
+    <div class="page-body">
+      <div class="sec-header">🔥 Brand Promo Campaigns</div>
+      <div class="sec-sub">Auto-calculate promo tier per debtor based on last 3 months purchase history.</div>
+
+      <!-- How it works -->
+      <div style="background:rgba(200,56,26,.08);border:1px solid rgba(200,56,26,.2);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-family:var(--mono);font-size:9px;color:var(--ink3);">
+        <div style="font-weight:600;color:var(--accent);margin-bottom:6px;">📊 How tiers work (based on avg CTN last 3 months):</div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;">
+          <div><span style="color:var(--accent)">Tier A</span> — Avg = 0 CTN → Activate (dormant)</div>
+          <div><span style="color:var(--blue)">Tier B</span> — Avg 1–X CTN → Upgrade small</div>
+          <div><span style="color:var(--green)">Tier C</span> — Avg X+1–Y CTN → Upgrade medium</div>
+          <div><span style="color:var(--purple)">Key Acct</span> — Avg &gt;Y CTN → Retain big buyer</div>
+        </div>
+      </div>
+
+      <!-- Active brand campaigns -->
+      <div class="sec-divider" style="margin-top:0;">Active Brand Campaigns</div>
+      <div id="brand-camp-list"></div>
+
+      <!-- Create new brand campaign -->
+      <div class="sec-divider" style="margin-top:16px;">Create New Brand Campaign</div>
+      <div class="admin-card">
+        <div class="input-row">
+          <div class="field-wrap">
+            <div class="field-lbl">Brand</div>
+            <select id="bc-brand" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 12px;border-radius:8px;">
+              <option value="BISON">BISON</option>
+              <option value="SUKUN">SUKUN</option>
+              <option value="EVO">EVO</option>
+              <option value="iFACE">iFACE</option>
+              <option value="TR20">TR20</option>
+              <option value="LAM+LWM">LAM+LWM</option>
+            </select>
+          </div>
+          <div class="field-wrap">
+            <div class="field-lbl">Campaign Name</div>
+            <input type="text" id="bc-name" placeholder="e.g. March BISON Push">
+          </div>
+        </div>
+
+        <div class="sec-divider" style="margin-top:8px;">Tier Thresholds (Avg CTN last 3 months)</div>
+        <div class="input-row">
+          <div class="field-wrap">
+            <div class="field-lbl">Tier B max CTN (≤)</div>
+            <input type="number" id="bc-tier-b" min="0" placeholder="5" value="5">
+          </div>
+          <div class="field-wrap">
+            <div class="field-lbl">Tier C max CTN (≤)</div>
+            <input type="number" id="bc-tier-c" min="0" placeholder="9" value="9">
+          </div>
+        </div>
+
+        <div class="sec-divider" style="margin-top:8px;">Promo Labels (shown to agent)</div>
+        <div class="input-row">
+          <div class="field-wrap">
+            <div class="field-lbl" style="color:var(--accent)">Tier A (= 0 CTN)</div>
+            <input type="text" id="bc-promo-a" placeholder="买2条送1条" value="买2条送1条">
+          </div>
+          <div class="field-wrap">
+            <div class="field-lbl" style="color:var(--blue)">Tier B (1–X CTN)</div>
+            <input type="text" id="bc-promo-b" placeholder="买5条送2条" value="买5条送2条">
+          </div>
+        </div>
+        <div class="input-row">
+          <div class="field-wrap">
+            <div class="field-lbl" style="color:var(--green)">Tier C (X+1–Y CTN)</div>
+            <input type="text" id="bc-promo-c" placeholder="买10条送4条" value="买10条送4条">
+          </div>
+          <div class="field-wrap">
+            <div class="field-lbl" style="color:var(--purple)">Key Account (> Y CTN)</div>
+            <input type="text" id="bc-promo-ka" placeholder="买10条送4条" value="买10条送4条">
+          </div>
+        </div>
+
+        <div class="input-row" style="margin-top:8px;">
+          <div class="field-wrap">
+            <div class="field-lbl">Deadline</div>
+            <input type="date" id="bc-deadline">
+          </div>
+          <div class="field-wrap">
+            <div class="field-lbl">Notes for agent (optional)</div>
+            <input type="text" id="bc-notes" placeholder="e.g. Focus on dormant BISON debtors">
+          </div>
+        </div>
+
+        <div class="sec-divider" style="margin-top:8px;">Override (optional)</div>
+        <div style="font-family:var(--mono);font-size:9px;color:#888;margin-bottom:6px;">
+          Upload the V3 calculation Excel to override auto-calculated tiers. Column needed: "Code", "优惠组别" (A/B/C/KA) or "优惠类别"
+        </div>
+        <input type="file" id="bc-override-file" accept=".xlsx,.xls,.csv" onchange="previewBCOverride(this)" style="font-family:var(--mono);font-size:11px;width:100%;">
+        <div id="bc-override-preview" style="margin-top:6px;font-family:var(--mono);font-size:10px;color:var(--green);"></div>
+
+        <button class="save-btn" onclick="createBrandCampaign()" style="margin-top:12px;background:var(--accent);">🔥 CREATE BRAND CAMPAIGN</button>
+      </div>
+
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-top:12px;">
+        <div style="font-family:var(--display);font-size:16px;letter-spacing:.05em;margin-bottom:6px;">After creating:</div>
+        <div style="font-family:var(--mono);font-size:10px;color:#555;margin-bottom:10px;">
+          1. Download targets.json below<br>
+          2. Replace in md-dashboard folder<br>
+          3. Run bat file → tiers auto-calculated from sales data
+        </div>
+        <button class="save-btn" onclick="saveTargetsJSON()" style="background:#2a7a4b;width:100%;">⬇ SAVE ALL &amp; DOWNLOAD TARGETS.JSON</button>
+      </div>
+      <div class="save-toast" id="save-toast-bc">✓ Brand campaign created</div>
+    </div>
+  </div>
+
   <!-- ── Tab: Campaigns ── -->
   <div id="tab-campaigns" class="tab-content">
     <div class="page-body">
       <div class="sec-header">📢 Campaigns</div>
-      <div class="sec-sub">Create marketing campaigns and upload debtor lists for agents.</div>
+
+      <!-- How-to banner -->
+      <div style="background:var(--blue);color:#fff;border-radius:12px;padding:14px 16px;margin-bottom:14px;">
+        <div style="font-family:var(--display);font-size:16px;letter-spacing:.05em;margin-bottom:8px;">📋 How to create a campaign</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;gap:10px;align-items:flex-start;">
+            <span style="font-family:var(--display);font-size:18px;color:rgba(255,255,255,.5);flex-shrink:0;">1</span>
+            <div style="font-family:var(--mono);font-size:10px;">Prepare debtor list in Excel/CSV — must have column <b>"Code"</b> or <b>"Debtor Code"</b>. Optional: "Company Name"</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start;">
+            <span style="font-family:var(--display);font-size:18px;color:rgba(255,255,255,.5);flex-shrink:0;">2</span>
+            <div style="font-family:var(--mono);font-size:10px;">Fill in campaign details below → select type → upload debtor list → click <b>CREATE CAMPAIGN</b></div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start;">
+            <span style="font-family:var(--display);font-size:18px;color:rgba(255,255,255,.5);flex-shrink:0;">3</span>
+            <div style="font-family:var(--mono);font-size:10px;">Click <b>⬇ DOWNLOAD CAMPAIGNS.JSON</b> → replace file in md-dashboard folder → run bat file</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start;">
+            <span style="font-family:var(--display);font-size:18px;color:rgba(255,255,255,.5);flex-shrink:0;">4</span>
+            <div style="font-family:var(--mono);font-size:10px;">Agents see 🎁 badge on targeted debtor cards + campaign appears on their Campaigns page</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.2);font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.6);">
+          💡 Debtor list format: Excel (.xlsx) or CSV. One debtor per row. Debtor code e.g. 300-JS005
+        </div>
+      </div>
 
       <div class="sec-divider">🎂 Birthday Campaign (Auto-generated)</div>
       <div style="font-family:var(--mono);font-size:9px;color:#888;margin-bottom:8px;">
@@ -302,15 +438,30 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
           <input type="date" id="new-camp-deadline">
         </div>
         <div class="input-group">
-          <div class="input-label">Upload Debtor List (Excel / CSV)</div>
-          <div style="font-family:var(--mono);font-size:9px;color:#888;margin-bottom:6px;">Must have column: "Code" or "Debtor Code". Optional: "Company Name"</div>
-          <input type="file" id="new-camp-file" accept=".xlsx,.xls,.csv" onchange="previewCampFile(this)" style="font-family:var(--mono);font-size:11px;width:100%;">
-          <div id="camp-file-preview" style="margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--green);"></div>
+          <div class="input-label" style="color:var(--accent);font-weight:700;">⬆ Upload Debtor List (Excel / CSV) *required</div>
+          <div style="background:var(--bg);border:2px dashed var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;">
+            <div style="font-family:var(--mono);font-size:9px;color:#888;margin-bottom:6px;">
+              📄 <b>Required column:</b> "Code" or "Debtor Code" (e.g. 300-JS005)<br>
+              📄 <b>Optional column:</b> "Company Name"<br>
+              📄 <b>Accepted formats:</b> .xlsx  .xls  .csv
+            </div>
+            <input type="file" id="new-camp-file" accept=".xlsx,.xls,.csv" onchange="previewCampFile(this)" style="font-family:var(--mono);font-size:11px;width:100%;">
+          </div>
+          <div id="camp-file-preview" style="margin-top:4px;font-family:var(--mono);font-size:10px;color:var(--green);"></div>
         </div>
         <button class="save-btn" onclick="createCampaign()" style="margin-top:8px;">CREATE CAMPAIGN</button>
+        <button onclick="downloadSampleDebtorList()" style="width:100%;margin-top:6px;background:none;border:1px solid var(--border);color:var(--ink3);font-family:var(--mono);font-size:10px;padding:8px;border-radius:8px;cursor:pointer;">⬇ Download Sample Debtor List Format</button>
       </div>
 
-      <button class="save-btn" onclick="saveCampaignsJSON()" style="background:#2a7a4b;margin-top:8px;">⬇ DOWNLOAD CAMPAIGNS.JSON</button>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-top:12px;">
+        <div style="font-family:var(--display);font-size:16px;letter-spacing:.05em;margin-bottom:6px;">After creating campaigns:</div>
+        <div style="font-family:var(--mono);font-size:10px;color:#555;margin-bottom:10px;">
+          1. Click the button below to download<br>
+          2. Replace <b>campaigns.json</b> in your md-dashboard folder<br>
+          3. Run <b>update_dashboard.bat</b> → agents see campaigns immediately
+        </div>
+        <button class="save-btn" onclick="saveCampaignsJSON()" style="background:#2a7a4b;width:100%;font-size:16px;">⬇ DOWNLOAD CAMPAIGNS.JSON</button>
+      </div>
       <div class="save-toast" id="save-toast-camp">✓ Campaign created</div>
     </div>
   </div>
@@ -389,6 +540,7 @@ async function initAdmin() {
   renderSKUForms();
   renderHolidayList();
   renderBirthdayCampList();
+  renderBrandCampList();
   updateRawJSON();
 
   // Load campaigns
@@ -852,7 +1004,7 @@ function importExcel(input) {
           {brand:'TR20',   p:9, c:10},
           {brand:'LAM+LWM',p:11,c:12},
         ];
-        const rows = XLSX.utils.sheet_to_json(ws3, {header:1, range:3}); // skip instruction + header + brand name rows
+        const rows = XLSX.utils.sheet_to_json(ws3, {header:1, range:3}); // skip row1(instr)+row2(hdr)+row3(brand names) → agents from row4
         rows.forEach(row => {
           const agent = String(row[0]||'').trim().toUpperCase();
           if (!agent || !AGENTS.includes(agent)) return;
@@ -920,6 +1072,38 @@ function importExcel(input) {
         imported.push('✓ Public Holidays (' + CONFIG.public_holidays.length + ')');
       }
 
+      // ── 7. Campaigns ─────────────────────────────────────────
+      const ws7 = getSheet('Campaigns');
+      if (ws7) {
+        const rows = XLSX.utils.sheet_to_json(ws7, {header:1, range:2});
+        let campCount = 0;
+        rows.forEach(row => {
+          const name     = String(row[0]||'').trim();
+          const type     = String(row[1]||'').trim();
+          const brands   = String(row[2]||'').trim().split(',').map(b=>b.trim()).filter(Boolean);
+          const promo    = String(row[3]||'').trim();
+          const minOrder = parseFloat(row[4]) || null;
+          const deadline = String(row[5]||'').trim();
+          const desc     = String(row[6]||'').trim();
+          if (!name || !deadline) return;
+          // Don't duplicate — check by name+deadline
+          const exists = CAMPAIGNS_DATA.campaigns.find(c => c.name===name && c.deadline===deadline);
+          if (exists) return;
+          CAMPAIGNS_DATA.campaigns.push({
+            id: 'camp_'+Date.now()+'_'+campCount,
+            name, type: type||'other', brands, promo_detail: promo,
+            min_order_ctn: minOrder, description: desc,
+            created_at: new Date().toISOString().split('T')[0],
+            deadline, active: true, debtors: [],
+          });
+          campCount++;
+        });
+        if (campCount) {
+          saveCampaignsData();
+          imported.push(`✓ Campaigns (${campCount} new)`);
+        }
+      }
+
       // Re-render all forms
       renderAgentForms();
       renderNewbieForms();
@@ -982,6 +1166,138 @@ function setGroupTarget(brand, val) {
   updateRawJSON();
 }
 
+// ── Brand Promo Campaigns ──────────────────────────────────────────────────
+const TIER_COLORS = {A:'var(--accent)',B:'var(--blue)',C:'var(--green)',KA:'var(--purple)'};
+const TIER_LABELS = {A:'Tier A (dormant)',B:'Tier B (small)',C:'Tier C (medium)',KA:'Key Account'};
+let _bcOverrides = {};
+
+function renderBrandCampList() {
+  const el = document.getElementById('brand-camp-list');
+  if (!el) return;
+  const camps = CONFIG.brand_campaigns || [];
+  if (!camps.length) {
+    el.innerHTML = '<div style="font-family:var(--mono);font-size:10px;color:var(--ink3);padding:8px 0;">No active brand campaigns. Create one below.</div>';
+    return;
+  }
+  el.innerHTML = camps.filter(c=>c.active).map(c => `
+    <div class="admin-card" style="margin-bottom:8px;border-left:4px solid var(--accent);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;">🔥 ${c.brand}</div>
+          <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;">${c.name}</div>
+          ${c.notes?`<div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">${c.notes}</div>`:''}
+        </div>
+        <button onclick="closeBrandCamp('${c.id}')" style="background:none;border:1px solid var(--border);color:var(--ink3);font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">Close</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px;">
+        ${['A','B','C','KA'].map(t=>`
+          <div style="background:var(--bg);border-radius:8px;padding:7px;text-align:center;border:1px solid var(--border);">
+            <div style="font-family:var(--mono);font-size:8px;color:${TIER_COLORS[t]};font-weight:600;">${TIER_LABELS[t]}</div>
+            <div style="font-family:var(--mono);font-size:10px;margin-top:2px;">${c.tier_labels?.[t]||''}</div>
+          </div>`).join('')}
+      </div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);">
+        Tier B max: ${c.tier_b_max} CTN &nbsp;·&nbsp; Tier C max: ${c.tier_c_max} CTN &nbsp;·&nbsp; Deadline: ${c.deadline}
+        ${Object.keys(c.overrides||{}).length?`&nbsp;·&nbsp; ${Object.keys(c.overrides).length} overrides`:''}
+      </div>
+    </div>`).join('');
+}
+
+function previewBCOverride(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const preview = document.getElementById('bc-override-preview');
+  preview.textContent = 'Reading file...';
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb   = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+      // Try 'calculation' sheet first, then first sheet
+      const wsName = wb.Sheets['calculation'] ? 'calculation' : wb.SheetNames[0];
+      const rows  = XLSX.utils.sheet_to_json(wb.Sheets[wsName], {header:1, range:1});
+      _bcOverrides = {};
+      let count = 0;
+      rows.forEach(row => {
+        // Col C = debtor code (index 2), Col L = 优惠组别 (index 11)
+        const code = String(row[2]||'').trim();
+        const tier = String(row[11]||row[10]||'').trim().toUpperCase();
+        if (code && code.startsWith('3') && ['A','B','C','KA'].includes(tier)) {
+          _bcOverrides[code] = tier;
+          count++;
+        }
+      });
+      preview.textContent = `✓ ${count} debtor overrides loaded from ${wsName}`;
+    } catch(err) {
+      document.getElementById('bc-override-preview').textContent = '❌ Error: ' + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function createBrandCampaign() {
+  const brand    = document.getElementById('bc-brand').value;
+  const name     = document.getElementById('bc-name').value.trim();
+  const tierB    = parseFloat(document.getElementById('bc-tier-b').value) || 5;
+  const tierC    = parseFloat(document.getElementById('bc-tier-c').value) || 9;
+  const promoA   = document.getElementById('bc-promo-a').value.trim() || '买2条送1条';
+  const promoB   = document.getElementById('bc-promo-b').value.trim() || '买5条送2条';
+  const promoC   = document.getElementById('bc-promo-c').value.trim() || '买10条送4条';
+  const promoKA  = document.getElementById('bc-promo-ka').value.trim() || '买10条送4条';
+  const deadline = document.getElementById('bc-deadline').value;
+  const notes    = document.getElementById('bc-notes').value.trim();
+
+  if (!name)     { alert('Please enter campaign name'); return; }
+  if (!deadline) { alert('Please set deadline'); return; }
+
+  if (!CONFIG.brand_campaigns) CONFIG.brand_campaigns = [];
+
+  CONFIG.brand_campaigns.push({
+    id:         'bc_' + Date.now(),
+    brand, name, notes,
+    tier_b_max: tierB,
+    tier_c_max: tierC,
+    tier_labels: { A: promoA, B: promoB, C: promoC, KA: promoKA },
+    tier_a_promo: promoA, tier_b_promo: promoB,
+    tier_c_promo: promoC, tier_ka_promo: promoKA,
+    deadline,
+    active: true,
+    overrides: _bcOverrides,
+  });
+
+  updateRawJSON();
+  renderBrandCampList();
+
+  // Reset form
+  document.getElementById('bc-name').value = '';
+  document.getElementById('bc-deadline').value = '';
+  document.getElementById('bc-notes').value = '';
+  document.getElementById('bc-override-file').value = '';
+  document.getElementById('bc-override-preview').textContent = '';
+  _bcOverrides = {};
+
+  const t = document.getElementById('save-toast-bc');
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2000);
+}
+
+function closeBrandCamp(id) {
+  const c = (CONFIG.brand_campaigns||[]).find(x=>x.id===id);
+  if (c && confirm(`Close brand campaign "${c.name}"?`)) {
+    c.active = false;
+    updateRawJSON();
+    renderBrandCampList();
+  }
+}
+
+function saveTargetsJSON() {
+  updateRawJSON();
+  const blob = new Blob([JSON.stringify(CONFIG, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'targets.json';
+  a.click();
+}
+
 // ── Public Holidays ────────────────────────────────────────────────────────
 function renderHolidayList() {
   const el = document.getElementById('ph-list');
@@ -1035,6 +1351,21 @@ function removeHoliday(idx) {
   CONFIG.public_holidays.splice(idx, 1);
   updateRawJSON();
   renderHolidayList();
+}
+
+function downloadSampleDebtorList() {
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['Code', 'Company Name'],
+    ['300-JS005', 'KEDAI RUNCIT ABC'],
+    ['300-C516',  'PASARAYA XYZ SDN BHD'],
+    ['300-J031',  'MINI MARKET 123'],
+    ['', '← Replace with your debtor codes'],
+  ]);
+  // Column widths
+  ws['!cols'] = [{wch:18},{wch:35}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Debtor List');
+  XLSX.writeFile(wb, 'Campaign_Debtor_List_Template.xlsx');
 }
 
 // ── Birthday Campaign Override ─────────────────────────────────────────────

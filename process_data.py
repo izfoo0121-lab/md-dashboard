@@ -915,6 +915,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None):
                 "new_sku_total":      len(new_sku_groups),
                 "sales_types":        cur_sales_types,
                 "campaigns":          (campaign_map or {}).get(dcode, []),
+                "brand_camp_tiers":   {},  # populated after brand campaigns calculated
             })
 
         # Sort: active first, then pending, then need_reactivation
@@ -977,6 +978,162 @@ def calc_group_brand_targets(df, targets, cur_month, group_brand_config):
 
 
 def calc_birthday_campaign(debtor_cards, targets):
+    """Auto-generate birthday gift list from debtor birth dates."""
+    log("Generating birthday campaign list...")
+    today = date.today()
+    overrides = targets.get("birthday_overrides", {})
+    birthday_debtors = []
+    for agent, adata in debtor_cards.items():
+        for d in adata.get("debtors", []):
+            code = d.get("debtor_code", "")
+            if d.get("birthday_this_month", False) and overrides.get(code) != "remove":
+                birthday_debtors.append({"code":code,"name":d.get("company_name",code),"agent":agent,"type":d.get("debtor_type",""),"phone":d.get("phone",""),"source":"auto"})
+    for code, action in overrides.items():
+        if action == "add":
+            for agent, adata in debtor_cards.items():
+                d = next((x for x in adata.get("debtors",[]) if x.get("debtor_code")==code), None)
+                if d:
+                    birthday_debtors.append({"code":code,"name":d.get("company_name",code),"agent":agent,"source":"manual"})
+                    break
+    seen = set(); result = []
+    for d in birthday_debtors:
+        if d["code"] not in seen: seen.add(d["code"]); result.append(d)
+    log(f"  Birthday campaign: {len(result)} debtors ({today.strftime('%B %Y')})")
+    return {"month": today.strftime("%B %Y"), "count": len(result), "debtors": result}
+
+
+def calc_brand_campaigns(df, targets, agents, cur_month, prev_months, brand_config):
+    """
+    Auto-generate brand campaign promo tiers per debtor based on last 3 months avg CTN.
+    Tier logic per campaign (configurable in targets.json brand_campaigns):
+      A = avg CTN == 0            → Buy2Free1  (activate dormant)
+      B = avg CTN 1 to tier_b_max → Buy5Free2  (upgrade small)
+      C = avg CTN tier_b_max+1 to tier_c_max → Buy10Free4 (upgrade medium)
+      KA= avg CTN > tier_c_max   → Buy10Free4 (retain key account)
+    """
+    log("Calculating Brand Campaigns...")
+    brand_campaigns_cfg = targets.get("brand_campaigns", [])
+    if not brand_campaigns_cfg:
+        return []
+
+    # All canggih rows
+    canggih = df[df["item_group"] != EIGHTCOM_GROUP].copy()
+    prev_paid = canggih[canggih["paid_on"].isin(prev_months)]
+
+    results = []
+
+    for camp in brand_campaigns_cfg:
+        if not camp.get("active", True):
+            continue
+
+        brand     = camp.get("brand", "")
+        codes     = brand_config.get(brand, [])
+        if not codes:
+            continue
+
+        # Tier thresholds (configurable)
+        tier_b_max = float(camp.get("tier_b_max", 5))   # B = 1 to this
+        tier_c_max = float(camp.get("tier_c_max", 9))   # C = tier_b_max+1 to this
+
+        # Tier promo labels (configurable)
+        tier_labels = {
+            "A":  camp.get("tier_a_promo", "买2条送1条"),
+            "B":  camp.get("tier_b_promo", "买5条送2条"),
+            "C":  camp.get("tier_c_promo", "买10条送4条"),
+            "KA": camp.get("tier_ka_promo", "买10条送4条"),
+        }
+
+        # Manual overrides from targets.json {debtor_code: "A"|"B"|"C"|"KA"|"exclude"}
+        overrides = camp.get("overrides", {})
+
+        # EVO special: rm_ctn >= 36 filter
+        if brand == "EVO":
+            brand_prev = prev_paid[
+                (prev_paid["item_code"].isin(codes)) &
+                (prev_paid["rm_ctn"] >= EVO_MIN_RM_CTN)
+            ]
+        else:
+            brand_prev = prev_paid[prev_paid["item_code"].isin(codes)]
+
+        # All debtors across all agents
+        all_debtors = set()
+        for agent in agents:
+            ag_debtors = brand_prev[brand_prev["agent"] == agent]["debtor_code"].unique()
+            all_debtors.update(ag_debtors)
+
+        # Also include debtors with 0 purchases (from debtor cards)
+        # We'll calculate per-agent below
+        debtor_list = []
+
+        for agent in agents:
+            ag_prev = brand_prev[brand_prev["agent"] == agent]
+
+            # Get all debtors for this agent
+            all_ag_debtors = df[df["agent"] == agent]["debtor_code"].unique()
+
+            for dcode in all_ag_debtors:
+                if overrides.get(dcode) == "exclude":
+                    continue
+
+                # Avg CTN over last 3 months
+                d_rows = ag_prev[ag_prev["debtor_code"] == dcode]
+                monthly_ctns = []
+                for m in prev_months:
+                    monthly_ctns.append(float(d_rows[d_rows["paid_on"] == m]["qty_ctn"].sum()))
+                avg_ctn = sum(monthly_ctns) / len(monthly_ctns) if monthly_ctns else 0
+                max_ctn = max(monthly_ctns) if monthly_ctns else 0
+
+                # Determine tier
+                if overrides.get(dcode):
+                    tier = overrides[dcode]
+                elif avg_ctn == 0:
+                    tier = "A"
+                elif avg_ctn <= tier_b_max:
+                    tier = "B"
+                elif avg_ctn <= tier_c_max:
+                    tier = "C"
+                else:
+                    tier = "KA"
+
+                debtor_list.append({
+                    "code":      dcode,
+                    "agent":     agent,
+                    "avg_ctn":   round(avg_ctn, 1),
+                    "max_ctn":   round(max_ctn, 1),
+                    "tier":      tier,
+                    "promo":     tier_labels.get(tier, ""),
+                    "overridden": dcode in overrides,
+                })
+
+        results.append({
+            "id":          camp.get("id", f"bc_{brand}"),
+            "brand":       brand,
+            "name":        camp.get("name", f"{brand} Campaign"),
+            "active":      True,
+            "deadline":    camp.get("deadline", ""),
+            "tier_b_max":  tier_b_max,
+            "tier_c_max":  tier_c_max,
+            "tier_labels": tier_labels,
+            "debtor_count": len(debtor_list),
+            "tier_summary": {
+                "A":  sum(1 for d in debtor_list if d["tier"]=="A"),
+                "B":  sum(1 for d in debtor_list if d["tier"]=="B"),
+                "C":  sum(1 for d in debtor_list if d["tier"]=="C"),
+                "KA": sum(1 for d in debtor_list if d["tier"]=="KA"),
+            },
+            "debtors": debtor_list,
+        })
+
+        log(f"  {brand} campaign: {len(debtor_list)} debtors — "
+            f"A:{results[-1]['tier_summary']['A']} "
+            f"B:{results[-1]['tier_summary']['B']} "
+            f"C:{results[-1]['tier_summary']['C']} "
+            f"KA:{results[-1]['tier_summary']['KA']}")
+
+    return results
+
+
+
     """
     Auto-generate birthday gift campaign list from debtor birth dates.
     Returns debtors with birthday this month, per agent.
@@ -1470,18 +1627,39 @@ def main():
     aging       = calc_aging(df, agents, cur_month)
     debtor_cards = calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map)
     group_brands = calc_group_brand_targets(df, targets, cur_month, group_brand_config)
-    kpi         = calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards)
-    team        = calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month)
+    kpi          = calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards)
+    team         = calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month)
     working_days = calc_working_days(targets)
     birthday_camp = calc_birthday_campaign(debtor_cards, targets)
+    brand_camps  = calc_brand_campaigns(df, targets, agents, cur_month, prev_months, brand_config)
+
+    # ── Enrich debtor cards with brand campaign tiers ───────────────────────
+    for camp in brand_camps:
+        for d in camp.get("debtors", []):
+            agent = d.get("agent")
+            code  = d.get("code")
+            if not agent or not code: continue
+            agent_cards = debtor_cards.get(agent, {}).get("debtors", [])
+            for card in agent_cards:
+                if card.get("debtor_code") == code:
+                    if "brand_camp_tiers" not in card:
+                        card["brand_camp_tiers"] = {}
+                    card["brand_camp_tiers"][camp["brand"]] = {
+                        "tier":  d["tier"],
+                        "promo": d["promo"],
+                        "avg_ctn": d["avg_ctn"],
+                        "camp_name": camp["name"],
+                    }
+                    break
 
     # ── Assemble output ─────────────────────────────────────────────
     output = {
         "generated_at":   datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "current_month":  cur_month,
-        "working_days":   working_days,
+        "working_days":        working_days,
         "group_brand_targets": group_brands,
         "birthday_campaign":   birthday_camp,
+        "brand_campaigns":     brand_camps,
         "agents":         {},
         "team":           team,
         "config": {

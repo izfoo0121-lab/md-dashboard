@@ -806,6 +806,15 @@ function renderDebtors() {
         >${campEmoji[c.type]||'📋'} ${c.name}</span>`
     ).join('');
 
+    // Brand campaign tier badges
+    const tierColors = {A:'rgba(200,56,26,.2)',B:'rgba(77,166,255,.2)',C:'rgba(61,220,132,.2)',KA:'rgba(167,139,250,.2)'};
+    const tierTextColors = {A:'var(--red)',B:'var(--blue)',C:'var(--green)',KA:'var(--purple)'};
+    const brandTierBadges = Object.entries(d.brand_camp_tiers||{}).map(([brand, data]) =>
+      `<span class="status-inline" style="background:${tierColors[data.tier]||'rgba(255,255,255,.1)'};color:${tierTextColors[data.tier]||'var(--text)'};cursor:pointer;"
+        onclick="showBrandTierDetail(event,'${d.debtor_code}','${(d.company_name||'').replace(/'/g,"\\'")}')"
+        >🔥 ${brand} ${data.promo}</span>`
+    ).join('');
+
     const badges = [
       `<span class="status-inline ${stCls}">${stTxt}</span>`,
       d.vip             ? `<span class="status-inline" style="background:rgba(240,192,64,.2);color:var(--accent)">⭐ VIP</span>` : '',
@@ -880,6 +889,7 @@ function renderDebtors() {
           ${phone ? `<a href="tel:${phone}" class="dc-phone">📞 ${phone}</a>` : ''}
           <div class="dc-badges">${badges}</div>
           ${campBadges ? `<div class="dc-badges" style="margin-top:2px;">${campBadges}</div>` : ''}
+          ${brandTierBadges ? `<div class="dc-badges" style="margin-top:2px;">${brandTierBadges}</div>` : ''}
         </div>
       </div>
 
@@ -1665,6 +1675,49 @@ function closeCampDetail(e) {
   if (e && e.target !== document.getElementById('camp-detail-overlay')) return;
   document.getElementById('camp-detail-overlay').classList.remove('open');
   document.body.style.overflow = '';
+}
+
+// ── Brand Tier Detail Popup ────────────────────────────────────────────────
+function showBrandTierDetail(event, debtorCode, debtorName) {
+  event.stopPropagation();
+  const debtors = DATA.agents[currentAgent]?.debtor_cards?.debtors || [];
+  const debtor  = debtors.find(d => d.debtor_code === debtorCode);
+  const tiers   = debtor?.brand_camp_tiers || {};
+
+  const TIER_COLORS = {A:'var(--red)',B:'var(--blue)',C:'var(--green)',KA:'var(--purple)'};
+  const TIER_BG     = {A:'rgba(200,56,26,.12)',B:'rgba(77,166,255,.12)',C:'rgba(61,220,132,.12)',KA:'rgba(167,139,250,.12)'};
+  const TIER_DESC   = {
+    A:'Dormant — never / rarely bought this brand',
+    B:'Small buyer — encourage to increase order',
+    C:'Medium buyer — push to upgrade to bigger order',
+    KA:'Key account — maintain big order',
+  };
+
+  document.getElementById('cd-title').textContent = debtorName || debtorCode;
+  document.getElementById('cd-sub').textContent   = `${Object.keys(tiers).length} brand promotion${Object.keys(tiers).length!==1?'s':''}`;
+
+  document.getElementById('cd-list').innerHTML = Object.entries(tiers).map(([brand, data]) => `
+    <div style="background:${TIER_BG[data.tier]||'rgba(255,255,255,.05)'};border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 14px;margin-bottom:8px;border-left:4px solid ${TIER_COLORS[data.tier]||'var(--muted)'};">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;color:${TIER_COLORS[data.tier]||'var(--muted)'};text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">🔥 ${brand} · Tier ${data.tier}</div>
+          <div style="font-weight:600;font-size:14px;">${data.promo}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px;">${TIER_DESC[data.tier]||''}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:var(--display);font-size:22px;color:${TIER_COLORS[data.tier]||'var(--muted)'};">${data.avg_ctn}</div>
+          <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">Avg CTN/mth</div>
+        </div>
+      </div>
+      <div style="background:rgba(0,0,0,.2);border-radius:8px;padding:8px 10px;">
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">What to say:</div>
+        <div style="font-family:var(--mono);font-size:12px;font-weight:600;color:#fff;">"${data.promo}"</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;">${data.camp_name}</div>
+      </div>
+    </div>`).join('') || `<div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;padding:20px 0;">No brand campaigns assigned</div>`;
+
+  document.getElementById('camp-detail-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 
 // ── CTN Breakdown Tooltip ──────────────────────────────────────────────────
