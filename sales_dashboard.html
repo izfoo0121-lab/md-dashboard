@@ -556,7 +556,6 @@ async function loadData() {
 function init() {
   const wd = DATA.working_days || {};
   document.getElementById('month-badge').textContent = (DATA.current_month || '').toUpperCase();
-  const wd = DATA.working_days || {};
   document.getElementById('day-prog').textContent =
     `Day ${wd.elapsed_working_days||'?'} of ${wd.total_working_days||'?'} · ${wd.theoretical_pct||0}% elapsed${wd.public_holidays_this_month>0?' ('+wd.public_holidays_this_month+' PH)':''}`;
   // Last update
