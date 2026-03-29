@@ -1091,7 +1091,13 @@ function importExcel(input) {
           const brands   = String(row[2]||'').trim().split(',').map(b=>b.trim()).filter(Boolean);
           const promo    = String(row[3]||'').trim();
           const minOrder = rnd(row[4]) || null;
-          const deadline = String(row[5]||'').trim();
+          // Fix deadline — handle Excel date serial numbers
+          let deadline = String(row[5]||'').trim();
+          if (deadline && /^\d{4,5}$/.test(deadline)) {
+            // Excel date serial — convert to YYYY-MM-DD
+            const d = new Date(Math.round((parseFloat(deadline) - 25569) * 86400 * 1000));
+            deadline = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+          }
           const desc     = String(row[6]||'').trim();
           if (!name || !deadline) return;
           // Don't duplicate — check by name+deadline
