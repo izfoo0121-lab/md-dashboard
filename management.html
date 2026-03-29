@@ -205,8 +205,21 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
   </div>
   <div class="mgmt-header">
     <div class="header-row">
-      <div><div class="header-title">TOURO MD</div><div class="header-sub">Management Console</div></div>
-      <div><div class="month-tag" id="hdr-month">— —</div><div class="day-tag" id="hdr-day">—</div></div>
+      <div><div class="header-title">MIRACLE-奇迹 MD</div><div class="header-sub">Management Console</div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+        <div class="month-tag" id="hdr-month">— —</div>
+        <div class="day-tag" id="hdr-day">—</div>
+        <!-- Month Selector — shows history months if available -->
+        <select id="month-selector" onchange="onMonthChange(this.value)"
+          style="display:none;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:8px;cursor:pointer;">
+        </select>
+        <button onclick="document.getElementById('history-file-input').click()"
+          id="load-history-btn"
+          style="background:rgba(240,192,64,.2);border:1px solid rgba(240,192,64,.4);color:var(--gold);font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:8px;cursor:pointer;white-space:nowrap;">
+          📂 Load History
+        </button>
+        <input type="file" id="history-file-input" accept=".xlsx" style="display:none;" onchange="onHistoryFileLoad(this)">
+      </div>
       <div style="display:flex;gap:8px;align-items:center;">
         <button onclick="switchToAnalytics()" style="background:rgba(255,255,255,.12);border:none;color:#fff;font-family:var(--mono);font-size:9px;padding:5px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;">📊 Analytics</button>
         <button onclick="doMgmtLogout()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.5);font-family:var(--mono);font-size:9px;padding:5px 10px;border-radius:8px;cursor:pointer;">Logout</button>
@@ -342,8 +355,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
     <div class="header-row">
       <div><div class="header-title">ANALYTICS</div><div class="header-sub">Year-to-date · <span id="an-year">2026</span></div></div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <button onclick="loadHistoryFile()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;font-family:var(--mono);font-size:9px;padding:5px 10px;border-radius:8px;cursor:pointer;">📂 Load history.xlsx</button>
-        <input type="file" id="history-file-input" accept=".xlsx" style="display:none;" onchange="onHistoryFileLoad(this)">
+        <button onclick="document.getElementById('history-file-input').click()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;font-family:var(--mono);font-size:9px;padding:5px 10px;border-radius:8px;cursor:pointer;">📂 Load history.xlsx</button>
         <button onclick="exportYearExcel()" style="background:rgba(42,122,75,.5);border:none;color:#fff;font-family:var(--mono);font-size:9px;padding:5px 10px;border-radius:8px;cursor:pointer;">⬇ Export</button>
         <button onclick="switchToOverview()" style="background:rgba(255,255,255,.1);border:none;color:#fff;font-family:var(--mono);font-size:9px;padding:5px 10px;border-radius:8px;cursor:pointer;">← Overview</button>
       </div>
@@ -453,6 +465,116 @@ document.getElementById('mgmt-pw').addEventListener('keydown', e => {
   if (e.key === 'Enter') doMgmtLogin();
 });
 let DATA=null, lbMode='pct';
+let CURRENT_DATA = null; // current displayed data (may be historical)
+let HISTORY_MONTHLY = null; // from window.HISTORY_DATA
+
+// ── Month Selector Init ────────────────────────────────────────────────────
+function initMonthSelector() {
+  const hist = window.HISTORY_DATA;
+  if (!hist || !hist.monthly || !hist.monthly.length) return;
+
+  HISTORY_MONTHLY = hist.monthly;
+
+  // Get unique months sorted
+  const months = [...new Set(HISTORY_MONTHLY.map(r => r.Month))]
+    .filter(Boolean)
+    .sort((a, b) => {
+      try { return new Date('01 ' + b) - new Date('01 ' + a); } catch(e) { return 0; }
+    });
+
+  const sel = document.getElementById('month-selector');
+  if (!sel) return;
+
+  // Add current month option first
+  const curMonth = DATA?.current_month || '';
+  sel.innerHTML = `<option value="current">📍 ${curMonth.toUpperCase()} (Current)</option>`;
+
+  months.forEach(m => {
+    if (m !== curMonth) {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = `📅 ${m.toUpperCase()}`;
+      sel.appendChild(opt);
+    }
+  });
+
+  sel.style.display = 'block';
+}
+
+function onMonthChange(val) {
+  if (val === 'current' || !HISTORY_MONTHLY) {
+    CURRENT_DATA = DATA;
+  } else {
+    // Build a DATA-like object from history rows for this month
+    const rows = HISTORY_MONTHLY.filter(r => r.Month === val);
+    if (!rows.length) { CURRENT_DATA = DATA; return; }
+    CURRENT_DATA = buildDataFromHistory(rows, val);
+  }
+  renderOverview();
+}
+
+function buildDataFromHistory(rows, month) {
+  // Rebuild agents object from history rows
+  const agents = {};
+  rows.forEach(r => {
+    const agent = r.Agent;
+    if (!agent) return;
+    agents[agent] = {
+      sales_progression: {
+        normal_ctn:       r['Normal Actual'] || 0,
+        ga_ctn:           r['GA Actual'] || 0,
+        ma_ctn:           r['MA Actual'] || 0,
+        total_canggih_ctn:r['Total Canggih CTN'] || 0,
+        txn_count:        r['Txn Count'] || 0,
+        tiers: {
+          normal_t1: { target: r['Normal Target']||0, actual: r['Normal Actual']||0,
+            pct: r['Normal %']||0, gap: (r['Normal Actual']||0)-(r['Normal Target']||0) },
+          ga:        { target: r['GA Target']||0,     actual: r['GA Actual']||0,    pct: r['GA %']||0 },
+          ma:        { target: r['MA Target']||0,     actual: r['MA Actual']||0,    pct: r['MA %']||0 },
+        },
+        month_labels: [month],
+      },
+      brand_commission: {
+        iFACE:   { cur_ctn: r['iFACE CTN']||0,   new_penetrations: r['iFACE Pen']||0,   status: r['iFACE Comm']==='✓'?'both_hit':'', comm_earned: r['iFACE Comm']==='✓'?r['iFACE CTN']*1.8:0 },
+        SUKUN:   { cur_ctn: r['SUKUN CTN']||0,   new_penetrations: r['SUKUN Pen']||0,   status: r['SUKUN Comm']==='✓'?'both_hit':'', comm_earned: r['SUKUN Comm']==='✓'?r['SUKUN CTN']*1.8:0 },
+        EVO:     { cur_ctn: r['EVO CTN']||0,     new_penetrations: r['EVO Pen']||0,     status: r['EVO Comm']==='✓'?'both_hit':'',   comm_earned: r['EVO Comm']==='✓'?r['EVO CTN']*1.8:0 },
+        BISON:   { cur_ctn: r['BISON CTN']||0,   new_penetrations: r['BISON Pen']||0,   status: r['BISON Comm']==='✓'?'both_hit':'', comm_earned: r['BISON Comm']==='✓'?r['BISON CTN']*1.8:0 },
+        TR20:    { cur_ctn: r['TR20 CTN']||0,    new_penetrations: r['TR20 Pen']||0,    status: r['TR20 Comm']==='✓'?'both_hit':'',  comm_earned: r['TR20 Comm']==='✓'?r['TR20 CTN']*1.8:0 },
+        'LAM+LWM':{ cur_ctn:r['LAM+LWM CTN']||0,new_penetrations: r['LAM+LWM Pen']||0,status: r['LAM+LWM Comm']==='✓'?'both_hit':'',comm_earned: r['LAM+LWM Comm']==='✓'?r['LAM+LWM CTN']*1.8:0 },
+      },
+      debtor_cards: {
+        total_debtors:    r['Total Debtors'] || 0,
+        active_count:     r['Active'] || 0,
+        pending_count:    r['Pending'] || 0,
+        activation_rate:  r['Activation Rate %'] || 0,
+        total_new_sku:    r['New SKU'] || 0,
+        debtors: [],
+      },
+      kpi: {
+        total_abc:   r['KPI A+B+C Score'] || 0,
+        grand_total: r['KPI Grand Total'] || 0,
+        total_pct:   r['KPI %'] || 0,
+        section_scores: {
+          A: { score: r['KPI Sec A'] || 0 },
+          B: { score: r['KPI Sec B'] || 0 },
+          C: { score: r['KPI Sec C'] || 0 },
+        }
+      },
+      aging: {},
+      newbie_scheme: {},
+    };
+  });
+
+  return {
+    current_month: month,
+    agents,
+    working_days: { total_working_days: rows[0]?.['Working Days']||0, elapsed_working_days: rows[0]?.['Working Days']||0, theoretical_pct: 100 },
+    team_summary: {},
+    group_brand_targets: {},
+    generated_at: rows[0]?.['Saved At'] || '',
+    _is_historical: true,
+  };
+}
 const BC={iFACE:'#1a5c8f',SUKUN:'#6b3fa0',EVO:'#c8381a',BISON:'#c8860a','TR20':'#2a7a4b','LAM+LWM':'#c85a1a'};
 const GB={SUKUN:'#6b3fa0',EVO:'#c8381a',IMP:'#1a5c8f',LF:'#2a7a4b',CLASSMILD:'#c85a1a',BISON:'#c8860a',TR:'#2a2a38'};
 
@@ -467,6 +589,9 @@ async function loadData() {
   try {
     const r = await fetch('dashboard_data.json');
     DATA = await r.json();
+    window.__DATA__ = DATA;
+    CURRENT_DATA = DATA;
+    initMonthSelector();
     renderOverview();
   } catch(e) {
     document.body.innerHTML = `<div style="padding:40px;text-align:center;font-family:monospace;color:#c8381a;">❌ Could not load dashboard_data.json<br><small style="color:#999">${e.message}</small></div>`;
@@ -474,21 +599,33 @@ async function loadData() {
 }
 
 function renderOverview() {
-  const wd=DATA.working_days||{}, team=DATA.team||{};
-  const agents=Object.keys(DATA.agents||{});
+  const D = CURRENT_DATA || DATA;
+  if (!D) return;
+  const wd=D.working_days||{}, team=D.team||{};
+  const agents=Object.keys(D.agents||{});
+  const isHistorical = D._is_historical || false;
 
-  document.getElementById('hdr-month').textContent=(DATA.current_month||'').toUpperCase();
-  document.getElementById('hdr-day').textContent=`Day ${wd.elapsed_working_days||'?'} of ${wd.total_working_days||'?'} · ${wd.theoretical_pct||0}% elapsed`;
+  document.getElementById('hdr-month').textContent=(D.current_month||'').toUpperCase();
+  document.getElementById('hdr-day').textContent = isHistorical
+    ? `📅 Historical — ${D.current_month}`
+    : `Day ${wd.elapsed_working_days||'?'} of ${wd.total_working_days||'?'} · ${wd.theoretical_pct||0}% elapsed`;
 
-  const rates=agents.map(a=>DATA.agents[a]?.debtor_cards?.activation_rate||0);
+  const rates=agents.map(a=>D.agents[a]?.debtor_cards?.activation_rate||0);
   const avgRate=rates.length?(rates.reduce((a,b)=>a+b,0)/rates.length).toFixed(1):0;
 
-  const t1pct=team.t1_pct||0;
-  const gap=(team.team_normal_ctn||0)-(team.t1_total_target||0);
+  // Calculate team totals from agents if team_summary empty (historical)
+  const teamNormalCtn = isHistorical
+    ? agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.normal_ctn||0),0)
+    : (team.team_normal_ctn||0);
+  const teamT1Target = isHistorical
+    ? agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.tiers?.normal_t1?.target||0),0)
+    : (team.t1_total_target||0);
+  const t1pct = teamT1Target > 0 ? Math.round(teamNormalCtn/teamT1Target*100) : 0;
+  const gap   = teamNormalCtn - teamT1Target;
 
   document.getElementById('kpi-pct').textContent=fp(t1pct);
   document.getElementById('kpi-pct').className=`kpi-val ${t1pct>=80?'g':t1pct>=50?'w':'r'}`;
-  document.getElementById('kpi-ctn').textContent=fi(team.team_normal_ctn);
+  document.getElementById('kpi-ctn').textContent=fi(teamNormalCtn);
   document.getElementById('kpi-gap').textContent=(gap>=0?'+':'')+fi(gap);
   document.getElementById('kpi-gap').className=`kpi-val ${gap>=0?'g':'r'}`;
   document.getElementById('kpi-rate').textContent=avgRate+'%';
@@ -520,10 +657,11 @@ function renderOverview() {
 
 // ── Monthly Summary Table ──────────────────────────────────────────────────
 function renderMonthlySummary() {
-  const agents = Object.keys(DATA.agents||{});
+  const D = CURRENT_DATA || DATA;
+  const agents = Object.keys(D.agents||{});
   const el = document.getElementById('monthly-summary-table');
   document.getElementById('monthly-month-label').textContent =
-    `${DATA.current_month || ''} · Day ${DATA.working_days?.elapsed_working_days||'?'} of ${DATA.working_days?.total_working_days||'?'}`;
+    `${D.current_month || ''} · Day ${D.working_days?.elapsed_working_days||'?'} of ${D.working_days?.total_working_days||'?'}`;
 
   const cols = '70px 55px 55px 55px 55px 55px 55px 50px 45px 50px 50px 55px 55px 55px';
   const hdrs = ['Agent','Tgt Normal','Act Normal','Tgt MA','Act MA','开新户口','VIP','激活户口','加SKU','光顾率','交易次数','工作日','平均交易','KPI A+B'];
@@ -534,9 +672,9 @@ function renderMonthlySummary() {
     </div>`;
 
   agents.forEach((agent,idx) => {
-    const sp  = DATA.agents[agent]?.sales_progression || {};
-    const dc  = DATA.agents[agent]?.debtor_cards || {};
-    const kpi = DATA.agents[agent]?.kpi || {};
+    const sp  = D.agents[agent]?.sales_progression || {};
+    const dc  = D.agents[agent]?.debtor_cards || {};
+    const kpi = D.agents[agent]?.kpi || {};
     const bg  = idx%2===0 ? '' : 'background:#faf8f5;';
 
     const t1tgt = sp.tiers?.normal_t1?.target || 0;
@@ -731,6 +869,7 @@ function resolveFlag(agent, debtorCode) {
 // ── Leaderboard ──
 function setLbMode(mode,btn){lbMode=mode;document.querySelectorAll('.lb-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderLeaderboard();}
 function renderLeaderboard(){
+  const DATA = CURRENT_DATA || window.__DATA__;
   const lb=(DATA.team?.leaderboard||[]).slice().sort((a,b)=>
     lbMode==='ctn'?(b.normal_ctn||0)-(a.normal_ctn||0):
     lbMode==='gap'?(a.t1_pct||0)-(b.t1_pct||0):
@@ -748,6 +887,7 @@ function renderLeaderboard(){
 
 // ── Group Brands ──
 function renderGroupBrands(){
+  const DATA = CURRENT_DATA || window.__DATA__;
   const gbt=DATA.group_brand_targets||{};
   if(!Object.keys(gbt).length){document.getElementById('group-brands').innerHTML='<div style="padding:14px 16px;font-family:var(--mono);font-size:10px;color:var(--ink3);">No group targets set</div>';return;}
   const tT=Object.values(gbt).reduce((s,b)=>s+(b.target_ctn||0),0);
@@ -764,6 +904,7 @@ function renderGroupBrands(){
 
 // ── Commission Heatmap ──
 function renderCommHeatmap(){
+  const DATA = CURRENT_DATA || window.__DATA__;
   const agents=Object.keys(DATA.agents||{});
   const brands=Object.keys(DATA.config?.brand_config||BC);
   const aw='65px',bw=`${Math.floor(80/brands.length)}%`;
@@ -785,6 +926,7 @@ function renderCommHeatmap(){
 
 // ── Debtor Summary ──
 function renderDebtorSummary(){
+  const DATA = CURRENT_DATA || window.__DATA__;
   const agents=Object.keys(DATA.agents||{});
   const cols='65px 70px 45px 50px 50px 55px';
   let html=`<div class="dt-wrap"><div class="dt-hdr" style="grid-template-columns:${cols}">
@@ -812,6 +954,7 @@ function renderDebtorSummary(){
 
 // ── Newbie Progress ──
 function renderNewbieProgress(){
+  const DATA = CURRENT_DATA || window.__DATA__;
   const agents=Object.keys(DATA.agents||{});
   const newbies=agents.filter(a=>DATA.agents[a]?.newbie_scheme?.is_newbie);
   if(!newbies.length){document.getElementById('newbie-section').style.display='none';return;}
@@ -850,6 +993,7 @@ function renderNewbieProgress(){
 
 // ── Aging Overview ──
 function renderAgingOverview(){
+  const DATA = CURRENT_DATA || window.__DATA__;
   const agents=Object.keys(DATA.agents||{});
   let tPaid=0,tUnpaid=0,tOD=0,tODctn=0;
   agents.forEach(a=>{const ag=DATA.agents[a]?.aging||{};tPaid+=ag.canggih_paid_ctn||0;tUnpaid+=ag.canggih_unpaid_ctn||0;tOD+=ag.overdue_count||0;tODctn+=ag.overdue_ctn||0;});
@@ -1001,6 +1145,12 @@ function onHistoryFileLoad(input) {
       const ws  = wb.Sheets['Monthly_Summary'];
       if (!ws) { alert('Monthly_Summary sheet not found'); return; }
       HISTORY = XLSX.utils.sheet_to_json(ws);
+
+      // ── Also feed the month selector ──────────────────────────
+      HISTORY_MONTHLY = HISTORY;
+      populateMonthSelector(HISTORY_MONTHLY);
+
+      // ── Analytics tab ─────────────────────────────────────────
       document.getElementById('analytics-empty').style.display   = 'none';
       document.getElementById('analytics-content').style.display = 'block';
       const agents = [...new Set(HISTORY.map(r=>r.Agent))].sort();
@@ -1010,6 +1160,14 @@ function onHistoryFileLoad(input) {
       const years = [...new Set(HISTORY.map(r=>r.Year))];
       document.getElementById('an-year').textContent = years.join(' / ');
       renderAnalytics();
+
+      // Show success toast
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;top:60px;right:16px;background:#2a7a4b;color:#fff;font-family:monospace;font-size:11px;padding:8px 14px;border-radius:8px;z-index:9999;';
+      toast.textContent = `✅ history.xlsx loaded — ${[...new Set(HISTORY.map(r=>r.Month))].length} months`;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+
     } catch(err) { alert('Error: '+err.message); }
   };
   reader.readAsArrayBuffer(file);
@@ -1042,29 +1200,37 @@ function renderAnalytics() {
   renderAnDetailTable(rows, allMonths);
 }
 function renderAnSalesChart(months) {
-  const totals=months.map(m=>({
-    month:m,
-    normal:HISTORY.filter(r=>r.Month===m).reduce((s,r)=>s+(r['Normal Actual']||0),0),
-    target:HISTORY.filter(r=>r.Month===m).reduce((s,r)=>s+(r['Normal Target']||0),0),
+  const totals = months.map(m => ({
+    month:  m,
+    normal: HISTORY.filter(r=>r.Month===m).reduce((s,r)=>s+(r['Normal Actual']||0), 0),
+    target: HISTORY.filter(r=>r.Month===m).reduce((s,r)=>s+(r['Normal Target']||0), 0),
   }));
-  const maxV=Math.max(...totals.map(t=>Math.max(t.normal,t.target)),1);
-  document.getElementById('an-sales-chart').innerHTML=`
-    <div style="display:flex;align-items:flex-end;height:160px;gap:4px;padding:0 4px;">
-      ${totals.map(t=>{
-        const ph=Math.round(t.normal/maxV*155);
-        const th=Math.round(t.target/maxV*155);
-        const col=t.normal>=t.target?'#2a7a4b':'#c8381a';
-        return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;">
-          <div style="font-family:var(--mono);font-size:6px;color:var(--ink3);margin-bottom:2px;">${fi(t.normal)}</div>
-          <div style="width:100%;position:relative;height:${Math.max(ph,2)}px;background:${col};border-radius:3px 3px 0 0;opacity:.9;">
-            ${th>0?`<div style="position:absolute;bottom:${Math.min(th,ph+4)}px;left:0;right:0;height:2px;background:var(--gold);"></div>`:''}
+  const maxV = Math.max(...totals.map(t => Math.max(t.normal, t.target)), 1);
+  const CHART_H = 140;
+
+  document.getElementById('an-sales-chart').innerHTML = `
+    <div style="display:flex;align-items:flex-end;height:${CHART_H+20}px;gap:6px;padding:0 4px;border-bottom:1px solid rgba(255,255,255,.1);">
+      ${totals.map(t => {
+        const ph  = Math.max(Math.round(t.normal / maxV * CHART_H), 2);
+        const th  = Math.max(Math.round(t.target / maxV * CHART_H), 0);
+        const col = t.target > 0
+          ? (t.normal >= t.target ? '#2a7a4b' : '#c8381a')
+          : '#4da6ff';
+        const pct = t.target > 0 ? Math.round(t.normal/t.target*100) : 0;
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:${CHART_H}px;position:relative;">
+          <div style="font-family:var(--mono);font-size:7px;color:var(--ink3);position:absolute;top:${CHART_H-ph-14}px;left:0;right:0;text-align:center;">${fi(t.normal)}</div>
+          <div style="width:80%;height:${ph}px;background:${col};border-radius:3px 3px 0 0;opacity:.9;position:relative;">
+            ${th > 0 ? `<div style="position:absolute;bottom:${th-ph}px;left:-10%;right:-10%;height:2px;background:var(--gold);z-index:2;"></div>` : ''}
           </div>
-          <div style="font-family:var(--mono);font-size:7px;color:var(--ink3);text-align:center;margin-top:3px;">${t.month}</div>
+          ${t.target > 0 ? `<div style="font-family:var(--mono);font-size:7px;color:${col};text-align:center;margin-top:2px;">${pct}%</div>` : ''}
         </div>`;
       }).join('')}
     </div>
+    <div style="display:flex;gap:4px;padding:4px 8px;flex-wrap:wrap;">
+      ${months.map(m => `<div style="font-family:var(--mono);font-size:7px;color:var(--ink3);flex:1;text-align:center;">${m}</div>`).join('')}
+    </div>
     <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);padding:4px 8px;">
-      ■ <span style="color:#2a7a4b">Hit target</span> &nbsp;■ <span style="color:#c8381a">Below target</span> &nbsp;— <span style="color:var(--gold)">Target</span>
+      ■ <span style="color:#2a7a4b">Hit target</span> &nbsp;■ <span style="color:#c8381a">Below target</span> &nbsp;— <span style="color:var(--gold)">Target line</span>
     </div>`;
 }
 function renderAnAgentRanking(months) {
@@ -1079,7 +1245,8 @@ function renderAnAgentRanking(months) {
   })).sort((a,b)=>b.ytd-a.ytd);
   const maxN=Math.max(...data.map(a=>a.ytd),1);
   document.getElementById('an-agent-ranking').innerHTML=data.map((a,i)=>{
-    const pct=a.tgt?Math.min(a.ytd/a.tgt*100,100):0;
+    const pct = a.tgt > 0 ? Math.min(a.ytd/a.tgt*100, 150) : 0;
+    const pctLabel = a.tgt > 0 ? pct.toFixed(0)+'%' : 'N/A';
     return`<div class="lb-row">
       <div class="lb-rank ${i<3?'top':''}">${i+1}</div>
       <div><div class="lb-name">${a.agent}</div>
@@ -1087,7 +1254,7 @@ function renderAnAgentRanking(months) {
         <div class="lb-bar-bg"><div class="lb-bar-fill" style="width:${Math.round(a.ytd/maxN*100)}%;background:${bc(pct)}"></div></div>
       </div>
       <div style="font-family:var(--mono);font-size:10px;text-align:right;color:var(--ink3);">${fi(a.ytd)}</div>
-      <div class="lb-pct" style="color:${pc(pct)}">${pct.toFixed(0)}%</div>
+      <div class="lb-pct" style="color:${pc(pct)}">${pctLabel}</div>
     </div>`;
   }).join('');}
 function renderAnKpiTrend(months) {
