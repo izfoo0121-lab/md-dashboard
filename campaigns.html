@@ -294,6 +294,14 @@ async function renderCampaigns() {
         <span class="camp-type-badge ${type.css}">${type.emoji} ${type.label}</span>
         <div class="camp-name">${camp.name}</div>
         ${camp.description ? `<div class="camp-desc">${camp.description}</div>` : ''}
+        ${camp.brands?.length ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin:6px 0;">
+          ${camp.brands.map(b=>`<span style="font-family:var(--mono);font-size:9px;background:rgba(255,154,60,.15);color:#ff9a3c;padding:2px 8px;border-radius:8px;border:1px solid rgba(255,154,60,.3);">${b}</span>`).join('')}
+        </div>` : ''}
+        ${camp.promo_detail ? `<div style="background:rgba(61,220,132,.1);border:1px solid rgba(61,220,132,.3);border-radius:8px;padding:8px 10px;margin:6px 0;">
+          <div style="font-family:var(--mono);font-size:8px;color:#3ddc84;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">Promotion</div>
+          <div style="font-family:var(--mono);font-size:12px;font-weight:600;color:#3ddc84;">${camp.promo_detail}</div>
+          ${camp.min_order_ctn?`<div style="font-family:var(--mono);font-size:9px;color:#7070a0;margin-top:2px;">Min order: ${camp.min_order_ctn} CTN</div>`:''}
+        </div>` : ''}
         <div class="camp-meta">
           <span class="camp-meta-item">📋 ${debtors.length} debtors</span>
           <span class="camp-deadline ${dlClass}">⏰ ${dlText}</span>

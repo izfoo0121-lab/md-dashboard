@@ -235,6 +235,21 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
       <div class="sec-header">📢 Campaigns</div>
       <div class="sec-sub">Create marketing campaigns and upload debtor lists for agents.</div>
 
+      <div class="sec-divider">🎂 Birthday Campaign (Auto-generated)</div>
+      <div style="font-family:var(--mono);font-size:9px;color:#888;margin-bottom:8px;">
+        Auto-generates from debtor birth dates. Add or remove debtors to override.
+      </div>
+      <div id="birthday-camp-list" style="max-height:180px;overflow-y:auto;margin-bottom:8px;"></div>
+      <div class="input-row" style="margin-bottom:10px;">
+        <div class="field-wrap">
+          <div class="field-lbl">Manually Add Debtor Code</div>
+          <input type="text" id="bday-add-code" placeholder="e.g. 300-JS005" style="text-transform:uppercase;">
+        </div>
+        <div class="field-wrap" style="display:flex;align-items:flex-end;">
+          <button class="save-btn" onclick="bdayAddDebtor()" style="margin-bottom:0;padding:8px 14px;">+ Add</button>
+        </div>
+      </div>
+
       <div class="sec-divider">Active Campaigns</div>
       <div id="campaigns-list"></div>
 
@@ -242,21 +257,45 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
       <div class="admin-card">
         <div class="input-group">
           <div class="input-label">Campaign Name</div>
-          <input type="text" id="new-camp-name" placeholder="e.g. March Birthday Gift">
+          <input type="text" id="new-camp-name" placeholder="e.g. March SUKUN Push">
         </div>
         <div class="input-group">
           <div class="input-label">Type</div>
-          <select id="new-camp-type" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 12px;border-radius:8px;">
+          <select id="new-camp-type" onchange="toggleBrandFields(this.value)"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 12px;border-radius:8px;">
             <option value="free_sample">🎁 Free Sample</option>
             <option value="birthday_gift">🎂 Birthday Gift</option>
-            <option value="promotion">📢 Promotion / Offer</option>
+            <option value="promotion">📢 Brand Promotion / Offer</option>
             <option value="festive_gift">🧧 Festive Gift</option>
             <option value="other">📋 Other</option>
           </select>
         </div>
+
+        <!-- Brand fields — shown for promotion type -->
+        <div id="brand-camp-fields" style="display:none;">
+          <div class="input-group">
+            <div class="input-label">Brand(s) to Push</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;" id="brand-checkboxes">
+              ${['iFACE','SUKUN','EVO','BISON','TR20','LAM+LWM','IMP','LF','CM'].map(b =>
+                `<label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border);padding:4px 10px;border-radius:8px;cursor:pointer;">
+                  <input type="checkbox" value="${b}" style="cursor:pointer;"> ${b}
+                </label>`
+              ).join('')}
+            </div>
+          </div>
+          <div class="input-group">
+            <div class="input-label">Promotion Details (shown on agent debtor card)</div>
+            <input type="text" id="new-camp-promo" placeholder="e.g. Buy 10 CTN SUKUN FREE 1 CTN EVO">
+          </div>
+          <div class="input-group">
+            <div class="input-label">Min Order (CTN, optional)</div>
+            <input type="number" id="new-camp-min-order" min="0" placeholder="e.g. 10">
+          </div>
+        </div>
+
         <div class="input-group">
-          <div class="input-label">Description (optional)</div>
-          <input type="text" id="new-camp-desc" placeholder="Brief description for agents">
+          <div class="input-label">Description / Notes for Agent</div>
+          <input type="text" id="new-camp-desc" placeholder="Brief description or instructions">
         </div>
         <div class="input-group">
           <div class="input-label">Deadline</div>
@@ -349,6 +388,7 @@ async function initAdmin() {
   renderGroupBrandForms();
   renderSKUForms();
   renderHolidayList();
+  renderBirthdayCampList();
   updateRawJSON();
 
   // Load campaigns
@@ -753,114 +793,142 @@ function importExcel(input) {
   const reader = new FileReader();
   reader.onload = e => {
     try {
-      // Requires SheetJS — loaded from CDN below
-      const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data, {type:'array'});
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+      let imported = [];
 
-      // ── Sheet 1: Sales Targets ──────────────────────────────
-      const ws1 = wb.Sheets['Sales Targets'];
-      if (!ws1) throw new Error('Sheet "Sales Targets" not found');
+      // Helper — find sheet by partial name (handles emoji prefix)
+      const getSheet = (partial) => {
+        const key = Object.keys(wb.Sheets).find(k => k.includes(partial));
+        return key ? wb.Sheets[key] : null;
+      };
 
-      // Read rows 5 onwards (0-indexed row 4)
-      const rows1 = XLSX.utils.sheet_to_json(ws1, {header:1, range:4});
-      rows1.forEach(row => {
-        const agent = String(row[0]||'').trim().toUpperCase();
-        if (!agent || agent === 'TOTAL') return;
-        if (!CONFIG.agents[agent]) {
-          CONFIG.agents[agent] = {is_newbie:false,sales_progression:{},brand_commission:{}};
-          BRANDS.forEach(b => { CONFIG.agents[agent].brand_commission[b] = {penetration_target:0,ctn_target:0}; });
-        }
-        const t1  = parseFloat(row[1]) || null;
-        const t2  = parseFloat(row[2]) || null;
-        const ga  = row[3] !== undefined && row[3] !== null && row[3] !== '' ? parseFloat(row[3]) : null;
-        const ma  = row[4] !== undefined && row[4] !== null && row[4] !== '' ? parseFloat(row[4]) : null;
-        const nb  = String(row[5]||'').trim().toUpperCase() === 'Y';
-        CONFIG.agents[agent].sales_progression = {normal_t1:t1,normal_t2:t2,ga:ga,ma:ma};
-        CONFIG.agents[agent].is_newbie = nb;
-      });
-
-      // ── Sheet 2: Brand Comm Targets ─────────────────────────
-      const ws2 = wb.Sheets['Brand Comm Targets'];
-      if (ws2) {
-        // Row 3 = brand headers (0-indexed row 2), data starts row 5 (0-indexed row 4)
-        const rows2 = XLSX.utils.sheet_to_json(ws2, {header:1, range:4});
-        // Brand column positions from sheet: col 2=iFACE pen, 3=iFACE ctn, 4=SUKUN pen...
-        const brandCols = [
-          {brand:'iFACE',  penCol:2, ctnCol:3},
-          {brand:'SUKUN',  penCol:4, ctnCol:5},
-          {brand:'EVO',    penCol:6, ctnCol:7},
-          {brand:'BISON',  penCol:8, ctnCol:9},
-          {brand:'TR20',   penCol:10,ctnCol:11},
-          {brand:'LAM+LWM',penCol:12,ctnCol:13},
-        ];
-        rows2.forEach(row => {
+      // ── 1. Sales Targets ──────────────────────────────────────
+      const ws1 = getSheet('Sales Targets');
+      if (ws1) {
+        const rows = XLSX.utils.sheet_to_json(ws1, {header:1, range:2}); // skip row 1 (instructions) + row 2 (header)
+        rows.forEach(row => {
           const agent = String(row[0]||'').trim().toUpperCase();
-          if (!agent || agent === 'TOTAL') return;
+          if (!agent || !AGENTS.includes(agent)) return;
+          if (!CONFIG.agents[agent]) CONFIG.agents[agent] = {is_newbie:false,sales_progression:{},brand_commission:{}};
+          CONFIG.agents[agent].sales_progression = {
+            normal_t1: parseFloat(row[1]) || null,
+            normal_t2: parseFloat(row[2]) || null,
+            ga:        row[3] !== '' && row[3] != null ? parseFloat(row[3]) : null,
+            ma:        row[4] !== '' && row[4] != null ? parseFloat(row[4]) : null,
+          };
+          CONFIG.agents[agent].is_newbie = String(row[5]||'').trim().toUpperCase() === 'Y';
+        });
+        imported.push('✓ Sales Targets');
+      }
+
+      // ── 2. KPI Targets ───────────────────────────────────────
+      const ws2 = getSheet('KPI Targets');
+      if (ws2) {
+        const rows = XLSX.utils.sheet_to_json(ws2, {header:1, range:2});
+        rows.forEach(row => {
+          const agent = String(row[0]||'').trim().toUpperCase();
+          if (!agent || !AGENTS.includes(agent)) return;
           if (!CONFIG.agents[agent]) return;
-          brandCols.forEach(({brand,penCol,ctnCol}) => {
+          CONFIG.agents[agent].kpi_targets = {
+            new_accounts:    parseFloat(row[1]) || 5,
+            vip_count:       parseFloat(row[2]) || 3,
+            reactivation:    parseFloat(row[3]) || 5,
+            new_sku:         parseFloat(row[4]) || 17,
+            activation_rate: parseFloat(row[5]) || 80,
+            event:           parseFloat(row[6]) || 16,
+          };
+        });
+        imported.push('✓ KPI Targets');
+      }
+
+      // ── 3. Brand Comm Targets ────────────────────────────────
+      const ws3 = getSheet('Brand Comm');
+      if (ws3) {
+        const brandCols = [
+          {brand:'iFACE',  p:1, c:2},
+          {brand:'SUKUN',  p:3, c:4},
+          {brand:'EVO',    p:5, c:6},
+          {brand:'BISON',  p:7, c:8},
+          {brand:'TR20',   p:9, c:10},
+          {brand:'LAM+LWM',p:11,c:12},
+        ];
+        const rows = XLSX.utils.sheet_to_json(ws3, {header:1, range:3}); // skip instruction + header + brand name rows
+        rows.forEach(row => {
+          const agent = String(row[0]||'').trim().toUpperCase();
+          if (!agent || !AGENTS.includes(agent)) return;
+          if (!CONFIG.agents[agent].brand_commission) CONFIG.agents[agent].brand_commission = {};
+          brandCols.forEach(({brand,p,c}) => {
             CONFIG.agents[agent].brand_commission[brand] = {
-              penetration_target: parseFloat(row[penCol]) || 0,
-              ctn_target:         parseFloat(row[ctnCol]) || 0,
+              penetration_target: parseFloat(row[p]) || 0,
+              ctn_target:         parseFloat(row[c]) || 0,
             };
           });
         });
+        imported.push('✓ Brand Comm Targets');
       }
 
-      // ── Sheet 3: Newbie Scheme ──────────────────────────────
-      const ws3 = wb.Sheets['Newbie Scheme'];
-      if (ws3) {
-        const rows3 = XLSX.utils.sheet_to_json(ws3, {header:1});
-        // CTN tiers: rows 5-7 (0-indexed 4-6), cols B=thresh(1), C=reward(2)
-        const ctnTiers = [];
-        for (let i = 4; i <= 6; i++) {
-          const row = rows3[i];
-          if (!row) continue;
-          const thresh = parseFloat(row[1]);
-          const reward = parseFloat(row[2]);
-          if (thresh && reward) ctnTiers.push({threshold:thresh, reward:reward});
-        }
-        if (ctnTiers.length) CONFIG.newbie_scheme.ctn_tiers = ctnTiers;
-
-        // Account tiers: rows 11-13 (0-indexed 10-12)
-        const accTiers = [];
-        for (let i = 10; i <= 12; i++) {
-          const row = rows3[i];
-          if (!row) continue;
-          const count  = parseFloat(row[1]);
-          const reward = parseFloat(row[2]);
-          if (count && reward) accTiers.push({count:count, reward:reward});
-        }
-        if (accTiers.length) CONFIG.newbie_scheme.account_tiers = accTiers;
-      }
-
-      // ── Sheet 4: Group Brand Targets ────────────────────────
-      const ws4 = wb.Sheets['Group Brand Targets'];
+      // ── 4. Group Brand Targets ───────────────────────────────
+      const ws4 = getSheet('Group Brand');
       if (ws4) {
-        const rows4 = XLSX.utils.sheet_to_json(ws4, {header:1, range:3});
-        // Row 3 = headers, data from row 4 (0-indexed row 3 onwards)
-        // Col A=brand, Col B=item codes, Col C=CTN target
+        const rows = XLSX.utils.sheet_to_json(ws4, {header:1, range:2});
         if (!CONFIG.group_brand_targets) CONFIG.group_brand_targets = {};
-        rows4.forEach(row => {
-          const brand  = String(row[0]||'').trim().toUpperCase();
-          const target = parseFloat(row[2]);
+        rows.forEach(row => {
+          const brand  = String(row[0]||'').trim();
+          const target = parseFloat(row[1]);
           if (brand && !isNaN(target) && target > 0) {
-            // Map display name to config key (handle case)
-            const key = Object.keys(CONFIG.group_brand_config||{})
-              .find(k => k.toUpperCase() === brand) || brand;
+            const key = Object.keys(CONFIG.group_brand_config||DEFAULT_GROUP_BRAND_CONFIG)
+              .find(k => k.toUpperCase() === brand.toUpperCase()) || brand;
             CONFIG.group_brand_targets[key] = target;
           }
         });
+        imported.push('✓ Group Brand Targets');
+      }
+
+      // ── 5. Newbie Scheme ─────────────────────────────────────
+      const ws5 = getSheet('Newbie');
+      if (ws5) {
+        const rows = XLSX.utils.sheet_to_json(ws5, {header:1, range:2});
+        rows.forEach(row => {
+          const agent = String(row[0]||'').trim().toUpperCase();
+          if (!agent || !AGENTS.includes(agent)) return;
+          if (!CONFIG.agents[agent]) return;
+          CONFIG.agents[agent].is_newbie = true;
+          CONFIG.agents[agent].newbie_tiers = [
+            {threshold: parseFloat(row[1])||0, reward: parseFloat(row[2])||0},
+            {threshold: parseFloat(row[3])||0, reward: parseFloat(row[4])||0},
+            {threshold: parseFloat(row[5])||0, reward: parseFloat(row[6])||0},
+          ].filter(t => t.threshold > 0);
+          // Account bonus
+          if (row[7] && row[8]) {
+            CONFIG.agents[agent].acc_bonus = {count: parseFloat(row[7])||0, reward: parseFloat(row[8])||0};
+          }
+        });
+        imported.push('✓ Newbie Scheme');
+      }
+
+      // ── 6. Public Holidays ───────────────────────────────────
+      const ws6 = getSheet('Holiday');
+      if (ws6) {
+        const rows = XLSX.utils.sheet_to_json(ws6, {header:1, range:2});
+        CONFIG.public_holidays = [];
+        rows.forEach(row => {
+          const dateVal = String(row[0]||'').trim();
+          const name    = String(row[1]||'').trim();
+          if (!dateVal || !/^\d{4}-\d{2}-\d{2}$/.test(dateVal)) return;
+          CONFIG.public_holidays.push(name ? {date:dateVal, name} : dateVal);
+        });
+        imported.push('✓ Public Holidays (' + CONFIG.public_holidays.length + ')');
       }
 
       // Re-render all forms
       renderAgentForms();
       renderNewbieForms();
-      renderSKUForms();
+      renderGroupBrandForms();
+      renderHolidayList();
       updateRawJSON();
 
-      const agentCount = Object.keys(CONFIG.agents).length;
       statusEl.style.color = 'var(--green)';
-      statusEl.textContent = `✓ Imported ${agentCount} agents from Excel. Review and click Save.`;
+      statusEl.textContent = '✅ ' + imported.join('  ·  ') + '  →  Review and Save All!';
 
     } catch(err) {
       statusEl.style.color = 'var(--red)';
@@ -870,6 +938,7 @@ function importExcel(input) {
   };
   reader.readAsArrayBuffer(file);
 }
+
 
 // ── Group Brand Targets ────────────────────────────────────────────────────
 const DEFAULT_GROUP_BRAND_CONFIG = {
@@ -968,6 +1037,51 @@ function removeHoliday(idx) {
   renderHolidayList();
 }
 
+// ── Birthday Campaign Override ─────────────────────────────────────────────
+function renderBirthdayCampList() {
+  const el = document.getElementById('birthday-camp-list');
+  if (!el) return;
+  const overrides = CONFIG.birthday_overrides || {};
+  const entries   = Object.entries(overrides);
+
+  if (!entries.length) {
+    el.innerHTML = '<div style="font-family:var(--mono);font-size:10px;color:#888;padding:6px 0;">No overrides — auto-list from birth dates only.</div>';
+    return;
+  }
+  el.innerHTML = entries.map(([code, action]) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--bg);border-radius:8px;margin-bottom:4px;border:1px solid var(--border);">
+      <div>
+        <span style="font-family:var(--mono);font-size:11px;font-weight:600;">${code}</span>
+        <span style="font-family:var(--mono);font-size:9px;margin-left:8px;color:${action==='add'?'var(--green)':'var(--accent)'};">${action==='add'?'✓ Added':'✗ Removed'}</span>
+      </div>
+      <button onclick="bdayRemoveOverride('${code}')" style="background:none;border:1px solid var(--border);color:#888;font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:6px;cursor:pointer;">✕</button>
+    </div>`).join('');
+}
+
+function bdayAddDebtor() {
+  const code = document.getElementById('bday-add-code').value.trim().toUpperCase();
+  if (!code) return;
+  if (!CONFIG.birthday_overrides) CONFIG.birthday_overrides = {};
+  CONFIG.birthday_overrides[code] = 'add';
+  document.getElementById('bday-add-code').value = '';
+  updateRawJSON();
+  renderBirthdayCampList();
+}
+
+function bdayRemoveOverride(code) {
+  if (!CONFIG.birthday_overrides) return;
+  delete CONFIG.birthday_overrides[code];
+  updateRawJSON();
+  renderBirthdayCampList();
+}
+
+function bdayExcludeDebtor(code) {
+  if (!CONFIG.birthday_overrides) CONFIG.birthday_overrides = {};
+  CONFIG.birthday_overrides[code] = 'remove';
+  updateRawJSON();
+  renderBirthdayCampList();
+}
+
 // ── Campaign Management ────────────────────────────────────────────────────
 let CAMPAIGNS_DATA = { campaigns: [] };
 let _campFileDebtors = [];
@@ -1017,6 +1131,11 @@ function previewCampFile(input) {
   }
 }
 
+function toggleBrandFields(type) {
+  document.getElementById('brand-camp-fields').style.display =
+    type === 'promotion' ? 'block' : 'none';
+}
+
 function createCampaign() {
   const name=document.getElementById('new-camp-name').value.trim();
   const type=document.getElementById('new-camp-type').value;
@@ -1025,17 +1144,33 @@ function createCampaign() {
   if (!name){alert('Please enter campaign name');return;}
   if (!deadline){alert('Please set deadline');return;}
   if (!_campFileDebtors.length){alert('Please upload debtor list');return;}
+
+  // Brand fields for promotion type
+  const brands = type === 'promotion'
+    ? Array.from(document.querySelectorAll('#brand-checkboxes input:checked')).map(c=>c.value)
+    : [];
+  const promo     = document.getElementById('new-camp-promo')?.value?.trim() || '';
+  const minOrder  = parseFloat(document.getElementById('new-camp-min-order')?.value) || null;
+
   CAMPAIGNS_DATA.campaigns.push({
-    id:'camp_'+Date.now(),name,type,description:desc,
-    created_at:new Date().toISOString().split('T')[0],
-    deadline,active:true,debtors:_campFileDebtors,
+    id: 'camp_'+Date.now(), name, type, description: desc,
+    brands, promo_detail: promo, min_order_ctn: minOrder,
+    created_at: new Date().toISOString().split('T')[0],
+    deadline, active: true, debtors: _campFileDebtors,
   });
   saveCampaignsData();
+
+  // Clear form
   document.getElementById('new-camp-name').value='';
   document.getElementById('new-camp-desc').value='';
+  document.getElementById('new-camp-deadline').value='';
   document.getElementById('new-camp-file').value='';
   document.getElementById('camp-file-preview').textContent='';
+  if (document.getElementById('new-camp-promo')) document.getElementById('new-camp-promo').value='';
+  if (document.getElementById('new-camp-min-order')) document.getElementById('new-camp-min-order').value='';
+  document.querySelectorAll('#brand-checkboxes input').forEach(c=>c.checked=false);
   _campFileDebtors=[];
+
   const t=document.getElementById('save-toast-camp');
   t.style.display='block';setTimeout(()=>t.style.display='none',2000);
 }
@@ -1049,16 +1184,19 @@ function renderCampaignsList() {
   const el=document.getElementById('campaigns-list');
   if(!el)return;
   const active=CAMPAIGNS_DATA.campaigns.filter(c=>c.active);
-  const TYPES={free_sample:'🎁 Free Sample',birthday_gift:'🎂 Birthday Gift',promotion:'📢 Promotion',festive_gift:'🧧 Festive Gift',other:'📋 Other'};
+  const TYPES={free_sample:'🎁 Free Sample',birthday_gift:'🎂 Birthday Gift',promotion:'📢 Brand Promotion',festive_gift:'🧧 Festive Gift',other:'📋 Other'};
   el.innerHTML=active.length?active.map(c=>`
     <div class="admin-card" style="margin-bottom:8px;border-left:4px solid var(--accent);">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
-        <div>
+        <div style="flex:1;">
           <div style="font-family:var(--mono);font-size:9px;color:#888;">${TYPES[c.type]||c.type}</div>
           <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;">${c.name}</div>
-          ${c.description?`<div style="font-family:var(--mono);font-size:9px;color:#888;">${c.description}</div>`:''}
+          ${c.description?`<div style="font-family:var(--mono);font-size:9px;color:#888;margin-top:2px;">${c.description}</div>`:''}
+          ${c.brands?.length?`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">${c.brands.map(b=>`<span style="font-family:var(--mono);font-size:9px;background:rgba(200,56,26,.1);color:#c8381a;padding:2px 8px;border-radius:8px;border:1px solid rgba(200,56,26,.3);">${b}</span>`).join('')}</div>`:''}
+          ${c.promo_detail?`<div style="font-family:var(--mono);font-size:10px;color:var(--green);margin-top:4px;font-weight:600;">💬 "${c.promo_detail}"</div>`:''}
+          ${c.min_order_ctn?`<div style="font-family:var(--mono);font-size:9px;color:#888;margin-top:2px;">Min order: ${c.min_order_ctn} CTN</div>`:''}
         </div>
-        <button onclick="closeCampaign('${c.id}')" style="background:none;border:1px solid #ddd;color:#888;font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">Close</button>
+        <button onclick="closeCampaign('${c.id}')" style="background:none;border:1px solid #ddd;color:#888;font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;margin-left:8px;flex-shrink:0;">Close</button>
       </div>
       <div style="font-family:var(--mono);font-size:10px;color:#555;">📋 ${c.debtors?.length||0} debtors &nbsp;·&nbsp; ⏰ ${c.deadline}</div>
     </div>`).join('')

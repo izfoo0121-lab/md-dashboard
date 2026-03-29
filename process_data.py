@@ -36,6 +36,7 @@ BASE_DIR        = Path(__file__).parent
 SALES_FILE      = BASE_DIR / "MD Sales Report.xlsx"
 DEBTOR_FILE     = BASE_DIR / "Debtor Maintenance.xlsx"
 TARGETS_FILE    = BASE_DIR / "targets.json"
+CAMPAIGNS_FILE  = BASE_DIR / "campaigns.json"
 OUTPUT_FILE     = BASE_DIR / "dashboard_data.json"
 
 # Area scope — Phase 2 covers GRP 2A only
@@ -637,7 +638,7 @@ def calc_aging(df, agents, cur_month):
 
 # ── Phase 1 compatibility: existing debtor card data ─────────────────────────
 
-def calc_debtor_cards(df, debtor_df, agents, cur_month):
+def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None):
     """
     Preserve existing Phase 1 debtor card logic:
     - Activation status per debtor (Active / Pending / Need Reactivation)
@@ -913,6 +914,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month):
                 "new_sku_status":     new_sku_status,
                 "new_sku_total":      len(new_sku_groups),
                 "sales_types":        cur_sales_types,
+                "campaigns":          (campaign_map or {}).get(dcode, []),
             })
 
         # Sort: active first, then pending, then need_reactivation
@@ -956,6 +958,86 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month):
 # ── Module 5: Group Brand Targets ────────────────────────────────────────────
 
 def calc_group_brand_targets(df, targets, cur_month, group_brand_config):
+    """Team-level CTN totals vs targets for 7 brand groups."""
+    log("Calculating Group Brand Targets...")
+    paid = df[df["paid_on"] == cur_month]
+    canggih_paid = paid[paid["item_group"] != EIGHTCOM_GROUP]
+    gb_targets = targets.get("group_brand_targets", {})
+    result = {}
+    for brand, codes in group_brand_config.items():
+        actual = float(canggih_paid[canggih_paid["item_code"].isin(codes)]["qty_ctn"].sum())
+        target = float(gb_targets.get(brand, 0) or 0)
+        result[brand] = {
+            "actual_ctn": round(actual, 1),
+            "target_ctn": target,
+            "gap":        round(actual - target, 1) if target else None,
+            "pct":        pct(actual, target),
+        }
+    return result
+
+
+def calc_birthday_campaign(debtor_cards, targets):
+    """
+    Auto-generate birthday gift campaign list from debtor birth dates.
+    Returns debtors with birthday this month, per agent.
+    Marketing can override (add/remove) via targets.json birthday_overrides.
+    """
+    log("Generating birthday campaign list...")
+    today     = date.today()
+    overrides = targets.get("birthday_overrides", {})  # {debtor_code: "add"|"remove"}
+
+    birthday_debtors = []
+    for agent, adata in debtor_cards.items():
+        for d in adata.get("debtors", []):
+            code = d.get("debtor_code", "")
+            # Auto-include if birthday this month
+            if d.get("birthday_this_month", False):
+                if overrides.get(code) != "remove":
+                    birthday_debtors.append({
+                        "code":    code,
+                        "name":    d.get("company_name", code),
+                        "agent":   agent,
+                        "type":    d.get("debtor_type", ""),
+                        "phone":   d.get("phone", ""),
+                        "source":  "auto",
+                    })
+
+    # Marketing overrides — manually added debtors
+    for code, action in overrides.items():
+        if action == "add":
+            # Find debtor info from any agent
+            found = False
+            for agent, adata in debtor_cards.items():
+                d = next((x for x in adata.get("debtors",[]) if x.get("debtor_code")==code), None)
+                if d:
+                    birthday_debtors.append({
+                        "code":   code,
+                        "name":   d.get("company_name", code),
+                        "agent":  agent,
+                        "type":   d.get("debtor_type", ""),
+                        "phone":  d.get("phone", ""),
+                        "source": "manual",
+                    })
+                    found = True
+                    break
+
+    # Remove duplicates
+    seen = set()
+    result = []
+    for d in birthday_debtors:
+        if d["code"] not in seen:
+            seen.add(d["code"])
+            result.append(d)
+
+    log(f"  Birthday campaign: {len(result)} debtors this month ({today.strftime('%B %Y')})")
+    return {
+        "month":    today.strftime("%B %Y"),
+        "count":    len(result),
+        "debtors":  result,
+    }
+
+
+
     """
     Group-level CTN vs target for 7 brands.
     Actual = sum of ALL agents' paid CTN for that brand's item codes.
@@ -1345,6 +1427,27 @@ def main():
     df_raw    = load_sales_report()
     debtor_df = load_debtors()
 
+    # Load campaigns.json — build debtor→campaigns lookup
+    campaign_map = {}  # debtor_code → [{"id","name","type"}]
+    if CAMPAIGNS_FILE.exists():
+        try:
+            with open(CAMPAIGNS_FILE, encoding="utf-8") as f:
+                camp_data = json.load(f)
+            for camp in camp_data.get("campaigns", []):
+                if not camp.get("active", True): continue
+                for d in camp.get("debtors", []):
+                    code = d.get("code","") if isinstance(d, dict) else str(d)
+                    if code:
+                        if code not in campaign_map: campaign_map[code] = []
+                        campaign_map[code].append({
+                            "id":   camp.get("id",""),
+                            "name": camp.get("name",""),
+                            "type": camp.get("type","other"),
+                        })
+            log(f"Campaigns: {len(camp_data.get('campaigns',[]))} loaded, {len(campaign_map)} debtors tagged")
+        except Exception as e:
+            log(f"⚠ Could not load campaigns.json: {e}")
+
     # ── Scope filter ───────────────────────────────────────────────
     df = filter_scope(df_raw)
 
@@ -1365,11 +1468,12 @@ def main():
     brand_comm  = calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_config)
     newbie      = calc_newbie_scheme(df, targets, agents, cur_month)
     aging       = calc_aging(df, agents, cur_month)
-    debtor_cards = calc_debtor_cards(df, debtor_df, agents, cur_month)
+    debtor_cards = calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map)
     group_brands = calc_group_brand_targets(df, targets, cur_month, group_brand_config)
     kpi         = calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards)
     team        = calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month)
     working_days = calc_working_days(targets)
+    birthday_camp = calc_birthday_campaign(debtor_cards, targets)
 
     # ── Assemble output ─────────────────────────────────────────────
     output = {
@@ -1377,6 +1481,7 @@ def main():
         "current_month":  cur_month,
         "working_days":   working_days,
         "group_brand_targets": group_brands,
+        "birthday_campaign":   birthday_camp,
         "agents":         {},
         "team":           team,
         "config": {

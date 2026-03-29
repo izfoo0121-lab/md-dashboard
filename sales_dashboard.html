@@ -344,6 +344,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
     <button class="filter-chip" data-val="drop" onclick="setSpecialFilter('drop',this)">📉 Drop</button>
     <button class="filter-chip" data-val="newsku" onclick="setSpecialFilter('newsku',this)">✨ 新增SKU</button>
     <button class="filter-chip" data-val="flagged" onclick="setSpecialFilter('flagged',this)" style="border-color:rgba(255,95,95,.4);color:var(--red);">⚑ Flagged</button>
+    <button class="filter-chip" data-val="campaign" onclick="setSpecialFilter('campaign',this)" style="border-color:rgba(61,220,132,.4);color:var(--green);">🎁 Campaign</button>
   </div>
   <div class="filter-row" id="type-filter-row">
     <span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">Type:</span>
@@ -487,6 +488,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
     <textarea class="flag-note" id="flag-note" placeholder="Add note (e.g. new area, new agent, reason...)"></textarea>
     <button class="sheet-submit" id="flag-submit-btn" onclick="submitFlag()" disabled>SUBMIT FLAG</button>
     <button class="sheet-cancel" onclick="closeFlagSheet()">Cancel</button>
+  </div>
+</div>
+
+<!-- ── Campaign Detail Sheet ── -->
+<div class="sheet-overlay" id="camp-detail-overlay" onclick="closeCampDetail(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="cd-title">Campaigns</div>
+    <div class="sheet-sub" id="cd-sub">Active campaigns for this debtor</div>
+    <div id="cd-list"></div>
+    <button class="sheet-cancel" onclick="closeCampDetail()">Close</button>
   </div>
 </div>
 
@@ -725,6 +737,7 @@ function renderDebtors() {
     if (filters.special === 'drop'     && !d.volume_drop_pct)    return false;
     if (filters.special === 'newsku'   && !(d.new_sku_count > 0)) return false;
     if (filters.special === 'flagged'  && !getFlag(currentAgent, d.debtor_code)) return false;
+    if (filters.special === 'campaign' && !(d.campaigns||[]).length) return false;
     if (filters.type !== 'all'         && d.debtor_type !== filters.type) return false;
     if (filters.brand !== 'all') {
       const grp = SKU_GRP[filters.brand] || filters.brand;
@@ -785,6 +798,14 @@ function renderDebtors() {
     const stTxt = d.status==='active' ? '已激活' : d.status==='pending' ? '❌ Pending' : '待激活';
 
     // Badges
+    // Campaign badges
+    const campEmoji = {free_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',other:'📋'};
+    const campBadges = (d.campaigns||[]).map(c =>
+      `<span class="status-inline" style="background:rgba(61,220,132,.15);color:var(--green);cursor:pointer;"
+        onclick="showCampDetail(event,'${d.debtor_code}','${(d.company_name||'').replace(/'/g,"\\'")}')"
+        >${campEmoji[c.type]||'📋'} ${c.name}</span>`
+    ).join('');
+
     const badges = [
       `<span class="status-inline ${stCls}">${stTxt}</span>`,
       d.vip             ? `<span class="status-inline" style="background:rgba(240,192,64,.2);color:var(--accent)">⭐ VIP</span>` : '',
@@ -858,6 +879,7 @@ function renderDebtors() {
         <div class="dc-right">
           ${phone ? `<a href="tel:${phone}" class="dc-phone">📞 ${phone}</a>` : ''}
           <div class="dc-badges">${badges}</div>
+          ${campBadges ? `<div class="dc-badges" style="margin-top:2px;">${campBadges}</div>` : ''}
         </div>
       </div>
 
@@ -1594,6 +1616,55 @@ function renderKPI() {
   </div>`;
 
   el.innerHTML = heroHtml + sectionsHtml + dePlaceholder;
+}
+
+// ── Campaign Detail Popup ──────────────────────────────────────────────────
+const CAMP_EMOJI = {free_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',other:'📋'};
+const CAMP_LABEL = {free_sample:'Free Sample',birthday_gift:'Birthday Gift',promotion:'Brand Promotion',festive_gift:'Festive Gift',other:'Other'};
+
+function showCampDetail(event, debtorCode, debtorName) {
+  event.stopPropagation();
+  const debtors = DATA.agents[currentAgent]?.debtor_cards?.debtors || [];
+  const debtor  = debtors.find(d => d.debtor_code === debtorCode);
+  const camps   = debtor?.campaigns || [];
+
+  document.getElementById('cd-title').textContent = debtorName || debtorCode;
+  document.getElementById('cd-sub').textContent   = `${camps.length} active campaign${camps.length!==1?'s':''}`;
+
+  document.getElementById('cd-list').innerHTML = camps.map(c => {
+    const brandsHtml = c.brands?.length
+      ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">
+          ${c.brands.map(b=>`<span style="font-family:var(--mono);font-size:9px;background:rgba(255,154,60,.15);color:var(--orange);padding:2px 8px;border-radius:8px;border:1px solid rgba(255,154,60,.3);">${b}</span>`).join('')}
+        </div>` : '';
+    const promoHtml = c.promo_detail
+      ? `<div style="margin-top:8px;background:rgba(61,220,132,.1);border:1px solid rgba(61,220,132,.3);border-radius:8px;padding:8px 10px;">
+          <div style="font-family:var(--mono);font-size:8px;color:var(--green);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Promotion</div>
+          <div style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--green);">${c.promo_detail}</div>
+          ${c.min_order_ctn?`<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px;">Min order: ${c.min_order_ctn} CTN</div>`:''}
+        </div>` : '';
+    const descHtml = c.description
+      ? `<div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:6px;">${c.description}</div>` : '';
+
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;border-left:4px solid var(--green);">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <span style="font-size:22px;">${CAMP_EMOJI[c.type]||'📋'}</span>
+        <div>
+          <div style="font-weight:600;font-size:14px;">${c.name}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">${CAMP_LABEL[c.type]||c.type}</div>
+        </div>
+      </div>
+      ${brandsHtml}${promoHtml}${descHtml}
+    </div>`;
+  }).join('') || `<div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;padding:20px 0;">No active campaigns</div>`;
+
+  document.getElementById('camp-detail-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCampDetail(e) {
+  if (e && e.target !== document.getElementById('camp-detail-overlay')) return;
+  document.getElementById('camp-detail-overlay').classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 // ── CTN Breakdown Tooltip ──────────────────────────────────────────────────
