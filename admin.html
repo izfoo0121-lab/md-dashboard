@@ -954,6 +954,12 @@ function importExcel(input) {
         return key ? wb.Sheets[key] : null;
       };
 
+      // Helper — parse number and round to nearest whole number
+      const rnd = (v) => {
+        const n = parseFloat(v);
+        return isNaN(n) ? null : Math.round(n);
+      };
+
       // ── 1. Sales Targets ──────────────────────────────────────
       const ws1 = getSheet('Sales Targets');
       if (ws1) {
@@ -963,10 +969,10 @@ function importExcel(input) {
           if (!agent || !AGENTS.includes(agent)) return;
           if (!CONFIG.agents[agent]) CONFIG.agents[agent] = {is_newbie:false,sales_progression:{},brand_commission:{}};
           CONFIG.agents[agent].sales_progression = {
-            normal_t1: parseFloat(row[1]) || null,
-            normal_t2: parseFloat(row[2]) || null,
-            ga:        row[3] !== '' && row[3] != null ? parseFloat(row[3]) : null,
-            ma:        row[4] !== '' && row[4] != null ? parseFloat(row[4]) : null,
+            normal_t1: rnd(row[1]) || null,
+            normal_t2: rnd(row[2]) || null,
+            ga:        row[3] !== '' && row[3] != null ? rnd(row[3]) : null,
+            ma:        row[4] !== '' && row[4] != null ? rnd(row[4]) : null,
           };
           CONFIG.agents[agent].is_newbie = String(row[5]||'').trim().toUpperCase() === 'Y';
         });
@@ -982,12 +988,12 @@ function importExcel(input) {
           if (!agent || !AGENTS.includes(agent)) return;
           if (!CONFIG.agents[agent]) return;
           CONFIG.agents[agent].kpi_targets = {
-            new_accounts:    parseFloat(row[1]) || 5,
-            vip_count:       parseFloat(row[2]) || 3,
-            reactivation:    parseFloat(row[3]) || 5,
-            new_sku:         parseFloat(row[4]) || 17,
-            activation_rate: parseFloat(row[5]) || 80,
-            event:           parseFloat(row[6]) || 16,
+            new_accounts:    rnd(row[1]) || 5,
+            vip_count:       rnd(row[2]) || 3,
+            reactivation:    rnd(row[3]) || 5,
+            new_sku:         rnd(row[4]) || 17,
+            activation_rate: rnd(row[5]) || 80,
+            event:           rnd(row[6]) || 16,
           };
         });
         imported.push('✓ KPI Targets');
@@ -1011,8 +1017,8 @@ function importExcel(input) {
           if (!CONFIG.agents[agent].brand_commission) CONFIG.agents[agent].brand_commission = {};
           brandCols.forEach(({brand,p,c}) => {
             CONFIG.agents[agent].brand_commission[brand] = {
-              penetration_target: parseFloat(row[p]) || 0,
-              ctn_target:         parseFloat(row[c]) || 0,
+              penetration_target: rnd(row[p]) || 0,
+              ctn_target:         rnd(row[c]) || 0,
             };
           });
         });
@@ -1026,8 +1032,8 @@ function importExcel(input) {
         if (!CONFIG.group_brand_targets) CONFIG.group_brand_targets = {};
         rows.forEach(row => {
           const brand  = String(row[0]||'').trim();
-          const target = parseFloat(row[1]);
-          if (brand && !isNaN(target) && target > 0) {
+          const target = rnd(row[1]);
+          if (brand && target > 0) {
             const key = Object.keys(CONFIG.group_brand_config||DEFAULT_GROUP_BRAND_CONFIG)
               .find(k => k.toUpperCase() === brand.toUpperCase()) || brand;
             CONFIG.group_brand_targets[key] = target;
@@ -1046,13 +1052,12 @@ function importExcel(input) {
           if (!CONFIG.agents[agent]) return;
           CONFIG.agents[agent].is_newbie = true;
           CONFIG.agents[agent].newbie_tiers = [
-            {threshold: parseFloat(row[1])||0, reward: parseFloat(row[2])||0},
-            {threshold: parseFloat(row[3])||0, reward: parseFloat(row[4])||0},
-            {threshold: parseFloat(row[5])||0, reward: parseFloat(row[6])||0},
+            {threshold: rnd(row[1])||0, reward: rnd(row[2])||0},
+            {threshold: rnd(row[3])||0, reward: rnd(row[4])||0},
+            {threshold: rnd(row[5])||0, reward: rnd(row[6])||0},
           ].filter(t => t.threshold > 0);
-          // Account bonus
           if (row[7] && row[8]) {
-            CONFIG.agents[agent].acc_bonus = {count: parseFloat(row[7])||0, reward: parseFloat(row[8])||0};
+            CONFIG.agents[agent].acc_bonus = {count: rnd(row[7])||0, reward: rnd(row[8])||0};
           }
         });
         imported.push('✓ Newbie Scheme');
@@ -1082,7 +1087,7 @@ function importExcel(input) {
           const type     = String(row[1]||'').trim();
           const brands   = String(row[2]||'').trim().split(',').map(b=>b.trim()).filter(Boolean);
           const promo    = String(row[3]||'').trim();
-          const minOrder = parseFloat(row[4]) || null;
+          const minOrder = rnd(row[4]) || null;
           const deadline = String(row[5]||'').trim();
           const desc     = String(row[6]||'').trim();
           if (!name || !deadline) return;
