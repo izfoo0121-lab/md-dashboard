@@ -445,7 +445,10 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
               📄 <b>Optional column:</b> "Company Name"<br>
               📄 <b>Accepted formats:</b> .xlsx  .xls  .csv
             </div>
-            <input type="file" id="new-camp-file" accept=".xlsx,.xls,.csv" onchange="previewCampFile(this)" style="font-family:var(--mono);font-size:11px;width:100%;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input type="file" id="new-camp-file" accept=".xlsx,.xls,.csv" onchange="previewCampFile(this)" style="font-family:var(--mono);font-size:11px;flex:1;">
+              <button onclick="clearCampFile()" style="background:none;border:1px solid var(--border);color:var(--ink3);font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;flex-shrink:0;">✕ Clear</button>
+            </div>
           </div>
           <div id="camp-file-preview" style="margin-top:4px;font-family:var(--mono);font-size:10px;color:var(--green);"></div>
         </div>
@@ -1429,6 +1432,12 @@ function loadCampaignsData() {
 function saveCampaignsData() {
   localStorage.setItem('touro_campaigns', JSON.stringify(CAMPAIGNS_DATA));
   renderCampaignsList();
+}
+
+function clearCampFile() {
+  document.getElementById('new-camp-file').value = '';
+  document.getElementById('camp-file-preview').textContent = '';
+  _campFileDebtors = [];
 }
 
 function previewCampFile(input) {
