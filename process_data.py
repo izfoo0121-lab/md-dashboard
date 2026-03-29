@@ -1285,19 +1285,31 @@ def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards):
 
     return result
 
-def calc_working_days():
-    """Calculate working day progress for current month."""
-    today = date.today()
-    first_day = today.replace(day=1)
+def calc_working_days(targets=None):
+    """Calculate working day progress for current month, deducting public holidays."""
+    today      = date.today()
+    first_day  = today.replace(day=1)
+    import calendar
+    last_day   = today.replace(day=calendar.monthrange(today.year, today.month)[1])
 
-    # Count Mon–Sat as working days (adjust if your team uses different schedule)
-    total_working = 0
+    # Public holidays — stored as list of "YYYY-MM-DD" strings or {"date":"YYYY-MM-DD","name":"..."}
+    ph_list = []
+    if targets:
+        all_ph = targets.get("public_holidays", [])
+        cur_ym = today.strftime("%Y-%m")
+        for h in all_ph:
+            date_str = h.get("date", h) if isinstance(h, dict) else h
+            if isinstance(date_str, str) and date_str.startswith(cur_ym):
+                try:
+                    ph_list.append(date.fromisoformat(date_str))
+                except:
+                    pass
+
+    total_working   = 0
     elapsed_working = 0
     d = first_day
-    import calendar
-    last_day = today.replace(day=calendar.monthrange(today.year, today.month)[1])
     while d <= last_day:
-        if d.weekday() < 6:  # Mon=0 ... Sat=5, Sun=6
+        if d.weekday() < 6 and d not in ph_list:  # Mon–Sat, exclude PH
             total_working += 1
             if d <= today:
                 elapsed_working += 1
@@ -1306,11 +1318,13 @@ def calc_working_days():
     theoretical_pct = round(elapsed_working / total_working * 100, 2) if total_working else 0
 
     return {
-        "date":              today.strftime("%Y-%m-%d"),
-        "month_label":       today.strftime("%b %Y"),
-        "total_working_days":  total_working,
-        "elapsed_working_days": elapsed_working,
-        "theoretical_pct":   theoretical_pct,
+        "date":                    today.strftime("%Y-%m-%d"),
+        "month_label":             today.strftime("%b %Y"),
+        "total_working_days":      total_working,
+        "elapsed_working_days":    elapsed_working,
+        "theoretical_pct":         theoretical_pct,
+        "public_holidays_this_month": len(ph_list),
+        "public_holidays":         [d.isoformat() for d in ph_list],
     }
 
 
@@ -1355,7 +1369,7 @@ def main():
     group_brands = calc_group_brand_targets(df, targets, cur_month, group_brand_config)
     kpi         = calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards)
     team        = calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month)
-    working_days = calc_working_days()
+    working_days = calc_working_days(targets)
 
     # ── Assemble output ─────────────────────────────────────────────
     output = {

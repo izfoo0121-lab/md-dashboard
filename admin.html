@@ -131,6 +131,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
     <button class="tab-btn" onclick="switchTab('newbie',this)">Newbie Scheme</button>
     <button class="tab-btn" onclick="switchTab('group',this)">Group Brands</button>
     <button class="tab-btn" onclick="switchTab('sku',this)">SKU Config</button>
+    <button class="tab-btn" onclick="switchTab('holidays',this)">📅 Holidays</button>
     <button class="tab-btn" onclick="switchTab('campaigns',this)">📢 Campaigns</button>
     <button class="tab-btn" onclick="switchTab('export',this)">Export / Import</button>
   </div>
@@ -197,6 +198,34 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
 
       <button class="save-btn" onclick="saveAll()">SAVE SKU CONFIG</button>
       <div class="save-toast" id="save-toast-sku">✓ Saved</div>
+    </div>
+  </div>
+
+  <!-- ── Tab: Public Holidays ── -->
+  <div id="tab-holidays" class="tab-content">
+    <div class="page-body">
+      <div class="sec-header">📅 Public Holidays</div>
+      <div class="sec-sub">Add public holidays to deduct from working day count. Mon–Sat only (Sundays already excluded).</div>
+
+      <div class="admin-card" style="margin-bottom:10px;">
+        <div class="sec-divider" style="margin-top:0;">Add Holiday</div>
+        <div class="input-row">
+          <div class="field-wrap">
+            <div class="field-lbl">Date</div>
+            <input type="date" id="ph-date">
+          </div>
+          <div class="field-wrap">
+            <div class="field-lbl">Name (optional)</div>
+            <input type="text" id="ph-name" placeholder="e.g. Hari Raya">
+          </div>
+        </div>
+        <button class="save-btn" onclick="addPublicHoliday()" style="margin-top:8px;">+ ADD HOLIDAY</button>
+      </div>
+
+      <div class="sec-divider">Current Holiday List</div>
+      <div id="ph-list"></div>
+
+      <div class="save-toast" id="save-toast-ph">✓ Holiday added</div>
     </div>
   </div>
 
@@ -319,6 +348,7 @@ async function initAdmin() {
   renderNewbieForms();
   renderGroupBrandForms();
   renderSKUForms();
+  renderHolidayList();
   updateRawJSON();
 
   // Load campaigns
@@ -881,6 +911,61 @@ function setGroupTarget(brand, val) {
   if (!CONFIG.group_brand_targets) CONFIG.group_brand_targets = {};
   CONFIG.group_brand_targets[brand] = val === '' ? null : parseFloat(val);
   updateRawJSON();
+}
+
+// ── Public Holidays ────────────────────────────────────────────────────────
+function renderHolidayList() {
+  const el = document.getElementById('ph-list');
+  if (!el) return;
+  const holidays = CONFIG.public_holidays || [];
+  if (!holidays.length) {
+    el.innerHTML = '<div style="font-family:var(--mono);font-size:10px;color:var(--ink3);padding:8px 0;">No public holidays set for this year.</div>';
+    return;
+  }
+  // Sort by date
+  const sorted = [...holidays].sort((a,b) => (a.date||a) > (b.date||b) ? 1 : -1);
+  el.innerHTML = sorted.map((h, i) => {
+    const dateStr = h.date || h;
+    const name    = h.name || '';
+    const dt      = new Date(dateStr + 'T00:00:00');
+    const dayName = dt.toLocaleDateString('en-MY', { weekday:'short' });
+    const fmt     = dt.toLocaleDateString('en-MY', { day:'numeric', month:'short', year:'numeric' });
+    return `<div class="admin-card" style="margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;padding:10px 14px;">
+      <div>
+        <div style="font-family:var(--display);font-size:16px;letter-spacing:.04em;">${fmt} · ${dayName}</div>
+        ${name ? `<div style="font-family:var(--mono);font-size:10px;color:var(--ink3);">${name}</div>` : ''}
+      </div>
+      <button onclick="removeHoliday(${i})" style="background:none;border:1px solid var(--border);color:var(--ink3);font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">✕ Remove</button>
+    </div>`;
+  }).join('');
+}
+
+function addPublicHoliday() {
+  const dateVal = document.getElementById('ph-date').value;
+  const nameVal = document.getElementById('ph-name').value.trim();
+  if (!dateVal) { alert('Please select a date'); return; }
+
+  if (!CONFIG.public_holidays) CONFIG.public_holidays = [];
+  // Avoid duplicates
+  const existing = CONFIG.public_holidays.find(h => (h.date||h) === dateVal);
+  if (existing) { alert('This date is already added'); return; }
+
+  CONFIG.public_holidays.push(nameVal ? { date: dateVal, name: nameVal } : dateVal);
+  updateRawJSON();
+  renderHolidayList();
+
+  document.getElementById('ph-date').value = '';
+  document.getElementById('ph-name').value = '';
+  const t = document.getElementById('save-toast-ph');
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2000);
+}
+
+function removeHoliday(idx) {
+  if (!CONFIG.public_holidays) return;
+  CONFIG.public_holidays.splice(idx, 1);
+  updateRawJSON();
+  renderHolidayList();
 }
 
 // ── Campaign Management ────────────────────────────────────────────────────

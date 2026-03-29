@@ -289,12 +289,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 <div class="header">
   <div class="header-top">
     <div>
-      <div class="header-title">TOURO MD</div>
+      <div class="header-title">Miracle-奇迹 MD</div>
       <div class="header-sub">Sales Dashboard</div>
     </div>
     <div>
-      <div class="month-badge" id="month-badge">MAR 2026</div>
-      <div class="day-prog" id="day-prog">Day — of —</div>
+      <div style="text-align:right;">
+        <div class="month-badge" id="month-badge">MAR 2026</div>
+        <div class="day-prog" id="day-prog">Day — of —</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:2px;" id="last-update">Updated: —</div>
+      </div>
     </div>
   </div>
   <select class="agent-select" id="agent-select" onchange="selectAgent(this.value)">
@@ -553,8 +556,16 @@ async function loadData() {
 function init() {
   const wd = DATA.working_days || {};
   document.getElementById('month-badge').textContent = (DATA.current_month || '').toUpperCase();
+  const wd = DATA.working_days || {};
   document.getElementById('day-prog').textContent =
-    `Day ${wd.elapsed_working_days||'?'} of ${wd.total_working_days||'?'} · ${wd.theoretical_pct||0}% elapsed`;
+    `Day ${wd.elapsed_working_days||'?'} of ${wd.total_working_days||'?'} · ${wd.theoretical_pct||0}% elapsed${wd.public_holidays_this_month>0?' ('+wd.public_holidays_this_month+' PH)':''}`;
+  // Last update
+  if (DATA.generated_at) {
+    const dt = new Date(DATA.generated_at);
+    const pad = n => String(n).padStart(2,'0');
+    document.getElementById('last-update').textContent =
+      `Updated: ${pad(dt.getDate())}/${pad(dt.getMonth()+1)} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+  }
 
   // Agent dropdown
   const sel = document.getElementById('agent-select');
