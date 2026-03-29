@@ -138,7 +138,19 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 .kpi-sub-d{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:3px;}
 .kpi-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:7px;}
 .kpi-bar-fill{height:100%;border-radius:2px;}
-/* ── Pending Actions ── */
+/* ── Login ── */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--ink);padding:20px;}
+.login-box{background:#252520;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:36px 28px;width:100%;max-width:360px;text-align:center;}
+.login-logo{font-family:var(--display);font-size:48px;letter-spacing:.05em;color:#fff;line-height:1;}
+.login-title{font-family:var(--display);font-size:20px;letter-spacing:.08em;color:rgba(255,255,255,.5);margin-top:4px;margin-bottom:6px;}
+.login-sub{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.12em;margin-bottom:28px;}
+.login-input{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:#fff;font-family:var(--body);font-size:15px;padding:13px 16px;border-radius:12px;margin-bottom:10px;text-align:center;letter-spacing:.1em;}
+.login-input::placeholder{color:rgba(255,255,255,.2);letter-spacing:.05em;}
+.login-input:focus{outline:none;border-color:rgba(255,255,255,.35);}
+.login-btn{width:100%;background:var(--accent);border:none;color:var(--ink);font-family:var(--display);font-size:22px;letter-spacing:.08em;padding:13px;border-radius:12px;cursor:pointer;margin-top:4px;transition:opacity .15s;}
+.login-btn:hover{opacity:.9;}
+.login-err{font-family:var(--mono);font-size:10px;color:#ff6b6b;text-align:center;margin-top:10px;display:none;}
+#main-app{display:none;}
 .action-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;border-left:4px solid #c8381a;}
 .action-agent{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#c8381a;margin-bottom:6px;}
 .action-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);}
@@ -166,6 +178,22 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 </head>
 <body>
 
+<!-- ── Login Screen ── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">TOURO MD</div>
+    <div class="login-title">MANAGEMENT</div>
+    <div class="login-sub">Authorised Access Only</div>
+    <input class="login-input" type="password" id="mgmt-pw" placeholder="Enter password"
+      onkeydown="if(event.key==='Enter')doMgmtLogin()">
+    <button class="login-btn" onclick="doMgmtLogin()">LOGIN</button>
+    <div class="login-err" id="login-err">Incorrect password</div>
+  </div>
+</div>
+
+<!-- ── Main App ── -->
+<div id="main-app">
+
 <!-- ══ OVERVIEW ══ -->
 <div id="overview-view" class="view active">
   <!-- Cross-page nav -->
@@ -179,7 +207,10 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
     <div class="header-row">
       <div><div class="header-title">TOURO MD</div><div class="header-sub">Management Console</div></div>
       <div><div class="month-tag" id="hdr-month">— —</div><div class="day-tag" id="hdr-day">—</div></div>
-      <button onclick="switchToAnalytics()" style="background:rgba(255,255,255,.12);border:none;color:#fff;font-family:var(--mono);font-size:9px;padding:5px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;">📊 Analytics</button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button onclick="switchToAnalytics()" style="background:rgba(255,255,255,.12);border:none;color:#fff;font-family:var(--mono);font-size:9px;padding:5px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;">📊 Analytics</button>
+        <button onclick="doMgmtLogout()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.5);font-family:var(--mono);font-size:9px;padding:5px 10px;border-radius:8px;cursor:pointer;">Logout</button>
+      </div>
     </div>
     <div class="kpi-strip">
       <div class="kpi-box"><div class="kpi-val w" id="kpi-pct">—%</div><div class="kpi-lbl">Team T1</div></div>
@@ -393,8 +424,34 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 </div>
 
 
+</div><!-- end #main-app -->
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
+// ── Auth ───────────────────────────────────────────────────────────────────
+const MGMT_PW = 'touro2026';
+
+function doMgmtLogin() {
+  const pw = document.getElementById('mgmt-pw').value;
+  if (pw === MGMT_PW) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+    loadData();
+  } else {
+    const err = document.getElementById('login-err');
+    err.style.display = 'block';
+    document.getElementById('mgmt-pw').value = '';
+    setTimeout(() => err.style.display = 'none', 2000);
+  }
+}
+function doMgmtLogout() {
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('mgmt-pw').value = '';
+}
+document.getElementById('mgmt-pw').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doMgmtLogin();
+});
 let DATA=null, lbMode='pct';
 const BC={iFACE:'#1a5c8f',SUKUN:'#6b3fa0',EVO:'#c8381a',BISON:'#c8860a','TR20':'#2a7a4b','LAM+LWM':'#c85a1a'};
 const GB={SUKUN:'#6b3fa0',EVO:'#c8381a',IMP:'#1a5c8f',LF:'#2a7a4b',CLASSMILD:'#c85a1a',BISON:'#c8860a',TR:'#2a2a38'};
@@ -1093,8 +1150,6 @@ function exportYearExcel() {
   const year=document.getElementById('an-year').textContent;
   XLSX.writeFile(wb,`MD_Annual_Report_${year}.xlsx`);
 }
-
-loadData();
 </script>
 </body>
 </html>

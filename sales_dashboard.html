@@ -855,17 +855,17 @@ function renderDebtors() {
         const flag = getFlag(currentAgent, d.debtor_code);
         const flagLabel = {cant_contact:'📵 Can\'t Contact', close_account:'❌ Close Account', transfer:'🔄 Transfer', other:'📝 Flagged'}[flag?.reason] || '';
         return flag
-          ? `<div style="margin-top:6px;display:flex;justify-content:space-between;align-items:center;background:rgba(255,95,95,.08);border:1px solid rgba(255,95,95,.2);border-radius:8px;padding:5px 10px;">
-              <span style="font-family:var(--mono);font-size:9px;color:var(--red);">${flagLabel}</span>
+          ? `<div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;background:rgba(255,95,95,.15);border:1px solid rgba(255,95,95,.5);border-radius:8px;padding:6px 10px;">
+              <span style="font-family:var(--mono);font-size:10px;color:var(--red);font-weight:500;">${flagLabel}</span>
               <div style="display:flex;gap:6px;">
                 <button onclick="openFlagSheet('${d.debtor_code}','${(d.company_name||'').replace(/'/g,"\\'")}',true)" style="background:none;border:none;font-family:var(--mono);font-size:9px;color:var(--muted);cursor:pointer;text-transform:uppercase;padding:2px 6px;">Edit</button>
-                <button onclick="resolveFlag('${currentAgent}','${d.debtor_code}')" style="background:none;border:1px solid rgba(255,95,95,.3);font-family:var(--mono);font-size:9px;color:var(--red);cursor:pointer;padding:2px 6px;border-radius:6px;">✕ Undo</button>
+                <button onclick="resolveFlag('${currentAgent}','${d.debtor_code}')" style="background:rgba(255,95,95,.2);border:1px solid rgba(255,95,95,.4);font-family:var(--mono);font-size:9px;color:var(--red);cursor:pointer;padding:3px 8px;border-radius:6px;">✕ Undo</button>
               </div>
             </div>`
-          : `<div style="margin-top:6px;text-align:right;">
-              <button onclick="openFlagSheet('${d.debtor_code}','${(d.company_name||'').replace(/'/g,"\\'")}',false)" 
-                style="background:none;border:1px solid rgba(255,255,255,.1);color:var(--muted);font-family:var(--mono);font-size:8px;padding:3px 8px;border-radius:6px;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;opacity:.6;">
-                ⚑ flag
+          : `<div style="margin-top:8px;">
+              <button onclick="openFlagSheet('${d.debtor_code}','${(d.company_name||'').replace(/'/g,"\\'")}',false)"
+                style="background:rgba(255,154,60,.12);border:1px solid rgba(255,154,60,.4);color:var(--orange);font-family:var(--mono);font-size:9px;padding:5px 12px;border-radius:8px;cursor:pointer;text-transform:uppercase;letter-spacing:.06em;width:100%;">
+                ⚑ Flag Debtor
               </button>
             </div>`;
       })()}
