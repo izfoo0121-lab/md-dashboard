@@ -412,11 +412,15 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
           <div class="input-group">
             <div class="input-label">Brand(s) to Push</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;" id="brand-checkboxes">
-              ${['iFACE','SUKUN','EVO','BISON','TR20','LAM+LWM','IMP','LF','CM'].map(b =>
-                `<label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border);padding:4px 10px;border-radius:8px;cursor:pointer;">
-                  <input type="checkbox" value="${b}" style="cursor:pointer;"> ${b}
-                </label>`
-              ).join('')}
+              <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border);padding:4px 10px;border-radius:8px;cursor:pointer;"><input type="checkbox" value="iFACE"> iFACE</label>
+              <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border);padding:4px 10px;border-radius:8px;cursor:pointer;"><input type="checkbox" value="SUKUN"> SUKUN</label>
+              <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border);padding:4px 10px;border-radius:8px;cursor:pointer;"><input type="checkbox" value="EVO"> EVO</label>
+              <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border);padding:4px 10px;border-radius:8px;cursor:pointer;"><input type="checkbox" value="BISON"> BISON</label>
+              <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border);padding:4px 10px;border-radius:8px;cursor:pointer;"><input type="checkbox" value="TR20"> TR20</label>
+              <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border);padding:4px 10px;border-radius:8px;cursor:pointer;"><input type="checkbox" value="LAM+LWM"> LAM+LWM</label>
+              <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border);padding:4px 10px;border-radius:8px;cursor:pointer;"><input type="checkbox" value="IMP"> IMP</label>
+              <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border);padding:4px 10px;border-radius:8px;cursor:pointer;"><input type="checkbox" value="LF"> LF</label>
+              <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border);padding:4px 10px;border-radius:8px;cursor:pointer;"><input type="checkbox" value="CM"> CM</label>
             </div>
           </div>
           <div class="input-group">
