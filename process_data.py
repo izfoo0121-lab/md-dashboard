@@ -781,6 +781,22 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month):
             ctn_prev1 = round(float(d_rows[d_rows["paid_on"] == prev1_m]["qty_ctn"].sum()), 2) if not d_rows.empty else 0.0
             ctn_prev2 = round(float(d_rows[d_rows["paid_on"] == prev2_m]["qty_ctn"].sum()), 2) if not d_rows.empty else 0.0
 
+            # Item breakdown per month (for tooltip on CTN tap)
+            def item_breakdown(month_label):
+                m_rows = d_rows[d_rows["paid_on"] == month_label]
+                if m_rows.empty:
+                    return []
+                grp = m_rows.groupby("item_code")["qty_ctn"].sum().reset_index()
+                grp = grp[grp["qty_ctn"] > 0].sort_values("qty_ctn", ascending=False)
+                return [{"item": str(r["item_code"]), "ctn": round(float(r["qty_ctn"]), 1)}
+                        for _, r in grp.iterrows()]
+
+            month_breakdown = {
+                cur_m:   item_breakdown(cur_m),
+                prev1_m: item_breakdown(prev1_m),
+                prev2_m: item_breakdown(prev2_m),
+            }
+
             # Volume drop
             volume_drop_pct = None
             if ctn_prev1 > 0 and ctn_cur < ctn_prev1:
@@ -886,6 +902,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month):
                 "ctn_cur":            ctn_cur,
                 "ctn_prev1":          ctn_prev1,
                 "ctn_prev2":          ctn_prev2,
+                "month_breakdown":    month_breakdown,
                 "volume_drop_pct":    volume_drop_pct,
                 "trend":              trend,
                 "sku_status":         sku_status,

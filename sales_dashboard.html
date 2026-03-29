@@ -77,7 +77,20 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 /* SKU tooltip popup */
 .sku-tooltip{position:fixed;background:var(--ink);color:#fff;font-family:var(--mono);font-size:11px;padding:8px 12px;border-radius:8px;z-index:9999;pointer-events:none;border:1px solid rgba(255,255,255,.15);box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:200px;line-height:1.5;}
 
-/* ── KPI Tab ── */
+/* ── CTN Breakdown Tooltip ── */
+.ctn-col{cursor:pointer;transition:background .15s;border-radius:6px;padding:4px 2px;}
+.ctn-col:active{background:rgba(255,255,255,.06);}
+.ctn-tooltip-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center;}
+.ctn-tooltip-box{background:var(--surface);border:1px solid var(--border);border-radius:16px 16px 0 0;padding:20px 18px 30px;width:100%;max-width:420px;max-height:70vh;overflow-y:auto;}
+.ctn-tooltip-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 14px;}
+.ctn-tooltip-title{font-family:var(--display);font-size:20px;letter-spacing:.05em;margin-bottom:2px;}
+.ctn-tooltip-sub{font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:14px;}
+.ctn-tooltip-empty{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;padding:20px 0;}
+.ctn-item-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
+.ctn-item-row:last-child{border-bottom:none;}
+.ctn-item-code{font-family:var(--mono);font-size:12px;font-weight:500;}
+.ctn-item-ctn{font-family:var(--display);font-size:18px;letter-spacing:.03em;color:var(--accent);}
+.ctn-item-unit{font-family:var(--mono);font-size:9px;color:var(--muted);margin-left:3px;}
 .kpi-hero{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px;position:relative;overflow:hidden;}
 .kpi-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--blue),var(--green),var(--accent));}
 .kpi-total-score{font-family:var(--display);font-size:56px;letter-spacing:.02em;line-height:1;}
@@ -471,6 +484,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
   </div>
 </div>
 
+<!-- ── CTN Breakdown Tooltip ── -->
+<div class="ctn-tooltip-overlay" id="ctn-tooltip-overlay" style="display:none;" onclick="closeCtnTooltip()">
+  <div class="ctn-tooltip-box" onclick="event.stopPropagation()">
+    <div class="ctn-tooltip-handle"></div>
+    <div class="ctn-tooltip-title" id="ctn-tt-title">—</div>
+    <div class="ctn-tooltip-sub" id="ctn-tt-sub">—</div>
+    <div id="ctn-tt-items"></div>
+  </div>
+</div>
+
 <!-- ── Event Input Sheet ── -->
 <div class="sheet-overlay" id="event-sheet-overlay" onclick="closeEventSheet(event)">
   <div class="sheet" onclick="event.stopPropagation()">
@@ -821,9 +844,15 @@ function renderDebtors() {
           <span style="font-family:var(--mono);font-size:9px;color:${trendColor}">${trendIcon} ${ctn2>0?fmtNum(ctn2)+' CTN':'本月未购买'}</span>
         </div>
         <div class="ctn-grid">
-          <div class="ctn-col"><div class="ctn-col-val" style="color:var(--muted)">${fmtNum(ctn0)}</div><div class="ctn-col-lbl">M-2</div></div>
-          <div class="ctn-col"><div class="ctn-col-val" style="color:var(--muted)">${fmtNum(ctn1)}</div><div class="ctn-col-lbl">M-1</div></div>
-          <div class="ctn-col cur"><div class="ctn-col-val" style="color:var(--blue)">${fmtNum(ctn2)}</div><div class="ctn-col-lbl">本月</div></div>
+          <div class="ctn-col" onclick="showCtnBreakdown(event,'${d.debtor_code}','M-2','${Object.keys(d.month_breakdown||{})[2]||''}',${JSON.stringify((d.month_breakdown&&Object.values(d.month_breakdown)[2])||[])})">
+            <div class="ctn-col-val" style="color:var(--muted)">${fmtNum(ctn0)}</div><div class="ctn-col-lbl">M-2</div>
+          </div>
+          <div class="ctn-col" onclick="showCtnBreakdown(event,'${d.debtor_code}','M-1','${Object.keys(d.month_breakdown||{})[1]||''}',${JSON.stringify((d.month_breakdown&&Object.values(d.month_breakdown)[1])||[])})">
+            <div class="ctn-col-val" style="color:var(--muted)">${fmtNum(ctn1)}</div><div class="ctn-col-lbl">M-1</div>
+          </div>
+          <div class="ctn-col cur" onclick="showCtnBreakdown(event,'${d.debtor_code}','本月','${Object.keys(d.month_breakdown||{})[0]||''}',${JSON.stringify((d.month_breakdown&&Object.values(d.month_breakdown)[0])||[])})">
+            <div class="ctn-col-val" style="color:var(--blue)">${fmtNum(ctn2)}</div><div class="ctn-col-lbl">本月</div>
+          </div>
         </div>
       </div>
 
@@ -1542,6 +1571,36 @@ function renderKPI() {
   </div>`;
 
   el.innerHTML = heroHtml + sectionsHtml + dePlaceholder;
+}
+
+// ── CTN Breakdown Tooltip ──────────────────────────────────────────────────
+function showCtnBreakdown(event, debtorCode, label, monthLabel, items) {
+  event.stopPropagation();
+  const totalCtn = items.reduce((s, i) => s + i.ctn, 0);
+  document.getElementById('ctn-tt-title').textContent = `${label}  ·  ${monthLabel || ''}`;
+  document.getElementById('ctn-tt-sub').textContent =
+    `${debtorCode}  ·  Total: ${totalCtn.toFixed(1)} CTN  ·  ${items.length} item${items.length!==1?'s':''}`;
+
+  const el = document.getElementById('ctn-tt-items');
+  if (!items.length) {
+    el.innerHTML = `<div class="ctn-tooltip-empty">No purchases this month</div>`;
+  } else {
+    el.innerHTML = items.map(item => `
+      <div class="ctn-item-row">
+        <div class="ctn-item-code">${item.item}</div>
+        <div style="display:flex;align-items:baseline;gap:2px;">
+          <div class="ctn-item-ctn">${item.ctn % 1 === 0 ? item.ctn.toFixed(0) : item.ctn.toFixed(1)}</div>
+          <div class="ctn-item-unit">CTN</div>
+        </div>
+      </div>`).join('');
+  }
+  document.getElementById('ctn-tooltip-overlay').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCtnTooltip() {
+  document.getElementById('ctn-tooltip-overlay').style.display = 'none';
+  document.body.style.overflow = '';
 }
 
 // ── Event Sheet ────────────────────────────────────────────────────────────
