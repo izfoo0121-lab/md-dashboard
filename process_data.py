@@ -1592,14 +1592,20 @@ def main():
                 camp_data = json.load(f)
             for camp in camp_data.get("campaigns", []):
                 if not camp.get("active", True): continue
+                cat_rules = camp.get("cat_rules", {})
                 for d in camp.get("debtors", []):
                     code = d.get("code","") if isinstance(d, dict) else str(d)
+                    cat  = d.get("cat","") if isinstance(d, dict) else ""
                     if code:
                         if code not in campaign_map: campaign_map[code] = []
                         campaign_map[code].append({
-                            "id":   camp.get("id",""),
-                            "name": camp.get("name",""),
-                            "type": camp.get("type","other"),
+                            "id":        camp.get("id",""),
+                            "name":      camp.get("name",""),
+                            "type":      camp.get("type","other"),
+                            "promo_detail": camp.get("promo_detail",""),
+                            "min_order_ctn": camp.get("min_order_ctn"),
+                            "cat":       cat,
+                            "cat_rules": cat_rules,
                         })
             log(f"Campaigns: {len(camp_data.get('campaigns',[]))} loaded, {len(campaign_map)} debtors tagged")
         except Exception as e:

@@ -798,13 +798,36 @@ function renderDebtors() {
     const stTxt = d.status==='active' ? '已激活' : d.status==='pending' ? '❌ Pending' : '待激活';
 
     // Badges
-    // Campaign badges
+    // Campaign badges — show category-specific promo if available
     const campEmoji = {free_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',other:'📋'};
-    const campBadges = (d.campaigns||[]).map(c =>
-      `<span class="status-inline" style="background:rgba(61,220,132,.15);color:var(--green);cursor:pointer;"
-        onclick="showCampDetail(event,'${d.debtor_code}','${(d.company_name||'').replace(/'/g,"\\'")}')"
-        >${campEmoji[c.type]||'📋'} ${c.name}</span>`
-    ).join('');
+    const campBadges = (d.campaigns||[]).map(c => {
+      // Find this debtor's category rule
+      const catRule = c.cat && c.cat_rules ? c.cat_rules[c.cat] : null;
+      const promoText = catRule?.promo || c.promo_detail || c.name;
+      const minCtn    = catRule?.min_ctn || c.min_order_ctn || 0;
+      // CTN progress this month for this brand
+      const brandCtns = Object.values(d.sku_status||{}).length;
+      const curCtn    = d.ctn_cur || 0;
+      const pct       = minCtn > 0 ? Math.min(curCtn/minCtn*100,100) : 0;
+      const barColor  = pct>=100?'var(--green)':pct>=50?'var(--accent)':'var(--red)';
+
+      return `<div style="margin-top:4px;background:rgba(61,220,132,.08);border:1px solid rgba(61,220,132,.25);border-radius:8px;padding:6px 10px;cursor:pointer;"
+        onclick="showCampDetail(event,'${d.debtor_code}','${(d.company_name||'').replace(/'/g,"\\'")}')">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${minCtn?'4':'0'}px;">
+          <span style="font-family:var(--mono);font-size:10px;color:var(--green);font-weight:600;">${campEmoji[c.type]||'📋'} ${promoText}</span>
+          ${catRule?.max_redempt ? `<span style="font-family:var(--mono);font-size:8px;color:var(--muted);">${catRule.max_redempt}</span>` : ''}
+        </div>
+        ${minCtn > 0 ? `
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="flex:1;height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:${barColor};border-radius:2px;transition:width .4s;"></div>
+          </div>
+          <span style="font-family:var(--mono);font-size:9px;color:${barColor};white-space:nowrap;">
+            ${curCtn}/${minCtn} CTN${pct>=100?' ✓':''}
+          </span>
+        </div>` : ''}
+      </div>`;
+    }).join('');
 
     // Brand campaign tier badges
     const tierColors = {A:'rgba(200,56,26,.2)',B:'rgba(77,166,255,.2)',C:'rgba(61,220,132,.2)',KA:'rgba(167,139,250,.2)'};

@@ -454,6 +454,15 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
         </div>
         <button class="save-btn" onclick="createCampaign()" style="margin-top:8px;">CREATE CAMPAIGN</button>
         <button onclick="downloadSampleDebtorList()" style="width:100%;margin-top:6px;background:none;border:1px solid var(--border);color:var(--ink3);font-family:var(--mono);font-size:10px;padding:8px;border-radius:8px;cursor:pointer;">⬇ Download Sample Debtor List Format</button>
+
+        <!-- Category Rules — shown when file has CAT column -->
+        <div id="cat-rules-section" style="display:none;margin-top:12px;">
+          <div class="sec-divider" style="margin-top:4px;">📋 Category Rules (auto-detected from file)</div>
+          <div style="font-family:var(--mono);font-size:9px;color:#888;margin-bottom:8px;">
+            System detected multiple categories in your file. Define promo details per category below.
+          </div>
+          <div id="cat-rules-list"></div>
+        </div>
       </div>
 
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-top:12px;">
@@ -1440,43 +1449,155 @@ function saveCampaignsData() {
   renderCampaignsList();
 }
 
+function renderCatRules(cats) {
+  const el = document.getElementById('cat-rules-list');
+  if (!el) return;
+  el.innerHTML = cats.map(cat => `
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+      <div style="font-family:var(--display);font-size:16px;letter-spacing:.05em;margin-bottom:8px;color:var(--accent);">CAT ${cat}</div>
+      <div class="input-row">
+        <div class="field-wrap">
+          <div class="field-lbl">Promo Text (shown to agent)</div>
+          <input type="text" id="cat-promo-${cat}" placeholder="e.g. 买上80条送RM40 Raya Voucher">
+        </div>
+        <div class="field-wrap">
+          <div class="field-lbl">Min Order (CTN)</div>
+          <input type="number" id="cat-min-${cat}" min="0" placeholder="e.g. 80">
+        </div>
+      </div>
+      <div class="input-row" style="margin-top:4px;">
+        <div class="field-wrap">
+          <div class="field-lbl">Max Redemption</div>
+          <input type="text" id="cat-max-${cat}" placeholder="e.g. 1 voucher per customer">
+        </div>
+        <div class="field-wrap">
+          <div class="field-lbl">Accumulative?</div>
+          <select id="cat-acc-${cat}" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:7px 10px;border-radius:8px;">
+            <option value="yes">Yes — within the month</option>
+            <option value="no">No — per visit only</option>
+          </select>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function getCatRules() {
+  const rules = {};
+  document.querySelectorAll('[id^="cat-promo-"]').forEach(el => {
+    const cat = el.id.replace('cat-promo-','');
+    rules[cat] = {
+      promo:        el.value.trim(),
+      min_ctn:      parseFloat(document.getElementById(`cat-min-${cat}`)?.value)||0,
+      max_redempt:  document.getElementById(`cat-max-${cat}`)?.value?.trim()||'',
+      accumulative: document.getElementById(`cat-acc-${cat}`)?.value||'yes',
+    };
+  });
+  return Object.keys(rules).length ? rules : null;
+}
+
 function clearCampFile() {
   document.getElementById('new-camp-file').value = '';
   document.getElementById('camp-file-preview').textContent = '';
+  const sec = document.getElementById('cat-rules-section');
+  if (sec) sec.style.display = 'none';
+  const lst = document.getElementById('cat-rules-list');
+  if (lst) lst.innerHTML = '';
   _campFileDebtors = [];
 }
 
-function previewCampFile(input) {
+function createCampaign() {
+  const name     = document.getElementById('new-camp-name').value.trim();
+  const type     = document.getElementById('new-camp-type').value;
+  const desc     = document.getElementById('new-camp-desc').value.trim();
+  const deadline = document.getElementById('new-camp-deadline').value;
+  if (!name)     { alert('Please enter campaign name'); return; }
+  if (!deadline) { alert('Please set deadline'); return; }
+  if (!_campFileDebtors.length) { alert('Please upload debtor list'); return; }
+
+  const brands   = type==='promotion'
+    ? Array.from(document.querySelectorAll('#brand-checkboxes input:checked')).map(c=>c.value) : [];
+  const promo    = document.getElementById('new-camp-promo')?.value?.trim()||'';
+  const minOrder = parseFloat(document.getElementById('new-camp-min-order')?.value)||null;
+  const catRules = getCatRules();
+
+  CAMPAIGNS_DATA.campaigns.push({
+    id:'camp_'+Date.now(), name, type, description:desc,
+    brands, promo_detail:promo, min_order_ctn:minOrder,
+    cat_rules: catRules,
+    created_at:new Date().toISOString().split('T')[0],
+    deadline, active:true, debtors:_campFileDebtors,
+  });
+  saveCampaignsData();
+
+  // Reset form
+  ['new-camp-name','new-camp-desc','new-camp-deadline','new-camp-file',
+   'new-camp-promo','new-camp-min-order'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('camp-file-preview').textContent='';
+  const sec=document.getElementById('cat-rules-section'); if(sec) sec.style.display='none';
+  const lst=document.getElementById('cat-rules-list'); if(lst) lst.innerHTML='';
+  document.querySelectorAll('#brand-checkboxes input').forEach(c=>c.checked=false);
+  _campFileDebtors=[];
+
+  const t=document.getElementById('save-toast-camp');
+  t.style.display='block'; setTimeout(()=>t.style.display='none',2000);
+}
   const file = input.files[0];
   if (!file) return;
   const preview = document.getElementById('camp-file-preview');
   preview.textContent = 'Reading file...';
   const reader = new FileReader();
+
+  function processRows(headers, rows) {
+    const ci   = headers.findIndex(h=>h.includes('code'));
+    const ni   = headers.findIndex(h=>h.includes('name')||h.includes('company'));
+    const cati = headers.findIndex(h=>h==='cat'||h.includes('categ')||h.includes('rebate'));
+
+    _campFileDebtors = rows.filter(r=>r[ci]&&String(r[ci]).trim()&&String(r[ci]).toLowerCase()!=='nan')
+      .map(r=>({
+        code: String(r[ci]||'').trim(),
+        name: String(r[ni]||'').trim(),
+        cat:  cati>=0 ? String(r[cati]||'').trim() : '',
+      }));
+
+    // Detect unique categories
+    const cats = [...new Set(_campFileDebtors.map(d=>d.cat).filter(Boolean))].sort();
+    const catInfo = cats.length ? ` — Categories: ${cats.join(', ')}` : '';
+    preview.textContent = `✓ ${_campFileDebtors.length} debtors loaded${catInfo}`;
+
+    // Auto-populate category rules UI
+    if (cats.length) {
+      renderCatRules(cats);
+      document.getElementById('cat-rules-section').style.display = 'block';
+    } else {
+      document.getElementById('cat-rules-section').style.display = 'none';
+    }
+  }
+
   if (file.name.endsWith('.csv')) {
     reader.onload = e => {
-      const lines = e.target.result.split('\n').filter(l=>l.trim());
+      const lines   = e.target.result.split('\n').filter(l=>l.trim());
       const headers = lines[0].split(',').map(h=>h.trim().replace(/"/g,'').toLowerCase());
-      const ci = headers.findIndex(h=>h.includes('code'));
-      const ni = headers.findIndex(h=>h.includes('name')||h.includes('company'));
-      _campFileDebtors = lines.slice(1).map(line=>{
-        const c=line.split(',').map(x=>x.trim().replace(/"/g,''));
-        return{code:c[ci]||'',name:c[ni]||''};
-      }).filter(d=>d.code&&d.code.toLowerCase()!=='nan');
-      preview.textContent=`✓ ${_campFileDebtors.length} debtors loaded`;
+      const rows    = lines.slice(1).map(line=>line.split(',').map(x=>x.trim().replace(/"/g,'')));
+      processRows(headers, rows);
     };
     reader.readAsText(file);
   } else {
     reader.onload = e => {
-      const wb=XLSX.read(e.target.result,{type:'array'});
-      const ws=wb.Sheets[wb.SheetNames[0]];
-      const rows=XLSX.utils.sheet_to_json(ws,{header:1});
-      const headers=(rows[0]||[]).map(h=>String(h).trim().toLowerCase());
-      const ci=headers.findIndex(h=>h.includes('code'));
-      const ni=headers.findIndex(h=>h.includes('name')||h.includes('company'));
-      _campFileDebtors=rows.slice(1).map(r=>({
-        code:String(r[ci]||'').trim(),name:String(r[ni]||'').trim()
-      })).filter(d=>d.code&&d.code.toLowerCase()!=='nan');
-      preview.textContent=`✓ ${_campFileDebtors.length} debtors loaded`;
+      const wb   = XLSX.read(e.target.result, {type:'array'});
+      const ws   = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws, {header:1});
+      // Find first non-empty header row
+      let hdrRow = 0;
+      for (let i=0; i<Math.min(5,data.length); i++) {
+        if (data[i] && data[i].some(v=>v && String(v).toLowerCase().includes('code'))) {
+          hdrRow = i; break;
+        }
+      }
+      const headers = (data[hdrRow]||[]).map(h=>String(h||'').trim().toLowerCase());
+      const rows    = data.slice(hdrRow+1);
+      processRows(headers, rows);
     };
     reader.readAsArrayBuffer(file);
   }
@@ -1485,45 +1606,6 @@ function previewCampFile(input) {
 function toggleBrandFields(type) {
   document.getElementById('brand-camp-fields').style.display =
     type === 'promotion' ? 'block' : 'none';
-}
-
-function createCampaign() {
-  const name=document.getElementById('new-camp-name').value.trim();
-  const type=document.getElementById('new-camp-type').value;
-  const desc=document.getElementById('new-camp-desc').value.trim();
-  const deadline=document.getElementById('new-camp-deadline').value;
-  if (!name){alert('Please enter campaign name');return;}
-  if (!deadline){alert('Please set deadline');return;}
-  if (!_campFileDebtors.length){alert('Please upload debtor list');return;}
-
-  // Brand fields for promotion type
-  const brands = type === 'promotion'
-    ? Array.from(document.querySelectorAll('#brand-checkboxes input:checked')).map(c=>c.value)
-    : [];
-  const promo     = document.getElementById('new-camp-promo')?.value?.trim() || '';
-  const minOrder  = parseFloat(document.getElementById('new-camp-min-order')?.value) || null;
-
-  CAMPAIGNS_DATA.campaigns.push({
-    id: 'camp_'+Date.now(), name, type, description: desc,
-    brands, promo_detail: promo, min_order_ctn: minOrder,
-    created_at: new Date().toISOString().split('T')[0],
-    deadline, active: true, debtors: _campFileDebtors,
-  });
-  saveCampaignsData();
-
-  // Clear form
-  document.getElementById('new-camp-name').value='';
-  document.getElementById('new-camp-desc').value='';
-  document.getElementById('new-camp-deadline').value='';
-  document.getElementById('new-camp-file').value='';
-  document.getElementById('camp-file-preview').textContent='';
-  if (document.getElementById('new-camp-promo')) document.getElementById('new-camp-promo').value='';
-  if (document.getElementById('new-camp-min-order')) document.getElementById('new-camp-min-order').value='';
-  document.querySelectorAll('#brand-checkboxes input').forEach(c=>c.checked=false);
-  _campFileDebtors=[];
-
-  const t=document.getElementById('save-toast-camp');
-  t.style.display='block';setTimeout(()=>t.style.display='none',2000);
 }
 
 function closeCampaign(id) {
