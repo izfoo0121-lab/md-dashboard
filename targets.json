@@ -1,13 +1,70 @@
 {
+  "_comment": "MD Sales Dashboard \u2014 Monthly Targets. Edit via Admin Page or directly here.",
+  "_month": "Mar 2026",
+  "_scope": "GRP 2A (Miracle & SS2)",
   "brand_config": {
-    "iFACE": [],
-    "SUKUN": [],
-    "EVO": [],
-    "BISON": [],
-    "TR20": [],
-    "LAM+LWM": []
+    "iFACE": [
+      "IFACE B",
+      "IFACE M",
+      "IFACE R",
+      "IFACE DB"
+    ],
+    "SUKUN": [
+      "SKNR",
+      "SKNW"
+    ],
+    "EVO": [
+      "EVO"
+    ],
+    "BISON": [
+      "BISON-G",
+      "BISON-R",
+      "BISON-M"
+    ],
+    "TR20": [
+      "TR20"
+    ],
+    "LAM+LWM": [
+      "LAM",
+      "LWM"
+    ]
   },
-  "inhouse_codes": [],
+  "inhouse_codes": [
+    "90",
+    "DPM EVO",
+    "IMP-001",
+    "LB22",
+    "LF-002",
+    "LIC-001",
+    "LMM-002",
+    "TR-002",
+    "CM-002",
+    "LG22",
+    "LR22",
+    "LBOLD",
+    "MARISE",
+    "HTM-002",
+    "ZYG",
+    "ZL",
+    "EC",
+    "ZPA",
+    "LC20",
+    "CMX",
+    "CMP",
+    "IFACE B",
+    "IFACE M",
+    "IFACE R",
+    "IFACE DB",
+    "SKNR",
+    "SKNW",
+    "EVO",
+    "BISON-G",
+    "BISON-R",
+    "BISON-M",
+    "TR20",
+    "LAM",
+    "LWM"
+  ],
   "newbie_scheme": {
     "ctn_tiers": [
       {
@@ -40,459 +97,495 @@
   },
   "agents": {
     "BEN": {
-      "is_newbie": true,
+      "is_newbie": false,
       "sales_progression": {
-        "normal_t1": null,
-        "normal_t2": null,
+        "normal_t1": 921,
+        "normal_t2": 1171,
         "ga": null,
-        "ma": null
+        "ma": 230
       },
       "brand_commission": {
         "iFACE": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 104
         },
         "SUKUN": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 358
         },
         "EVO": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 29
         },
         "BISON": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 36
         },
         "TR20": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 3,
+          "ctn_target": 5
         },
         "LAM+LWM": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 3,
+          "ctn_target": 20
         }
       }
     },
     "CJ": {
       "is_newbie": false,
       "sales_progression": {
-        "normal_t1": null,
-        "normal_t2": null,
-        "ga": null,
-        "ma": null
+        "normal_t1": 4078,
+        "normal_t2": 4328,
+        "ga": 340,
+        "ma": 4567
       },
       "brand_commission": {
         "iFACE": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 240
         },
         "SUKUN": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 780
         },
         "EVO": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 92
         },
         "BISON": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 148
         },
         "TR20": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 3,
+          "ctn_target": 505
         },
         "LAM+LWM": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 3,
+          "ctn_target": 50
         }
       }
     },
     "JACKY": {
       "is_newbie": false,
       "sales_progression": {
-        "normal_t1": null,
-        "normal_t2": null,
+        "normal_t1": 4281,
+        "normal_t2": 4531,
         "ga": null,
-        "ma": null
+        "ma": 384
       },
       "brand_commission": {
         "iFACE": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 6,
+          "ctn_target": 50
         },
         "SUKUN": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 205
         },
         "EVO": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 381
         },
         "BISON": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 6,
+          "ctn_target": 97
         },
         "TR20": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 92
         },
         "LAM+LWM": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 3,
+          "ctn_target": 30
         }
       }
     },
     "JAMES": {
       "is_newbie": false,
       "sales_progression": {
-        "normal_t1": null,
-        "normal_t2": null,
+        "normal_t1": 3334,
+        "normal_t2": 3584,
         "ga": null,
-        "ma": null
+        "ma": 154
       },
       "brand_commission": {
         "iFACE": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 515
         },
         "SUKUN": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 610
         },
         "EVO": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 6,
+          "ctn_target": 511
         },
         "BISON": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 169
         },
         "TR20": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 3,
+          "ctn_target": 34
         },
         "LAM+LWM": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 3,
+          "ctn_target": 40
         }
       }
     },
     "JW": {
-      "is_newbie": false,
+      "is_newbie": true,
       "sales_progression": {
-        "normal_t1": null,
-        "normal_t2": null,
+        "normal_t1": 778,
+        "normal_t2": 1028,
         "ga": null,
-        "ma": null
+        "ma": 154
       },
       "brand_commission": {
         "iFACE": {
           "penetration_target": 0,
-          "ctn_target": 0
+          "ctn_target": 7
         },
         "SUKUN": {
           "penetration_target": 0,
-          "ctn_target": 0
+          "ctn_target": 130
         },
         "EVO": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 100
         },
         "BISON": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 86
         },
         "TR20": {
           "penetration_target": 0,
-          "ctn_target": 0
+          "ctn_target": 5
         },
         "LAM+LWM": {
           "penetration_target": 0,
-          "ctn_target": 0
+          "ctn_target": 10
         }
       }
     },
     "KEAN": {
       "is_newbie": false,
       "sales_progression": {
-        "normal_t1": null,
-        "normal_t2": null,
-        "ga": null,
-        "ma": null
+        "normal_t1": 3491,
+        "normal_t2": 3741,
+        "ga": 297,
+        "ma": 2418
       },
       "brand_commission": {
         "iFACE": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 95
         },
         "SUKUN": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 812
         },
         "EVO": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 158
         },
         "BISON": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 143
         },
         "TR20": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 82
         },
         "LAM+LWM": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 3,
+          "ctn_target": 50
         }
       }
     },
     "KEE": {
       "is_newbie": false,
       "sales_progression": {
-        "normal_t1": null,
-        "normal_t2": null,
-        "ga": null,
-        "ma": null
+        "normal_t1": 4676,
+        "normal_t2": 4926,
+        "ga": 103,
+        "ma": 2072
       },
       "brand_commission": {
         "iFACE": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 6,
+          "ctn_target": 74
         },
         "SUKUN": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 810
         },
         "EVO": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 455
         },
         "BISON": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 200
         },
         "TR20": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 508
         },
         "LAM+LWM": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 3,
+          "ctn_target": 40
         }
       }
     },
     "KF": {
       "is_newbie": false,
       "sales_progression": {
-        "normal_t1": null,
-        "normal_t2": null,
-        "ga": null,
-        "ma": null
+        "normal_t1": 5867,
+        "normal_t2": 6117,
+        "ga": 205,
+        "ma": 154
       },
       "brand_commission": {
         "iFACE": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 6,
+          "ctn_target": 357
         },
         "SUKUN": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 725
         },
         "EVO": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 6,
+          "ctn_target": 1666
         },
         "BISON": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 6,
+          "ctn_target": 249
         },
         "TR20": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 3,
+          "ctn_target": 5
         },
         "LAM+LWM": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 3,
+          "ctn_target": 30
         }
       }
     },
     "KI-MI": {
-      "is_newbie": true,
+      "is_newbie": false,
       "sales_progression": {
-        "normal_t1": null,
-        "normal_t2": null,
+        "normal_t1": 1342,
+        "normal_t2": 1592,
         "ga": null,
-        "ma": null
+        "ma": 729
       },
       "brand_commission": {
         "iFACE": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 6,
+          "ctn_target": 128
         },
         "SUKUN": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 580
         },
         "EVO": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 6,
+          "ctn_target": 82
         },
         "BISON": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 6,
+          "ctn_target": 83
         },
         "TR20": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 3,
+          "ctn_target": 5
         },
         "LAM+LWM": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 3,
+          "ctn_target": 20
         }
       }
     },
     "KW": {
       "is_newbie": false,
       "sales_progression": {
-        "normal_t1": null,
-        "normal_t2": null,
-        "ga": null,
-        "ma": null
+        "normal_t1": 5883,
+        "normal_t2": 6133,
+        "ga": 568,
+        "ma": 2149
       },
       "brand_commission": {
         "iFACE": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 350
         },
         "SUKUN": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 1080
         },
         "EVO": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 424
         },
         "BISON": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 435
         },
         "TR20": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 45
         },
         "LAM+LWM": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 3,
+          "ctn_target": 60
         }
       }
     },
     "LEON": {
       "is_newbie": false,
       "sales_progression": {
-        "normal_t1": null,
-        "normal_t2": null,
-        "ga": null,
-        "ma": null
+        "normal_t1": 3912,
+        "normal_t2": 4162,
+        "ga": 1244,
+        "ma": 1996
       },
       "brand_commission": {
         "iFACE": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 135
         },
         "SUKUN": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 490
         },
         "EVO": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 214
         },
         "BISON": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 209
         },
         "TR20": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 104
         },
         "LAM+LWM": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 3,
+          "ctn_target": 50
         }
       }
     },
     "NMK": {
-      "is_newbie": true,
+      "is_newbie": false,
       "sales_progression": {
-        "normal_t1": null,
-        "normal_t2": null,
-        "ga": null,
-        "ma": null
+        "normal_t1": 4400,
+        "normal_t2": 4526,
+        "ga": 34,
+        "ma": 154
       },
       "brand_commission": {
         "iFACE": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 85
         },
         "SUKUN": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 644
         },
         "EVO": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 6,
+          "ctn_target": 884
         },
         "BISON": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 79
         },
         "TR20": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 3,
+          "ctn_target": 5
         },
         "LAM+LWM": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 3,
+          "ctn_target": 30
         }
       }
     },
     "YI": {
       "is_newbie": true,
       "sales_progression": {
-        "normal_t1": null,
-        "normal_t2": null,
-        "ga": null,
-        "ma": null
+        "normal_t1": 2950,
+        "normal_t2": 3411,
+        "ga": 6,
+        "ma": 192
       },
       "brand_commission": {
         "iFACE": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 6,
+          "ctn_target": 260
         },
         "SUKUN": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 4,
+          "ctn_target": 576
         },
         "EVO": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 5,
+          "ctn_target": 278
         },
         "BISON": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 6,
+          "ctn_target": 166
         },
         "TR20": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 3,
+          "ctn_target": 5
         },
         "LAM+LWM": {
-          "penetration_target": 0,
-          "ctn_target": 0
+          "penetration_target": 3,
+          "ctn_target": 30
         }
       }
     }
+  },
+  "group_brand_config": {
+    "SUKUN": [
+      "SKNR",
+      "SKNW"
+    ],
+    "EVO": [
+      "EVO"
+    ],
+    "IMP": [
+      "IMP-001"
+    ],
+    "LF": [
+      "LF-002"
+    ],
+    "CLASSMILD": [
+      "CM-002"
+    ],
+    "BISON": [
+      "BISON-G",
+      "BISON-M",
+      "BISON-R"
+    ],
+    "TR": [
+      "TR20",
+      "TR-002"
+    ]
+  },
+  "group_brand_targets": {
+    "SUKUN": 7800,
+    "EVO": 11000,
+    "IMP": 3000,
+    "LF": 750,
+    "CLASSMILD": 13500,
+    "BISON": 2100,
+    "TR": 16500
   }
 }

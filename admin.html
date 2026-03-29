@@ -124,6 +124,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
     <button class="tab-btn" onclick="switchTab('newbie',this)">Newbie Scheme</button>
     <button class="tab-btn" onclick="switchTab('group',this)">Group Brands</button>
     <button class="tab-btn" onclick="switchTab('sku',this)">SKU Config</button>
+    <button class="tab-btn" onclick="switchTab('campaigns',this)">📢 Campaigns</button>
     <button class="tab-btn" onclick="switchTab('export',this)">Export / Import</button>
   </div>
 
@@ -189,6 +190,53 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
 
       <button class="save-btn" onclick="saveAll()">SAVE SKU CONFIG</button>
       <div class="save-toast" id="save-toast-sku">✓ Saved</div>
+    </div>
+  </div>
+
+  <!-- ── Tab: Campaigns ── -->
+  <div id="tab-campaigns" class="tab-content">
+    <div class="page-body">
+      <div class="sec-header">📢 Campaigns</div>
+      <div class="sec-sub">Create marketing campaigns and upload debtor lists for agents.</div>
+
+      <div class="sec-divider">Active Campaigns</div>
+      <div id="campaigns-list"></div>
+
+      <div class="sec-divider" style="margin-top:16px;">Create New Campaign</div>
+      <div class="admin-card">
+        <div class="input-group">
+          <div class="input-label">Campaign Name</div>
+          <input type="text" id="new-camp-name" placeholder="e.g. March Birthday Gift">
+        </div>
+        <div class="input-group">
+          <div class="input-label">Type</div>
+          <select id="new-camp-type" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 12px;border-radius:8px;">
+            <option value="free_sample">🎁 Free Sample</option>
+            <option value="birthday_gift">🎂 Birthday Gift</option>
+            <option value="promotion">📢 Promotion / Offer</option>
+            <option value="festive_gift">🧧 Festive Gift</option>
+            <option value="other">📋 Other</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <div class="input-label">Description (optional)</div>
+          <input type="text" id="new-camp-desc" placeholder="Brief description for agents">
+        </div>
+        <div class="input-group">
+          <div class="input-label">Deadline</div>
+          <input type="date" id="new-camp-deadline">
+        </div>
+        <div class="input-group">
+          <div class="input-label">Upload Debtor List (Excel / CSV)</div>
+          <div style="font-family:var(--mono);font-size:9px;color:#888;margin-bottom:6px;">Must have column: "Code" or "Debtor Code". Optional: "Company Name"</div>
+          <input type="file" id="new-camp-file" accept=".xlsx,.xls,.csv" onchange="previewCampFile(this)" style="font-family:var(--mono);font-size:11px;width:100%;">
+          <div id="camp-file-preview" style="margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--green);"></div>
+        </div>
+        <button class="save-btn" onclick="createCampaign()" style="margin-top:8px;">CREATE CAMPAIGN</button>
+      </div>
+
+      <button class="save-btn" onclick="saveCampaignsJSON()" style="background:#2a7a4b;margin-top:8px;">⬇ DOWNLOAD CAMPAIGNS.JSON</button>
+      <div class="save-toast" id="save-toast-camp">✓ Campaign created</div>
     </div>
   </div>
 
@@ -265,6 +313,14 @@ async function initAdmin() {
   renderGroupBrandForms();
   renderSKUForms();
   updateRawJSON();
+
+  // Load campaigns
+  loadCampaignsData();
+  renderCampaignsList();
+  // Set default deadline to end of current month
+  const now = new Date();
+  const lastDay = new Date(now.getFullYear(), now.getMonth()+1, 0);
+  document.getElementById('new-camp-deadline').value = lastDay.toISOString().split('T')[0];
 }
 
 function buildDefaultConfig() {
@@ -770,7 +826,109 @@ function setGroupTarget(brand, val) {
   updateRawJSON();
 }
 
-// Auto-login check (remove in production)
+// ── Campaign Management ────────────────────────────────────────────────────
+let CAMPAIGNS_DATA = { campaigns: [] };
+let _campFileDebtors = [];
+
+function loadCampaignsData() {
+  try { CAMPAIGNS_DATA = JSON.parse(localStorage.getItem('touro_campaigns')||'{"campaigns":[]}'); }
+  catch(e) { CAMPAIGNS_DATA = { campaigns: [] }; }
+}
+function saveCampaignsData() {
+  localStorage.setItem('touro_campaigns', JSON.stringify(CAMPAIGNS_DATA));
+  renderCampaignsList();
+}
+
+function previewCampFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const preview = document.getElementById('camp-file-preview');
+  preview.textContent = 'Reading file...';
+  const reader = new FileReader();
+  if (file.name.endsWith('.csv')) {
+    reader.onload = e => {
+      const lines = e.target.result.split('\n').filter(l=>l.trim());
+      const headers = lines[0].split(',').map(h=>h.trim().replace(/"/g,'').toLowerCase());
+      const ci = headers.findIndex(h=>h.includes('code'));
+      const ni = headers.findIndex(h=>h.includes('name')||h.includes('company'));
+      _campFileDebtors = lines.slice(1).map(line=>{
+        const c=line.split(',').map(x=>x.trim().replace(/"/g,''));
+        return{code:c[ci]||'',name:c[ni]||''};
+      }).filter(d=>d.code&&d.code.toLowerCase()!=='nan');
+      preview.textContent=`✓ ${_campFileDebtors.length} debtors loaded`;
+    };
+    reader.readAsText(file);
+  } else {
+    reader.onload = e => {
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1});
+      const headers=(rows[0]||[]).map(h=>String(h).trim().toLowerCase());
+      const ci=headers.findIndex(h=>h.includes('code'));
+      const ni=headers.findIndex(h=>h.includes('name')||h.includes('company'));
+      _campFileDebtors=rows.slice(1).map(r=>({
+        code:String(r[ci]||'').trim(),name:String(r[ni]||'').trim()
+      })).filter(d=>d.code&&d.code.toLowerCase()!=='nan');
+      preview.textContent=`✓ ${_campFileDebtors.length} debtors loaded`;
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function createCampaign() {
+  const name=document.getElementById('new-camp-name').value.trim();
+  const type=document.getElementById('new-camp-type').value;
+  const desc=document.getElementById('new-camp-desc').value.trim();
+  const deadline=document.getElementById('new-camp-deadline').value;
+  if (!name){alert('Please enter campaign name');return;}
+  if (!deadline){alert('Please set deadline');return;}
+  if (!_campFileDebtors.length){alert('Please upload debtor list');return;}
+  CAMPAIGNS_DATA.campaigns.push({
+    id:'camp_'+Date.now(),name,type,description:desc,
+    created_at:new Date().toISOString().split('T')[0],
+    deadline,active:true,debtors:_campFileDebtors,
+  });
+  saveCampaignsData();
+  document.getElementById('new-camp-name').value='';
+  document.getElementById('new-camp-desc').value='';
+  document.getElementById('new-camp-file').value='';
+  document.getElementById('camp-file-preview').textContent='';
+  _campFileDebtors=[];
+  const t=document.getElementById('save-toast-camp');
+  t.style.display='block';setTimeout(()=>t.style.display='none',2000);
+}
+
+function closeCampaign(id) {
+  const c=CAMPAIGNS_DATA.campaigns.find(x=>x.id===id);
+  if(c&&confirm(`Close campaign "${c.name}"?`)){c.active=false;saveCampaignsData();}
+}
+
+function renderCampaignsList() {
+  const el=document.getElementById('campaigns-list');
+  if(!el)return;
+  const active=CAMPAIGNS_DATA.campaigns.filter(c=>c.active);
+  const TYPES={free_sample:'🎁 Free Sample',birthday_gift:'🎂 Birthday Gift',promotion:'📢 Promotion',festive_gift:'🧧 Festive Gift',other:'📋 Other'};
+  el.innerHTML=active.length?active.map(c=>`
+    <div class="admin-card" style="margin-bottom:8px;border-left:4px solid var(--accent);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;color:#888;">${TYPES[c.type]||c.type}</div>
+          <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;">${c.name}</div>
+          ${c.description?`<div style="font-family:var(--mono);font-size:9px;color:#888;">${c.description}</div>`:''}
+        </div>
+        <button onclick="closeCampaign('${c.id}')" style="background:none;border:1px solid #ddd;color:#888;font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">Close</button>
+      </div>
+      <div style="font-family:var(--mono);font-size:10px;color:#555;">📋 ${c.debtors?.length||0} debtors &nbsp;·&nbsp; ⏰ ${c.deadline}</div>
+    </div>`).join('')
+  :'<div style="font-family:var(--mono);font-size:10px;color:#888;padding:8px 0;">No active campaigns. Create one below.</div>';
+}
+
+function saveCampaignsJSON() {
+  const blob=new Blob([JSON.stringify(CAMPAIGNS_DATA,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='campaigns.json';a.click();
+}
+
+// ── pw-input listener ──────────────────────────────────────────────────────
 document.getElementById('pw-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') doLogin();
 });

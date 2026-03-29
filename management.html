@@ -6,208 +6,205 @@
 <title>Touro MD — Management</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg:#f5f3ee; --surface:#ffffff; --card:#fdfcf9; --border:#e2ddd5;
-  --ink:#1a1714; --ink2:#5a5550; --ink3:#9a9590;
-  --accent:#c8381a; --green:#2a7a4b; --gold:#c8860a; --blue:#1a5c8f;
-  --red-bg:#fde8e4; --green-bg:#edf6f1; --gold-bg:#fdf8ed; --blue-bg:#edf3f9;
-  --display:'Bebas Neue',sans-serif; --body:'DM Sans',sans-serif; --mono:'DM Mono',monospace;
-}
+:root{--bg:#f5f3ee;--surface:#ffffff;--card:#fdfcf9;--border:#e2ddd5;--ink:#1a1714;--ink2:#5a5550;--ink3:#9a9590;--accent:#c8381a;--green:#2a7a4b;--gold:#c8860a;--blue:#1a5c8f;--purple:#6b3fa0;--orange:#c85a1a;--red-bg:#fde8e4;--green-bg:#edf6f1;--gold-bg:#fdf8ed;--blue-bg:#edf3f9;--display:'Bebas Neue',sans-serif;--body:'DM Sans',sans-serif;--mono:'DM Mono',monospace;}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:100vh;padding-bottom:20px;}
-
-/* Views */
-.view{display:none;}
-.view.active{display:block;}
-
-/* ── Header ── */
-.mgmt-header{background:var(--ink);color:#fff;padding:16px 18px;position:sticky;top:0;z-index:100;}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:100vh;padding-bottom:30px;}
+.view{display:none;}.view.active{display:block;}
+/* Header */
+.mgmt-header{background:var(--ink);color:#fff;padding:14px 18px;position:sticky;top:0;z-index:100;}
 .header-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
-.header-title{font-family:var(--display);font-size:28px;letter-spacing:.05em;line-height:1;}
+.header-title{font-family:var(--display);font-size:26px;letter-spacing:.05em;line-height:1;}
 .header-sub{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;margin-top:2px;}
-.header-right{text-align:right;}
-.month-tag{background:rgba(255,255,255,.12);font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:20px;color:#fff;}
-.day-tag{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.4);margin-top:3px;}
-
-/* Header KPI strip */
-.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
-.kpi-box{background:rgba(255,255,255,.07);border-radius:8px;padding:8px 10px;}
-.kpi-val{font-family:var(--display);font-size:20px;color:#fff;letter-spacing:.03em;line-height:1;}
-.kpi-val.g{color:#5de89a;} .kpi-val.w{color:#ffc94d;} .kpi-val.r{color:#ff6b6b;}
-.kpi-lbl{font-family:var(--mono);font-size:8px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;}
-
-/* Page body */
-.page{padding:12px 14px;max-width:480px;margin:0 auto;}
-
-/* Section label */
+.month-tag{background:rgba(255,255,255,.12);font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:20px;}
+.day-tag{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.4);margin-top:3px;text-align:right;}
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;}
+.kpi-box{background:rgba(255,255,255,.07);border-radius:8px;padding:7px 8px;}
+.kpi-val{font-family:var(--display);font-size:18px;color:#fff;letter-spacing:.03em;line-height:1;}
+.kpi-val.g{color:#5de89a;}.kpi-val.w{color:#ffc94d;}.kpi-val.r{color:#ff6b6b;}.kpi-val.b{color:#4da6ff;}
+.kpi-lbl{font-family:var(--mono);font-size:7px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;}
+/* Page */
+.page{padding:12px 14px;max-width:900px;margin:0 auto;}
+@media(min-width:600px){.page{padding:16px 24px;}}
 .sec-lbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink3);padding:4px 0 6px;border-top:1px solid var(--border);margin:14px 0 8px;}
-
-/* Card */
+.sec-lbl:first-child,.sec-lbl.no-border{border-top:none;margin-top:0;}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:10px;}
 .card-pad{padding:14px 16px;}
-
-/* Overall progress card */
+/* Overall card */
 .overall-card{background:var(--ink);border-radius:14px;padding:16px;margin-bottom:10px;position:relative;overflow:hidden;}
-.overall-card::after{content:'';position:absolute;top:-40px;right:-40px;width:130px;height:130px;border-radius:50%;background:rgba(200,56,26,.15);}
-.ov-pct{font-family:var(--display);font-size:56px;letter-spacing:.02em;color:#fff;line-height:1;}
-.ov-pct sup{font-family:var(--mono);font-size:14px;color:rgba(255,255,255,.4);}
+.overall-card::after{content:'';position:absolute;top:-40px;right:-40px;width:120px;height:120px;border-radius:50%;background:rgba(200,56,26,.15);}
+.ov-pct{font-family:var(--display);font-size:52px;letter-spacing:.02em;color:#fff;line-height:1;}
 .ov-meta{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.4);margin-top:4px;}
-.ov-gap{font-family:var(--mono);font-size:12px;color:#ff6b6b;margin-top:3px;}
-.ov-ctn{font-family:var(--mono);font-size:20px;color:#fff;line-height:1;}
-.ov-bar-wrap{height:8px;background:rgba(255,255,255,.12);border-radius:4px;overflow:hidden;margin:12px 0 6px;}
-.ov-bar{height:100%;border-radius:4px;}
+.ov-bar-wrap{height:8px;background:rgba(255,255,255,.12);border-radius:4px;overflow:hidden;margin:12px 0 4px;}
+.ov-bar{height:100%;border-radius:4px;transition:width .6s ease;}
 .ov-bar-labels{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);}
 .ov-totals{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.1);}
 .ov-stat{background:rgba(255,255,255,.06);border-radius:8px;padding:7px;text-align:center;}
 .ov-stat-val{font-family:var(--mono);font-size:13px;font-weight:500;}
 .ov-stat-lbl{font-family:var(--mono);font-size:8px;color:rgba(255,255,255,.35);text-transform:uppercase;margin-top:1px;}
-
 /* Leaderboard */
 .lb-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px 8px;}
 .lb-title{font-family:var(--display);font-size:18px;letter-spacing:.05em;}
 .lb-toggle{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
 .lb-btn{font-family:var(--mono);font-size:9px;padding:4px 10px;background:transparent;border:none;color:var(--ink3);cursor:pointer;text-transform:uppercase;letter-spacing:.05em;}
 .lb-btn.active{background:var(--ink);color:#fff;}
-.lb-row{padding:10px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:24px 1fr 70px 50px;align-items:center;gap:8px;cursor:pointer;transition:background .15s;}
+.lb-row{padding:10px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:24px 1fr 60px 50px;align-items:center;gap:8px;cursor:pointer;transition:background .15s;}
 .lb-row:last-child{border-bottom:none;}
-.lb-row:hover{background:#faf8f5;}
+.lb-row:hover,.lb-row:active{background:#faf8f5;}
 .lb-rank{font-family:var(--display);font-size:16px;color:var(--ink3);}
 .lb-rank.top{color:var(--gold);}
-.lb-agent-name{font-weight:600;font-size:13px;}
-.lb-agent-sub{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:1px;}
+.lb-name{font-weight:600;font-size:13px;}
+.lb-sub{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:1px;}
 .lb-bar-bg{height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
 .lb-bar-fill{height:100%;border-radius:3px;}
 .lb-pct{font-family:var(--mono);font-size:11px;font-weight:500;text-align:right;}
-
-/* Brand commission heatmap */
-.heat-scroll{overflow-x:auto;}
-.heat-table{min-width:360px;}
-.heat-grid{display:grid;gap:0;}
-.heat-col-hdr{font-family:var(--mono);font-size:8px;color:var(--ink3);text-align:center;padding:6px 2px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.05em;}
-.heat-agent-lbl{font-weight:600;font-size:11px;padding:7px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;}
-.heat-cell{border-bottom:1px solid var(--border);border-left:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;font-weight:500;padding:7px 2px;}
-.hc-green{background:#d4ede1;color:#1a5c38;}
-.hc-orange{background:#fde8d8;color:#7a3500;}
-.hc-red{background:#fde8e4;color:#8f1a0a;}
-
-/* Group brand section */
-.grp-row{padding:10px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:80px 1fr 54px;align-items:center;gap:8px;}
+/* Group brands */
+.grp-row{padding:10px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:80px 1fr 100px;align-items:center;gap:8px;}
 .grp-row:last-child{border-bottom:none;}
 .grp-name{font-family:var(--display);font-size:15px;letter-spacing:.04em;}
-.grp-bar-wrap{height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
+.grp-nums{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:1px;}
+.grp-bar-wrap{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:2px;}
 .grp-bar-fill{height:100%;border-radius:3px;}
-.grp-pct{font-family:var(--mono);font-size:11px;font-weight:500;text-align:right;}
-
-/* KPI heatmap */
-.kh-grid{display:grid;gap:0;}
-.kh-col-hdr{font-family:var(--mono);font-size:7px;color:var(--ink3);text-align:center;padding:5px 2px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.04em;}
-.kh-agent{font-weight:600;font-size:10px;padding:6px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;}
-.kh-cell{border-bottom:1px solid var(--border);border-left:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:8px;font-weight:500;padding:6px 2px;}
-.kh-g{background:#d4ede1;color:#1a5c38;}
-.kh-y{background:#fdf3d0;color:#7a5500;}
-.kh-r{background:#fde8e4;color:#8f1a0a;}
-.kh-x{background:#f0ede8;color:#9a9590;}
-
-/* ── Drill-down view ── */
+.grp-pct{font-family:var(--mono);font-size:11px;font-weight:500;}
+.grp-gap{font-family:var(--mono);font-size:9px;margin-top:1px;}
+/* Heatmap */
+.heat-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.heat-table{min-width:360px;}
+.heat-grid{display:grid;}
+.h-hdr{font-family:var(--mono);font-size:8px;color:var(--ink3);text-align:center;padding:5px 2px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.05em;}
+.h-agent{font-weight:600;font-size:11px;padding:7px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;cursor:pointer;color:var(--blue);}
+.h-cell{border-bottom:1px solid var(--border);border-left:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:500;padding:6px 2px;}
+.hc-g{background:#d4ede1;color:#1a5c38;}.hc-o{background:#fde8d8;color:#7a3500;}.hc-r{background:#fde8e4;color:#8f1a0a;}
+/* Debtor summary table */
+.dt-wrap{min-width:340px;}
+.dt-hdr{display:grid;gap:0;border-bottom:2px solid var(--border);}
+.dt-hdr-c{font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);padding:6px 8px;text-align:center;}
+.dt-row{display:grid;gap:0;border-bottom:1px solid var(--border);align-items:center;}
+.dt-row:last-child{border-bottom:none;}
+.dt-row:hover{background:#faf8f5;}
+.dt-c{font-family:var(--mono);font-size:10px;padding:7px 8px;text-align:center;}
+.dt-agent{font-weight:600;font-size:12px;cursor:pointer;color:var(--blue);text-align:left;}
+.dt-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:3px;}
+.dt-bar-fill{height:100%;border-radius:2px;}
+/* Newbie */
+.nb-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:8px;border-left:4px solid var(--purple);}
+.nb-agent{font-family:var(--display);font-size:18px;letter-spacing:.05em;margin-bottom:10px;}
+.nb-tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;}
+.nb-tier{background:var(--bg);border-radius:8px;padding:8px;text-align:center;border:1px solid transparent;}
+.nb-tier.hit{border-color:rgba(42,122,75,.3);background:var(--green-bg);}
+.nb-tier.curr{border-color:rgba(200,56,26,.3);background:var(--red-bg);}
+.nb-tier-lbl{font-family:var(--mono);font-size:7px;text-transform:uppercase;color:var(--ink3);letter-spacing:.06em;}
+.nb-tier-val{font-family:var(--display);font-size:20px;letter-spacing:.03em;margin:2px 0;}
+.nb-tier-rew{font-family:var(--mono);font-size:9px;color:var(--green);}
+.nb-acc{display:flex;justify-content:space-between;align-items:center;background:var(--bg);border-radius:8px;padding:8px 12px;}
+/* Aging grid */
+.aging-summary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:12px;}
+@media(min-width:480px){.aging-summary-grid{grid-template-columns:repeat(4,1fr);}}
+.aging-box{background:var(--bg);border-radius:10px;padding:10px;text-align:center;border:1px solid var(--border);}
+.aging-val{font-family:var(--display);font-size:22px;letter-spacing:.03em;}
+.aging-lbl{font-family:var(--mono);font-size:8px;color:var(--ink3);text-transform:uppercase;margin-top:2px;}
+/* Drill */
 .drill-header{background:var(--ink);padding:14px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;}
-.back-btn{background:rgba(255,255,255,.1);border:none;color:#fff;width:36px;height:36px;border-radius:10px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.drill-name{font-family:var(--display);font-size:26px;color:#fff;letter-spacing:.05em;line-height:1;flex:1;}
-.drill-rank{font-family:var(--display);font-size:26px;color:var(--gold);}
-.drill-sub{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.4);margin-top:2px;}
-
-.drill-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:0;}
-.drill-stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px;text-align:center;}
-.drill-stat-val{font-family:var(--display);font-size:22px;letter-spacing:.03em;line-height:1;}
-.drill-stat-lbl{font-family:var(--mono);font-size:8px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;}
-
-.tier-row-d{display:grid;grid-template-columns:80px 1fr 60px 50px;align-items:center;gap:8px;padding:9px 16px;border-bottom:1px solid var(--border);}
-.tier-row-d:last-child{border-bottom:none;}
+.back-btn{background:rgba(255,255,255,.1);border:none;color:#fff;width:36px;height:36px;border-radius:10px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.dr-name{font-family:var(--display);font-size:26px;color:#fff;letter-spacing:.05em;line-height:1;flex:1;}
+.dr-rank{font-family:var(--display);font-size:26px;color:var(--gold);}
+.dr-sub{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.4);margin-top:2px;}
+.dr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
+.dr-stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px;text-align:center;}
+.dr-stat-val{font-family:var(--display);font-size:22px;letter-spacing:.03em;line-height:1;}
+.dr-stat-lbl{font-family:var(--mono);font-size:8px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;}
+.tier-row{display:grid;grid-template-columns:90px 1fr 60px 50px;align-items:center;gap:8px;padding:9px 16px;border-bottom:1px solid var(--border);}
+.tier-row:last-child{border-bottom:none;}
 .tier-lbl{font-family:var(--mono);font-size:10px;color:var(--ink3);}
 .tier-bar-bg{height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
 .tier-bar-fill{height:100%;border-radius:3px;}
-.tier-pct-d{font-family:var(--mono);font-size:11px;font-weight:500;text-align:right;}
-.tier-gap-d{font-family:var(--mono);font-size:9px;text-align:right;}
-
+.tier-pct{font-family:var(--mono);font-size:11px;font-weight:500;text-align:right;}
+.tier-gap{font-family:var(--mono);font-size:9px;text-align:right;}
 .bc-row{padding:12px 16px;border-bottom:1px solid var(--border);}
 .bc-row:last-child{border-bottom:none;}
-.bc-row-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.bc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
 .bc-brand{font-family:var(--display);font-size:16px;letter-spacing:.04em;}
-.bc-status{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:10px;}
-.bc-both{background:var(--green-bg);color:var(--green);}
-.bc-one{background:#fde8d8;color:#7a3500;}
-.bc-none{background:var(--red-bg);color:var(--accent);}
+.bc-badge{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:10px;}
+.bc-g{background:var(--green-bg);color:var(--green);}.bc-o{background:#fde8d8;color:#7a3500;}.bc-r{background:var(--red-bg);color:var(--accent);}
 .bc-crit{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
-.bc-crit-box{background:var(--bg);border-radius:8px;padding:8px 10px;border:1px solid transparent;}
-.bc-crit-box.hit{border-color:rgba(42,122,75,.3);}
-.bc-crit-box.miss{border-color:rgba(200,56,26,.25);}
-.bc-crit-lbl{font-family:var(--mono);font-size:8px;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;}
-.bc-crit-val{font-family:var(--mono);font-size:14px;font-weight:500;}
-.bc-crit-sub{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:2px;}
-
-.kpi-d-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.kpi-d-box{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:11px 13px;}
-.kpi-d-lbl{font-family:var(--mono);font-size:8px;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;}
-.kpi-d-val{font-family:var(--display);font-size:22px;letter-spacing:.03em;line-height:1;}
-.kpi-d-sub{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:3px;}
-.kpi-d-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:7px;}
-.kpi-d-bar-fill{height:100%;border-radius:2px;}
-
-@keyframes slideUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
-@keyframes slideIn{from{opacity:0;transform:translateX(24px);}to{opacity:1;transform:translateX(0);}}
-#overview-view .page > *{animation:slideUp .35s ease both;}
-#overview-view .page > *:nth-child(1){animation-delay:0s;}
-#overview-view .page > *:nth-child(2){animation-delay:.05s;}
-#overview-view .page > *:nth-child(3){animation-delay:.1s;}
-#overview-view .page > *:nth-child(4){animation-delay:.15s;}
-#overview-view .page > *:nth-child(5){animation-delay:.2s;}
-#overview-view .page > *:nth-child(6){animation-delay:.25s;}
-#drill-view{animation:slideIn .3s ease both;}
+.bc-box{background:var(--bg);border-radius:8px;padding:8px 10px;border:1px solid transparent;}
+.bc-box.hit{border-color:rgba(42,122,75,.3);}.bc-box.miss{border-color:rgba(200,56,26,.25);}
+.bc-lbl{font-family:var(--mono);font-size:8px;color:var(--ink3);text-transform:uppercase;margin-bottom:3px;}
+.bc-val{font-family:var(--mono);font-size:14px;font-weight:500;}
+.bc-sub{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:2px;}
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.kpi-box-d{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:11px 13px;}
+.kpi-lbl-d{font-family:var(--mono);font-size:8px;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;}
+.kpi-val-d{font-family:var(--display);font-size:22px;letter-spacing:.03em;line-height:1;}
+.kpi-sub-d{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:3px;}
+.kpi-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:7px;}
+.kpi-bar-fill{height:100%;border-radius:2px;}
+/* ── Pending Actions ── */
+.action-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;border-left:4px solid #c8381a;}
+.action-agent{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#c8381a;margin-bottom:6px;}
+.action-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);}
+.action-row:last-child{border-bottom:none;padding-bottom:0;}
+.action-info{flex:1;}
+.action-debtor{font-weight:600;font-size:13px;}
+.action-reason{font-family:var(--mono);font-size:10px;margin-top:2px;}
+.action-note{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:3px;font-style:italic;}
+.action-date{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:2px;}
+.resolve-btn{background:var(--green-bg);border:1px solid rgba(42,122,75,.3);color:var(--green);font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;margin-left:10px;flex-shrink:0;}
+.camp-prog-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;}
+.camp-prog-header{padding:12px 16px;border-bottom:1px solid var(--border);}
+.camp-prog-name{font-family:var(--display);font-size:18px;letter-spacing:.05em;}
+.camp-prog-meta{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:2px;}
+.camp-agent-row{display:grid;grid-template-columns:70px 1fr 80px;gap:8px;padding:9px 16px;border-bottom:1px solid var(--border);align-items:center;}
+.camp-agent-row:last-child{border-bottom:none;}
+.camp-agent-lbl{font-weight:600;font-size:12px;}
+.camp-bar-bg{height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
+.camp-bar-fill{height:100%;border-radius:3px;}
+.camp-stat{font-family:var(--mono);font-size:10px;text-align:right;}
+@keyframes slideIn{from{opacity:0;transform:translateX(16px);}to{opacity:1;transform:translateX(0);}}
+.page>*{animation:slideUp .3s ease both;}
+#drill-view{animation:slideIn .25s ease both;}
 </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════
-     OVERVIEW VIEW
-══════════════════════════════════════ -->
+<!-- ══ OVERVIEW ══ -->
 <div id="overview-view" class="view active">
-
   <div class="mgmt-header">
     <div class="header-row">
-      <div>
-        <div class="header-title">TOURO MD</div>
-        <div class="header-sub">Management Console</div>
-      </div>
-      <div class="header-right">
-        <div class="month-tag" id="hdr-month">MAR 2026</div>
-        <div class="day-tag" id="hdr-day">Day — of —</div>
-      </div>
+      <div><div class="header-title">TOURO MD</div><div class="header-sub">Management Console</div></div>
+      <div><div class="month-tag" id="hdr-month">— —</div><div class="day-tag" id="hdr-day">—</div></div>
     </div>
     <div class="kpi-strip">
-      <div class="kpi-box"><div class="kpi-val w" id="kpi-pct">—%</div><div class="kpi-lbl">Team Sales</div></div>
+      <div class="kpi-box"><div class="kpi-val w" id="kpi-pct">—%</div><div class="kpi-lbl">Team T1</div></div>
       <div class="kpi-box"><div class="kpi-val g" id="kpi-ctn">—</div><div class="kpi-lbl">Paid CTN</div></div>
       <div class="kpi-box"><div class="kpi-val r" id="kpi-gap">—</div><div class="kpi-lbl">Gap</div></div>
-      <div class="kpi-box"><div class="kpi-val" id="kpi-agents">—</div><div class="kpi-lbl">Agents</div></div>
+      <div class="kpi-box"><div class="kpi-val b" id="kpi-rate">—%</div><div class="kpi-lbl">光顾率</div></div>
     </div>
   </div>
 
   <div class="page">
+    <!-- 0. Pending Actions (flags from agents) -->
+    <div id="pending-actions-section" style="display:none;">
+      <div class="sec-lbl no-border" style="color:#c8381a;">⚑ Pending Actions</div>
+      <div id="pending-actions-list"></div>
+    </div>
 
-    <!-- Overall Sales Progress -->
-    <div class="sec-lbl">Monthly Sales Progress</div>
+    <!-- 1. Team Sales -->
+    <div class="sec-lbl no-border">📊 Team Sales Progress</div>
     <div class="overall-card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
         <div>
-          <div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Normal T1 Achievement</div>
-          <div class="ov-pct" id="ov-pct">—<sup>%</sup></div>
+          <div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">Normal T1 Achievement</div>
+          <div class="ov-pct" id="ov-pct">—%</div>
           <div class="ov-meta" id="ov-meta">— CTN of — target</div>
+          <div id="ov-gap" style="font-family:var(--mono);font-size:11px;margin-top:3px;"></div>
         </div>
         <div style="text-align:right;">
-          <div class="ov-ctn" id="ov-ctn">—</div>
+          <div style="font-family:var(--display);font-size:28px;color:#fff;" id="ov-ctn">—</div>
           <div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.35);">Total Paid CTN</div>
-          <div class="ov-gap" id="ov-gap"></div>
+          <div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.35);margin-top:4px;" id="ov-days"></div>
         </div>
       </div>
-      <div class="ov-bar-wrap"><div class="ov-bar" id="ov-bar" style="width:0%;background:var(--accent)"></div></div>
+      <div class="ov-bar-wrap"><div class="ov-bar" id="ov-bar" style="width:0%"></div></div>
       <div class="ov-bar-labels"><span>0</span><span id="ov-bar-mid"></span><span id="ov-bar-max"></span></div>
       <div class="ov-totals">
         <div class="ov-stat"><div class="ov-stat-val" style="color:#ffc94d" id="ov-normal">—</div><div class="ov-stat-lbl">Normal CTN</div></div>
@@ -216,429 +213,641 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
       </div>
     </div>
 
-    <!-- Agent Leaderboard -->
-    <div class="sec-lbl">Agent Leaderboard · Tap to drill down</div>
+    <!-- 2. Leaderboard -->
+    <div class="sec-lbl">🏆 Agent Leaderboard · Tap to drill down</div>
     <div class="card">
       <div class="lb-header">
         <div class="lb-title">Rankings</div>
         <div class="lb-toggle">
           <button class="lb-btn active" onclick="setLbMode('pct',this)">% T1</button>
           <button class="lb-btn" onclick="setLbMode('ctn',this)">CTN</button>
+          <button class="lb-btn" onclick="setLbMode('gap',this)">Gap</button>
         </div>
       </div>
       <div id="leaderboard"></div>
     </div>
 
-    <!-- Group Brand Targets -->
-    <div class="sec-lbl">Group Brand Targets</div>
+    <!-- 3. Group Brands -->
+    <div class="sec-lbl">🏷️ Group Brand Targets</div>
     <div class="card">
       <div class="card-pad" style="padding-bottom:0;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
           <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;">Brand CTN vs Target</div>
-          <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);" id="grp-incentive"></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);" id="grp-total"></div>
         </div>
       </div>
-      <div id="group-brands-overview"></div>
+      <div id="group-brands"></div>
     </div>
 
-    <!-- Brand Commission Heatmap -->
-    <div class="sec-lbl">Commission Status (Both = ✓ / One = ⚠ / None = ✗)</div>
+    <!-- 4. Commission -->
+    <div class="sec-lbl">💰 Commission Tracker</div>
     <div class="card">
       <div class="card-pad" style="padding-bottom:6px;">
-        <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;margin-bottom:4px;">Commission Tracker</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">Green = both hit · Orange = 1/2 · Red = none</div>
+        <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;margin-bottom:3px;">Brand Commission Status</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">✓ Both hit &nbsp;·&nbsp; ½ One criteria &nbsp;·&nbsp; ✗ Not earned</div>
       </div>
-      <div class="heat-scroll">
-        <div id="comm-heatmap"></div>
-      </div>
+      <div class="heat-scroll"><div id="comm-heatmap"></div></div>
     </div>
 
-    <!-- KPI Heatmap -->
-    <div class="sec-lbl">KPI Overview</div>
+    <!-- 5. Debtor Summary -->
+    <div class="sec-lbl">👥 Debtor Summary</div>
     <div class="card">
       <div class="card-pad" style="padding-bottom:6px;">
-        <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;margin-bottom:4px;">KPI Heatmap</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">Green ≥80% · Yellow 50–79% · Red &lt;50%</div>
+        <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;margin-bottom:3px;">Per Agent Overview</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">Total · 光顾率 · 已激活 · 待激活 · 新增SKU · Tap to drill down</div>
       </div>
-      <div class="heat-scroll">
-        <div id="kpi-heatmap"></div>
-      </div>
+      <div class="heat-scroll"><div id="debtor-summary"></div></div>
     </div>
 
-  </div><!-- end page -->
-</div><!-- end overview -->
+    <!-- 6. Newbie -->
+    <div id="newbie-section" style="display:none;">
+      <div class="sec-lbl">🎓 Newbie Scheme Progress</div>
+      <div id="newbie-cards"></div>
+    </div>
+
+    <!-- Monthly Summary Table -->
+    <div class="sec-lbl">📊 Monthly Summary — All Agents</div>
+    <div class="card">
+      <div class="card-pad" style="padding-bottom:6px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;">Team Performance Overview</div>
+          <button onclick="exportMonthlyExcel()" style="background:var(--green);border:none;color:#fff;font-family:var(--mono);font-size:9px;padding:6px 12px;border-radius:8px;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;">⬇ Export Excel</button>
+        </div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:3px;" id="monthly-month-label"></div>
+      </div>
+      <div class="heat-scroll"><div id="monthly-summary-table"></div></div>
+    </div>
+
+    <!-- Campaigns -->
+    <div id="campaigns-mgmt-section" style="display:none;">
+      <div class="sec-lbl">📢 Campaign Progress</div>
+      <div id="campaigns-mgmt-list"></div>
+    </div>
+
+    <!-- 7. Aging -->
+    <div class="sec-lbl">📋 Paid vs Unpaid Overview</div>
+    <div class="card">
+      <div class="card-pad" style="padding-bottom:6px;">
+        <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;margin-bottom:3px;">Aging Summary</div>
+      </div>
+      <div id="aging-overview"></div>
+    </div>
+
+  </div>
+</div>
 
 
-<!-- ══════════════════════════════════════
-     DRILL-DOWN VIEW
-══════════════════════════════════════ -->
+<!-- ══ DRILL-DOWN ══ -->
 <div id="drill-view" class="view">
-
   <div class="drill-header">
     <button class="back-btn" onclick="closeDrill()">←</button>
     <div style="flex:1;">
-      <div class="drill-name" id="dr-name">—</div>
-      <div class="drill-sub" id="dr-sub">—</div>
+      <div class="dr-name" id="dr-name">—</div>
+      <div class="dr-sub" id="dr-sub">—</div>
     </div>
-    <div class="drill-rank" id="dr-rank">#—</div>
+    <div class="dr-rank" id="dr-rank">#—</div>
   </div>
-
   <div class="page">
-
-    <!-- Top stats -->
-    <div class="drill-stats" style="margin-bottom:10px;">
-      <div class="drill-stat"><div class="drill-stat-val" style="color:var(--gold)" id="dr-ctn">—</div><div class="drill-stat-lbl">Paid CTN</div></div>
-      <div class="drill-stat"><div class="drill-stat-val" style="color:var(--accent)" id="dr-gap">—</div><div class="drill-stat-lbl">Gap T1</div></div>
-      <div class="drill-stat"><div class="drill-stat-val" style="color:var(--green)" id="dr-brands">—</div><div class="drill-stat-lbl">Brands ✓</div></div>
+    <div class="dr-stats" style="margin-bottom:10px;">
+      <div class="dr-stat"><div class="dr-stat-val" style="color:var(--gold)" id="dr-ctn">—</div><div class="dr-stat-lbl">Paid CTN</div></div>
+      <div class="dr-stat"><div class="dr-stat-val" style="color:var(--accent)" id="dr-gap">—</div><div class="dr-stat-lbl">Gap T1</div></div>
+      <div class="dr-stat"><div class="dr-stat-val" style="color:var(--green)" id="dr-comm">—</div><div class="dr-stat-lbl">Comm RM</div></div>
     </div>
-
-    <!-- Sales tiers -->
-    <div class="sec-lbl">Sales Progression</div>
+    <div class="sec-lbl no-border">Sales Progression</div>
     <div class="card" id="dr-tiers"></div>
-
-    <!-- Brand commission -->
-    <div class="sec-lbl">Brand Commission Detail</div>
-    <div class="card" id="dr-brands-detail"></div>
-
-    <!-- KPI detail -->
-    <div class="sec-lbl">KPI Detail</div>
-    <div class="kpi-d-grid" id="dr-kpi"></div>
-
-    <!-- Aging summary -->
+    <div class="sec-lbl">Brand Commission</div>
+    <div class="card" id="dr-brands"></div>
+    <div class="sec-lbl">Debtor Overview</div>
+    <div class="kpi-grid" id="dr-kpi" style="margin-bottom:10px;"></div>
     <div class="sec-lbl">Paid vs Unpaid</div>
-    <div class="drill-stats" id="dr-aging" style="margin-bottom:10px;"></div>
-
+    <div class="dr-stats" id="dr-aging" style="margin-bottom:10px;"></div>
   </div>
-</div><!-- end drill -->
+</div>
 
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-// ── State ──────────────────────────────────────────────────────────────────
-let DATA = null;
-let lbMode = 'pct';
+let DATA=null, lbMode='pct';
+const BC={iFACE:'#1a5c8f',SUKUN:'#6b3fa0',EVO:'#c8381a',BISON:'#c8860a','TR20':'#2a7a4b','LAM+LWM':'#c85a1a'};
+const GB={SUKUN:'#6b3fa0',EVO:'#c8381a',IMP:'#1a5c8f',LF:'#2a7a4b',CLASSMILD:'#c85a1a',BISON:'#c8860a',TR:'#2a2a38'};
 
-const BRAND_COLORS = {
-  'iFACE':'#1a5c8f','SUKUN':'#6b3fa0','EVO':'#c8381a',
-  'BISON':'#c8860a','TR20':'#2a7a4b','LAM+LWM':'#c85a1a'
-};
-const GB_COLORS = {
-  'SUKUN':'#6b3fa0','EVO':'#c8381a','IMP':'#1a5c8f',
-  'LF':'#2a7a4b','CLASSMILD':'#c85a1a','BISON':'#c8860a','TR':'#2a2a38'
-};
+const fi = n => n==null?'—':Math.round(parseFloat(n)).toLocaleString('en-MY');
+const fn = n => n==null?'—':parseFloat(n).toLocaleString('en-MY',{maximumFractionDigits:2});
+const fp = p => p==null?'—':parseFloat(p).toFixed(1)+'%';
+const fr = n => 'RM '+parseFloat(n||0).toFixed(2);
+const pc = p => p==null?'var(--ink3)':p>=80?'var(--green)':p>=50?'var(--gold)':'var(--accent)';
+const bc = p => p==null?'var(--border)':p>=80?'#2a7a4b':p>=50?'#c8860a':'#c8381a';
 
-// ── Load ───────────────────────────────────────────────────────────────────
 async function loadData() {
   try {
     const r = await fetch('dashboard_data.json');
     DATA = await r.json();
     renderOverview();
   } catch(e) {
-    document.body.innerHTML = `<div style="padding:40px;text-align:center;font-family:monospace;color:#c8381a;">
-      ❌ Could not load dashboard_data.json<br><small style="color:#999">${e.message}</small></div>`;
+    document.body.innerHTML = `<div style="padding:40px;text-align:center;font-family:monospace;color:#c8381a;">❌ Could not load dashboard_data.json<br><small style="color:#999">${e.message}</small></div>`;
   }
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-const fmtN = n => n == null ? '—' : parseFloat(n).toLocaleString('en-MY', {maximumFractionDigits:2});
-const fmtP = p => p == null ? '—' : parseFloat(p).toFixed(1) + '%';
-const fmtRM = n => 'RM ' + parseFloat(n||0).toFixed(2);
-
-function pctColor(p) {
-  if (p == null) return 'var(--ink3)';
-  return p >= 80 ? 'var(--green)' : p >= 50 ? 'var(--gold)' : 'var(--accent)';
-}
-function barClass(p) {
-  if (p == null) return '';
-  return p >= 80 ? 'bg-green' : p >= 50 ? 'bg-gold' : 'bg-red';
-}
-function barColor(p) {
-  if (p == null) return 'var(--border)';
-  return p >= 80 ? '#2a7a4b' : p >= 50 ? '#c8860a' : '#c8381a';
-}
-function heatClass(p, type='pct') {
-  if (p == null || p === undefined) return 'kh-x';
-  const v = parseFloat(p);
-  return v >= 80 ? 'kh-g' : v >= 50 ? 'kh-y' : 'kh-r';
-}
-
-// ── Overview ───────────────────────────────────────────────────────────────
 function renderOverview() {
-  const wd   = DATA.working_days || {};
-  const team = DATA.team || {};
-  const agents = Object.keys(DATA.agents || {});
+  const wd=DATA.working_days||{}, team=DATA.team||{};
+  const agents=Object.keys(DATA.agents||{});
 
-  // Header
-  document.getElementById('hdr-month').textContent = (DATA.current_month||'').toUpperCase();
-  document.getElementById('hdr-day').textContent =
-    `Day ${wd.elapsed_working_days||'?'} of ${wd.total_working_days||'?'} · ${wd.theoretical_pct||0}% elapsed`;
+  document.getElementById('hdr-month').textContent=(DATA.current_month||'').toUpperCase();
+  document.getElementById('hdr-day').textContent=`Day ${wd.elapsed_working_days||'?'} of ${wd.total_working_days||'?'} · ${wd.theoretical_pct||0}% elapsed`;
 
-  // KPI strip
-  const t1pct = team.t1_pct;
-  document.getElementById('kpi-pct').textContent  = fmtP(t1pct);
-  document.getElementById('kpi-pct').className    = `kpi-val ${t1pct>=80?'g':t1pct>=50?'w':'r'}`;
-  document.getElementById('kpi-ctn').textContent  = fmtN(team.team_normal_ctn);
-  document.getElementById('kpi-gap').textContent  = team.t1_total_target
-    ? fmtN((team.team_normal_ctn||0) - team.t1_total_target) : '—';
-  document.getElementById('kpi-agents').textContent = agents.length;
+  const rates=agents.map(a=>DATA.agents[a]?.debtor_cards?.activation_rate||0);
+  const avgRate=rates.length?(rates.reduce((a,b)=>a+b,0)/rates.length).toFixed(1):0;
 
-  // Overall card
-  document.getElementById('ov-pct').innerHTML = `${fmtP(t1pct)}<sup style="font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.35)"></sup>`;
-  document.getElementById('ov-meta').textContent =
-    `${fmtN(team.team_normal_ctn)} CTN of ${fmtN(team.t1_total_target)} target`;
-  const gap = (team.team_normal_ctn||0) - (team.t1_total_target||0);
-  document.getElementById('ov-gap').textContent = gap < 0 ? `▼ ${fmtN(Math.abs(gap))} to target` : `▲ ${fmtN(gap)} above target`;
-  document.getElementById('ov-ctn').textContent  = fmtN(team.team_canggih_ctn);
-  document.getElementById('ov-bar').style.width  = Math.min(t1pct||0, 100) + '%';
-  document.getElementById('ov-bar').style.background = barColor(t1pct);
-  document.getElementById('ov-bar-mid').textContent  = `Should be ${wd.theoretical_pct||0}%`;
-  document.getElementById('ov-bar-max').textContent  = fmtN(team.t1_total_target);
-  document.getElementById('ov-normal').textContent   = fmtN(team.team_normal_ctn);
-  document.getElementById('ov-ga').textContent       = fmtN(team.team_ga_ctn);
-  document.getElementById('ov-ma').textContent       = fmtN(team.team_ma_ctn);
+  const t1pct=team.t1_pct||0;
+  const gap=(team.team_normal_ctn||0)-(team.t1_total_target||0);
 
+  document.getElementById('kpi-pct').textContent=fp(t1pct);
+  document.getElementById('kpi-pct').className=`kpi-val ${t1pct>=80?'g':t1pct>=50?'w':'r'}`;
+  document.getElementById('kpi-ctn').textContent=fi(team.team_normal_ctn);
+  document.getElementById('kpi-gap').textContent=(gap>=0?'+':'')+fi(gap);
+  document.getElementById('kpi-gap').className=`kpi-val ${gap>=0?'g':'r'}`;
+  document.getElementById('kpi-rate').textContent=avgRate+'%';
+
+  document.getElementById('ov-pct').textContent=fp(t1pct);
+  document.getElementById('ov-meta').textContent=`${fn(team.team_normal_ctn)} CTN of ${fn(team.t1_total_target)} target`;
+  const gE=document.getElementById('ov-gap');
+  gE.textContent=gap<0?`▼ ${fn(Math.abs(gap))} CTN to target`:`▲ ${fn(gap)} CTN above target`;
+  gE.style.color=gap>=0?'#5de89a':'#ff6b6b';
+  document.getElementById('ov-ctn').textContent=fi(team.team_canggih_ctn);
+  document.getElementById('ov-bar').style.width=Math.min(t1pct,100)+'%';
+  document.getElementById('ov-bar').style.background=bc(t1pct);
+  document.getElementById('ov-bar-mid').textContent=`Should be ${wd.theoretical_pct||0}%`;
+  document.getElementById('ov-bar-max').textContent=fn(team.t1_total_target);
+  document.getElementById('ov-days').textContent=`Day ${wd.elapsed_working_days||'?'} / ${wd.total_working_days||'?'}`;
+  document.getElementById('ov-normal').textContent=fi(team.team_normal_ctn);
+  document.getElementById('ov-ga').textContent=fi(team.team_ga_ctn);
+  document.getElementById('ov-ma').textContent=fi(team.team_ma_ctn);
+
+  renderPendingActions();
   renderLeaderboard();
-  renderGroupBrandsOverview();
+  renderGroupBrands();
   renderCommHeatmap();
-  renderKpiHeatmap();
+  renderDebtorSummary();
+  renderNewbieProgress();
+  renderAgingOverview();
+  renderMonthlySummary();
 }
 
-// ── Leaderboard ────────────────────────────────────────────────────────────
-function setLbMode(mode, btn) {
-  lbMode = mode;
-  document.querySelectorAll('.lb-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  renderLeaderboard();
+// ── Monthly Summary Table ──────────────────────────────────────────────────
+function renderMonthlySummary() {
+  const agents = Object.keys(DATA.agents||{});
+  const el = document.getElementById('monthly-summary-table');
+  document.getElementById('monthly-month-label').textContent =
+    `${DATA.current_month || ''} · Day ${DATA.working_days?.elapsed_working_days||'?'} of ${DATA.working_days?.total_working_days||'?'}`;
+
+  const cols = '70px 55px 55px 55px 55px 55px 55px 50px 45px 50px 50px 55px 55px 55px';
+  const hdrs = ['Agent','Tgt Normal','Act Normal','Tgt MA','Act MA','开新户口','VIP','激活户口','加SKU','光顾率','交易次数','工作日','平均交易','KPI A+B'];
+
+  let html = `<div style="min-width:700px;">
+    <div style="display:grid;grid-template-columns:${cols};gap:0;border-bottom:2px solid var(--border);">
+      ${hdrs.map((h,i) => `<div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);padding:6px 6px;text-align:${i===0?'left':'center'};border-right:1px solid var(--border);">${h}</div>`).join('')}
+    </div>`;
+
+  agents.forEach((agent,idx) => {
+    const sp  = DATA.agents[agent]?.sales_progression || {};
+    const dc  = DATA.agents[agent]?.debtor_cards || {};
+    const kpi = DATA.agents[agent]?.kpi || {};
+    const bg  = idx%2===0 ? '' : 'background:#faf8f5;';
+
+    const t1tgt = sp.tiers?.normal_t1?.target || 0;
+    const matgt = sp.tiers?.ma?.target || 0;
+    const newAcc = dc.debtors?.filter(d=>d.is_new).length || 0;
+    const vip    = dc.debtors?.filter(d=>d.vip).length || 0;
+    const react  = dc.reactivation_count || 0;
+    const newSku = dc.total_new_sku || 0;
+    const rate   = dc.activation_rate || 0;
+    const txn    = sp.txn_count || 0;
+    const wdays  = sp.elapsed_working_days || DATA.working_days?.elapsed_working_days || 0;
+    const avgTxn = sp.avg_txn_per_day || 0;
+    const kpiScore = kpi.total_abc || 0;
+
+    const normalPct = sp.tiers?.normal_t1?.pct || 0;
+    const maPct     = sp.tiers?.ma?.pct || 0;
+
+    const cell = (val, color='') => `<div style="font-family:var(--mono);font-size:10px;padding:7px 6px;text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);${color}">${val}</div>`;
+    const pctCell = (p, val) => cell(val, `color:${pc(p)};`);
+
+    html += `<div style="display:grid;grid-template-columns:${cols};gap:0;${bg}" onclick="openDrill('${agent}')" style="cursor:pointer;">
+      <div style="font-family:var(--mono);font-size:11px;font-weight:600;padding:7px 8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);color:var(--blue);cursor:pointer;">${agent}</div>
+      ${cell(fi(t1tgt))}
+      ${pctCell(normalPct, fi(sp.normal_ctn))}
+      ${cell(fi(matgt))}
+      ${pctCell(maPct, fi(sp.ma_ctn))}
+      ${cell(newAcc)}
+      ${cell(vip)}
+      ${cell(react)}
+      ${cell(newSku)}
+      ${cell(rate+'%', `color:${pc(rate)};`)}
+      ${cell(txn)}
+      ${cell(wdays)}
+      ${cell(avgTxn.toFixed(1))}
+      ${cell(kpiScore.toFixed(1), `color:${pc(kpiScore/61*100)};`)}
+    </div>`;
+  });
+
+  html += `</div>`;
+  el.innerHTML = html;
 }
 
-function renderLeaderboard() {
-  const lb = (DATA.team?.leaderboard || []).slice().sort((a,b) =>
-    lbMode === 'ctn'
-      ? (b.normal_ctn||0) - (a.normal_ctn||0)
-      : (b.t1_pct||0)    - (a.t1_pct||0)
+// ── Excel Export ───────────────────────────────────────────────────────────
+function exportMonthlyExcel() {
+  const agents = Object.keys(DATA.agents||{});
+  const month  = DATA.current_month || '';
+
+  // Main summary sheet
+  const summaryRows = [
+    ['Agent','Target Normal','Actual Normal','Normal %','Target MA','Actual MA','MA %',
+     '开新户口','VIP','激活户口','加SKU','持续光顾率','交易次数','工作日','平均交易次数','KPI A+B Score']
+  ];
+
+  agents.forEach(agent => {
+    const sp  = DATA.agents[agent]?.sales_progression || {};
+    const dc  = DATA.agents[agent]?.debtor_cards || {};
+    const kpi = DATA.agents[agent]?.kpi || {};
+    summaryRows.push([
+      agent,
+      sp.tiers?.normal_t1?.target || 0,
+      sp.normal_ctn || 0,
+      (sp.tiers?.normal_t1?.pct || 0).toFixed(1) + '%',
+      sp.tiers?.ma?.target || 0,
+      sp.ma_ctn || 0,
+      (sp.tiers?.ma?.pct || 0).toFixed(1) + '%',
+      dc.debtors?.filter(d=>d.is_new).length || 0,
+      dc.debtors?.filter(d=>d.vip).length || 0,
+      dc.reactivation_count || 0,
+      dc.total_new_sku || 0,
+      (dc.activation_rate || 0) + '%',
+      sp.txn_count || 0,
+      sp.elapsed_working_days || 0,
+      sp.avg_txn_per_day || 0,
+      (kpi.total_abc || 0).toFixed(2),
+    ]);
+  });
+
+  // Build workbook with multiple sheets
+  const wb = {};
+  wb['Summary'] = summaryRows;
+
+  // Per-agent SKU trend sheets
+  agents.forEach(agent => {
+    const sp = DATA.agents[agent]?.sales_progression || {};
+    const months = sp.month_labels || [];
+    const trend  = sp.sku_trend || {};
+    const active = sp.active_by_month || {};
+
+    const hdr = ['SKU', ...months.flatMap(m => [m+' Debtors', m+' CTN'])];
+    const rows = [hdr];
+
+    Object.entries(trend).forEach(([sku, mdata]) => {
+      rows.push([sku, ...months.flatMap(m => [
+        mdata[m]?.debtors || 0,
+        mdata[m]?.ctn || 0,
+      ])]);
+    });
+    // Active row
+    rows.push(['活跃顾客', ...months.flatMap(m => [
+      active[m]?.debtors || 0,
+      active[m]?.ctn || 0,
+    ])]);
+
+    wb[agent] = rows;
+  });
+
+  // Use SheetJS if available, else CSV fallback
+  try {
+    const XLSXlib = window.XLSX;
+    if (XLSXlib) {
+      const workbook = XLSXlib.utils.book_new();
+      Object.entries(wb).forEach(([name, rows]) => {
+        const ws = XLSXlib.utils.aoa_to_sheet(rows);
+        XLSXlib.utils.book_append_sheet(workbook, ws, name.substring(0,31));
+      });
+      XLSXlib.writeFile(workbook, `MD_Monthly_${month.replace(' ','_')}.xlsx`);
+      return;
+    }
+  } catch(e) {}
+
+  // CSV fallback — summary only
+  const csv = summaryRows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `MD_Monthly_${month}.csv`;
+  a.click();
+}
+
+// ── Pending Actions (Flags) ────────────────────────────────────────────────
+const FLAGS_KEY = 'touro_debtor_flags';
+function loadFlags() {
+  try { return JSON.parse(localStorage.getItem(FLAGS_KEY)||'{}'); } catch(e) { return {}; }
+}
+function saveFlags(f) {
+  try { localStorage.setItem(FLAGS_KEY, JSON.stringify(f)); } catch(e) {}
+}
+function renderPendingActions() {
+  const flags = loadFlags();
+  const section = document.getElementById('pending-actions-section');
+  const list    = document.getElementById('pending-actions-list');
+  const allFlags = Object.entries(flags).flatMap(([agent, debtors]) =>
+    Object.entries(debtors).map(([code, f]) => ({...f, agent, debtor_code:code}))
   );
 
-  document.getElementById('leaderboard').innerHTML = lb.map((entry, i) => {
-    const p = entry.t1_pct;
-    const v = lbMode === 'ctn' ? fmtN(entry.normal_ctn) : fmtP(p);
-    const color = pctColor(p);
-    const barW  = Math.min(p||0, 100);
-    return `<div class="lb-row" onclick="openDrill('${entry.agent}')">
-      <div class="lb-rank ${i < 3 ? 'top' : ''}">${i+1}</div>
-      <div>
-        <div class="lb-agent-name">${entry.agent}</div>
-        <div class="lb-agent-sub">${fmtN(entry.normal_ctn)} CTN · ${entry.brands_earned} brand${entry.brands_earned!==1?'s':''} comm</div>
+  if (!allFlags.length) { section.style.display='none'; return; }
+  section.style.display = 'block';
+
+  const REASON_LABELS = {
+    cant_contact:  '📵 Can\'t Contact',
+    close_account: '❌ Close Account Request',
+    transfer:      '🔄 Transfer / Area Change',
+    other:         '📝 Other',
+  };
+
+  // Group by agent
+  const byAgent = {};
+  allFlags.forEach(f => {
+    if (!byAgent[f.agent]) byAgent[f.agent] = [];
+    byAgent[f.agent].push(f);
+  });
+
+  list.innerHTML = Object.entries(byAgent).map(([agent, agentFlags]) => `
+    <div class="action-card">
+      <div class="action-agent">${agent} · ${agentFlags.length} flag${agentFlags.length!==1?'s':''}</div>
+      ${agentFlags.map(f => {
+        const debtor = DATA?.agents[agent]?.debtor_cards?.debtors?.find(d=>d.debtor_code===f.debtor_code);
+        const name   = debtor?.company_name || f.debtor_code;
+        const date   = f.flagged_at ? new Date(f.flagged_at).toLocaleDateString('en-MY') : '—';
+        return `<div class="action-row">
+          <div class="action-info">
+            <div class="action-debtor">${name}</div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">${f.debtor_code}</div>
+            <div class="action-reason">${REASON_LABELS[f.reason]||f.reason}</div>
+            ${f.note?`<div class="action-note">"${f.note}"</div>`:''}
+            <div class="action-date">Flagged: ${date}</div>
+          </div>
+          <button class="resolve-btn" onclick="resolveFlag('${agent}','${f.debtor_code}')">✓ Resolve</button>
+        </div>`;
+      }).join('')}
+    </div>`).join('');
+}
+
+function resolveFlag(agent, debtorCode) {
+  const flags = loadFlags();
+  if (flags[agent]) delete flags[agent][debtorCode];
+  if (flags[agent] && !Object.keys(flags[agent]).length) delete flags[agent];
+  saveFlags(flags);
+  renderPendingActions();
+}
+
+// ── Leaderboard ──
+function setLbMode(mode,btn){lbMode=mode;document.querySelectorAll('.lb-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderLeaderboard();}
+function renderLeaderboard(){
+  const lb=(DATA.team?.leaderboard||[]).slice().sort((a,b)=>
+    lbMode==='ctn'?(b.normal_ctn||0)-(a.normal_ctn||0):
+    lbMode==='gap'?(a.t1_pct||0)-(b.t1_pct||0):
+    (b.t1_pct||0)-(a.t1_pct||0));
+  document.getElementById('leaderboard').innerHTML=lb.map((e,i)=>{
+    const p=e.t1_pct||0,w=Math.min(p,100);
+    const val=lbMode==='ctn'?fi(e.normal_ctn):fp(p);
+    return`<div class="lb-row" onclick="openDrill('${e.agent}')">
+      <div class="lb-rank ${i<3?'top':''}">${i+1}</div>
+      <div><div class="lb-name">${e.agent}</div><div class="lb-sub">${fi(e.normal_ctn)} CTN · ${e.brands_earned||0} brand comm</div></div>
+      <div class="lb-bar-bg"><div class="lb-bar-fill" style="width:${w}%;background:${bc(p)}"></div></div>
+      <div class="lb-pct" style="color:${pc(p)}">${val}</div>
+    </div>`;
+  }).join('');}
+
+// ── Group Brands ──
+function renderGroupBrands(){
+  const gbt=DATA.group_brand_targets||{};
+  if(!Object.keys(gbt).length){document.getElementById('group-brands').innerHTML='<div style="padding:14px 16px;font-family:var(--mono);font-size:10px;color:var(--ink3);">No group targets set</div>';return;}
+  const tT=Object.values(gbt).reduce((s,b)=>s+(b.target_ctn||0),0);
+  const tA=Object.values(gbt).reduce((s,b)=>s+(b.actual_ctn||0),0);
+  document.getElementById('grp-total').textContent=`${fi(tA)} / ${fi(tT)} (${tT?(tA/tT*100).toFixed(1):0}%)`;
+  document.getElementById('group-brands').innerHTML=Object.entries(gbt).map(([brand,d])=>{
+    const p=d.pct||0,color=GB[brand]||'#333',gap=d.gap;
+    return`<div class="grp-row">
+      <div><div class="grp-name" style="color:${color}">${brand}</div><div class="grp-nums">${fi(d.actual_ctn)} / ${fi(d.target_ctn)} CTN</div></div>
+      <div><div class="grp-bar-wrap"><div class="grp-bar-fill" style="width:${Math.min(p,100)}%;background:${bc(p)}"></div></div></div>
+      <div><div class="grp-pct" style="color:${pc(p)}">${fp(p)}</div><div class="grp-gap" style="color:${gap>=0?'var(--green)':'var(--accent)'}">${gap!=null?(gap>=0?'+':'')+fi(gap)+' CTN':'—'}</div></div>
+    </div>`;
+  }).join('');}
+
+// ── Commission Heatmap ──
+function renderCommHeatmap(){
+  const agents=Object.keys(DATA.agents||{});
+  const brands=Object.keys(DATA.config?.brand_config||BC);
+  const aw='65px',bw=`${Math.floor(80/brands.length)}%`;
+  let html=`<div class="heat-table"><div class="heat-grid" style="grid-template-columns:${aw} ${brands.map(()=>bw).join(' ')}">`;
+  html+=`<div class="h-hdr" style="text-align:left;padding-left:8px;">Agent</div>`;
+  brands.forEach(b=>html+=`<div class="h-hdr">${b.replace('LAM+LWM','L+L')}</div>`);
+  agents.forEach(agent=>{
+    const bcomm=DATA.agents[agent]?.brand_commission||{};
+    html+=`<div class="h-agent" onclick="openDrill('${agent}')">${agent}</div>`;
+    brands.forEach(b=>{
+      const st=bcomm[b]?.status||'none_hit';
+      const cls=st==='both_hit'?'hc-g':st==='one_hit'?'hc-o':'hc-r';
+      const icon=st==='both_hit'?'✓':st==='one_hit'?'½':'✗';
+      html+=`<div class="h-cell ${cls}">${icon}</div>`;
+    });
+  });
+  html+=`</div></div>`;
+  document.getElementById('comm-heatmap').innerHTML=html;}
+
+// ── Debtor Summary ──
+function renderDebtorSummary(){
+  const agents=Object.keys(DATA.agents||{});
+  const cols='65px 70px 45px 50px 50px 55px';
+  let html=`<div class="dt-wrap"><div class="dt-hdr" style="grid-template-columns:${cols}">
+    <div class="dt-hdr-c" style="text-align:left;">Agent</div>
+    <div class="dt-hdr-c" style="color:var(--blue)">光顾率</div>
+    <div class="dt-hdr-c">Total</div>
+    <div class="dt-hdr-c" style="color:var(--green)">激活</div>
+    <div class="dt-hdr-c" style="color:var(--orange)">待激活</div>
+    <div class="dt-hdr-c" style="color:var(--purple)">新增SKU</div>
+  </div>`;
+  agents.forEach(agent=>{
+    const dc=DATA.agents[agent]?.debtor_cards||{};
+    const rate=dc.activation_rate??0;
+    html+=`<div class="dt-row" style="grid-template-columns:${cols}" onclick="openDrill('${agent}')">
+      <div class="dt-c dt-agent">${agent}</div>
+      <div class="dt-c"><span style="font-family:var(--mono);font-size:11px;font-weight:500;color:${pc(rate)}">${rate}%</span><div class="dt-bar"><div class="dt-bar-fill" style="width:${Math.min(rate,100)}%;background:${bc(rate)}"></div></div></div>
+      <div class="dt-c">${dc.total_debtors||0}</div>
+      <div class="dt-c" style="color:var(--green)">${dc.active_count||0}</div>
+      <div class="dt-c" style="color:var(--orange)">${dc.reactivation_count||0}</div>
+      <div class="dt-c" style="color:var(--purple)">${dc.total_new_sku||0}</div>
+    </div>`;
+  });
+  html+=`</div>`;
+  document.getElementById('debtor-summary').innerHTML=html;}
+
+// ── Newbie Progress ──
+function renderNewbieProgress(){
+  const agents=Object.keys(DATA.agents||{});
+  const newbies=agents.filter(a=>DATA.agents[a]?.newbie_scheme?.is_newbie);
+  if(!newbies.length){document.getElementById('newbie-section').style.display='none';return;}
+  document.getElementById('newbie-section').style.display='block';
+  document.getElementById('newbie-cards').innerHTML=newbies.map(agent=>{
+    const nb=DATA.agents[agent].newbie_scheme;
+    const ctn=nb.normal_ctn||0;
+    const tiers=[...( nb.ctn_tiers||[])].sort((a,b)=>a.threshold-b.threshold);
+    const tiersHtml=tiers.map((t,i)=>{
+      const hit=ctn>=t.threshold;
+      const isCurr=!hit&&(i===0||ctn>=(tiers[i-1]?.threshold||0));
+      return`<div class="nb-tier ${hit?'hit':isCurr?'curr':''}">
+        <div class="nb-tier-lbl">T${i+1}</div>
+        <div class="nb-tier-val" style="color:${hit?'var(--green)':'var(--ink)'}">${fi(t.threshold)}</div>
+        <div class="nb-tier-rew">${hit?'✓ ':''}RM${fi(t.reward)}</div>
+        ${!hit?`<div style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-top:2px;">${t.threshold?(ctn/t.threshold*100).toFixed(0):0}%</div>`:''}
+      </div>`;
+    }).join('');
+    return`<div class="nb-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div class="nb-agent">${agent}</div>
+        <div style="text-align:right;">
+          <div style="font-family:var(--display);font-size:22px;color:var(--purple)">${fi(ctn)}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3)">Normal CTN</div>
+          ${nb.total_incentive>0?`<div style="font-family:var(--mono);font-size:10px;color:var(--green);margin-top:2px">RM${fi(nb.total_incentive)} earned</div>`:''}
+        </div>
       </div>
-      <div class="lb-bar-bg"><div class="lb-bar-fill" style="width:${barW}%;background:${barColor(p)}"></div></div>
-      <div class="lb-pct" style="color:${color}">${v}</div>
+      <div class="nb-tiers">${tiersHtml}</div>
+      <div class="nb-acc">
+        <div><div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;color:var(--ink3);letter-spacing:.07em">New Accounts</div>
+        <div style="font-family:var(--display);font-size:20px">${nb.new_accounts||0}</div></div>
+        ${nb.acc_tier_hit?`<div style="font-family:var(--mono);font-size:10px;color:var(--green)">✓ Bonus RM${fi(nb.acc_reward)}</div>`:`<div style="font-family:var(--mono);font-size:9px;color:var(--ink3)">No bonus yet</div>`}
+      </div>
     </div>`;
-  }).join('');
-}
+  }).join('');}
 
-// ── Group Brands Overview ──────────────────────────────────────────────────
-function renderGroupBrandsOverview() {
-  const gbt = DATA.group_brand_targets || {};
-  const el  = document.getElementById('group-brands-overview');
+// ── Aging Overview ──
+function renderAgingOverview(){
+  const agents=Object.keys(DATA.agents||{});
+  let tPaid=0,tUnpaid=0,tOD=0,tODctn=0;
+  agents.forEach(a=>{const ag=DATA.agents[a]?.aging||{};tPaid+=ag.canggih_paid_ctn||0;tUnpaid+=ag.canggih_unpaid_ctn||0;tOD+=ag.overdue_count||0;tODctn+=ag.overdue_ctn||0;});
 
-  if (!Object.keys(gbt).length) {
-    el.innerHTML = '<div style="padding:14px 16px;font-family:var(--mono);font-size:10px;color:var(--ink3);">No group brand targets set</div>';
-    return;
-  }
-
-  const incentive = DATA.config?.group_incentive;
-  if (incentive) document.getElementById('grp-incentive').textContent = `Incentive: ${incentive}`;
-
-  el.innerHTML = Object.entries(gbt).map(([brand, data]) => {
-    const p     = data.pct || 0;
-    const color = GB_COLORS[brand] || '#333';
-    const barW  = Math.min(p, 100);
-    return `<div class="grp-row">
-      <div class="grp-name" style="color:${color}">${brand}</div>
-      <div class="grp-bar-wrap"><div class="grp-bar-fill" style="width:${barW}%;background:${barColor(p)}"></div></div>
-      <div class="grp-pct" style="color:${pctColor(p)}">${fmtP(p)}</div>
-    </div>`;
-  }).join('');
-}
-
-// ── Commission Heatmap ─────────────────────────────────────────────────────
-function renderCommHeatmap() {
-  const agents = Object.keys(DATA.agents || {});
-  const brands = Object.keys(DATA.config?.brand_config || BRAND_COLORS);
-  const cols   = brands.length + 1;
-
-  const colW = `${Math.round(100 / cols)}%`;
-  const agentColW = '50px';
-
-  let html = `<div class="heat-table"><div class="heat-grid" style="grid-template-columns:${agentColW} ${brands.map(()=>colW).join(' ')}">`;
-
-  // Headers
-  html += `<div class="heat-col-hdr" style="text-align:left;padding-left:10px;">Agent</div>`;
-  brands.forEach(b => {
-    html += `<div class="heat-col-hdr">${b.replace('LAM+LWM','L+L').replace('iFACE','iFACE')}</div>`;
+  const cols='60px 1fr 1fr 45px 65px';
+  let html=`<div class="card-pad" style="padding-bottom:0;">
+    <div class="aging-summary-grid">
+      <div class="aging-box"><div class="aging-val" style="color:var(--green)">${fi(tPaid)}</div><div class="aging-lbl">Paid CTN</div></div>
+      <div class="aging-box"><div class="aging-val" style="color:var(--gold)">${fi(tUnpaid)}</div><div class="aging-lbl">Unpaid CTN</div></div>
+      <div class="aging-box"><div class="aging-val" style="color:${tOD>0?'var(--accent)':'var(--green)'}">${tOD}</div><div class="aging-lbl">Overdue ≥60d</div></div>
+      <div class="aging-box"><div class="aging-val" style="color:var(--accent)">${fi(tODctn)}</div><div class="aging-lbl">Overdue CTN</div></div>
+    </div>
+  </div>
+  <div class="heat-scroll"><div class="heat-table"><div class="heat-grid" style="grid-template-columns:${cols}">
+    <div class="h-hdr" style="text-align:left;padding-left:6px;">Agent</div>
+    <div class="h-hdr">Paid CTN</div><div class="h-hdr">Unpaid CTN</div>
+    <div class="h-hdr">≥60d</div><div class="h-hdr">OD CTN</div>`;
+  agents.forEach(agent=>{
+    const ag=DATA.agents[agent]?.aging||{};
+    const hasOD=(ag.overdue_count||0)>0;
+    html+=`<div class="h-agent" onclick="openDrill('${agent}')" style="font-size:10px;">${agent}</div>
+      <div class="h-cell" style="font-size:10px;">${fi(ag.canggih_paid_ctn)}</div>
+      <div class="h-cell" style="font-size:10px;color:${(ag.canggih_unpaid_ctn||0)>0?'var(--gold)':'inherit'}">${fi(ag.canggih_unpaid_ctn)}</div>
+      <div class="h-cell ${hasOD?'hc-r':'hc-g'}">${ag.overdue_count||0}</div>
+      <div class="h-cell" style="font-size:10px;color:${hasOD?'var(--accent)':'inherit'}">${fi(ag.overdue_ctn)}</div>`;
   });
+  html+=`</div></div></div>`;
+  document.getElementById('aging-overview').innerHTML=html;}
 
-  // Rows
-  agents.forEach(agent => {
-    const bc = DATA.agents[agent]?.brand_commission || {};
-    html += `<div class="heat-agent-lbl">${agent}</div>`;
-    brands.forEach(b => {
-      const status = bc[b]?.status || 'none_hit';
-      const cls = status === 'both_hit' ? 'hc-green' : status === 'one_hit' ? 'hc-orange' : 'hc-red';
-      const icon = status === 'both_hit' ? '✓' : status === 'one_hit' ? '½' : '✗';
-      html += `<div class="heat-cell ${cls}">${icon}</div>`;
-    });
-  });
+// ── Drill-down ──
+function openDrill(agent){
+  const lb=DATA.team?.leaderboard||[];
+  const entry=lb.find(e=>e.agent===agent)||{};
+  const aData=DATA.agents[agent]||{};
+  const sp=aData.sales_progression||{};
+  const bcomm=aData.brand_commission||{};
+  const ag=aData.aging||{};
+  const dc=aData.debtor_cards||{};
 
-  html += `</div></div>`;
-  document.getElementById('comm-heatmap').innerHTML = html;
-}
+  document.getElementById('dr-name').textContent=agent;
+  document.getElementById('dr-sub').textContent=`Rank #${entry.rank||'?'} · T1 ${fp(entry.t1_pct)}`;
+  document.getElementById('dr-rank').textContent=`#${entry.rank||'?'}`;
 
-// ── KPI Heatmap ────────────────────────────────────────────────────────────
-function renderKpiHeatmap() {
-  const agents = Object.keys(DATA.agents || {});
-  const kpiCols = ['Sales', 'Retain', 'Activ', 'NewAcc', 'SKU', 'Event'];
-
-  let html = `<div class="heat-table"><div class="kh-grid" style="grid-template-columns:50px ${kpiCols.map(()=>'1fr').join(' ')}">`;
-
-  html += `<div class="kh-col-hdr" style="text-align:left;padding-left:10px;">Agent</div>`;
-  kpiCols.forEach(k => { html += `<div class="kh-col-hdr">${k}</div>`; });
-
-  agents.forEach(agent => {
-    const sp = DATA.agents[agent]?.sales_progression?.tiers?.normal_t1 || {};
-    const dc = DATA.agents[agent]?.debtor_cards || {};
-    const totalD = dc.total_debtors || 1;
-
-    // Sales T1 %
-    const salesPct = sp.pct;
-
-    // Retention: active / total debtors *100
-    const retainPct = totalD > 0 ? Math.round((dc.active_count||0)/totalD*100) : null;
-
-    // Activation, new acc, SKU, Event — placeholder from debtor data
-    // These are approximate — real values need KPI module data
-    const kpiVals = [salesPct, retainPct, null, null, null, null];
-
-    html += `<div class="kh-agent">${agent}</div>`;
-    kpiVals.forEach(v => {
-      const cls = v == null ? 'kh-x' : heatClass(v);
-      html += `<div class="kh-cell ${cls}">${v == null ? '—' : v.toFixed(0)+'%'}</div>`;
-    });
-  });
-
-  html += `</div></div>`;
-  document.getElementById('kpi-heatmap').innerHTML = html;
-}
-
-// ── Drill-down ─────────────────────────────────────────────────────────────
-function openDrill(agent) {
-  const lb    = DATA.team?.leaderboard || [];
-  const entry = lb.find(e => e.agent === agent) || {};
-  const aData = DATA.agents[agent] || {};
-  const sp    = aData.sales_progression || {};
-  const bc    = aData.brand_commission  || {};
-  const ag    = aData.aging             || {};
-
-  // Header
-  document.getElementById('dr-name').textContent = agent;
-  document.getElementById('dr-sub').textContent  = `#${entry.rank||'?'} in team · T1 ${fmtP(entry.t1_pct)}`;
-  document.getElementById('dr-rank').textContent = `#${entry.rank||'?'}`;
-
-  // Top stats
-  document.getElementById('dr-ctn').textContent    = fmtN(sp.normal_ctn);
-  const t1gap = sp.tiers?.normal_t1?.gap;
-  document.getElementById('dr-gap').textContent    = t1gap != null ? fmtN(t1gap) : '—';
-  document.getElementById('dr-gap').style.color    = t1gap >= 0 ? 'var(--green)' : 'var(--accent)';
-  document.getElementById('dr-brands').textContent = entry.brands_earned ?? '—';
+  document.getElementById('dr-ctn').textContent=fi(sp.normal_ctn);
+  const t1gap=sp.tiers?.normal_t1?.gap;
+  document.getElementById('dr-gap').textContent=t1gap!=null?(t1gap>=0?'+':'')+fi(t1gap):'—';
+  document.getElementById('dr-gap').style.color=(t1gap||0)>=0?'var(--green)':'var(--accent)';
+  const totalComm=Object.values(bcomm).reduce((s,b)=>s+(b.comm_earned||0),0);
+  document.getElementById('dr-comm').textContent=fr(totalComm);
 
   // Sales tiers
-  const tierDefs = [
-    {key:'normal_t1',label:'Normal T1'},{key:'normal_t2',label:'Normal T2'},
-    {key:'ga',label:'Grey Area'},{key:'ma',label:'Master Agent'}
-  ];
-  document.getElementById('dr-tiers').innerHTML = tierDefs.map(td => {
-    const t = sp.tiers?.[td.key];
-    if (!t) return '';
-    const p = Math.min(t.pct||0, 100);
-    return `<div class="tier-row-d">
-      <div class="tier-lbl">${td.label}</div>
-      <div class="tier-bar-bg"><div class="tier-bar-fill" style="width:${p}%;background:${barColor(t.pct)}"></div></div>
-      <div class="tier-pct-d" style="color:${pctColor(t.pct)}">${fmtP(t.pct)}</div>
-      <div class="tier-gap-d" style="color:${(t.gap||0)>=0?'var(--green)':'var(--accent)'}">${t.gap!=null?(t.gap>=0?'+':'')+fmtN(t.gap):'—'}</div>
+  const tierDefs=[{key:'normal_t1',lbl:'Normal T1'},{key:'normal_t2',lbl:'Normal T2'},{key:'ga',lbl:'Grey Area'},{key:'ma',lbl:'Master Agent'}];
+  document.getElementById('dr-tiers').innerHTML=tierDefs.map(td=>{
+    const t=sp.tiers?.[td.key];
+    if(!t||(!t.target&&!t.actual))return'';
+    const p=Math.min(t.pct||0,100);
+    return`<div class="tier-row">
+      <div class="tier-lbl">${td.lbl}</div>
+      <div class="tier-bar-bg"><div class="tier-bar-fill" style="width:${p}%;background:${bc(t.pct)}"></div></div>
+      <div class="tier-pct" style="color:${pc(t.pct)}">${fp(t.pct)}</div>
+      <div class="tier-gap" style="color:${(t.gap||0)>=0?'var(--green)':'var(--accent)'}">${t.gap!=null?(t.gap>=0?'+':'')+fi(t.gap):'—'}</div>
     </div>`;
-  }).join('');
+  }).join('')||'<div style="padding:14px;font-family:var(--mono);font-size:10px;color:var(--ink3);">No data</div>';
 
-  // Brand commission detail
-  document.getElementById('dr-brands-detail').innerHTML = Object.entries(bc).map(([brand, data]) => {
-    const status = data.status;
-    const stCls  = status==='both_hit'?'bc-both':status==='one_hit'?'bc-one':'bc-none';
-    const stTxt  = status==='both_hit'?`✓ ${fmtRM(data.comm_earned)}`:status==='one_hit'?'⚠ 1 of 2':'✗ Missed';
-    const pen    = data.penetration || {};
-    const ctn    = data.ctn || {};
-    return `<div class="bc-row">
-      <div class="bc-row-top">
-        <div class="bc-brand" style="color:${BRAND_COLORS[brand]||'#333'}">${brand}</div>
-        <div class="bc-status ${stCls}">${stTxt}</div>
+  // Brand commission
+  document.getElementById('dr-brands').innerHTML=Object.entries(bcomm).map(([brand,data])=>{
+    const st=data.status||'none_hit';
+    const badgeCls=st==='both_hit'?'bc-g':st==='one_hit'?'bc-o':'bc-r';
+    const badgeTxt=st==='both_hit'?`✓ ${fr(data.comm_earned)}`:st==='one_hit'?'⚠ 1 of 2':'✗ Missed';
+    const pen=data.penetration||{},ctn=data.ctn||{};
+    return`<div class="bc-row">
+      <div class="bc-top">
+        <div class="bc-brand" style="color:${BC[brand]||'#333'}">${brand}</div>
+        <div class="bc-badge ${badgeCls}">${badgeTxt}</div>
       </div>
       <div class="bc-crit">
-        <div class="bc-crit-box ${pen.hit?'hit':'miss'}">
-          <div class="bc-crit-lbl">Penetration</div>
-          <div class="bc-crit-val" style="color:${pen.hit?'var(--green)':'var(--accent)'}">${pen.count??'—'} cust</div>
-          <div class="bc-crit-sub">Target ${pen.target??'—'} · ${pen.hit?'✓ Hit':fmtP(pen.pct)}</div>
+        <div class="bc-box ${pen.hit?'hit':'miss'}">
+          <div class="bc-lbl">Penetration</div>
+          <div class="bc-val" style="color:${pen.hit?'var(--green)':'var(--accent)'}">${pen.count??0} cust</div>
+          <div class="bc-sub">Target ${pen.target??0} · ${pen.hit?'✓ Hit':fp(pen.pct)}</div>
         </div>
-        <div class="bc-crit-box ${ctn.hit?'hit':'miss'}">
-          <div class="bc-crit-lbl">CTN Sold</div>
-          <div class="bc-crit-val" style="color:${ctn.hit?'var(--green)':'var(--accent)'}">${fmtN(ctn.sold)}</div>
-          <div class="bc-crit-sub">Target ${fmtN(ctn.target)} · ${ctn.hit?'✓ Hit':fmtP(ctn.pct)}</div>
+        <div class="bc-box ${ctn.hit?'hit':'miss'}">
+          <div class="bc-lbl">CTN Sold</div>
+          <div class="bc-val" style="color:${ctn.hit?'var(--green)':'var(--accent)'}">${fi(ctn.sold)}</div>
+          <div class="bc-sub">Target ${fi(ctn.target)} · ${ctn.hit?'✓ Hit':fp(ctn.pct)}</div>
         </div>
       </div>
     </div>`;
-  }).join('');
+  }).join('')||'<div style="padding:14px;font-family:var(--mono);font-size:10px;color:var(--ink3);">No data</div>';
 
-  // KPI detail (using available data)
-  const sp1 = sp.tiers?.normal_t1 || {};
-  const dc  = aData.debtor_cards  || {};
-  const totalD = dc.total_debtors || 1;
-  const retainPct = totalD > 0 ? Math.round((dc.active_count||0)/totalD*100) : 0;
+  // Debtor KPI
+  const rate=dc.activation_rate??0;
+  document.getElementById('dr-kpi').innerHTML=[
+    {lbl:'Total Debtors', val:dc.total_debtors||0,     sub:'Assigned accounts', pct:null},
+    {lbl:'已激活',         val:dc.active_count||0,      sub:'Bought this month', pct:rate},
+    {lbl:'待激活',         val:dc.reactivation_count||0,sub:'Need reactivation', pct:null},
+    {lbl:'光顾率',         val:rate+'%',                sub:'Excl. P-Personal',  pct:rate},
+    {lbl:'新增SKU',        val:dc.total_new_sku||0,     sub:'New SKU this month',pct:null},
+    {lbl:'Paid CTN',      val:fi(ag.canggih_paid_ctn), sub:'Canggih in-house',  pct:null},
+  ].map(item=>`<div class="kpi-box-d">
+    <div class="kpi-lbl-d">${item.lbl}</div>
+    <div class="kpi-val-d" style="color:${item.pct!=null?pc(item.pct):'var(--ink)'}">${item.val}</div>
+    <div class="kpi-sub-d">${item.sub}</div>
+    ${item.pct!=null?`<div class="kpi-bar"><div class="kpi-bar-fill" style="width:${Math.min(item.pct,100)}%;background:${bc(item.pct)}"></div></div>`:''}
+  </div>`).join('');
 
-  const kpiItems = [
-    {label:'Sales Normal',val:fmtP(sp1.pct),sub:`${fmtN(sp1.actual)} / ${fmtN(sp1.target)}`,pct:sp1.pct},
-    {label:'Active Debtors',val:`${dc.active_count||0}`,sub:`of ${dc.total_debtors||0} total`,pct:retainPct},
-    {label:'Pending',val:`${dc.pending_count||0}`,sub:'No purchase this month',pct:null},
-    {label:'Reactivate',val:`${dc.reactivation_count||0}`,sub:'2+ months inactive',pct:null},
-    {label:'Paid CTN',val:fmtN(sp.total_canggih_ctn),sub:'Canggih in-house',pct:sp1.pct},
-    {label:'8COM CTN',val:fmtN(sp.eightcom_paid_ctn),sub:'Non-Canggih paid',pct:null},
-    {label:'Unpaid CTN',val:fmtN(ag.canggih_unpaid_ctn),sub:'Awaiting payment',pct:null},
-    {label:'Overdue',val:`${ag.overdue_count||0}`,sub:'≥60 days outstanding',pct:null},
-  ];
+  // Aging
+  document.getElementById('dr-aging').innerHTML=`
+    <div class="dr-stat"><div class="dr-stat-val" style="color:var(--green);font-size:16px">${fi(ag.canggih_paid_ctn)}</div><div class="dr-stat-lbl">Paid CTN</div></div>
+    <div class="dr-stat"><div class="dr-stat-val" style="color:var(--gold);font-size:16px">${fi(ag.canggih_unpaid_ctn)}</div><div class="dr-stat-lbl">Unpaid CTN</div></div>
+    <div class="dr-stat"><div class="dr-stat-val" style="color:${(ag.overdue_count||0)>0?'var(--accent)':'var(--green)'};font-size:16px">${ag.overdue_count||0}</div><div class="dr-stat-lbl">Overdue ≥60d</div></div>`;
 
-  document.getElementById('dr-kpi').innerHTML = kpiItems.map(item => {
-    const barW = item.pct != null ? Math.min(item.pct, 100) : 0;
-    return `<div class="kpi-d-box">
-      <div class="kpi-d-lbl">${item.label}</div>
-      <div class="kpi-d-val" style="color:${item.pct!=null?pctColor(item.pct):'var(--ink)'}">${item.val}</div>
-      <div class="kpi-d-sub">${item.sub}</div>
-      ${item.pct!=null?`<div class="kpi-d-bar"><div class="kpi-d-bar-fill" style="width:${barW}%;background:${barColor(item.pct)}"></div></div>`:''}
-    </div>`;
-  }).join('');
-
-  // Aging summary
-  document.getElementById('dr-aging').innerHTML = `
-    <div class="drill-stat"><div class="drill-stat-val" style="color:var(--green);font-size:16px">${fmtN(ag.canggih_paid_ctn)}</div><div class="drill-stat-lbl">Canggih Paid</div></div>
-    <div class="drill-stat"><div class="drill-stat-val" style="color:var(--gold);font-size:16px">${fmtN(ag.canggih_unpaid_ctn)}</div><div class="drill-stat-lbl">Unpaid</div></div>
-    <div class="drill-stat"><div class="drill-stat-val" style="color:${ag.overdue_count>0?'var(--accent)':'var(--green)'};font-size:16px">${ag.overdue_count||0}</div><div class="drill-stat-lbl">Overdue ≥60d</div></div>`;
-
-  // Switch view
   document.getElementById('overview-view').classList.remove('active');
   document.getElementById('drill-view').classList.add('active');
-  window.scrollTo(0, 0);
+  window.scrollTo(0,0);
 }
 
-function closeDrill() {
+function closeDrill(){
   document.getElementById('drill-view').classList.remove('active');
   document.getElementById('overview-view').classList.add('active');
-  window.scrollTo(0, 0);
+  window.scrollTo(0,0);
 }
 
-// ── Boot ───────────────────────────────────────────────────────────────────
 loadData();
 </script>
 </body>

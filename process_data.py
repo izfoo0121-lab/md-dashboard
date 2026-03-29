@@ -243,7 +243,7 @@ def filter_scope(df):
 def calc_sales_progression(df, targets, agents, cur_month):
     """
     Per agent: sum paid Canggih CTN split by tier (Normal / GA / MA).
-    Also compute total Canggih CTN and 8COM CTN.
+    Also: transaction count, avg per working day, per-SKU debtor+CTN 4-month trend.
     """
     log("Calculating Sales Progression...")
 
@@ -251,35 +251,43 @@ def calc_sales_progression(df, targets, agents, cur_month):
     paid = df[df["paid_on"] == cur_month].copy()
 
     # Split Canggih vs 8COM
-    canggih_paid = paid[paid["item_group"] != EIGHTCOM_GROUP]
+    canggih_paid  = paid[paid["item_group"] != EIGHTCOM_GROUP]
     eightcom_paid = paid[paid["item_group"] == EIGHTCOM_GROUP]
 
-    # All rows (paid + unpaid) for 8COM unpaid calc
+    # All rows for unpaid calc
     eightcom_all = df[df["item_group"] == EIGHTCOM_GROUP]
-    canggih_all  = df[df["item_group"] != EIGHTCOM_GROUP]
+
+    # Working days for avg calculation
+    wd = calc_working_days()
+    elapsed_days = max(wd["elapsed_working_days"], 1)
+
+    # All Canggih for 4-month SKU trend
+    canggih_all = df[df["item_group"] != EIGHTCOM_GROUP]
+
+    # 4-month labels for trend (current + prev 3)
+    from datetime import date
+    today = date.today()
+    month_labels = []
+    for i in range(3, -1, -1):
+        m = today.month - i
+        y = today.year
+        while m <= 0:
+            m += 12; y -= 1
+        month_labels.append(date(y, m, 1).strftime("%b %y"))
 
     result = {}
 
     for agent in agents:
-        ag_tgts = targets.get("agents", {}).get(agent, {})
-        sp_tgts = ag_tgts.get("sales_progression", {})
+        ag_tgts   = targets.get("agents", {}).get(agent, {})
+        sp_tgts   = ag_tgts.get("sales_progression", {})
 
-        # Canggih paid this month for this agent
-        ag_canggih = canggih_paid[canggih_paid["agent"] == agent]
+        ag_canggih     = canggih_paid[canggih_paid["agent"] == agent]
+        ag_canggih_all = canggih_all[canggih_all["agent"] == agent]
 
-        # Tier split using sales_type → tier map
-        normal_ctn = ag_canggih[
-            ag_canggih["sales_type"].map(SALES_TYPE_MAP) == "normal"
-        ]["qty_ctn"].sum()
-
-        ga_ctn = ag_canggih[
-            ag_canggih["sales_type"].map(SALES_TYPE_MAP) == "ga"
-        ]["qty_ctn"].sum()
-
-        ma_ctn = ag_canggih[
-            ag_canggih["sales_type"].map(SALES_TYPE_MAP) == "ma"
-        ]["qty_ctn"].sum()
-
+        # Tier split
+        normal_ctn = ag_canggih[ag_canggih["sales_type"].map(SALES_TYPE_MAP) == "normal"]["qty_ctn"].sum()
+        ga_ctn     = ag_canggih[ag_canggih["sales_type"].map(SALES_TYPE_MAP) == "ga"]["qty_ctn"].sum()
+        ma_ctn     = ag_canggih[ag_canggih["sales_type"].map(SALES_TYPE_MAP) == "ma"]["qty_ctn"].sum()
         total_canggih_ctn = ag_canggih["qty_ctn"].sum()
 
         # 8COM
@@ -288,51 +296,83 @@ def calc_sales_progression(df, targets, agents, cur_month):
             (eightcom_all["agent"] == agent) & (eightcom_all["paid_on"] == "")
         ]["qty_ctn"].sum()
 
+        # Transaction counts (unique invoices this month)
+        txn_count = ag_canggih["doc_no"].nunique() if "doc_no" in ag_canggih.columns else len(ag_canggih)
+        avg_txn   = round(txn_count / elapsed_days, 1)
+
         # Targets
-        t1  = sp_tgts.get("normal_t1")
-        t2  = sp_tgts.get("normal_t2")
-        ga  = sp_tgts.get("ga")
-        ma  = sp_tgts.get("ma")
+        t1 = sp_tgts.get("normal_t1")
+        t2 = sp_tgts.get("normal_t2")
+        ga = sp_tgts.get("ga")
+        ma = sp_tgts.get("ma")
 
         normal_ctn = round(float(normal_ctn), 2)
         ga_ctn     = round(float(ga_ctn), 2)
         ma_ctn     = round(float(ma_ctn), 2)
 
+        # ── Per-SKU 4-month trend (like Image 1) ──────────────────────────
+        SKU_CODES = {
+            "CM-002":   "CM-002",   "EVO":     "EVO",     "IMP-001": "IMP-001",
+            "LF-002":   "LF-002",   "TR-002":  "TR-002",  "TR20":    "TR20",
+            "SKNR":     "SKNR",     "SKNW":    "SKNW",
+            "IFACE B":  "IFACE B",  "IFACE M": "IFACE M", "IFACE R": "IFACE R", "IFACE DB":"IFACE DB",
+            "BISON-G":  "BISON-G",  "BISON-M": "BISON-M", "BISON-R": "BISON-R",
+            "LAM":      "LAM",      "LWM":     "LWM",
+        }
+        sku_trend = {}
+        for sku_label, sku_code in SKU_CODES.items():
+            sku_rows = ag_canggih_all[ag_canggih_all["item_code"] == sku_code]
+            month_data = {}
+            for lbl in month_labels:
+                m_rows = sku_rows[sku_rows["paid_on"] == lbl]
+                month_data[lbl] = {
+                    "debtors": int(m_rows["debtor_code"].nunique()),
+                    "ctn":     round(float(m_rows["qty_ctn"].sum()), 0),
+                }
+            sku_trend[sku_label] = month_data
+
+        # Active debtors per month (for 活跃顾客 row)
+        active_by_month = {}
+        total_debtors = ag_canggih_all["debtor_code"].nunique()
+        for lbl in month_labels:
+            m_rows = ag_canggih_all[ag_canggih_all["paid_on"] == lbl]
+            active_by_month[lbl] = {
+                "debtors": int(m_rows["debtor_code"].nunique()),
+                "ctn":     round(float(m_rows["qty_ctn"].sum()), 0),
+            }
+
         result[agent] = {
-            "normal_ctn":       normal_ctn,
-            "ga_ctn":           ga_ctn,
-            "ma_ctn":           ma_ctn,
-            "total_canggih_ctn": round(float(total_canggih_ctn), 2),
+            "normal_ctn":          normal_ctn,
+            "ga_ctn":              ga_ctn,
+            "ma_ctn":              ma_ctn,
+            "total_canggih_ctn":   round(float(total_canggih_ctn), 2),
             "eightcom_paid_ctn":   round(float(ag_8com_paid), 2),
             "eightcom_unpaid_ctn": round(float(ag_8com_unpaid), 2),
+            "txn_count":           int(txn_count),
+            "avg_txn_per_day":     avg_txn,
+            "elapsed_working_days": elapsed_days,
+            "month_labels":        month_labels,
+            "sku_trend":           sku_trend,
+            "active_by_month":     active_by_month,
+            "total_debtors_all":   int(total_debtors),
             "tiers": {
                 "normal_t1": {
-                    "target":  t1,
-                    "actual":  normal_ctn,
-                    "gap":     round(normal_ctn - t1, 2) if t1 else None,
-                    "pct":     pct(normal_ctn, t1),
-                    "color":   color_code(pct(normal_ctn, t1)),
+                    "target": t1, "actual": normal_ctn,
+                    "gap":   round(normal_ctn - t1, 2) if t1 else None,
+                    "pct":   pct(normal_ctn, t1), "color": color_code(pct(normal_ctn, t1)),
                 },
                 "normal_t2": {
-                    "target":  t2,
-                    "actual":  normal_ctn,
-                    "gap":     round(normal_ctn - t2, 2) if t2 else None,
-                    "pct":     pct(normal_ctn, t2),
-                    "color":   color_code(pct(normal_ctn, t2)),
+                    "target": t2, "actual": normal_ctn,
+                    "gap":   round(normal_ctn - t2, 2) if t2 else None,
+                    "pct":   pct(normal_ctn, t2), "color": color_code(pct(normal_ctn, t2)),
                 },
-                "ga": {
-                    "target":  ga,
-                    "actual":  ga_ctn,
-                    "gap":     round(ga_ctn - ga, 2) if ga else None,
-                    "pct":     pct(ga_ctn, ga),
-                    "color":   color_code(pct(ga_ctn, ga)),
+                "ga": {"target": ga, "actual": ga_ctn,
+                    "gap": round(ga_ctn - ga, 2) if ga else None,
+                    "pct": pct(ga_ctn, ga), "color": color_code(pct(ga_ctn, ga)),
                 } if ga else None,
-                "ma": {
-                    "target":  ma,
-                    "actual":  ma_ctn,
-                    "gap":     round(ma_ctn - ma, 2) if ma else None,
-                    "pct":     pct(ma_ctn, ma),
-                    "color":   color_code(pct(ma_ctn, ma)),
+                "ma": {"target": ma, "actual": ma_ctn,
+                    "gap": round(ma_ctn - ma, 2) if ma else None,
+                    "pct": pct(ma_ctn, ma), "color": color_code(pct(ma_ctn, ma)),
                 } if ma else None,
             }
         }
@@ -1014,7 +1054,216 @@ def calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month):
     }
 
 
-# ── Working days progress ─────────────────────────────────────────────────────
+# ── Module: KPI Calculation ───────────────────────────────────────────────────
+
+def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards):
+    """
+    Calculate KPI scores for Sections A, B, C.
+    Section D & E keyed in manually by Accounts (later).
+    Scoring: min(actual/target, 1.0) × weight = score points
+    """
+    log("Calculating KPI scores...")
+
+    kpi_config = targets.get("kpi_config", {})
+
+    # ── Default weightages ────────────────────────────────────────────────────
+    KPI_ITEMS = [
+        # key                   label                          section  weight
+        ("sales_normal_pct",    "销售 Normal %",               "A",     0.35),
+        ("new_accounts",        "开新户口",                     "B",     0.04),
+        ("vip_count",           "VIP 招聘",                    "B",     0.01),
+        ("reactivation",        "激活户口",                     "B",     0.03),
+        ("new_sku",             "加SKU数量",                    "B",     0.03),
+        ("activation_rate",     "持续光顾率",                   "B",     0.03),
+        ("event",               "Event / PSR",                 "B",     0.03),
+        ("alt_channel",         "来自替代渠道的销售",            "B",     0.02),
+        ("case_followup",       "确保70%案件7天内完成",          "B",     0.03),
+        ("evo_pen",             "EVO Penetration",             "B",     0.015),
+        ("evo_target",          "EVO Target",                  "B",     0.015),
+        ("iface_pen",           "iFACE Penetration",           "B",     0.015),
+        ("iface_target",        "iFACE Target",                "B",     0.015),
+        ("sukun_pen",           "SUKUN Penetration",           "B",     0.015),
+        ("sukun_target",        "SUKUN Target",                "B",     0.015),
+        ("bison_pen",           "BISON Penetration",           "B",     0.015),
+        ("bison_target",        "BISON Target",                "B",     0.015),
+        ("tr20_pen",            "TR20 Penetration",            "B",     0.015),
+        ("tr20_target",         "TR20 Target",                 "B",     0.015),
+        ("birthday_campaign",   "生日礼物 Campaign",            "C",     0.01),
+        ("iface_campaign",      "iFACE Campaign",              "C",     0.02),
+    ]
+
+    def score_item(actual, target, weight):
+        """Score = min(actual/target, 1.0) × weight × 100"""
+        if not target or target == 0: return 0.0
+        return round(min(float(actual or 0) / float(target), 1.0) * weight * 100, 3)
+
+    result = {}
+
+    for agent in agents:
+        ag_cfg  = targets.get("agents", {}).get(agent, {})
+        kpi_ag  = kpi_config.get(agent, {})
+
+        # ── Pull actuals ──────────────────────────────────────────────────────
+        sp = sales_prog.get(agent, {})
+        bc = brand_comm.get(agent, {})
+        dc = debtor_cards.get(agent, {})
+
+        normal_pct    = (sp.get("tiers", {}).get("normal_t1", {}).get("pct", 0) or 0)
+        debtors       = dc.get("debtors", [])
+        new_acc_count = sum(1 for d in debtors if d.get("is_new", False))
+        vip_count     = sum(1 for d in debtors if d.get("vip", False))
+        reactiv_count = dc.get("reactivation_count", 0) or 0
+        new_sku_count = dc.get("total_new_sku", 0) or 0
+        act_rate      = dc.get("activation_rate", 0) or 0
+
+        # Manual entries (stored in targets.json under kpi_manual)
+        manual = kpi_ag.get("kpi_manual", {})
+        event_actual     = manual.get("event", 0) or 0          # Agent enters
+        alt_ch_score     = manual.get("alt_channel", 0) or 0    # Marketing enters (direct score 0-2)
+        case_fu_score    = manual.get("case_followup", 0) or 0  # Mgmt enters (direct score 0-3)
+        bday_camp_score  = manual.get("birthday_campaign", 0) or 0  # Campaign auto or manual
+        iface_camp_score = manual.get("iface_campaign", 0) or 0     # Campaign auto or manual
+
+        # Brand commission data
+        def bdata(brand):
+            d = bc.get(brand, {})
+            return {
+                "pen_actual":  d.get("penetration", {}).get("count", 0) or 0,
+                "pen_target":  d.get("penetration", {}).get("target", 1) or 1,
+                "ctn_actual":  d.get("ctn", {}).get("sold", 0) or 0,
+                "ctn_target":  d.get("ctn", {}).get("target", 1) or 1,
+            }
+
+        bv = {b: bdata(b) for b in ["EVO","iFACE","SUKUN","BISON","TR20"]}
+
+        # ── Build items with scores ───────────────────────────────────────────
+        # Get targets from kpi_ag (set per agent in Admin), with sensible defaults
+        def tgt(key, default): return float(kpi_ag.get(f"{key}_target", default))
+
+        actuals = {
+            "sales_normal_pct": normal_pct,
+            "new_accounts":     new_acc_count,
+            "vip_count":        vip_count,
+            "reactivation":     reactiv_count,
+            "new_sku":          new_sku_count,
+            "activation_rate":  act_rate,
+            "event":            event_actual,
+            "evo_pen":          bv["EVO"]["pen_actual"],
+            "evo_target":       bv["EVO"]["ctn_actual"],
+            "iface_pen":        bv["iFACE"]["pen_actual"],
+            "iface_target":     bv["iFACE"]["ctn_actual"],
+            "sukun_pen":        bv["SUKUN"]["pen_actual"],
+            "sukun_target":     bv["SUKUN"]["ctn_actual"],
+            "bison_pen":        bv["BISON"]["pen_actual"],
+            "bison_target":     bv["BISON"]["ctn_actual"],
+            "tr20_pen":         bv["TR20"]["pen_actual"],
+            "tr20_target":      bv["TR20"]["ctn_actual"],
+        }
+
+        item_targets = {
+            "sales_normal_pct": tgt("sales_normal_pct", 100),
+            "new_accounts":     tgt("new_accounts",     5),
+            "vip_count":        tgt("vip_count",        3),
+            "reactivation":     tgt("reactivation",     5),
+            "new_sku":          tgt("new_sku",          5),
+            "activation_rate":  tgt("activation_rate",  80),
+            "event":            tgt("event",            20),
+            "evo_pen":          bv["EVO"]["pen_target"],
+            "evo_target":       bv["EVO"]["ctn_target"],
+            "iface_pen":        bv["iFACE"]["pen_target"],
+            "iface_target":     bv["iFACE"]["ctn_target"],
+            "sukun_pen":        bv["SUKUN"]["pen_target"],
+            "sukun_target":     bv["SUKUN"]["ctn_target"],
+            "bison_pen":        bv["BISON"]["pen_target"],
+            "bison_target":     bv["BISON"]["ctn_target"],
+            "tr20_pen":         bv["TR20"]["pen_target"],
+            "tr20_target":      bv["TR20"]["ctn_target"],
+        }
+
+        items_out = {}
+        total_auto_score  = 0.0
+        total_manual_score = 0.0
+        total_max_auto    = 0.0
+
+        for key, label, section, default_weight in KPI_ITEMS:
+            # Per-agent weight override from Admin
+            weight = float(kpi_ag.get(f"{key}_weight", default_weight))
+
+            if key in ("alt_channel", "case_followup"):
+                # Manual score entered directly (not actual/target ratio)
+                # alt_channel max = weight*100, entered as direct score
+                sc = round(min(float(manual.get(key, 0) or 0), weight * 100), 3)
+                items_out[key] = {
+                    "label": label, "section": section, "weight": weight,
+                    "actual": manual.get(key, 0), "target": None,
+                    "score": sc, "max_score": round(weight * 100, 3),
+                    "pct": round(sc / (weight * 100) * 100, 1) if weight else 0,
+                    "source": "manual", "input_role": "management" if key == "case_followup" else "marketing",
+                }
+                total_manual_score += sc
+
+            elif key in ("birthday_campaign", "iface_campaign"):
+                sc = round(min(float(manual.get(key, 0) or 0), weight * 100), 3)
+                items_out[key] = {
+                    "label": label, "section": section, "weight": weight,
+                    "actual": manual.get(key, 0), "target": None,
+                    "score": sc, "max_score": round(weight * 100, 3),
+                    "pct": round(sc / (weight * 100) * 100, 1) if weight else 0,
+                    "source": "manual", "input_role": "marketing",
+                }
+                total_manual_score += sc
+
+            elif key == "event":
+                sc = score_item(actuals[key], item_targets[key], weight)
+                items_out[key] = {
+                    "label": label, "section": section, "weight": weight,
+                    "actual": actuals[key], "target": item_targets[key],
+                    "score": sc, "max_score": round(weight * 100, 3),
+                    "pct": round(actuals[key] / item_targets[key] * 100, 1) if item_targets[key] else 0,
+                    "source": "manual", "input_role": "agent",
+                }
+                total_manual_score += sc
+
+            else:
+                actual = actuals.get(key, 0)
+                target = item_targets.get(key, 1)
+                sc     = score_item(actual, target, weight)
+                pct    = round(actual / target * 100, 1) if target else 0
+                items_out[key] = {
+                    "label": label, "section": section, "weight": weight,
+                    "actual": actual, "target": target,
+                    "score": sc, "max_score": round(weight * 100, 3),
+                    "pct": pct,
+                    "source": "auto", "input_role": "system",
+                }
+                total_auto_score  += sc
+                total_manual_score += 0  # counted separately
+
+        # Section scores
+        section_scores = {}
+        for sec in ["A", "B", "C"]:
+            sec_items = {k: v for k, v in items_out.items() if v["section"] == sec}
+            section_scores[sec] = {
+                "score":     round(sum(v["score"] for v in sec_items.values()), 3),
+                "max_score": round(sum(v["max_score"] for v in sec_items.values()), 3),
+            }
+
+        total_abc = round(sum(v["score"] for v in items_out.values()), 3)
+        max_abc   = round(sum(v["max_score"] for v in items_out.values()), 3)
+
+        result[agent] = {
+            "items":          items_out,
+            "section_scores": section_scores,
+            "total_abc":      total_abc,
+            "max_abc":        max_abc,
+            "total_pct":      round(total_abc / max_abc * 100, 1) if max_abc else 0,
+            # Placeholder for D & E (keyed by Accounts dept)
+            "section_d":      {"score": manual.get("section_d_score", None), "max_score": 20.0},
+            "section_e":      {"score": manual.get("section_e_score", None), "max_score": 5.0},
+            "grand_total":    round(total_abc + (manual.get("section_d_score") or 0) + (manual.get("section_e_score") or 0), 3),
+        }
+
+    return result
 
 def calc_working_days():
     """Calculate working day progress for current month."""
@@ -1084,6 +1333,7 @@ def main():
     aging       = calc_aging(df, agents, cur_month)
     debtor_cards = calc_debtor_cards(df, debtor_df, agents, cur_month)
     group_brands = calc_group_brand_targets(df, targets, cur_month, group_brand_config)
+    kpi         = calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards)
     team        = calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month)
     working_days = calc_working_days()
 
@@ -1110,6 +1360,7 @@ def main():
             "newbie_scheme":      newbie.get(agent, None),
             "aging":              aging.get(agent, {}),
             "debtor_cards":       debtor_cards.get(agent, {}),
+            "kpi":                kpi.get(agent, {}),
         }
 
     # ── Write JSON ──────────────────────────────────────────────────

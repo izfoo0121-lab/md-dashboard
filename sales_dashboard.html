@@ -77,8 +77,51 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 /* SKU tooltip popup */
 .sku-tooltip{position:fixed;background:var(--ink);color:#fff;font-family:var(--mono);font-size:11px;padding:8px 12px;border-radius:8px;z-index:9999;pointer-events:none;border:1px solid rgba(255,255,255,.15);box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:200px;line-height:1.5;}
 
-/* Brand filter banner */
-.brand-banner{background:rgba(240,192,64,.12);border:1px solid rgba(240,192,64,.3);border-radius:10px;padding:8px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+/* ── KPI Tab ── */
+.kpi-hero{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px;position:relative;overflow:hidden;}
+.kpi-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--blue),var(--green),var(--accent));}
+.kpi-total-score{font-family:var(--display);font-size:56px;letter-spacing:.02em;line-height:1;}
+.kpi-section-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;}
+.kpi-sec-box{background:var(--card);border-radius:8px;padding:8px;text-align:center;}
+.kpi-sec-val{font-family:var(--display);font-size:18px;letter-spacing:.03em;line-height:1;}
+.kpi-sec-lbl{font-family:var(--mono);font-size:7px;color:var(--muted);text-transform:uppercase;margin-top:2px;}
+.kpi-item-row{padding:10px 0;border-bottom:1px solid var(--border);display:grid;grid-template-columns:1fr 60px 50px;gap:8px;align-items:center;}
+.kpi-item-row:last-child{border-bottom:none;}
+.kpi-item-lbl{font-family:var(--mono);font-size:10px;}
+.kpi-item-sub{font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:1px;}
+.kpi-item-bar-bg{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:4px;}
+.kpi-item-bar-fill{height:100%;border-radius:2px;}
+.kpi-item-pct{font-family:var(--mono);font-size:10px;text-align:right;}
+.kpi-item-score{font-family:var(--mono);font-size:10px;font-weight:500;text-align:right;}
+.kpi-manual-btn{background:rgba(77,166,255,.15);border:1px solid rgba(77,166,255,.3);color:var(--blue);font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;}
+.kpi-section-hdr{font-family:var(--display);font-size:14px;letter-spacing:.08em;color:var(--muted);padding:10px 0 6px;margin-top:4px;border-top:1px solid var(--border);}
+.kpi-de-placeholder{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;margin-bottom:10px;}
+
+.flag-btn{background:rgba(255,95,95,.1);border:1px solid rgba(255,95,95,.3);color:var(--red);font-family:var(--mono);font-size:9px;padding:4px 8px;border-radius:8px;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;margin-top:8px;width:100%;transition:background .15s;}
+.flag-btn:hover,.flag-btn:active{background:rgba(255,95,95,.2);}
+.flag-btn.flagged{background:rgba(255,95,95,.2);border-color:var(--red);color:var(--red);}
+.flag-badge{background:rgba(255,95,95,.2);color:var(--red);font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:10px;border:1px solid rgba(255,95,95,.3);}
+
+/* Bottom sheet */
+.sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .2s;}
+.sheet-overlay.open{opacity:1;pointer-events:all;}
+.sheet{background:var(--surface);border-radius:16px 16px 0 0;padding:20px 18px 30px;width:100%;transform:translateY(100%);transition:transform .25s ease;max-height:85vh;overflow-y:auto;}
+.sheet-overlay.open .sheet{transform:translateY(0);}
+.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;}
+.sheet-title{font-family:var(--display);font-size:22px;letter-spacing:.05em;margin-bottom:4px;}
+.sheet-sub{font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:16px;}
+.flag-options{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+.flag-option{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:border-color .15s;}
+.flag-option:hover,.flag-option.selected{border-color:var(--red);}
+.flag-option.selected{background:rgba(255,95,95,.08);}
+.flag-opt-icon{font-size:18px;}
+.flag-opt-lbl{font-weight:600;font-size:13px;}
+.flag-opt-sub{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:1px;}
+.flag-note{width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);font-family:var(--body);font-size:13px;padding:10px 12px;border-radius:10px;resize:none;margin-bottom:12px;min-height:70px;}
+.flag-note:focus{outline:none;border-color:var(--red);}
+.sheet-submit{width:100%;background:var(--red);color:#fff;border:none;font-family:var(--display);font-size:18px;letter-spacing:.08em;padding:12px;border-radius:10px;cursor:pointer;}
+.sheet-submit:disabled{opacity:.4;cursor:not-allowed;}
+.sheet-cancel{width:100%;background:transparent;border:none;color:var(--muted);font-family:var(--mono);font-size:11px;padding:10px;cursor:pointer;margin-top:6px;}background:rgba(240,192,64,.12);border:1px solid rgba(240,192,64,.3);border-radius:10px;padding:8px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
 .brand-banner-text{font-family:var(--mono);font-size:11px;color:var(--accent);}
 .brand-banner-close{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0;line-height:1;}
 
@@ -257,9 +300,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
       <div class="val" style="color:var(--blue)" id="sum-rate">—</div>
       <div class="lbl">光顾率*</div>
     </div>
-    <div class="summary-box">
-      <div class="val" style="color:var(--purple)" id="sum-newsku">—</div>
-      <div class="lbl">新增SKU</div>
+    <div class="summary-box" style="cursor:pointer;" onclick="setSpecialFilter('flagged', document.querySelector('[data-val=\\'flagged\\']'))">
+      <div class="val" style="color:var(--red)" id="sum-flags">0</div>
+      <div class="lbl">⚑ Flagged</div>
     </div>
   </div>
   <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:2px 2px 6px;"> * 持续光顾率 excludes P-Personal</div>
@@ -276,6 +319,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
     <button class="filter-chip" data-val="birthday" onclick="setSpecialFilter('birthday',this)">🎂 Birthday</button>
     <button class="filter-chip" data-val="drop" onclick="setSpecialFilter('drop',this)">📉 Drop</button>
     <button class="filter-chip" data-val="newsku" onclick="setSpecialFilter('newsku',this)">✨ 新增SKU</button>
+    <button class="filter-chip" data-val="flagged" onclick="setSpecialFilter('flagged',this)" style="border-color:rgba(255,95,95,.4);color:var(--red);">⚑ Flagged</button>
   </div>
   <div class="filter-row" id="type-filter-row">
     <span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">Type:</span>
@@ -322,6 +366,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
     </div>
   </div>
   <div id="tier-cards"></div>
+
+  <!-- Monthly Personal Summary Card -->
+  <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);padding:4px 0 6px;border-top:1px solid var(--border);margin:10px 0 8px;">📊 Monthly Summary</div>
+  <div id="monthly-personal-card"></div>
+
+  <!-- SKU Trend Table -->
+  <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);padding:4px 0 6px;border-top:1px solid var(--border);margin:10px 0 8px;">📦 SKU Trend (4 Months)</div>
+  <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+    <div id="sku-trend-table"></div>
+  </div>
+
   <div class="sec-label">8COM (Non-Canggih)</div>
   <div class="eightcom-strip">
     <div class="eightcom-box"><div style="font-family:var(--mono);font-size:18px;" id="8com-paid">—</div><div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px;">PAID CTN</div></div>
@@ -371,12 +426,66 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
   </div>
 </div>
 
-<!-- ── Bottom Nav ── -->
+<!-- ── View 7: KPI ── -->
+<div id="view-kpi" class="view">
+  <div id="kpi-content">
+    <div style="text-align:center;padding:30px;font-family:var(--mono);font-size:11px;color:var(--muted);">Select an agent to view KPI</div>
+  </div>
+</div>
+
+<!-- ── Flag Bottom Sheet ── -->
+<div class="sheet-overlay" id="flag-sheet-overlay" onclick="closeFlagSheet(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">⚑ Flag Debtor</div>
+    <div class="sheet-sub" id="sheet-debtor-name">—</div>
+    <div class="flag-options">
+      <div class="flag-option" data-reason="cant_contact" onclick="selectFlagReason(this)">
+        <div class="flag-opt-icon">📵</div>
+        <div><div class="flag-opt-lbl">Can't Contact</div><div class="flag-opt-sub">Unable to reach debtor</div></div>
+      </div>
+      <div class="flag-option" data-reason="close_account" onclick="selectFlagReason(this)">
+        <div class="flag-opt-icon">❌</div>
+        <div><div class="flag-opt-lbl">Close Account Request</div><div class="flag-opt-sub">Debtor requested to close account</div></div>
+      </div>
+      <div class="flag-option" data-reason="transfer" onclick="selectFlagReason(this)">
+        <div class="flag-opt-icon">🔄</div>
+        <div><div class="flag-opt-lbl">Transfer / Area Change</div><div class="flag-opt-sub">Debtor moved or changed area</div></div>
+      </div>
+      <div class="flag-option" data-reason="other" onclick="selectFlagReason(this)">
+        <div class="flag-opt-icon">📝</div>
+        <div><div class="flag-opt-lbl">Other</div><div class="flag-opt-sub">Add a note below</div></div>
+      </div>
+    </div>
+    <textarea class="flag-note" id="flag-note" placeholder="Add note (e.g. new area, new agent, reason...)"></textarea>
+    <button class="sheet-submit" id="flag-submit-btn" onclick="submitFlag()" disabled>SUBMIT FLAG</button>
+    <button class="sheet-cancel" onclick="closeFlagSheet()">Cancel</button>
+  </div>
+</div>
+
+<!-- ── Event Input Sheet ── -->
+<div class="sheet-overlay" id="event-sheet-overlay" onclick="closeEventSheet(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">📱 Event / PSR</div>
+    <div class="sheet-sub">Enter total phone numbers collected this month</div>
+    <div style="margin-bottom:16px;">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Phone Numbers Collected</div>
+      <input type="number" id="event-input" min="0" placeholder="0"
+        style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);font-family:var(--display);font-size:36px;letter-spacing:.05em;padding:12px;border-radius:10px;text-align:center;">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:6px;text-align:center;" id="event-target-hint"></div>
+    </div>
+    <button class="sheet-submit" onclick="saveEventCount()" style="background:var(--blue);">SAVE COUNT</button>
+    <button class="sheet-cancel" onclick="closeEventSheet()">Cancel</button>
+  </div>
+</div>
+
 <nav class="bottom-nav">
   <div class="nav-item active" onclick="switchView('debtors',this)"><div class="nav-icon">👥</div><div class="nav-label">Debtors</div></div>
   <div class="nav-item" onclick="switchView('sales',this)"><div class="nav-icon">📈</div><div class="nav-label">Sales</div></div>
   <div class="nav-item" onclick="switchView('brand',this)"><div class="nav-icon">🏷️</div><div class="nav-label">Comm</div></div>
   <div class="nav-item" onclick="switchView('group',this)"><div class="nav-icon">🏢</div><div class="nav-label">Group</div></div>
+  <div class="nav-item" onclick="switchView('kpi',this)"><div class="nav-icon">🎯</div><div class="nav-label">KPI</div></div>
   <div class="nav-item" onclick="switchView('newbie',this)"><div class="nav-icon">🎓</div><div class="nav-label">Newbie</div></div>
   <div class="nav-item" onclick="switchView('aging',this)"><div class="nav-icon">📋</div><div class="nav-label">Aging</div></div>
 </nav>
@@ -472,6 +581,7 @@ function renderAll() {
   renderNewbie();
   renderAging();
   renderGroupBrandTargets();
+  renderKPI();
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -550,7 +660,10 @@ function renderDebtors() {
   const rateEl = document.getElementById('sum-rate');
   rateEl.textContent = rate + '%';
   rateEl.title = `${npActive} / ${npTotal} (excl. Personal)`;
-  document.getElementById('sum-newsku').textContent  = agData.total_new_sku ?? '—';
+  document.getElementById('sum-newsku') && (document.getElementById('sum-newsku').textContent = agData.total_new_sku ?? '—');
+  // Flag count
+  const flagCount = getAgentFlagCount(currentAgent);
+  document.getElementById('sum-flags').textContent = flagCount;
 
   // Filter
   const search = (document.getElementById('debtor-search')?.value || '').toLowerCase();
@@ -567,6 +680,7 @@ function renderDebtors() {
     if (filters.special === 'birthday' && !d.birthday_this_month) return false;
     if (filters.special === 'drop'     && !d.volume_drop_pct)    return false;
     if (filters.special === 'newsku'   && !(d.new_sku_count > 0)) return false;
+    if (filters.special === 'flagged'  && !getFlag(currentAgent, d.debtor_code)) return false;
     if (filters.type !== 'all'         && d.debtor_type !== filters.type) return false;
     if (filters.brand !== 'all') {
       const grp = SKU_GRP[filters.brand] || filters.brand;
@@ -728,6 +842,17 @@ function renderDebtors() {
           <div style="font-family:var(--display);font-size:22px;color:var(--purple);letter-spacing:.03em;">+${d.new_sku_count}</div>
         </div>`;
       })() : ''}
+
+      ${(() => {
+        const flag = getFlag(currentAgent, d.debtor_code);
+        const flagLabel = {cant_contact:'📵 Can\'t Contact', close_account:'❌ Close Account', transfer:'🔄 Transfer Request', other:'📝 Flagged'}[flag?.reason] || '';
+        return flag
+          ? `<div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;background:rgba(255,95,95,.08);border:1px solid rgba(255,95,95,.3);border-radius:8px;padding:7px 10px;">
+              <span class="flag-badge">${flagLabel}</span>
+              <button onclick="openFlagSheet('${d.debtor_code}','${(d.company_name||'').replace(/'/g,"\\'")}',true)" style="background:none;border:none;font-family:var(--mono);font-size:9px;color:var(--muted);cursor:pointer;text-transform:uppercase;">Edit</button>
+            </div>`
+          : `<button class="flag-btn" onclick="openFlagSheet('${d.debtor_code}','${(d.company_name||'').replace(/'/g,"\\'")}',false)">⚑ Flag this debtor</button>`;
+      })()}
     </div>`;
   }).join('');
 
@@ -787,6 +912,101 @@ function renderSalesProgression() {
   document.getElementById('tier-cards').innerHTML = html;
   document.getElementById('8com-paid').textContent = fmtNum(sp.eightcom_paid_ctn);
   document.getElementById('8com-unpaid').textContent = fmtNum(sp.eightcom_unpaid_ctn);
+
+  // Monthly personal summary card
+  renderMonthlyPersonalCard(sp);
+  // SKU trend table
+  renderSKUTrendTable(sp);
+}
+
+function renderMonthlyPersonalCard(sp) {
+  const el = document.getElementById('monthly-personal-card');
+  if (!el || !sp) return;
+  const dc  = DATA.agents[currentAgent]?.debtor_cards || {};
+  const kpi = DATA.agents[currentAgent]?.kpi || {};
+
+  const stats = [
+    {lbl:'Normal CTN', val:fmtNum(sp.normal_ctn), sub:`Target ${fmtNum(sp.tiers?.normal_t1?.target)}`, color:pctToColor(sp.tiers?.normal_t1?.pct)},
+    {lbl:'GA CTN',     val:fmtNum(sp.ga_ctn),     sub:`Target ${fmtNum(sp.tiers?.ga?.target||0)}`,    color:'var(--blue)'},
+    {lbl:'MA CTN',     val:fmtNum(sp.ma_ctn),     sub:`Target ${fmtNum(sp.tiers?.ma?.target||0)}`,    color:'var(--purple)'},
+    {lbl:'交易次数',    val:sp.txn_count||0,        sub:`${sp.elapsed_working_days||0} working days`,   color:'var(--text)'},
+    {lbl:'平均交易',    val:(sp.avg_txn_per_day||0).toFixed(1), sub:'per working day',                  color:'var(--accent)'},
+    {lbl:'开新户口',    val:dc.debtors?.filter(d=>d.is_new).length||0, sub:'new accounts',              color:'var(--green)'},
+    {lbl:'VIP',        val:dc.debtors?.filter(d=>d.vip).length||0,    sub:'VIP debtors',               color:'var(--accent)'},
+    {lbl:'激活户口',    val:dc.reactivation_count||0, sub:'need reactivation',                          color:'var(--orange)'},
+    {lbl:'加SKU',      val:dc.total_new_sku||0,     sub:'new SKU this month',                          color:'var(--purple)'},
+    {lbl:'光顾率',      val:(dc.activation_rate||0)+'%', sub:'excl. P-Personal',                        color:pctToColor(dc.activation_rate)},
+  ];
+
+  el.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;">
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+      ${stats.map(s=>`<div style="background:var(--card);border-radius:10px;padding:10px;">
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">${s.lbl}</div>
+        <div style="font-family:var(--display);font-size:22px;letter-spacing:.03em;color:${s.color};line-height:1;">${s.val}</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;">${s.sub}</div>
+      </div>`).join('')}
+    </div>
+    ${kpi.total_abc ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">KPI Score A+B+C</div>
+      <div style="font-family:var(--display);font-size:24px;color:${pctToColor(kpi.total_abc/61*100)};letter-spacing:.03em;">${(kpi.total_abc||0).toFixed(1)} <span style="font-family:var(--mono);font-size:11px;color:var(--muted);">/ ${(kpi.max_abc||61).toFixed(1)}</span></div>
+    </div>` : ''}
+  </div>`;
+}
+
+function pctToColor(p) {
+  if (p == null) return 'var(--text)';
+  return p >= 80 ? 'var(--green)' : p >= 50 ? 'var(--accent)' : 'var(--red)';
+}
+
+function renderSKUTrendTable(sp) {
+  const el = document.getElementById('sku-trend-table');
+  if (!el || !sp.sku_trend) return;
+  const months = sp.month_labels || [];
+  const trend  = sp.sku_trend || {};
+  const active = sp.active_by_month || {};
+
+  const colW = `100px ${months.flatMap(()=>['55px','60px']).join(' ')} 55px`;
+  let html = `<div style="min-width:${100+months.length*115}px;">
+    <div style="display:grid;grid-template-columns:${colW};gap:0;border-bottom:2px solid var(--border);">
+      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:5px 8px;border-right:1px solid var(--border);">SKU</div>
+      ${months.flatMap(m=>[
+        `<div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-align:center;padding:5px 2px;border-right:1px solid var(--border);">${m}<br>顾客</div>`,
+        `<div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-align:center;padding:5px 2px;border-right:1px solid var(--border);">${m}<br>CTN</div>`,
+      ]).join('')}
+      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-align:center;padding:5px 2px;">差别</div>
+    </div>`;
+
+  const curM  = months[months.length-1];
+  const prevM = months[months.length-2];
+
+  Object.entries(trend).forEach(([sku, mdata], idx) => {
+    const bg = idx%2===0 ? '' : 'background:rgba(255,255,255,.03);';
+    const curCtn  = mdata[curM]?.ctn  || 0;
+    const prevCtn = mdata[prevM]?.ctn || 0;
+    const diff    = curCtn - prevCtn;
+    const diffCol = diff > 0 ? 'var(--green)' : diff < 0 ? 'var(--red)' : 'var(--muted)';
+    html += `<div style="display:grid;grid-template-columns:${colW};gap:0;${bg}border-bottom:1px solid var(--border);">
+      <div style="font-family:var(--mono);font-size:10px;font-weight:500;padding:6px 8px;border-right:1px solid var(--border);">${sku}</div>
+      ${months.flatMap(m=>[
+        `<div style="font-family:var(--mono);font-size:10px;text-align:center;padding:6px 2px;border-right:1px solid var(--border);color:var(--muted);">${mdata[m]?.debtors||0}</div>`,
+        `<div style="font-family:var(--mono);font-size:10px;text-align:center;padding:6px 2px;border-right:1px solid var(--border);">${mdata[m]?.ctn||0}</div>`,
+      ]).join('')}
+      <div style="font-family:var(--mono);font-size:10px;text-align:center;padding:6px 2px;color:${diffCol};">${diff>0?'+':''}${diff||0}</div>
+    </div>`;
+  });
+
+  // Active row
+  html += `<div style="display:grid;grid-template-columns:${colW};gap:0;background:rgba(77,166,255,.08);border-top:2px solid var(--border);">
+    <div style="font-family:var(--mono);font-size:10px;font-weight:600;padding:7px 8px;color:var(--blue);border-right:1px solid var(--border);">活跃顾客</div>
+    ${months.flatMap(m=>[
+      `<div style="font-family:var(--mono);font-size:10px;text-align:center;padding:7px 2px;font-weight:500;color:var(--blue);border-right:1px solid var(--border);">${active[m]?.debtors||0}<span style="font-size:8px;color:var(--muted)">/${sp.total_debtors_all||0}</span></div>`,
+      `<div style="font-family:var(--mono);font-size:10px;text-align:center;padding:7px 2px;font-weight:500;color:var(--blue);border-right:1px solid var(--border);">${active[m]?.ctn||0}</div>`,
+    ]).join('')}
+    <div style="padding:7px 2px;"></div>
+  </div>`;
+
+  html += `</div>`;
+  el.innerHTML = html;
 }
 
 // ── View 3: Brand Commission ───────────────────────────────────────────────
@@ -1109,6 +1329,244 @@ function hideSkuTip() {
 document.addEventListener('click', e => {
   if (!e.target.classList.contains('sku-dot')) hideSkuTip();
 });
+
+// ── Flag System ────────────────────────────────────────────────────────────
+const FLAGS_KEY = 'touro_debtor_flags';
+
+function loadFlags() {
+  try { return JSON.parse(localStorage.getItem(FLAGS_KEY) || '{}'); }
+  catch(e) { return {}; }
+}
+function saveFlags(flags) {
+  try { localStorage.setItem(FLAGS_KEY, JSON.stringify(flags)); } catch(e) {}
+}
+function getFlag(agent, debtorCode) {
+  const flags = loadFlags();
+  return flags[agent]?.[debtorCode] || null;
+}
+function getAgentFlagCount(agent) {
+  const flags = loadFlags();
+  return Object.keys(flags[agent] || {}).length;
+}
+function getAllFlags() {
+  return loadFlags();
+}
+
+// Current flag sheet state
+let _flagAgent = null, _flagCode = null, _flagReason = null;
+
+function openFlagSheet(debtorCode, debtorName, isEdit) {
+  _flagCode   = debtorCode;
+  _flagAgent  = currentAgent;
+  _flagReason = null;
+
+  // Pre-fill if editing existing flag
+  const existing = getFlag(currentAgent, debtorCode);
+  document.getElementById('sheet-debtor-name').textContent = debtorName || debtorCode;
+  document.getElementById('flag-note').value = existing?.note || '';
+  document.getElementById('flag-submit-btn').disabled = true;
+
+  // Reset and re-select options
+  document.querySelectorAll('.flag-option').forEach(o => o.classList.remove('selected'));
+  if (existing?.reason) {
+    const opt = document.querySelector(`[data-reason="${existing.reason}"]`);
+    if (opt) { opt.classList.add('selected'); _flagReason = existing.reason; document.getElementById('flag-submit-btn').disabled = false; }
+  }
+
+  document.getElementById('flag-sheet-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeFlagSheet(e) {
+  if (e && e.target !== document.getElementById('flag-sheet-overlay')) return;
+  document.getElementById('flag-sheet-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function selectFlagReason(el) {
+  document.querySelectorAll('.flag-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  _flagReason = el.dataset.reason;
+  document.getElementById('flag-submit-btn').disabled = false;
+}
+
+function submitFlag() {
+  if (!_flagReason || !_flagCode || !_flagAgent) return;
+  const flags = loadFlags();
+  if (!flags[_flagAgent]) flags[_flagAgent] = {};
+  flags[_flagAgent][_flagCode] = {
+    reason:    _flagReason,
+    note:      document.getElementById('flag-note').value.trim(),
+    flagged_at: new Date().toISOString(),
+    agent:     _flagAgent,
+    debtor_code: _flagCode,
+  };
+  saveFlags(flags);
+  document.getElementById('flag-sheet-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  renderDebtors(); // Refresh to show flag badge
+}
+
+function resolveFlag(agent, debtorCode) {
+  const flags = loadFlags();
+  if (flags[agent]) delete flags[agent][debtorCode];
+  saveFlags(flags);
+  renderDebtors();
+}
+
+// ── View 7: KPI ────────────────────────────────────────────────────────────
+function renderKPI() {
+  if (!currentAgent || !DATA) return;
+  const kpi = DATA.agents[currentAgent]?.kpi || {};
+  const el  = document.getElementById('kpi-content');
+
+  if (!Object.keys(kpi).length) {
+    el.innerHTML = '<div style="padding:20px;text-align:center;font-family:var(--mono);color:var(--muted);font-size:11px;">No KPI data available</div>';
+    return;
+  }
+
+  const items   = kpi.items || {};
+  const secSc   = kpi.section_scores || {};
+  const total   = kpi.total_abc || 0;
+  const maxABC  = kpi.max_abc || 61; // A+B+C = 35+36+... = roughly 61% of total
+  const grandTotal = kpi.grand_total || total;
+  const totalColor = total >= 80 ? 'var(--green)' : total >= 60 ? 'var(--accent)' : 'var(--red)';
+
+  // ── Hero card ──
+  const heroHtml = `<div class="kpi-hero">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+      <div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">KPI Score A+B+C</div>
+        <div class="kpi-total-score" style="color:${totalColor}">${total.toFixed(1)}<span style="font-family:var(--mono);font-size:14px;color:var(--muted)"> / ${maxABC.toFixed(1)}</span></div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:4px;">Grand Total: <span style="color:${totalColor}">${grandTotal.toFixed(1)} pts</span> ${kpi.section_d?.score != null ? '' : '(D+E pending)'}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-family:var(--display);font-size:28px;color:${totalColor}">${kpi.total_pct || 0}%</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted)">Achievement</div>
+      </div>
+    </div>
+    <div class="kpi-section-strip">
+      ${['A','B','C'].map(s => {
+        const ss = secSc[s] || {};
+        const pct = ss.max_score ? (ss.score/ss.max_score*100).toFixed(0) : 0;
+        const col = pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--accent)' : 'var(--red)';
+        return `<div class="kpi-sec-box">
+          <div class="kpi-sec-val" style="color:${col}">${(ss.score||0).toFixed(1)}</div>
+          <div style="font-family:var(--mono);font-size:6px;color:var(--muted);margin-top:1px;">/ ${(ss.max_score||0).toFixed(1)}</div>
+          <div class="kpi-sec-lbl">Section ${s}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    ${kpi.section_d?.score != null || kpi.section_e?.score != null ? `
+    <div class="kpi-section-strip" style="margin-top:6px;">
+      <div class="kpi-sec-box">
+        <div class="kpi-sec-val" style="color:var(--blue)">${kpi.section_d?.score ?? '—'}</div>
+        <div style="font-family:var(--mono);font-size:6px;color:var(--muted);margin-top:1px;">/ 20.0</div>
+        <div class="kpi-sec-lbl">Section D</div>
+      </div>
+      <div class="kpi-sec-box">
+        <div class="kpi-sec-val" style="color:var(--blue)">${kpi.section_e?.score ?? '—'}</div>
+        <div style="font-family:var(--mono);font-size:6px;color:var(--muted);margin-top:1px;">/ 5.0</div>
+        <div class="kpi-sec-lbl">Section E</div>
+      </div>
+      <div class="kpi-sec-box">
+        <div class="kpi-sec-val" style="color:${totalColor}">${grandTotal.toFixed(1)}</div>
+        <div style="font-family:var(--mono);font-size:6px;color:var(--muted);margin-top:1px;">/ 100</div>
+        <div class="kpi-sec-lbl">Grand Total</div>
+      </div>
+    </div>` : ''}
+  </div>`;
+
+  // ── Sections ──
+  const SECTION_LABELS = { A:'A — 销售 (35%)', B:'B — 其它有关销售 (36%)', C:'C — Marketing Support' };
+  let sectionsHtml = '';
+  ['A','B','C'].forEach(sec => {
+    const secItems = Object.entries(items).filter(([,v]) => v.section === sec);
+    if (!secItems.length) return;
+    sectionsHtml += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+      <div class="kpi-section-hdr" style="border-top:none;margin-top:0;padding-top:0;">${SECTION_LABELS[sec]}</div>
+      ${secItems.map(([key, item]) => {
+        const barW  = Math.min(item.pct || 0, 100);
+        const col   = (item.pct||0) >= 100 ? 'var(--green)' : (item.pct||0) >= 70 ? 'var(--accent)' : 'var(--red)';
+        const isManual = item.source === 'manual';
+        const canEdit  = item.input_role === 'agent';
+
+        return `<div class="kpi-item-row">
+          <div>
+            <div class="kpi-item-lbl">${item.label}</div>
+            <div class="kpi-item-sub">${
+              item.target != null
+                ? `${item.actual ?? '—'} / ${item.target} · ${(item.pct||0).toFixed(1)}%`
+                : `Score: ${item.actual ?? '—'} pts`
+            }</div>
+            ${item.target != null ? `<div class="kpi-item-bar-bg"><div class="kpi-item-bar-fill" style="width:${barW}%;background:${col}"></div></div>` : ''}
+          </div>
+          <div>
+            ${canEdit
+              ? `<button class="kpi-manual-btn" onclick="openEventSheet()">✏️ ${item.actual || 'Enter'}</button>`
+              : isManual
+                ? `<span style="font-family:var(--mono);font-size:8px;color:var(--muted);">Manual</span>`
+                : `<span class="kpi-item-pct" style="color:${col}">${(item.pct||0).toFixed(0)}%</span>`
+            }
+          </div>
+          <div class="kpi-item-score" style="color:${col}">${(item.score||0).toFixed(2)}<span style="font-family:var(--mono);font-size:7px;color:var(--muted)">/${(item.max_score||0).toFixed(2)}</span></div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  });
+
+  // D & E placeholder
+  const dePlaceholder = `<div class="kpi-de-placeholder">
+    <div style="font-size:24px;margin-bottom:8px;">📋</div>
+    <div style="font-family:var(--display);font-size:16px;letter-spacing:.05em;margin-bottom:4px;">Sections D & E</div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">Keyed in by Accounts Dept at end of month</div>
+    ${kpi.section_d?.score != null
+      ? `<div style="font-family:var(--display);font-size:20px;color:var(--blue);margin-top:8px;">D: ${kpi.section_d.score} / 20 &nbsp;·&nbsp; E: ${kpi.section_e?.score ?? '—'} / 5</div>`
+      : '<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:6px;">Pending...</div>'}
+  </div>`;
+
+  el.innerHTML = heroHtml + sectionsHtml + dePlaceholder;
+}
+
+// ── Event Sheet ────────────────────────────────────────────────────────────
+function openEventSheet() {
+  const kpi = DATA?.agents[currentAgent]?.kpi;
+  const eventItem = kpi?.items?.event;
+  document.getElementById('event-input').value = eventItem?.actual || '';
+  document.getElementById('event-target-hint').textContent =
+    eventItem?.target ? `Monthly target: ${eventItem.target} phone numbers` : '';
+  document.getElementById('event-sheet-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('event-input').focus(), 300);
+}
+
+function closeEventSheet(e) {
+  if (e && e.target !== document.getElementById('event-sheet-overlay')) return;
+  document.getElementById('event-sheet-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+async function saveEventCount() {
+  const val = parseInt(document.getElementById('event-input').value) || 0;
+  // Save to Streamlit storage
+  const key = `kpi_event_${currentAgent}_${DATA.current_month}`;
+  try {
+    await window.storage.set(key, JSON.stringify({count: val, updated: new Date().toISOString()}));
+  } catch(e) {
+    localStorage.setItem(key, JSON.stringify({count: val, updated: new Date().toISOString()}));
+  }
+  // Update display immediately
+  if (DATA.agents[currentAgent]?.kpi?.items?.event) {
+    DATA.agents[currentAgent].kpi.items.event.actual = val;
+    DATA.agents[currentAgent].kpi.items.event.pct =
+      (DATA.agents[currentAgent].kpi.items.event.target || 1) > 0
+        ? Math.min(val / DATA.agents[currentAgent].kpi.items.event.target * 100, 100)
+        : 0;
+  }
+  document.getElementById('event-sheet-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  renderKPI();
+}
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 loadData();
