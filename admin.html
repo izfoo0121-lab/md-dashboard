@@ -1543,6 +1543,8 @@ function createCampaign() {
   const t=document.getElementById('save-toast-camp');
   t.style.display='block'; setTimeout(()=>t.style.display='none',2000);
 }
+
+function previewCampFile(input) {
   const file = input.files[0];
   if (!file) return;
   const preview = document.getElementById('camp-file-preview');
