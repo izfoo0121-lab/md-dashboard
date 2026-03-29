@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-29 08:43:00",
+  "generated_at": "2026-03-29 09:36:17",
   "current_month": "Mar 26",
   "working_days": {
     "date": "2026-03-29",
@@ -6408,10 +6408,10 @@
             "section": "B",
             "weight": 0.03,
             "actual": 3,
-            "target": 5.0,
-            "score": 1.8,
+            "target": 17.0,
+            "score": 0.529,
             "max_score": 3.0,
-            "pct": 60.0,
+            "pct": 17.6,
             "source": "auto",
             "input_role": "system"
           },
@@ -6432,7 +6432,7 @@
             "section": "B",
             "weight": 0.03,
             "actual": 0,
-            "target": 20.0,
+            "target": 16.0,
             "score": 0.0,
             "max_score": 3.0,
             "pct": 0.0,
@@ -6614,7 +6614,7 @@
             "max_score": 35.0
           },
           "B": {
-            "score": 15.334,
+            "score": 14.063,
             "max_score": 37.0
           },
           "C": {
@@ -6622,9 +6622,9 @@
             "max_score": 3.0
           }
         },
-        "total_abc": 34.549,
+        "total_abc": 33.278,
         "max_abc": 75.0,
-        "total_pct": 46.1,
+        "total_pct": 44.4,
         "section_d": {
           "score": null,
           "max_score": 20.0
@@ -6633,7 +6633,7 @@
           "score": null,
           "max_score": 5.0
         },
-        "grand_total": 34.549
+        "grand_total": 33.278
       }
     },
     "CJ": {
@@ -12364,10 +12364,10 @@
             "section": "B",
             "weight": 0.03,
             "actual": 33,
-            "target": 5.0,
+            "target": 17.0,
             "score": 3.0,
             "max_score": 3.0,
-            "pct": 660.0,
+            "pct": 194.1,
             "source": "auto",
             "input_role": "system"
           },
@@ -12388,7 +12388,7 @@
             "section": "B",
             "weight": 0.03,
             "actual": 0,
-            "target": 20.0,
+            "target": 16.0,
             "score": 0.0,
             "max_score": 3.0,
             "pct": 0.0,
@@ -20968,10 +20968,10 @@
             "section": "B",
             "weight": 0.03,
             "actual": 9,
-            "target": 5.0,
-            "score": 3.0,
+            "target": 17.0,
+            "score": 1.588,
             "max_score": 3.0,
-            "pct": 180.0,
+            "pct": 52.9,
             "source": "auto",
             "input_role": "system"
           },
@@ -20992,7 +20992,7 @@
             "section": "B",
             "weight": 0.03,
             "actual": 0,
-            "target": 20.0,
+            "target": 16.0,
             "score": 0.0,
             "max_score": 3.0,
             "pct": 0.0,
@@ -21174,7 +21174,7 @@
             "max_score": 35.0
           },
           "B": {
-            "score": 20.858,
+            "score": 19.446,
             "max_score": 37.0
           },
           "C": {
@@ -21182,9 +21182,9 @@
             "max_score": 3.0
           }
         },
-        "total_abc": 54.633,
+        "total_abc": 53.221,
         "max_abc": 75.0,
-        "total_pct": 72.8,
+        "total_pct": 71.0,
         "section_d": {
           "score": null,
           "max_score": 20.0
@@ -21193,7 +21193,7 @@
           "score": null,
           "max_score": 5.0
         },
-        "grand_total": 54.633
+        "grand_total": 53.221
       }
     },
     "JAMES": {
@@ -29954,10 +29954,10 @@
             "section": "B",
             "weight": 0.03,
             "actual": 19,
-            "target": 5.0,
+            "target": 17.0,
             "score": 3.0,
             "max_score": 3.0,
-            "pct": 380.0,
+            "pct": 111.8,
             "source": "auto",
             "input_role": "system"
           },
@@ -29978,7 +29978,7 @@
             "section": "B",
             "weight": 0.03,
             "actual": 0,
-            "target": 20.0,
+            "target": 16.0,
             "score": 0.0,
             "max_score": 3.0,
             "pct": 0.0,
@@ -35347,10 +35347,10 @@
             "section": "B",
             "weight": 0.03,
             "actual": 17,
-            "target": 5.0,
+            "target": 17.0,
             "score": 3.0,
             "max_score": 3.0,
-            "pct": 340.0,
+            "pct": 100.0,
             "source": "auto",
             "input_role": "system"
           },
@@ -35371,7 +35371,7 @@
             "section": "B",
             "weight": 0.03,
             "actual": 0,
-            "target": 20.0,
+            "target": 16.0,
             "score": 0.0,
             "max_score": 3.0,
             "pct": 0.0,
@@ -45022,10 +45022,10 @@
             "section": "B",
             "weight": 0.03,
             "actual": 30,
-            "target": 5.0,
+            "target": 17.0,
             "score": 3.0,
             "max_score": 3.0,
-            "pct": 600.0,
+            "pct": 176.5,
             "source": "auto",
             "input_role": "system"
           },
@@ -45046,7 +45046,7 @@
             "section": "B",
             "weight": 0.03,
             "actual": 0,
-            "target": 20.0,
+            "target": 16.0,
             "score": 0.0,
             "max_score": 3.0,
             "pct": 0.0,
@@ -52550,10 +52550,10 @@
             "section": "B",
             "weight": 0.03,
             "actual": 27,
-            "target": 5.0,
+            "target": 17.0,
             "score": 3.0,
             "max_score": 3.0,
-            "pct": 540.0,
+            "pct": 158.8,
             "source": "auto",
             "input_role": "system"
           },
@@ -52574,7 +52574,7 @@
             "section": "B",
             "weight": 0.03,
             "actual": 0,
-            "target": 20.0,
+            "target": 16.0,
             "score": 0.0,
             "max_score": 3.0,
             "pct": 0.0,
@@ -62230,10 +62230,10 @@
             "section": "B",
             "weight": 0.03,
             "actual": 22,
-            "target": 5.0,
+            "target": 17.0,
             "score": 3.0,
             "max_score": 3.0,
-            "pct": 440.0,
+            "pct": 129.4,
             "source": "auto",
             "input_role": "system"
           },
@@ -62254,7 +62254,7 @@
             "section": "B",
             "weight": 0.03,
             "actual": 0,
-            "target": 20.0,
+            "target": 16.0,
             "score": 0.0,
             "max_score": 3.0,
             "pct": 0.0,
@@ -73613,10 +73613,10 @@
             "section": "B",
             "weight": 0.03,
             "actual": 8,
-            "target": 5.0,
-            "score": 3.0,
+            "target": 17.0,
+            "score": 1.412,
             "max_score": 3.0,
-            "pct": 160.0,
+            "pct": 47.1,
             "source": "auto",
             "input_role": "system"
           },
@@ -73637,7 +73637,7 @@
             "section": "B",
             "weight": 0.03,
             "actual": 0,
-            "target": 20.0,
+            "target": 16.0,
             "score": 0.0,
             "max_score": 3.0,
             "pct": 0.0,
@@ -73819,7 +73819,7 @@
             "max_score": 35.0
           },
           "B": {
-            "score": 19.632,
+            "score": 18.044,
             "max_score": 37.0
           },
           "C": {
@@ -73827,9 +73827,9 @@
             "max_score": 3.0
           }
         },
-        "total_abc": 51.062,
+        "total_abc": 49.474,
         "max_abc": 75.0,
-        "total_pct": 68.1,
+        "total_pct": 66.0,
         "section_d": {
           "score": null,
           "max_score": 20.0
@@ -73838,7 +73838,7 @@
           "score": null,
           "max_score": 5.0
         },
-        "grand_total": 51.062
+        "grand_total": 49.474
       }
     },
     "KW": {
@@ -81929,10 +81929,10 @@
             "section": "B",
             "weight": 0.03,
             "actual": 31,
-            "target": 5.0,
+            "target": 17.0,
             "score": 3.0,
             "max_score": 3.0,
-            "pct": 620.0,
+            "pct": 182.4,
             "source": "auto",
             "input_role": "system"
           },
@@ -81953,7 +81953,7 @@
             "section": "B",
             "weight": 0.03,
             "actual": 0,
-            "target": 20.0,
+            "target": 16.0,
             "score": 0.0,
             "max_score": 3.0,
             "pct": 0.0,
@@ -88968,10 +88968,10 @@
             "section": "B",
             "weight": 0.03,
             "actual": 26,
-            "target": 5.0,
+            "target": 17.0,
             "score": 3.0,
             "max_score": 3.0,
-            "pct": 520.0,
+            "pct": 152.9,
             "source": "auto",
             "input_role": "system"
           },
@@ -88992,7 +88992,7 @@
             "section": "B",
             "weight": 0.03,
             "actual": 0,
-            "target": 20.0,
+            "target": 16.0,
             "score": 0.0,
             "max_score": 3.0,
             "pct": 0.0,
@@ -96163,10 +96163,10 @@
             "section": "B",
             "weight": 0.03,
             "actual": 19,
-            "target": 5.0,
+            "target": 17.0,
             "score": 3.0,
             "max_score": 3.0,
-            "pct": 380.0,
+            "pct": 111.8,
             "source": "auto",
             "input_role": "system"
           },
@@ -96187,7 +96187,7 @@
             "section": "B",
             "weight": 0.03,
             "actual": 0,
-            "target": 20.0,
+            "target": 16.0,
             "score": 0.0,
             "max_score": 3.0,
             "pct": 0.0,
@@ -108038,10 +108038,10 @@
             "section": "B",
             "weight": 0.03,
             "actual": 16,
-            "target": 5.0,
-            "score": 3.0,
+            "target": 17.0,
+            "score": 2.824,
             "max_score": 3.0,
-            "pct": 320.0,
+            "pct": 94.1,
             "source": "auto",
             "input_role": "system"
           },
@@ -108062,7 +108062,7 @@
             "section": "B",
             "weight": 0.03,
             "actual": 0,
-            "target": 20.0,
+            "target": 16.0,
             "score": 0.0,
             "max_score": 3.0,
             "pct": 0.0,
@@ -108244,7 +108244,7 @@
             "max_score": 35.0
           },
           "B": {
-            "score": 20.925,
+            "score": 20.749,
             "max_score": 37.0
           },
           "C": {
@@ -108252,9 +108252,9 @@
             "max_score": 3.0
           }
         },
-        "total_abc": 53.405,
+        "total_abc": 53.229,
         "max_abc": 75.0,
-        "total_pct": 71.2,
+        "total_pct": 71.0,
         "section_d": {
           "score": null,
           "max_score": 20.0
@@ -108263,7 +108263,7 @@
           "score": null,
           "max_score": 5.0
         },
-        "grand_total": 53.405
+        "grand_total": 53.229
       }
     }
   },
