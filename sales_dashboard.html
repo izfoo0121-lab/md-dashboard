@@ -336,7 +336,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
   </div>
   <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:2px 2px 6px;"> * 持续光顾率 excludes P-Personal</div>
   <div style="position:relative;">
-    <input class="search-bar" id="debtor-search" placeholder="Search debtor name or code..." oninput="renderDebtors()" style="padding-right:36px;">
+    <input class="search-bar" id="debtor-search"
+      placeholder="Select an agent first..."
+      disabled
+      oninput="renderDebtors()"
+      style="padding-right:36px;opacity:0.5;cursor:not-allowed;">
     <button onclick="clearSearch()" id="search-clear-btn"
       style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;line-height:1;">✕</button>
   </div>
@@ -623,7 +627,13 @@ function selectAgent(agent) {
 
   // Reset search bar
   const searchEl = document.getElementById('debtor-search');
-  if (searchEl) searchEl.value = '';
+  if (searchEl) {
+    searchEl.value = '';
+    searchEl.disabled = false;
+    searchEl.placeholder = 'Search debtor name or code...';
+    searchEl.style.opacity = '1';
+    searchEl.style.cursor = 'text';
+  }
   const clearBtn = document.getElementById('search-clear-btn');
   if (clearBtn) clearBtn.style.display = 'none';
 
