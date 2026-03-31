@@ -337,10 +337,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
   <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:2px 2px 6px;"> * 持续光顾率 excludes P-Personal</div>
   <div style="position:relative;">
     <input class="search-bar" id="debtor-search"
-      placeholder="Select an agent first..."
-      disabled
-      oninput="renderDebtors()"
-      style="padding-right:36px;opacity:0.5;cursor:not-allowed;">
+      placeholder="Search debtor name or code across all agents..."
+      oninput="onSearchInput()"
+      style="padding-right:36px;">
     <button onclick="clearSearch()" id="search-clear-btn"
       style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;line-height:1;">✕</button>
   </div>
@@ -615,9 +614,123 @@ function switchView(view, el) {
 // ── Agent Selection ────────────────────────────────────────────────────────
 function clearSearch() {
   const inp = document.getElementById('debtor-search');
-  if (inp) { inp.value = ''; }
+  if (inp) inp.value = '';
   document.getElementById('search-clear-btn').style.display = 'none';
-  renderDebtors();
+  // Clear global search results
+  const gsr = document.getElementById('global-search-results');
+  if (gsr) gsr.style.display = 'none';
+  if (currentAgent) renderDebtors();
+}
+
+function onSearchInput() {
+  const val = (document.getElementById('debtor-search')?.value || '').trim();
+  const clearBtn = document.getElementById('search-clear-btn');
+  if (clearBtn) clearBtn.style.display = val ? 'block' : 'none';
+
+  if (!val) {
+    // Hide global results, show normal debtor list
+    const gsr = document.getElementById('global-search-results');
+    if (gsr) gsr.style.display = 'none';
+    document.getElementById('debtor-list').style.display = '';
+    if (currentAgent) renderDebtors();
+    return;
+  }
+
+  if (!currentAgent) {
+    // Global search across all agents
+    renderGlobalSearch(val);
+  } else {
+    // Normal single-agent search
+    renderDebtors();
+  }
+}
+
+function renderGlobalSearch(query) {
+  if (!DATA || !query) return;
+  const q = query.toLowerCase();
+  const results = [];
+
+  Object.entries(DATA.agents || {}).forEach(([agent, adata]) => {
+    const debtors = adata?.debtor_cards?.debtors || [];
+    debtors.forEach(d => {
+      if (
+        (d.company_name || '').toLowerCase().includes(q) ||
+        (d.debtor_code  || '').toLowerCase().includes(q) ||
+        (d.phone        || '').toLowerCase().includes(q)
+      ) {
+        results.push({ ...d, _agent: agent });
+      }
+    });
+  });
+
+  // Show results
+  document.getElementById('debtor-list').style.display = 'none';
+  let gsr = document.getElementById('global-search-results');
+  if (!gsr) {
+    gsr = document.createElement('div');
+    gsr.id = 'global-search-results';
+    document.getElementById('debtor-list').parentNode.insertBefore(gsr, document.getElementById('debtor-list').nextSibling);
+  }
+  gsr.style.display = 'block';
+
+  if (!results.length) {
+    gsr.innerHTML = `<div style="text-align:center;padding:30px;font-family:var(--mono);font-size:11px;color:var(--muted);">No results found for "${query}"</div>`;
+    return;
+  }
+
+  gsr.innerHTML = `
+    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px 8px;">
+      ${results.length} result${results.length!==1?'s':''} across all agents
+    </div>
+    ${results.slice(0, 50).map(d => {
+      const stMap = { active:'已激活', need_reactivation:'待激活', pending:'Pending' };
+      const stCls = { active:'status-active', need_reactivation:'status-reactiv', pending:'status-pending' };
+      const stTxt = stMap[d.status] || d.status || '';
+      const phone = (d.phone||'').replace(/\s/g,'');
+      return `<div class="debtor-card" onclick="jumpToAgent('${d._agent}','${d.debtor_code}')" style="cursor:pointer;">
+        <div class="dc-top">
+          <div class="dc-left">
+            <div class="dc-name">${d.company_name || d.debtor_code}</div>
+            <div class="dc-meta">
+              <span class="dc-code">${d.debtor_code}</span>
+              ${d.debtor_type ? `<span class="dc-type">${d.debtor_type}</span>` : ''}
+              <span style="font-family:var(--mono);font-size:9px;background:rgba(255,255,255,.08);color:var(--muted);padding:1px 6px;border-radius:6px;margin-left:4px;">👤 ${d._agent}</span>
+            </div>
+          </div>
+          <div class="dc-right">
+            ${phone ? `<a href="tel:${phone}" class="dc-phone" onclick="event.stopPropagation()">📞 ${phone}</a>` : ''}
+            <div class="dc-badges">
+              <span class="status-inline ${stCls[d.status]||''}">${stTxt}</span>
+              ${d.vip ? `<span class="status-inline" style="background:rgba(240,192,64,.2);color:var(--accent)">⭐ VIP</span>` : ''}
+            </div>
+          </div>
+        </div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--blue);text-align:center;padding:4px 0 2px;">
+          Tap to go to ${d._agent}'s list →
+        </div>
+      </div>`;
+    }).join('')}
+    ${results.length > 50 ? `<div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-align:center;padding:8px;">Showing 50 of ${results.length} results — type more to narrow down</div>` : ''}
+  `;
+}
+
+function jumpToAgent(agent, debtorCode) {
+  // Select the agent
+  const sel = document.getElementById('agent-select');
+  if (sel) { sel.value = agent; selectAgent(agent); }
+
+  // Clear global search, restore normal view
+  document.getElementById('debtor-search').value = '';
+  document.getElementById('search-clear-btn').style.display = 'none';
+  const gsr = document.getElementById('global-search-results');
+  if (gsr) gsr.style.display = 'none';
+  document.getElementById('debtor-list').style.display = '';
+
+  // Scroll to the debtor card after render
+  setTimeout(() => {
+    const card = document.querySelector(`[id*="${agent}_${debtorCode}"]`);
+    if (card) card.scrollIntoView({ behavior:'smooth', block:'center' });
+  }, 400);
 }
 
 function selectAgent(agent) {
@@ -629,13 +742,16 @@ function selectAgent(agent) {
   const searchEl = document.getElementById('debtor-search');
   if (searchEl) {
     searchEl.value = '';
-    searchEl.disabled = false;
     searchEl.placeholder = 'Search debtor name or code...';
     searchEl.style.opacity = '1';
     searchEl.style.cursor = 'text';
   }
   const clearBtn = document.getElementById('search-clear-btn');
   if (clearBtn) clearBtn.style.display = 'none';
+  // Hide global search results
+  const gsr = document.getElementById('global-search-results');
+  if (gsr) gsr.style.display = 'none';
+  document.getElementById('debtor-list').style.display = '';
 
   if (!agent || !DATA) return;
 
@@ -758,6 +874,8 @@ function renderDebtors() {
   // Show/hide clear button
   const clearBtn = document.getElementById('search-clear-btn');
   if (clearBtn) clearBtn.style.display = search ? 'block' : 'none';
+  // Make sure debtor list is visible (not hidden by global search)
+  document.getElementById('debtor-list').style.display = '';
   const SKU_GRP = {
     'IFACE':'IFACE','SUKUN':'SUKUN','EVO':'EVO',
     'BISON':'BISON','TR20':'TR20','LAM+LWM':'LAM+LWM'
