@@ -144,6 +144,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .dc-name{font-weight:600;font-size:13px;line-height:1.2;margin-bottom:2px;}
 .dc-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
 .dc-code{font-family:var(--mono);font-size:12px;color:var(--blue);font-weight:500;}
+.dc-expand-btn{width:100%;background:none;border:none;border-top:1px solid var(--border);padding:5px 0 2px;margin-top:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;}
+.dc-expand-btn:active{opacity:.6;}
+.dc-collapsible{overflow:hidden;transition:max-height .3s ease,opacity .2s ease;}
+.dc-collapsible.collapsed{max-height:0;opacity:0;pointer-events:none;margin:0;padding:0;}
+.dc-collapsible.expanded{max-height:800px;opacity:1;}
 .dc-type{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.08);color:var(--text);padding:2px 8px;border-radius:8px;}
 .dc-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
 .dc-phone{color:var(--blue);text-decoration:none;font-family:var(--mono);font-size:10px;display:flex;align-items:center;gap:3px;}
@@ -281,9 +286,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 <!-- ── Cross-page Nav ── -->
 <div style="background:rgba(255,255,255,.04);border-bottom:1px solid var(--border);padding:6px 16px;display:flex;gap:10px;align-items:center;overflow-x:auto;">
   <span style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;">Go to:</span>
-  <a href="/Management" style="font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;padding:3px 8px;border:1px solid rgba(77,166,255,.3);border-radius:6px;white-space:nowrap;">📊 Management</a>
-  <a href="/Admin" style="font-family:var(--mono);font-size:9px;color:var(--accent);text-decoration:none;padding:3px 8px;border:1px solid rgba(240,192,64,.3);border-radius:6px;white-space:nowrap;">⚙ Admin</a>
-  <a href="/Campaigns" style="font-family:var(--mono);font-size:9px;color:var(--green);text-decoration:none;padding:3px 8px;border:1px solid rgba(61,220,132,.3);border-radius:6px;white-space:nowrap;">📢 Campaigns</a>
+  <a href="?page=management" style="font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;padding:3px 8px;border:1px solid rgba(77,166,255,.3);border-radius:6px;white-space:nowrap;">📊 Management</a>
+  <a href="?page=admin" style="font-family:var(--mono);font-size:9px;color:var(--accent);text-decoration:none;padding:3px 8px;border:1px solid rgba(240,192,64,.3);border-radius:6px;white-space:nowrap;">⚙ Admin</a>
+  <a href="?page=campaigns" style="font-family:var(--mono);font-size:9px;color:var(--green);text-decoration:none;padding:3px 8px;border:1px solid rgba(61,220,132,.3);border-radius:6px;white-space:nowrap;">📢 Campaigns</a>
 </div>
 
 <div class="header">
@@ -330,7 +335,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
     </div>
   </div>
   <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:2px 2px 6px;"> * 持续光顾率 excludes P-Personal</div>
-  <input class="search-bar" id="debtor-search" placeholder="Search debtor name or code..." oninput="renderDebtors()">
+  <div style="position:relative;">
+    <input class="search-bar" id="debtor-search" placeholder="Search debtor name or code..." oninput="renderDebtors()" style="padding-right:36px;">
+    <button onclick="clearSearch()" id="search-clear-btn"
+      style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;line-height:1;">✕</button>
+  </div>
   <div class="filter-row" id="status-filter-row">
     <button class="filter-chip active" data-val="all" onclick="setFilter('status','all',this)">全部 All</button>
     <button class="filter-chip" data-val="active" onclick="setFilter('status','active',this)">已激活</button>
@@ -600,10 +609,23 @@ function switchView(view, el) {
 }
 
 // ── Agent Selection ────────────────────────────────────────────────────────
+function clearSearch() {
+  const inp = document.getElementById('debtor-search');
+  if (inp) { inp.value = ''; }
+  document.getElementById('search-clear-btn').style.display = 'none';
+  renderDebtors();
+}
+
 function selectAgent(agent) {
   currentAgent = agent;
   currentPage  = 1;
   filters = { status:'all', special:null, type:'all', brand:'all' };
+
+  // Reset search bar
+  const searchEl = document.getElementById('debtor-search');
+  if (searchEl) searchEl.value = '';
+  const clearBtn = document.getElementById('search-clear-btn');
+  if (clearBtn) clearBtn.style.display = 'none';
 
   if (!agent || !DATA) return;
 
@@ -723,6 +745,9 @@ function renderDebtors() {
 
   // Filter
   const search = (document.getElementById('debtor-search')?.value || '').toLowerCase();
+  // Show/hide clear button
+  const clearBtn = document.getElementById('search-clear-btn');
+  if (clearBtn) clearBtn.style.display = search ? 'block' : 'none';
   const SKU_GRP = {
     'IFACE':'IFACE','SUKUN':'SUKUN','EVO':'EVO',
     'BISON':'BISON','TR20':'TR20','LAM+LWM':'LAM+LWM'
@@ -900,7 +925,7 @@ function renderDebtors() {
     const phone = d.phone && d.phone !== 'nan' && d.phone !== 'None' && d.phone.trim() !== '' ? d.phone.trim() : '';
 
     return `<div class="debtor-card">
-      <div class="dc-top">
+      <div class="dc-top" onclick="toggleCard('${mbKey}')" style="cursor:pointer;">
         <div class="dc-left">
           <div class="dc-name"><span style="font-family:var(--display);font-size:14px;color:var(--muted);margin-right:8px;letter-spacing:.03em;">${runNo}.</span>${d.company_name || d.debtor_code}</div>
           <div class="dc-meta">
@@ -909,73 +934,79 @@ function renderDebtors() {
           </div>
         </div>
         <div class="dc-right">
-          ${phone ? `<a href="tel:${phone}" class="dc-phone">📞 ${phone}</a>` : ''}
+          ${phone ? `<a href="tel:${phone}" class="dc-phone" onclick="event.stopPropagation()">📞 ${phone}</a>` : ''}
           <div class="dc-badges">${badges}</div>
           ${campBadges ? `<div class="dc-badges" style="margin-top:2px;">${campBadges}</div>` : ''}
           ${brandTierBadges ? `<div class="dc-badges" style="margin-top:2px;">${brandTierBadges}</div>` : ''}
         </div>
       </div>
 
-      <div class="ctn-section">
-        <div class="ctn-header">
-          <span class="ctn-header-lbl">3-Month CTN</span>
-          <span style="font-family:var(--mono);font-size:9px;color:${trendColor}">${trendIcon} ${ctn2>0?fmtNum(ctn2)+' CTN':'本月未购买'}</span>
+      <div class="dc-collapsible collapsed" id="dc-body-${mbKey}">
+        <div class="ctn-section">
+          <div class="ctn-header">
+            <span class="ctn-header-lbl">3-Month CTN</span>
+            <span style="font-family:var(--mono);font-size:9px;color:${trendColor}">${trendIcon} ${ctn2>0?fmtNum(ctn2)+' CTN':'本月未购买'}</span>
+          </div>
+          <div class="ctn-grid">
+            <div class="ctn-col" onclick="showCtnBreakdown('${mbKey}','M-2','${mb0}')">
+              <div class="ctn-col-val" style="color:var(--muted)">${fmtNum(ctn0)}</div><div class="ctn-col-lbl">M-2</div>
+            </div>
+            <div class="ctn-col" onclick="showCtnBreakdown('${mbKey}','M-1','${mb1}')">
+              <div class="ctn-col-val" style="color:var(--muted)">${fmtNum(ctn1)}</div><div class="ctn-col-lbl">M-1</div>
+            </div>
+            <div class="ctn-col cur" onclick="showCtnBreakdown('${mbKey}','本月','${mb2}')">
+              <div class="ctn-col-val" style="color:var(--blue)">${fmtNum(ctn2)}</div><div class="ctn-col-lbl">本月</div>
+            </div>
+          </div>
         </div>
-        <div class="ctn-grid">
-          <div class="ctn-col" onclick="showCtnBreakdown('${mbKey}','M-2','${mb0}')">
-            <div class="ctn-col-val" style="color:var(--muted)">${fmtNum(ctn0)}</div><div class="ctn-col-lbl">M-2</div>
+
+        <div class="sku-section">
+          <div class="sku-section-lbl">SKU · Last: ${d.last_purchase_date||'—'} &nbsp;
+            <span style="color:var(--green)">●</span>当月购买
+            <span style="color:var(--accent)">●</span>3个月内购买
+            <span style="color:var(--red)">●</span>还未购买
           </div>
-          <div class="ctn-col" onclick="showCtnBreakdown('${mbKey}','M-1','${mb1}')">
-            <div class="ctn-col-val" style="color:var(--muted)">${fmtNum(ctn1)}</div><div class="ctn-col-lbl">M-1</div>
-          </div>
-          <div class="ctn-col cur" onclick="showCtnBreakdown('${mbKey}','本月','${mb2}')">
-            <div class="ctn-col-val" style="color:var(--blue)">${fmtNum(ctn2)}</div><div class="ctn-col-lbl">本月</div>
-          </div>
+          <div class="sku-row">${skuHtml}</div>
         </div>
+
+        ${d.new_sku_count > 0 ? (() => {
+          const addedSkus = Object.entries(d.new_sku_status || {})
+            .filter(([,st]) => st === 'new')
+            .map(([grp]) => grp);
+          return `<div style="margin-top:8px;padding:7px 10px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-family:var(--mono);font-size:8px;color:var(--purple);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">✨ 新增SKU 本月</div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;">${addedSkus.map(s =>
+                `<span style="font-family:var(--mono);font-size:10px;background:rgba(167,139,250,.2);color:var(--purple);padding:2px 8px;border-radius:10px;font-weight:500;">${s}</span>`
+              ).join('')}</div>
+            </div>
+            <div style="font-family:var(--display);font-size:22px;color:var(--purple);letter-spacing:.03em;">+${d.new_sku_count}</div>
+          </div>`;
+        })() : ''}
+
+        ${(() => {
+          const flag = getFlag(currentAgent, d.debtor_code);
+          const flagLabel = {cant_contact:'📵 Can\'t Contact', close_account:'❌ Close Account', transfer:'🔄 Transfer', other:'📝 Flagged'}[flag?.reason] || '';
+          return flag
+            ? `<div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;background:rgba(255,95,95,.15);border:1px solid rgba(255,95,95,.5);border-radius:8px;padding:6px 10px;">
+                <span style="font-family:var(--mono);font-size:10px;color:var(--red);font-weight:500;">${flagLabel}</span>
+                <div style="display:flex;gap:6px;">
+                  <button onclick="openFlagSheet('${d.debtor_code}','${(d.company_name||'').replace(/'/g,"\\'")}',true)" style="background:none;border:none;font-family:var(--mono);font-size:9px;color:var(--muted);cursor:pointer;text-transform:uppercase;padding:2px 6px;">Edit</button>
+                  <button onclick="resolveFlag('${currentAgent}','${d.debtor_code}')" style="background:rgba(255,95,95,.2);border:1px solid rgba(255,95,95,.4);font-family:var(--mono);font-size:9px;color:var(--red);cursor:pointer;padding:3px 8px;border-radius:6px;">✕ Undo</button>
+                </div>
+              </div>`
+            : `<div style="margin-top:8px;">
+                <button onclick="openFlagSheet('${d.debtor_code}','${(d.company_name||'').replace(/'/g,"\\'")}',false)"
+                  style="background:rgba(255,154,60,.12);border:1px solid rgba(255,154,60,.4);color:var(--orange);font-family:var(--mono);font-size:9px;padding:5px 12px;border-radius:8px;cursor:pointer;text-transform:uppercase;letter-spacing:.06em;width:100%;">
+                  ⚑ Flag Debtor
+                </button>
+              </div>`;
+        })()}
       </div>
 
-      <div class="sku-section">
-        <div class="sku-section-lbl">SKU · Last: ${d.last_purchase_date||'—'} &nbsp;
-          <span style="color:var(--green)">●</span>当月购买
-          <span style="color:var(--accent)">●</span>3个月内购买
-          <span style="color:var(--red)">●</span>还未购买
-        </div>
-        <div class="sku-row">${skuHtml}</div>
-      </div>
-
-      ${d.new_sku_count > 0 ? (() => {
-        const addedSkus = Object.entries(d.new_sku_status || {})
-          .filter(([,st]) => st === 'new')
-          .map(([grp]) => grp);
-        return `<div style="margin-top:8px;padding:7px 10px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <div style="font-family:var(--mono);font-size:8px;color:var(--purple);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">✨ 新增SKU 本月</div>
-            <div style="display:flex;gap:4px;flex-wrap:wrap;">${addedSkus.map(s =>
-              `<span style="font-family:var(--mono);font-size:10px;background:rgba(167,139,250,.2);color:var(--purple);padding:2px 8px;border-radius:10px;font-weight:500;">${s}</span>`
-            ).join('')}</div>
-          </div>
-          <div style="font-family:var(--display);font-size:22px;color:var(--purple);letter-spacing:.03em;">+${d.new_sku_count}</div>
-        </div>`;
-      })() : ''}
-
-      ${(() => {
-        const flag = getFlag(currentAgent, d.debtor_code);
-        const flagLabel = {cant_contact:'📵 Can\'t Contact', close_account:'❌ Close Account', transfer:'🔄 Transfer', other:'📝 Flagged'}[flag?.reason] || '';
-        return flag
-          ? `<div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;background:rgba(255,95,95,.15);border:1px solid rgba(255,95,95,.5);border-radius:8px;padding:6px 10px;">
-              <span style="font-family:var(--mono);font-size:10px;color:var(--red);font-weight:500;">${flagLabel}</span>
-              <div style="display:flex;gap:6px;">
-                <button onclick="openFlagSheet('${d.debtor_code}','${(d.company_name||'').replace(/'/g,"\\'")}',true)" style="background:none;border:none;font-family:var(--mono);font-size:9px;color:var(--muted);cursor:pointer;text-transform:uppercase;padding:2px 6px;">Edit</button>
-                <button onclick="resolveFlag('${currentAgent}','${d.debtor_code}')" style="background:rgba(255,95,95,.2);border:1px solid rgba(255,95,95,.4);font-family:var(--mono);font-size:9px;color:var(--red);cursor:pointer;padding:3px 8px;border-radius:6px;">✕ Undo</button>
-              </div>
-            </div>`
-          : `<div style="margin-top:8px;">
-              <button onclick="openFlagSheet('${d.debtor_code}','${(d.company_name||'').replace(/'/g,"\\'")}',false)"
-                style="background:rgba(255,154,60,.12);border:1px solid rgba(255,154,60,.4);color:var(--orange);font-family:var(--mono);font-size:9px;padding:5px 12px;border-radius:8px;cursor:pointer;text-transform:uppercase;letter-spacing:.06em;width:100%;">
-                ⚑ Flag Debtor
-              </button>
-            </div>`;
-      })()}
+      <button class="dc-expand-btn" onclick="toggleCard('${mbKey}')" id="dc-btn-${mbKey}">
+        <span id="dc-btn-lbl-${mbKey}">▼ Details</span>
+      </button>
     </div>`;
   }).join('');
 
@@ -984,6 +1015,17 @@ function renderDebtors() {
 }
 
 function changePage(dir) { currentPage += dir; renderDebtors(); }
+
+// ── Card Expand/Collapse ───────────────────────────────────────────────────
+function toggleCard(key) {
+  const body = document.getElementById(`dc-body-${key}`);
+  const lbl  = document.getElementById(`dc-btn-lbl-${key}`);
+  if (!body) return;
+  const isCollapsed = body.classList.contains('collapsed');
+  body.classList.toggle('collapsed', !isCollapsed);
+  body.classList.toggle('expanded', isCollapsed);
+  if (lbl) lbl.textContent = isCollapsed ? '▲ Close' : '▼ Details';
+}
 
 // ── View 2: Sales Progression ──────────────────────────────────────────────
 function renderSalesProgression() {
