@@ -774,6 +774,29 @@ function selectAgent(agent) {
   currentPage  = 1;
   filters = { status:'all', special:null, type:'all', brand:'all' };
 
+  // If debtors not loaded yet, fetch from GitHub
+  const dc = DATA.agents[agent]?.debtor_cards;
+  if (dc && (!dc.debtors || dc.debtors.length === 0)) {
+    const repoRaw = window.REPO_RAW || '';
+    const cacheV  = window.CACHE_V  || '1';
+    if (repoRaw) {
+      fetch(`${repoRaw}/dashboard_data.json?v=${cacheV}`)
+        .then(r => r.json())
+        .then(fullData => {
+          // Merge debtors into current DATA
+          Object.keys(fullData.agents || {}).forEach(a => {
+            if (DATA.agents[a]) {
+              DATA.agents[a].debtor_cards.debtors =
+                fullData.agents[a]?.debtor_cards?.debtors || [];
+            }
+          });
+          renderAll();
+        })
+        .catch(e => console.error('Failed to load debtors:', e));
+      return; // wait for fetch
+    }
+  }
+
   // Reset search bar
   const searchEl = document.getElementById('debtor-search');
   if (searchEl) {
