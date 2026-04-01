@@ -600,20 +600,14 @@ const BRAND_COLORS = {
 // ── Load Data ──────────────────────────────────────────────────────────────
 async function loadData() {
   try {
-    const url = 'dashboard_data.json';
-    console.log('Fetching:', url);
-    const r = await fetch(url);
-    console.log('Response status:', r.status, r.url);
-    if (!r.ok) throw new Error(`HTTP ${r.status} — ${r.url}`);
+    const r = await fetch('dashboard_data.json');
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
     DATA = await r.json();
-    console.log('Data loaded. Agents:', Object.keys(DATA.agents||{}).length, 'Month:', DATA.current_month);
     init();
   } catch(e) {
-    console.error('loadData error:', e);
     document.body.innerHTML = `<div style="padding:40px;text-align:center;font-family:monospace;color:#ff5f5f;">
       ❌ Could not load dashboard data<br>
-      <small style="color:#7070a0;word-break:break-all;">${e.message}</small><br><br>
-      <small style="color:#4da6ff;">Open browser console (F12) for details</small>
+      <small style="color:#7070a0;">${e.message}</small>
     </div>`;
   }
 }
