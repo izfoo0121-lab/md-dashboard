@@ -1843,12 +1843,42 @@ def main():
     today      = date.today()
     cur_month  = current_month_label(today)
     prev_months = prev_month_labels(3, today)
-    log(f"Current month: {cur_month}  |  Lookback: {prev_months}")
 
     # ── Load data ──────────────────────────────────────────────────
     targets   = load_targets()
     df_raw    = load_sales_report()
     debtor_df = load_debtors()
+
+    # ── Auto-detect current month from sales data ──────────────────
+    # If today's month has no data, use latest month in paid_on column
+    MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+    def month_sort_key(m):
+        try:
+            parts = str(m).split()
+            mon = MONTH_ORDER.index(parts[0]) if parts[0] in MONTH_ORDER else 0
+            yr  = int(parts[1]) if len(parts) > 1 else 0
+            return yr * 12 + mon
+        except: return 0
+
+    paid_on_vals = [v for v in df_raw["paid_on"].unique()
+                    if v and v not in ('', 'NoComm') and len(str(v).split()) == 2]
+
+    if cur_month not in paid_on_vals and paid_on_vals:
+        latest = sorted(paid_on_vals, key=month_sort_key)[-1]
+        log(f"⚠ No data for {cur_month} — auto-switching to latest: {latest}")
+        cur_month = latest
+        try:
+            parts = cur_month.split()
+            mon_idx = MONTH_ORDER.index(parts[0])
+            yr = int(parts[1])
+            from datetime import date as _date
+            fake_today = _date(2000 + yr, mon_idx + 1, 28)
+            prev_months = prev_month_labels(3, fake_today)
+            log(f"  Lookback adjusted to: {prev_months}")
+        except: pass
+
+    log(f"Current month: {cur_month}  |  Lookback: {prev_months}")
 
     # Load campaigns.json — build debtor→campaigns lookup
     campaign_map = {}  # debtor_code → [{"id","name","type"}]

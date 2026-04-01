@@ -199,9 +199,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
   <!-- Cross-page nav -->
   <div style="background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.08);padding:6px 16px;display:flex;gap:10px;align-items:center;overflow-x:auto;">
     <span style="font-family:var(--mono);font-size:8px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;">Go to:</span>
-    <a href="?page=agent" style="font-family:var(--mono);font-size:9px;color:#4da6ff;text-decoration:none;padding:3px 8px;border:1px solid rgba(77,166,255,.3);border-radius:6px;white-space:nowrap;">👥 Agent</a>
-    <a href="?page=admin" style="font-family:var(--mono);font-size:9px;color:#f0c040;text-decoration:none;padding:3px 8px;border:1px solid rgba(240,192,64,.3);border-radius:6px;white-space:nowrap;">⚙ Admin</a>
-    <a href="?page=campaigns" style="font-family:var(--mono);font-size:9px;color:#3ddc84;text-decoration:none;padding:3px 8px;border:1px solid rgba(61,220,132,.3);border-radius:6px;white-space:nowrap;">📢 Campaigns</a>
+    <a href="https://izfoo0121-lab.github.io/md-dashboard/sales_dashboard.html" style="font-family:var(--mono);font-size:9px;color:#4da6ff;text-decoration:none;padding:3px 8px;border:1px solid rgba(77,166,255,.3);border-radius:6px;white-space:nowrap;">👥 Agent</a>
+    <a href="https://izfoo0121-lab.github.io/md-dashboard/admin.html" style="font-family:var(--mono);font-size:9px;color:#f0c040;text-decoration:none;padding:3px 8px;border:1px solid rgba(240,192,64,.3);border-radius:6px;white-space:nowrap;">⚙ Admin</a>
+    <a href="https://izfoo0121-lab.github.io/md-dashboard/campaigns.html" style="font-family:var(--mono);font-size:9px;color:#3ddc84;text-decoration:none;padding:3px 8px;border:1px solid rgba(61,220,132,.3);border-radius:6px;white-space:nowrap;">📢 Campaigns</a>
   </div>
   <div class="mgmt-header">
     <div class="header-row">
@@ -513,11 +513,23 @@ function populateMonthSelector(historyRows) {
   sel.style.display = 'block';
 }
 
-// Auto-load history from injected window.HISTORY_DATA (Streamlit injects this)
+// Auto-load history from GitHub (GitHub Pages) or injected window.HISTORY_DATA (Streamlit)
 function initMonthSelector() {
-  const hist = window.HISTORY_DATA;
-  if (!hist || !hist.monthly || !hist.monthly.length) return;
-  populateMonthSelector(hist.monthly);
+  if (window.HISTORY_DATA && window.HISTORY_DATA.monthly?.length) {
+    populateMonthSelector(window.HISTORY_DATA.monthly);
+    return;
+  }
+  // Load from GitHub
+  const REPO = 'https://raw.githubusercontent.com/izfoo0121-lab/md-dashboard/main';
+  fetch(`${REPO}/history.json?v=${Date.now()}`)
+    .then(r => r.ok ? r.json() : null)
+    .then(hist => {
+      if (hist?.monthly?.length) {
+        populateMonthSelector(hist.monthly);
+        HISTORY = hist.monthly; // also feed analytics tab
+      }
+    })
+    .catch(() => {}); // silently fail if no history
 }
 
 function onMonthChange(val) {
@@ -606,7 +618,7 @@ const bc = p => p==null?'var(--border)':p>=80?'#2a7a4b':p>=50?'#c8860a':'#c8381a
 
 async function loadData() {
   try {
-    const r = await fetch('dashboard_data.json');
+    const r = await fetch('https://raw.githubusercontent.com/izfoo0121-lab/md-dashboard/main/dashboard_data.json?v='+Date.now());
     DATA = await r.json();
     window.__DATA__ = DATA;
     CURRENT_DATA = DATA;

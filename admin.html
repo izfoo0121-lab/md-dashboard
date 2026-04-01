@@ -121,9 +121,9 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
   <!-- Cross-page nav -->
   <div style="background:var(--bg);border-bottom:1px solid var(--border);padding:6px 16px;display:flex;gap:10px;align-items:center;overflow-x:auto;">
     <span style="font-family:var(--mono);font-size:8px;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;">Go to:</span>
-    <a href="?page=agent" style="font-family:var(--mono);font-size:9px;color:#1a5c8f;text-decoration:none;padding:3px 8px;border:1px solid rgba(26,92,143,.3);border-radius:6px;white-space:nowrap;">👥 Agent</a>
-    <a href="?page=management" style="font-family:var(--mono);font-size:9px;color:#6b3fa0;text-decoration:none;padding:3px 8px;border:1px solid rgba(107,63,160,.3);border-radius:6px;white-space:nowrap;">📊 Management</a>
-    <a href="?page=campaigns" style="font-family:var(--mono);font-size:9px;color:#2a7a4b;text-decoration:none;padding:3px 8px;border:1px solid rgba(42,122,75,.3);border-radius:6px;white-space:nowrap;">📢 Campaigns</a>
+    <a href="https://izfoo0121-lab.github.io/md-dashboard/sales_dashboard.html" style="font-family:var(--mono);font-size:9px;color:#1a5c8f;text-decoration:none;padding:3px 8px;border:1px solid rgba(26,92,143,.3);border-radius:6px;white-space:nowrap;">👥 Agent</a>
+    <a href="https://izfoo0121-lab.github.io/md-dashboard/management.html" style="font-family:var(--mono);font-size:9px;color:#6b3fa0;text-decoration:none;padding:3px 8px;border:1px solid rgba(107,63,160,.3);border-radius:6px;white-space:nowrap;">📊 Management</a>
+    <a href="https://izfoo0121-lab.github.io/md-dashboard/campaigns.html" style="font-family:var(--mono);font-size:9px;color:#2a7a4b;text-decoration:none;padding:3px 8px;border:1px solid rgba(42,122,75,.3);border-radius:6px;white-space:nowrap;">📢 Campaigns</a>
   </div>
 
   <div class="tab-bar">
@@ -566,7 +566,7 @@ const AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','
 // ── Init ───────────────────────────────────────────────────────────────────
 async function initAdmin() {
   try {
-    const r = await fetch('targets.json');
+    const r = await fetch('https://raw.githubusercontent.com/izfoo0121-lab/md-dashboard/main/targets.json?v='+Date.now());
     CONFIG = await r.json();
   } catch(e) {
     CONFIG = buildDefaultConfig();
