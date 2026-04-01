@@ -601,7 +601,7 @@ const BRAND_COLORS = {
 async function loadData() {
   try {
     const bust = Date.now();
-    const r = await fetch('https://raw.githubusercontent.com/izfoo0121-lab/md-dashboard/main/dashboard_data.json?v='+Date.now());
+    const r = await fetch('dashboard_data.json?v='+Date.now());
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     DATA = await r.json();
     init();
@@ -780,7 +780,7 @@ function selectAgent(agent) {
     const repoRaw = window.REPO_RAW || '';
     const cacheV  = window.CACHE_V  || '1';
     if (repoRaw) {
-      fetch('https://raw.githubusercontent.com/izfoo0121-lab/md-dashboard/main/dashboard_data.json?v='+Date.now())
+      fetch('dashboard_data.json?v='+Date.now())
         .then(r => r.json())
         .then(fullData => {
           // Merge debtors into current DATA
@@ -2395,6 +2395,7 @@ function saveBdayActual() {
 }
 
 // ── Event Entry ────────────────────────────────────────────────────────────
+function openEventSheet() {
   const kpi = DATA?.agents[currentAgent]?.kpi;
   const eventItem = kpi?.items?.event;
   document.getElementById('event-input').value = eventItem?.actual || '';
