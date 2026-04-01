@@ -138,14 +138,14 @@
       },
       "kpi_targets": {
         "activation_rate": 80,
-        "vip_count": 16,
-        "reactivation": 12,
+        "vip_count": 18,
+        "reactivation": 18,
         "new_sku": 17
       },
       "kpi_auto_base": {
-        "non_personal": 82,
-        "prev_inactive": 30,
-        "month": "Apr 26"
+        "non_personal": 91,
+        "prev_inactive": 46,
+        "month": "Mar 26"
       }
     },
     "CJ": {
@@ -173,7 +173,7 @@
           "pen_auto": false
         },
         "BISON": {
-          "penetration_target": 5,
+          "penetration_target": 6,
           "ctn_target": 148,
           "pen_auto": true
         },
@@ -190,14 +190,14 @@
       },
       "kpi_targets": {
         "activation_rate": 80,
-        "vip_count": 26,
-        "reactivation": 16,
+        "vip_count": 23,
+        "reactivation": 11,
         "new_sku": 17
       },
       "kpi_auto_base": {
-        "non_personal": 128,
-        "prev_inactive": 39,
-        "month": "Apr 26"
+        "non_personal": 116,
+        "prev_inactive": 27,
+        "month": "Mar 26"
       }
     },
     "JACKY": {
@@ -242,14 +242,14 @@
       },
       "kpi_targets": {
         "activation_rate": 80,
-        "vip_count": 19,
-        "reactivation": 9,
+        "vip_count": 28,
+        "reactivation": 26,
         "new_sku": 17
       },
       "kpi_auto_base": {
-        "non_personal": 97,
-        "prev_inactive": 23,
-        "month": "Apr 26"
+        "non_personal": 142,
+        "prev_inactive": 65,
+        "month": "Mar 26"
       }
     },
     "JAMES": {
@@ -294,14 +294,14 @@
       },
       "kpi_targets": {
         "activation_rate": 80,
-        "vip_count": 34,
-        "reactivation": 22,
+        "vip_count": 26,
+        "reactivation": 8,
         "new_sku": 17
       },
       "kpi_auto_base": {
-        "non_personal": 172,
-        "prev_inactive": 54,
-        "month": "Apr 26"
+        "non_personal": 128,
+        "prev_inactive": 19,
+        "month": "Mar 26"
       }
     },
     "JW": {
@@ -346,14 +346,14 @@
       },
       "kpi_targets": {
         "activation_rate": 80,
-        "vip_count": 14,
-        "reactivation": 10,
+        "vip_count": 10,
+        "reactivation": 6,
         "new_sku": 17
       },
       "kpi_auto_base": {
-        "non_personal": 71,
-        "prev_inactive": 25,
-        "month": "Apr 26"
+        "non_personal": 49,
+        "prev_inactive": 16,
+        "month": "Mar 26"
       }
     },
     "KEAN": {
@@ -381,7 +381,7 @@
           "pen_auto": false
         },
         "BISON": {
-          "penetration_target": 7,
+          "penetration_target": 8,
           "ctn_target": 143,
           "pen_auto": true
         },
@@ -398,14 +398,14 @@
       },
       "kpi_targets": {
         "activation_rate": 80,
-        "vip_count": 36,
-        "reactivation": 35,
+        "vip_count": 24,
+        "reactivation": 11,
         "new_sku": 17
       },
       "kpi_auto_base": {
-        "non_personal": 182,
-        "prev_inactive": 87,
-        "month": "Apr 26"
+        "non_personal": 118,
+        "prev_inactive": 28,
+        "month": "Mar 26"
       }
     },
     "KEE": {
@@ -450,14 +450,14 @@
       },
       "kpi_targets": {
         "activation_rate": 80,
-        "vip_count": 31,
-        "reactivation": 32,
+        "vip_count": 25,
+        "reactivation": 20,
         "new_sku": 17
       },
       "kpi_auto_base": {
-        "non_personal": 153,
-        "prev_inactive": 79,
-        "month": "Apr 26"
+        "non_personal": 124,
+        "prev_inactive": 50,
+        "month": "Mar 26"
       }
     },
     "KF": {
@@ -502,14 +502,14 @@
       },
       "kpi_targets": {
         "activation_rate": 80,
-        "vip_count": 37,
-        "reactivation": 32,
+        "vip_count": 32,
+        "reactivation": 24,
         "new_sku": 17
       },
       "kpi_auto_base": {
-        "non_personal": 183,
-        "prev_inactive": 79,
-        "month": "Apr 26"
+        "non_personal": 159,
+        "prev_inactive": 60,
+        "month": "Mar 26"
       }
     },
     "KI-MI": {
@@ -522,7 +522,7 @@
       },
       "brand_commission": {
         "iFACE": {
-          "penetration_target": 6,
+          "penetration_target": 5,
           "ctn_target": 128,
           "pen_auto": true
         },
@@ -554,14 +554,14 @@
       },
       "kpi_targets": {
         "activation_rate": 80,
-        "vip_count": 28,
-        "reactivation": 16,
+        "vip_count": 31,
+        "reactivation": 24,
         "new_sku": 17
       },
       "kpi_auto_base": {
-        "non_personal": 139,
-        "prev_inactive": 41,
-        "month": "Apr 26"
+        "non_personal": 157,
+        "prev_inactive": 60,
+        "month": "Mar 26"
       }
     },
     "KW": {
@@ -579,7 +579,7 @@
           "pen_auto": true
         },
         "SUKUN": {
-          "penetration_target": 3,
+          "penetration_target": 4,
           "ctn_target": 1080,
           "pen_auto": true
         },
@@ -606,14 +606,14 @@
       },
       "kpi_targets": {
         "activation_rate": 80,
-        "vip_count": 26,
-        "reactivation": 13,
+        "vip_count": 28,
+        "reactivation": 14,
         "new_sku": 17
       },
       "kpi_auto_base": {
-        "non_personal": 132,
-        "prev_inactive": 32,
-        "month": "Apr 26"
+        "non_personal": 140,
+        "prev_inactive": 36,
+        "month": "Mar 26"
       }
     },
     "LEON": {
@@ -641,7 +641,7 @@
           "pen_auto": false
         },
         "BISON": {
-          "penetration_target": 7,
+          "penetration_target": 6,
           "ctn_target": 209,
           "pen_auto": true
         },
@@ -658,14 +658,14 @@
       },
       "kpi_targets": {
         "activation_rate": 80,
-        "vip_count": 31,
-        "reactivation": 27,
+        "vip_count": 23,
+        "reactivation": 11,
         "new_sku": 17
       },
       "kpi_auto_base": {
-        "non_personal": 156,
-        "prev_inactive": 68,
-        "month": "Apr 26"
+        "non_personal": 114,
+        "prev_inactive": 27,
+        "month": "Mar 26"
       }
     },
     "NMK": {
@@ -710,14 +710,14 @@
       },
       "kpi_targets": {
         "activation_rate": 80,
-        "vip_count": 26,
-        "reactivation": 15,
+        "vip_count": 24,
+        "reactivation": 14,
         "new_sku": 17
       },
       "kpi_auto_base": {
-        "non_personal": 132,
-        "prev_inactive": 37,
-        "month": "Apr 26"
+        "non_personal": 122,
+        "prev_inactive": 34,
+        "month": "Mar 26"
       }
     },
     "YI": {
@@ -730,7 +730,7 @@
       },
       "brand_commission": {
         "iFACE": {
-          "penetration_target": 5,
+          "penetration_target": 4,
           "ctn_target": 260,
           "pen_auto": true
         },
@@ -762,14 +762,14 @@
       },
       "kpi_targets": {
         "activation_rate": 80,
-        "vip_count": 26,
-        "reactivation": 16,
+        "vip_count": 34,
+        "reactivation": 33,
         "new_sku": 17
       },
       "kpi_auto_base": {
-        "non_personal": 132,
-        "prev_inactive": 40,
-        "month": "Apr 26"
+        "non_personal": 169,
+        "prev_inactive": 82,
+        "month": "Mar 26"
       }
     }
   },
@@ -889,6 +889,86 @@
         "prev_inactive": 40,
         "captured_date": "2026-04-01"
       }
+    },
+    "Mar 26": {
+      "BEN": {
+        "total_debtors": 139,
+        "non_personal": 91,
+        "prev_inactive": 46,
+        "captured_date": "2026-04-02"
+      },
+      "CJ": {
+        "total_debtors": 129,
+        "non_personal": 116,
+        "prev_inactive": 27,
+        "captured_date": "2026-04-02"
+      },
+      "JACKY": {
+        "total_debtors": 189,
+        "non_personal": 142,
+        "prev_inactive": 65,
+        "captured_date": "2026-04-02"
+      },
+      "JAMES": {
+        "total_debtors": 200,
+        "non_personal": 128,
+        "prev_inactive": 19,
+        "captured_date": "2026-04-02"
+      },
+      "JW": {
+        "total_debtors": 110,
+        "non_personal": 49,
+        "prev_inactive": 16,
+        "captured_date": "2026-04-02"
+      },
+      "KEAN": {
+        "total_debtors": 215,
+        "non_personal": 118,
+        "prev_inactive": 28,
+        "captured_date": "2026-04-02"
+      },
+      "KEE": {
+        "total_debtors": 162,
+        "non_personal": 124,
+        "prev_inactive": 50,
+        "captured_date": "2026-04-02"
+      },
+      "KF": {
+        "total_debtors": 224,
+        "non_personal": 159,
+        "prev_inactive": 60,
+        "captured_date": "2026-04-02"
+      },
+      "KI-MI": {
+        "total_debtors": 256,
+        "non_personal": 157,
+        "prev_inactive": 60,
+        "captured_date": "2026-04-02"
+      },
+      "KW": {
+        "total_debtors": 182,
+        "non_personal": 140,
+        "prev_inactive": 36,
+        "captured_date": "2026-04-02"
+      },
+      "LEON": {
+        "total_debtors": 159,
+        "non_personal": 114,
+        "prev_inactive": 27,
+        "captured_date": "2026-04-02"
+      },
+      "NMK": {
+        "total_debtors": 152,
+        "non_personal": 122,
+        "prev_inactive": 34,
+        "captured_date": "2026-04-02"
+      },
+      "YI": {
+        "total_debtors": 265,
+        "non_personal": 169,
+        "prev_inactive": 82,
+        "captured_date": "2026-04-02"
+      }
     }
   },
   "penetration_snapshots": {
@@ -996,6 +1076,112 @@
         "BISON": 104,
         "TR20": 133,
         "LAM+LWM": 131
+      }
+    },
+    "Mar 26": {
+      "BEN": {
+        "iFACE": 66,
+        "SUKUN": 36,
+        "EVO": 72,
+        "BISON": 76,
+        "TR20": 84,
+        "LAM+LWM": 80
+      },
+      "CJ": {
+        "iFACE": 103,
+        "SUKUN": 63,
+        "EVO": 96,
+        "BISON": 110,
+        "TR20": 91,
+        "LAM+LWM": 116
+      },
+      "JACKY": {
+        "iFACE": 94,
+        "SUKUN": 74,
+        "EVO": 49,
+        "BISON": 91,
+        "TR20": 102,
+        "LAM+LWM": 109
+      },
+      "JAMES": {
+        "iFACE": 128,
+        "SUKUN": 103,
+        "EVO": 100,
+        "BISON": 156,
+        "TR20": 168,
+        "LAM+LWM": 172
+      },
+      "JW": {
+        "iFACE": 67,
+        "SUKUN": 39,
+        "EVO": 64,
+        "BISON": 60,
+        "TR20": 72,
+        "LAM+LWM": 73
+      },
+      "KEAN": {
+        "iFACE": 168,
+        "SUKUN": 115,
+        "EVO": 163,
+        "BISON": 151,
+        "TR20": 168,
+        "LAM+LWM": 184
+      },
+      "KEE": {
+        "iFACE": 147,
+        "SUKUN": 101,
+        "EVO": 122,
+        "BISON": 135,
+        "TR20": 131,
+        "LAM+LWM": 151
+      },
+      "KF": {
+        "iFACE": 155,
+        "SUKUN": 126,
+        "EVO": 100,
+        "BISON": 157,
+        "TR20": 183,
+        "LAM+LWM": 182
+      },
+      "KI-MI": {
+        "iFACE": 105,
+        "SUKUN": 59,
+        "EVO": 114,
+        "BISON": 119,
+        "TR20": 142,
+        "LAM+LWM": 120
+      },
+      "KW": {
+        "iFACE": 102,
+        "SUKUN": 73,
+        "EVO": 98,
+        "BISON": 112,
+        "TR20": 127,
+        "LAM+LWM": 136
+      },
+      "LEON": {
+        "iFACE": 128,
+        "SUKUN": 92,
+        "EVO": 111,
+        "BISON": 128,
+        "TR20": 134,
+        "LAM+LWM": 155
+      },
+      "NMK": {
+        "iFACE": 123,
+        "SUKUN": 88,
+        "EVO": 52,
+        "BISON": 122,
+        "TR20": 131,
+        "LAM+LWM": 128
+      },
+      "YI": {
+        "iFACE": 90,
+        "SUKUN": 69,
+        "EVO": 80,
+        "BISON": 98,
+        "TR20": 133,
+        "LAM+LWM": 130
       }
     }
   }
