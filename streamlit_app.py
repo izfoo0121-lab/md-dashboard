@@ -71,4 +71,3 @@ else:
     html = read_file("sales_dashboard.html")
     if html:
         st.components.v1.html(inject_data(html), height=900, scrolling=True)
-. 
