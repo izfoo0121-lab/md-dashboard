@@ -600,7 +600,8 @@ const BRAND_COLORS = {
 // ── Load Data ──────────────────────────────────────────────────────────────
 async function loadData() {
   try {
-    const r = await fetch('dashboard_data.json');
+    const bust = Date.now();
+    const r = await fetch('dashboard_data.json' + '?v=' + bust);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     DATA = await r.json();
     init();
