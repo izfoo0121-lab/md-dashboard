@@ -458,6 +458,12 @@ def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_con
             else:
                 status = "none_hit"
 
+            # ── Non-buyers (haven't bought in last 3 months) ───────────────
+            # All debtors for this agent
+            all_agent_debtors = set(df[df["agent"] == agent]["debtor_code"].unique())
+            non_buyers = all_agent_debtors - prev_buyers
+            non_buyer_count = len(non_buyers)
+
             result[agent][brand] = {
                 "penetration": {
                     "count":    penetration_count,
@@ -472,9 +478,13 @@ def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_con
                     "gap":      round(ctn_sold - ctn_target, 2) if ctn_target else None,
                     "pct":      pct(ctn_sold, ctn_target),
                 },
-                "status":       status,
-                "comm_earned":  comm_earned,
-                "both_hit":     both_hit,
+                "status":         status,
+                "comm_earned":    comm_earned,
+                "both_hit":       both_hit,
+                "prev_buyers":    len(prev_buyers),
+                "non_buyers":     non_buyer_count,
+                "cur_buyers":     len(cur_buyers),
+                "new_penetrations": penetration_count,
             }
 
     return result
@@ -605,24 +615,56 @@ def calc_aging(df, agents, cur_month):
         # ── Aging: all unpaid rows ──────────────────────────────────
         all_unpaid = ag_c[ag_c["paid_on"] == ""].copy()
         overdue_invoices = []
+        all_unpaid_invoices = []
 
         for _, row in all_unpaid.iterrows():
             inv_date = row.get("date_parsed")
             if pd.isnull(inv_date):
                 continue
             days_outstanding = (datetime.now() - inv_date).days
+            inv = {
+                "doc_no":           row.get("doc_no", ""),
+                "debtor_code":      row.get("debtor_code", ""),
+                "company_name":     row.get("company_name", ""),
+                "invoice_date":     inv_date.strftime("%d/%m/%Y"),
+                "days_outstanding": days_outstanding,
+                "qty_ctn":          round(float(row.get("qty_ctn", 0)), 2),
+                "item_code":        row.get("item_code", ""),
+                "overdue":          days_outstanding >= OVERDUE_DAYS,
+            }
+            all_unpaid_invoices.append(inv)
             if days_outstanding >= OVERDUE_DAYS:
-                overdue_invoices.append({
-                    "doc_no":           row.get("doc_no", ""),
-                    "debtor_code":      row.get("debtor_code", ""),
-                    "company_name":     row.get("company_name", ""),
-                    "invoice_date":     inv_date.strftime("%d/%m/%Y"),
-                    "days_outstanding": days_outstanding,
-                    "qty_ctn":          round(float(row.get("qty_ctn", 0)), 2),
-                    "item_code":        row.get("item_code", ""),
-                })
+                overdue_invoices.append(inv)
 
         overdue_invoices.sort(key=lambda x: x["days_outstanding"], reverse=True)
+        all_unpaid_invoices.sort(key=lambda x: x["days_outstanding"], reverse=True)
+
+        # Group all unpaid by debtor for drill-down view
+        debtor_outstanding = {}
+        for inv in all_unpaid_invoices:
+            dcode = inv["debtor_code"]
+            if dcode not in debtor_outstanding:
+                debtor_outstanding[dcode] = {
+                    "debtor_code":   dcode,
+                    "company_name":  inv["company_name"],
+                    "total_ctn":     0,
+                    "overdue_ctn":   0,
+                    "invoice_count": 0,
+                    "overdue_count": 0,
+                    "oldest_days":   0,
+                    "invoices":      [],
+                }
+            d = debtor_outstanding[dcode]
+            d["total_ctn"]     = round(d["total_ctn"] + inv["qty_ctn"], 2)
+            d["invoice_count"] += 1
+            d["oldest_days"]    = max(d["oldest_days"], inv["days_outstanding"])
+            if inv["overdue"]:
+                d["overdue_ctn"]   = round(d["overdue_ctn"] + inv["qty_ctn"], 2)
+                d["overdue_count"] += 1
+            d["invoices"].append(inv)
+
+        # Sort by oldest invoice first
+        debtor_list = sorted(debtor_outstanding.values(), key=lambda x: x["oldest_days"], reverse=True)
 
         result[agent] = {
             "canggih_paid_ctn":      canggih_paid,
@@ -631,6 +673,9 @@ def calc_aging(df, agents, cur_month):
             "eightcom_unpaid_ctn":   eightcom_unpaid,
             "overdue_count":         len(overdue_invoices),
             "overdue_invoices":      overdue_invoices,
+            "all_unpaid_invoices":   all_unpaid_invoices,
+            "debtor_outstanding":    debtor_list,
+            "outstanding_debtors":   len(debtor_list),
         }
 
     return result
@@ -889,6 +934,23 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None):
             # Sales type for this debtor this month
             cur_sales_types = d_rows[d_rows["paid_on"] == cur_m]["sales_type"].unique().tolist() if not d_rows.empty else []
 
+            # Overdue flag — check if this debtor has any overdue invoices
+            ag_unpaid = df[(df["agent"]==agent) & (df["debtor_code"]==dcode) & (df["paid_on"]=="")].copy()
+            has_overdue = False
+            overdue_amount = 0.0
+            if not ag_unpaid.empty:
+                today_d2 = date.today()
+                for _, row in ag_unpaid.iterrows():
+                    inv_date = row.get("date_parsed")
+                    if pd.notnull(inv_date):
+                        days = (datetime.now() - inv_date).days
+                        if days >= OVERDUE_DAYS:
+                            has_overdue = True
+                            overdue_amount += float(row.get("qty_ctn", 0))
+
+            # Avg CTN (last 3 months) for order progression
+            avg_ctn = round((ctn_prev1 + ctn_prev2 + ctn_cur) / 3, 1) if any([ctn_prev1, ctn_prev2, ctn_cur]) else 0
+
             debtor_cards.append({
                 "debtor_code":        dcode,
                 "company_name":       info.get("name", dcode),
@@ -903,6 +965,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None):
                 "ctn_cur":            ctn_cur,
                 "ctn_prev1":          ctn_prev1,
                 "ctn_prev2":          ctn_prev2,
+                "avg_ctn_3m":         avg_ctn,
                 "month_breakdown":    month_breakdown,
                 "volume_drop_pct":    volume_drop_pct,
                 "trend":              trend,
@@ -915,7 +978,9 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None):
                 "new_sku_total":      len(new_sku_groups),
                 "sales_types":        cur_sales_types,
                 "campaigns":          (campaign_map or {}).get(dcode, []),
-                "brand_camp_tiers":   {},  # populated after brand campaigns calculated
+                "brand_camp_tiers":   {},
+                "has_overdue":        has_overdue,
+                "overdue_ctn":        round(overdue_amount, 1),
             })
 
         # Sort: active first, then pending, then need_reactivation
@@ -977,29 +1042,270 @@ def calc_group_brand_targets(df, targets, cur_month, group_brand_config):
     return result
 
 
+def save_debtor_snapshot(debtor_cards, targets, cur_month):
+    """
+    Save month-start debtor count per agent to targets.json.
+    Only saves if no snapshot exists for this month yet (preserves Day 1 count).
+    Also auto-calculates KPI targets based on debtor counts.
+    """
+    PERSONAL_TYPES = {"P-Personal","P-PERSONAL","personal","Personal","PERSONAL"}
+
+    snapshots = targets.get("monthly_snapshots", {})
+
+    # Only save if no snapshot for this month yet
+    if cur_month not in snapshots:
+        log(f"  Saving month-start debtor snapshot for {cur_month}...")
+        snap = {}
+        for agent, adata in debtor_cards.items():
+            debtors     = adata.get("debtors", [])
+            non_personal = [d for d in debtors
+                           if d.get("debtor_type","") not in PERSONAL_TYPES]
+            # Prev month inactive = need_reactivation (didn't buy last month)
+            prev_inactive = [d for d in non_personal if d.get("status") == "need_reactivation"]
+            snap[agent] = {
+                "total_debtors":      len(debtors),
+                "non_personal":       len(non_personal),
+                "prev_inactive":      len(prev_inactive),
+                "captured_date":      date.today().isoformat(),
+            }
+        snapshots[cur_month] = snap
+        targets["monthly_snapshots"] = snapshots
+
+        # Auto-calculate KPI targets from snapshot (only if not manually overridden)
+        for agent, s in snap.items():
+            ag_cfg = targets.get("agents", {}).get(agent, {})
+            kpi_tgts = ag_cfg.get("kpi_targets", {})
+            overrides = ag_cfg.get("kpi_overrides", {})  # manual overrides
+
+            np_total     = s["non_personal"]
+            prev_inactive = s["prev_inactive"]
+
+            # Auto-calculate unless manually overridden
+            if "activation_rate" not in overrides:
+                kpi_tgts["activation_rate"] = 80  # % target stays 80%
+            if "vip_count" not in overrides:
+                kpi_tgts["vip_count"] = max(1, round(np_total * 0.20))
+            if "reactivation" not in overrides:
+                kpi_tgts["reactivation"] = max(1, round(prev_inactive * 0.40))
+            # new_sku stays 17 unless overridden
+            if "new_sku" not in overrides:
+                kpi_tgts["new_sku"] = overrides.get("new_sku", 17)
+
+            ag_cfg["kpi_targets"]   = kpi_tgts
+            ag_cfg["kpi_auto_base"] = {
+                "non_personal":  np_total,
+                "prev_inactive": prev_inactive,
+                "month":         cur_month,
+            }
+            targets["agents"][agent] = ag_cfg
+
+        # Save updated targets.json
+        with open(TARGETS_FILE, "w", encoding="utf-8") as f:
+            json.dump(targets, f, ensure_ascii=False, indent=2)
+        log(f"  ✅ Snapshot saved + KPI targets auto-calculated for {len(snap)} agents")
+    else:
+        log(f"  Snapshot for {cur_month} already exists — skipping (Day 1 count preserved)")
+
+    return targets
+
+
+
 def calc_birthday_campaign(debtor_cards, targets):
-    """Auto-generate birthday gift list from debtor birth dates."""
+    """
+    Auto-generate birthday gift list:
+    - VIP debtors only
+    - Exclude P-Personal
+    - Exclude new accounts opened this month
+    - Target = total qualifying debtors (management audits agent's actual)
+    """
     log("Generating birthday campaign list...")
-    today = date.today()
-    overrides = targets.get("birthday_overrides", {})
+    today      = date.today()
+    overrides  = targets.get("birthday_overrides", {})
+    PERSONAL_TYPES = {"P-Personal","P-PERSONAL","personal","Personal","PERSONAL"}
+
     birthday_debtors = []
     for agent, adata in debtor_cards.items():
         for d in adata.get("debtors", []):
-            code = d.get("debtor_code", "")
-            if d.get("birthday_this_month", False) and overrides.get(code) != "remove":
-                birthday_debtors.append({"code":code,"name":d.get("company_name",code),"agent":agent,"type":d.get("debtor_type",""),"phone":d.get("phone",""),"source":"auto"})
+            code        = d.get("debtor_code", "")
+            db_type     = d.get("debtor_type", "")
+            is_vip      = d.get("vip", False)
+            is_personal = db_type in PERSONAL_TYPES
+            is_new      = d.get("is_new", False)
+
+            if (d.get("birthday_this_month", False)
+                    and is_vip
+                    and not is_personal
+                    and not is_new
+                    and overrides.get(code) != "remove"):
+                birthday_debtors.append({
+                    "code":   code,
+                    "name":   d.get("company_name", code),
+                    "agent":  agent,
+                    "type":   db_type,
+                    "phone":  d.get("phone", ""),
+                    "source": "auto",
+                })
+
     for code, action in overrides.items():
         if action == "add":
             for agent, adata in debtor_cards.items():
                 d = next((x for x in adata.get("debtors",[]) if x.get("debtor_code")==code), None)
                 if d:
-                    birthday_debtors.append({"code":code,"name":d.get("company_name",code),"agent":agent,"source":"manual"})
+                    birthday_debtors.append({
+                        "code":   code,
+                        "name":   d.get("company_name", code),
+                        "agent":  agent,
+                        "type":   d.get("debtor_type",""),
+                        "phone":  d.get("phone",""),
+                        "source": "manual",
+                    })
                     break
+
     seen = set(); result = []
     for d in birthday_debtors:
-        if d["code"] not in seen: seen.add(d["code"]); result.append(d)
-    log(f"  Birthday campaign: {len(result)} debtors ({today.strftime('%B %Y')})")
-    return {"month": today.strftime("%B %Y"), "count": len(result), "debtors": result}
+        if d["code"] not in seen:
+            seen.add(d["code"])
+            result.append(d)
+
+    by_agent = {}
+    for d in result:
+        by_agent.setdefault(d["agent"], []).append(d)
+
+    log(f"  Birthday campaign: {len(result)} VIP debtors ({today.strftime('%B %Y')}) — excl new & personal")
+    return {
+        "month":    today.strftime("%B %Y"),
+        "count":    len(result),
+        "debtors":  result,
+        "by_agent": {a: len(v) for a, v in by_agent.items()},
+    }
+
+
+def save_penetration_snapshot(brand_comm, targets, cur_month):
+    """
+    Auto-calculate penetration targets from non-buyer counts.
+    5% of non-buyers for: iFACE, SUKUN, BISON, TR20
+    EVO and LAM+LWM = manual only
+    Only runs once per month (preserves Day 1 snapshot).
+    Management can override per agent per brand via kpi_overrides.
+    """
+    AUTO_BRANDS = {"iFACE", "SUKUN", "BISON", "TR20"}
+    MANUAL_BRANDS = {"EVO", "LAM+LWM"}
+    SNAP_KEY = f"pen_snapshot_{cur_month}"
+
+    snaps = targets.get("penetration_snapshots", {})
+    if cur_month in snaps:
+        log(f"  Penetration snapshot for {cur_month} already exists — skipping")
+        return targets
+
+    log(f"  Saving penetration snapshot for {cur_month}...")
+    snap = {}
+    for agent, bc in brand_comm.items():
+        ag_cfg    = targets.get("agents", {}).get(agent, {})
+        bc_tgts   = ag_cfg.get("brand_commission", {})
+        overrides = ag_cfg.get("pen_overrides", {})
+        snap[agent] = {}
+
+        for brand, bdata in bc.items():
+            non_buyers = bdata.get("non_buyers", 0)
+            snap[agent][brand] = non_buyers
+
+            # Auto-calculate target for selected brands
+            if brand in AUTO_BRANDS and brand not in overrides:
+                auto_target = max(1, round(non_buyers * 0.05))
+                if brand not in bc_tgts:
+                    bc_tgts[brand] = {}
+                bc_tgts[brand]["penetration_target"] = auto_target
+                bc_tgts[brand]["pen_auto"] = True
+            elif brand in MANUAL_BRANDS:
+                if brand not in bc_tgts:
+                    bc_tgts[brand] = {}
+                bc_tgts[brand]["pen_auto"] = False
+
+        ag_cfg["brand_commission"] = bc_tgts
+        targets["agents"][agent] = ag_cfg
+
+    snaps[cur_month] = snap
+    targets["penetration_snapshots"] = snaps
+
+    # Save targets.json
+    with open(TARGETS_FILE, "w", encoding="utf-8") as f:
+        json.dump(targets, f, ensure_ascii=False, indent=2)
+    log(f"  ✅ Penetration snapshot saved — auto-targets set for {len(snap)} agents")
+    return targets
+
+
+
+    """
+    Auto-generate birthday gift list:
+    - VIP debtors only
+    - Exclude P-Personal
+    - Exclude new accounts opened this month
+    - Target = total qualifying debtors (management audits agent's actual)
+    """
+    log("Generating birthday campaign list...")
+    today     = date.today()
+    overrides = targets.get("birthday_overrides", {})
+    PERSONAL_TYPES = {"P-Personal","P-PERSONAL","personal","Personal","PERSONAL"}
+
+    birthday_debtors = []
+    for agent, adata in debtor_cards.items():
+        for d in adata.get("debtors", []):
+            code       = d.get("debtor_code", "")
+            db_type    = d.get("debtor_type", "")
+            is_vip     = d.get("vip", False)
+            is_personal = db_type in PERSONAL_TYPES
+            is_new     = d.get("is_new", False)  # new account this month
+
+            # Criteria: birthday this month + VIP + not personal + not new account
+            if (d.get("birthday_this_month", False)
+                    and is_vip
+                    and not is_personal
+                    and not is_new
+                    and overrides.get(code) != "remove"):
+                birthday_debtors.append({
+                    "code":   code,
+                    "name":   d.get("company_name", code),
+                    "agent":  agent,
+                    "type":   db_type,
+                    "phone":  d.get("phone", ""),
+                    "source": "auto",
+                })
+
+    # Marketing manual overrides — add specific debtors
+    for code, action in overrides.items():
+        if action == "add":
+            for agent, adata in debtor_cards.items():
+                d = next((x for x in adata.get("debtors",[]) if x.get("debtor_code")==code), None)
+                if d:
+                    birthday_debtors.append({
+                        "code":   code,
+                        "name":   d.get("company_name", code),
+                        "agent":  agent,
+                        "type":   d.get("debtor_type",""),
+                        "phone":  d.get("phone",""),
+                        "source": "manual",
+                    })
+                    break
+
+    # Remove duplicates
+    seen = set(); result = []
+    for d in birthday_debtors:
+        if d["code"] not in seen:
+            seen.add(d["code"])
+            result.append(d)
+
+    # Group by agent for per-agent target
+    by_agent = {}
+    for d in result:
+        by_agent.setdefault(d["agent"], []).append(d)
+
+    log(f"  Birthday campaign: {len(result)} VIP debtors ({today.strftime('%B %Y')}) — excl new accounts & personal")
+    return {
+        "month":    today.strftime("%B %Y"),
+        "count":    len(result),
+        "debtors":  result,
+        "by_agent": {a: len(v) for a, v in by_agent.items()},
+    }
 
 
 def calc_brand_campaigns(df, targets, agents, cur_month, prev_months, brand_config):
@@ -1135,67 +1441,6 @@ def calc_brand_campaigns(df, targets, agents, cur_month, prev_months, brand_conf
 
 
     """
-    Auto-generate birthday gift campaign list from debtor birth dates.
-    Returns debtors with birthday this month, per agent.
-    Marketing can override (add/remove) via targets.json birthday_overrides.
-    """
-    log("Generating birthday campaign list...")
-    today     = date.today()
-    overrides = targets.get("birthday_overrides", {})  # {debtor_code: "add"|"remove"}
-
-    birthday_debtors = []
-    for agent, adata in debtor_cards.items():
-        for d in adata.get("debtors", []):
-            code = d.get("debtor_code", "")
-            # Auto-include if birthday this month
-            if d.get("birthday_this_month", False):
-                if overrides.get(code) != "remove":
-                    birthday_debtors.append({
-                        "code":    code,
-                        "name":    d.get("company_name", code),
-                        "agent":   agent,
-                        "type":    d.get("debtor_type", ""),
-                        "phone":   d.get("phone", ""),
-                        "source":  "auto",
-                    })
-
-    # Marketing overrides — manually added debtors
-    for code, action in overrides.items():
-        if action == "add":
-            # Find debtor info from any agent
-            found = False
-            for agent, adata in debtor_cards.items():
-                d = next((x for x in adata.get("debtors",[]) if x.get("debtor_code")==code), None)
-                if d:
-                    birthday_debtors.append({
-                        "code":   code,
-                        "name":   d.get("company_name", code),
-                        "agent":  agent,
-                        "type":   d.get("debtor_type", ""),
-                        "phone":  d.get("phone", ""),
-                        "source": "manual",
-                    })
-                    found = True
-                    break
-
-    # Remove duplicates
-    seen = set()
-    result = []
-    for d in birthday_debtors:
-        if d["code"] not in seen:
-            seen.add(d["code"])
-            result.append(d)
-
-    log(f"  Birthday campaign: {len(result)} debtors this month ({today.strftime('%B %Y')})")
-    return {
-        "month":    today.strftime("%B %Y"),
-        "count":    len(result),
-        "debtors":  result,
-    }
-
-
-
-    """
     Group-level CTN vs target for 7 brands.
     Actual = sum of ALL agents' paid CTN for that brand's item codes.
     No RM36 filter (even for EVO).
@@ -1312,7 +1557,7 @@ def calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month):
 
 # ── Module: KPI Calculation ───────────────────────────────────────────────────
 
-def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards):
+def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_camp=None):
     """
     Calculate KPI scores for Sections A, B, C.
     Section D & E keyed in manually by Accounts (later).
@@ -1358,6 +1603,8 @@ def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards):
     for agent in agents:
         ag_cfg  = targets.get("agents", {}).get(agent, {})
         kpi_ag  = kpi_config.get(agent, {})
+        # Inject birthday campaign data for target calculation
+        kpi_config["_birthday_camp"] = birthday_camp or {}
         # KPI targets now stored under agent.kpi_targets in targets.json
         kpi_tgts = ag_cfg.get("kpi_targets", {})
         # Manual scores stored under agent.kpi_manual
@@ -1462,15 +1709,34 @@ def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards):
                 total_manual_score += sc
 
             elif key in ("birthday_campaign", "iface_campaign"):
-                sc = round(min(float(manual.get(key, 0) or 0), weight * 100), 3)
-                items_out[key] = {
-                    "label": label, "section": section, "weight": weight,
-                    "actual": manual.get(key, 0), "target": None,
-                    "score": sc, "max_score": round(weight * 100, 3),
-                    "pct": round(sc / (weight * 100) * 100, 1) if weight else 0,
-                    "source": "manual", "input_role": "marketing",
-                }
-                total_manual_score += sc
+                # Birthday: target = auto-calculated from birthday_campaign list per agent
+                # Actual = agent self-reports gifts delivered (stored in kpi_manual)
+                # Management audits
+                if key == "birthday_campaign":
+                    bday_data = kpi_config.get("_birthday_camp", {})
+                    auto_target = bday_data.get("by_agent", {}).get(agent, 0)
+                    bday_actual = manual.get("birthday_campaign", 0) or 0
+                    sc = score_item(bday_actual, auto_target, weight) if auto_target else 0
+                    items_out[key] = {
+                        "label": label, "section": section, "weight": weight,
+                        "actual": bday_actual,
+                        "target": auto_target,
+                        "score": sc, "max_score": round(weight * 100, 3),
+                        "pct": round(bday_actual / auto_target * 100, 1) if auto_target else 0,
+                        "source": "agent_self_report",
+                        "input_role": "agent",
+                        "audit_role": "management",
+                    }
+                else:
+                    sc = round(min(float(manual.get(key, 0) or 0), weight * 100), 3)
+                    items_out[key] = {
+                        "label": label, "section": section, "weight": weight,
+                        "actual": manual.get(key, 0), "target": None,
+                        "score": sc, "max_score": round(weight * 100, 3),
+                        "pct": round(sc / (weight * 100) * 100, 1) if weight else 0,
+                        "source": "manual", "input_role": "marketing",
+                    }
+                total_manual_score += items_out[key]["score"]
 
             elif key == "event":
                 sc = score_item(actuals[key], item_targets[key], weight)
@@ -1629,14 +1895,20 @@ def main():
     # ── Run modules ─────────────────────────────────────────────────
     sales_prog  = calc_sales_progression(df, targets, agents, cur_month)
     brand_comm  = calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_config)
+
+    # ── Auto-calculate penetration targets from non-buyer counts ─────────────
+    targets = save_penetration_snapshot(brand_comm, targets, cur_month)
     newbie      = calc_newbie_scheme(df, targets, agents, cur_month)
     aging       = calc_aging(df, agents, cur_month)
     debtor_cards = calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map)
+
+    # ── Save month-start snapshot + auto-calc KPI targets ───────────────────
+    targets      = save_debtor_snapshot(debtor_cards, targets, cur_month)
     group_brands = calc_group_brand_targets(df, targets, cur_month, group_brand_config)
-    kpi          = calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards)
+    birthday_camp = calc_birthday_campaign(debtor_cards, targets)
+    kpi          = calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_camp)
     team         = calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month)
     working_days = calc_working_days(targets)
-    birthday_camp = calc_birthday_campaign(debtor_cards, targets)
     brand_camps  = calc_brand_campaigns(df, targets, agents, cur_month, prev_months, brand_config)
 
     # ── Enrich debtor cards with brand campaign tiers ───────────────────────

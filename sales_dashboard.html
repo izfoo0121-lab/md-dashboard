@@ -357,6 +357,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
     <button class="filter-chip" data-val="newsku" onclick="setSpecialFilter('newsku',this)">✨ 新增SKU</button>
     <button class="filter-chip" data-val="flagged" onclick="setSpecialFilter('flagged',this)" style="border-color:rgba(255,95,95,.4);color:var(--red);">⚑ Flagged</button>
     <button class="filter-chip" data-val="campaign" onclick="setSpecialFilter('campaign',this)" style="border-color:rgba(61,220,132,.4);color:var(--green);">🎁 Campaign</button>
+    <button class="filter-chip" data-val="overdue" onclick="setSpecialFilter('overdue',this)" style="border-color:rgba(200,56,26,.4);color:var(--red);">💰 Overdue</button>
+    <button class="filter-chip" data-val="neartarget" onclick="setSpecialFilter('neartarget',this)" style="border-color:rgba(240,192,64,.4);color:var(--accent);">🎯 Near Target</button>
   </div>
   <div class="filter-row" id="type-filter-row">
     <span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">Type:</span>
@@ -473,6 +475,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
   </div>
 </div>
 
+<!-- ── Campaigns View ── -->
+<div id="view-camps" class="view">
+  <div id="camps-content">
+    <div style="text-align:center;padding:30px;font-family:var(--mono);font-size:11px;color:var(--muted);">Select an agent to view campaigns</div>
+  </div>
+</div>
+
 <!-- ── Flag Bottom Sheet ── -->
 <div class="sheet-overlay" id="flag-sheet-overlay" onclick="closeFlagSheet(event)">
   <div class="sheet" onclick="event.stopPropagation()">
@@ -524,6 +533,28 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
   </div>
 </div>
 
+<!-- ── Birthday Gift Entry Sheet ── -->
+<div class="sheet-overlay" id="bday-sheet-overlay" onclick="closeBdaySheet(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">🎂 Birthday Gift</div>
+    <div class="sheet-sub">How many birthday gifts delivered this month?</div>
+    <div style="background:rgba(77,166,255,.08);border:1px solid rgba(77,166,255,.2);border-radius:10px;padding:10px 12px;margin-bottom:14px;">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--blue);margin-bottom:4px;">TARGET THIS MONTH</div>
+      <div style="font-family:var(--display);font-size:28px;color:var(--blue);" id="bday-target-display">—</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">VIP debtors with birthday (excl new accounts & personal)</div>
+    </div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:6px;">Gifts delivered (self-report — management will audit):</div>
+    <input type="number" id="bday-actual-input" min="0" placeholder="0"
+      style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);padding:12px;border-radius:10px;font-family:var(--display);font-size:28px;text-align:center;margin-bottom:12px;">
+    <div style="font-family:var(--mono);font-size:9px;color:rgba(255,154,60,.8);margin-bottom:14px;">
+      ⚠️ Management will verify against actual delivery records
+    </div>
+    <button class="sheet-confirm" onclick="saveBdayActual()">SAVE</button>
+    <button class="sheet-cancel" onclick="closeBdaySheet()">Cancel</button>
+  </div>
+</div>
+
 <!-- ── Event Input Sheet ── -->
 <div class="sheet-overlay" id="event-sheet-overlay" onclick="closeEventSheet(event)">
   <div class="sheet" onclick="event.stopPropagation()">
@@ -547,6 +578,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
   <div class="nav-item" onclick="switchView('brand',this)"><div class="nav-icon">🏷️</div><div class="nav-label" style="font-size:7px;">品牌目标</div></div>
   <div class="nav-item" onclick="switchView('group',this)"><div class="nav-icon">🏢</div><div class="nav-label">Group</div></div>
   <div class="nav-item" onclick="switchView('kpi',this)"><div class="nav-icon">🎯</div><div class="nav-label">KPI</div></div>
+  <div class="nav-item" onclick="switchView('camps',this)"><div class="nav-icon">🎁</div><div class="nav-label">Camps</div></div>
   <div class="nav-item" onclick="switchView('newbie',this)"><div class="nav-icon">🎓</div><div class="nav-label">Newbie</div></div>
   <div class="nav-item" onclick="switchView('aging',this)"><div class="nav-icon">📋</div><div class="nav-label">Aging</div></div>
 </nav>
@@ -786,6 +818,7 @@ function renderAll() {
   renderAging();
   renderGroupBrandTargets();
   renderKPI();
+  renderCamps();
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -889,8 +922,25 @@ function renderDebtors() {
     if (filters.special === 'birthday' && !d.birthday_this_month) return false;
     if (filters.special === 'drop'     && !d.volume_drop_pct)    return false;
     if (filters.special === 'newsku'   && !(d.new_sku_count > 0)) return false;
-    if (filters.special === 'flagged'  && !getFlag(currentAgent, d.debtor_code)) return false;
-    if (filters.special === 'campaign' && !(d.campaigns||[]).length) return false;
+    if (filters.special === 'flagged'   && !getFlag(currentAgent, d.debtor_code)) return false;
+    if (filters.special === 'campaign'  && !(d.campaigns||[]).length) return false;
+    if (filters.special === 'overdue'   && !d.has_overdue) return false;
+    if (filters.special === 'neartarget') {
+      // Has bought something this month but not yet hit any campaign threshold
+      const camps = d.campaigns || [];
+      const hasNearTarget = camps.some(c => {
+        const catRule = c.cat && c.cat_rules ? c.cat_rules[c.cat] : null;
+        const minCtn  = catRule?.min_ctn || c.min_order_ctn || 0;
+        const curCtn  = d.ctn_cur || 0;
+        return minCtn > 0 && curCtn > 0 && curCtn < minCtn;
+      });
+      // Also check brand camp tiers
+      const hasBrandNear = Object.values(d.brand_camp_tiers||{}).some(t => {
+        const minCtn = t.tier === 'A' ? 2 : t.tier === 'B' ? 5 : t.tier === 'C' ? 10 : 0;
+        return minCtn > 0 && (d.ctn_cur||0) > 0 && (d.ctn_cur||0) < minCtn;
+      });
+      if (!hasNearTarget && !hasBrandNear) return false;
+    }
     if (filters.type !== 'all'         && d.debtor_type !== filters.type) return false;
     if (filters.brand !== 'all') {
       const grp = SKU_GRP[filters.brand] || filters.brand;
@@ -954,20 +1004,29 @@ function renderDebtors() {
     // Campaign badges — show category-specific promo if available
     const campEmoji = {free_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',other:'📋'};
     const campBadges = (d.campaigns||[]).map(c => {
-      // Find this debtor's category rule
-      const catRule = c.cat && c.cat_rules ? c.cat_rules[c.cat] : null;
+      const catRule  = c.cat && c.cat_rules ? c.cat_rules[c.cat] : null;
       const promoText = catRule?.promo || c.promo_detail || c.name;
-      const minCtn    = catRule?.min_ctn || c.min_order_ctn || 0;
-      // CTN progress this month for this brand
-      const brandCtns = Object.values(d.sku_status||{}).length;
-      const curCtn    = d.ctn_cur || 0;
-      const pct       = minCtn > 0 ? Math.min(curCtn/minCtn*100,100) : 0;
-      const barColor  = pct>=100?'var(--green)':pct>=50?'var(--accent)':'var(--red)';
+      const minCtn   = catRule?.min_ctn || c.min_order_ctn || 0;
+      const curCtn   = d.ctn_cur || 0;
+      const pct      = minCtn > 0 ? Math.min(curCtn/minCtn*100,100) : 0;
+      const barColor = pct>=100?'var(--green)':pct>=50?'var(--accent)':'var(--red)';
 
-      return `<div style="margin-top:4px;background:rgba(61,220,132,.08);border:1px solid rgba(61,220,132,.25);border-radius:8px;padding:6px 10px;cursor:pointer;"
+      // Visit status
+      const vs       = getCampStatus(c.id, d.debtor_code);
+      const vsInfo   = vs ? VISIT_STATUS[vs.status] : null;
+      const borderCol = vsInfo ? vsInfo.border.replace('.4)','.7)') : 'rgba(61,220,132,.25)';
+      const bgCol     = vsInfo ? vsInfo.bg : 'rgba(61,220,132,.08)';
+      const statusTag = vsInfo
+        ? `<span style="font-family:var(--mono);font-size:8px;color:${vsInfo.color};margin-left:4px;">${vsInfo.label}</span>`
+        : '';
+
+      return `<div style="margin-top:4px;background:${bgCol};border:1px solid ${borderCol};border-radius:8px;padding:6px 10px;cursor:pointer;"
         onclick="showCampDetail(event,'${d.debtor_code}','${(d.company_name||'').replace(/'/g,"\\'")}')">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${minCtn?'4':'0'}px;">
-          <span style="font-family:var(--mono);font-size:10px;color:var(--green);font-weight:600;">${campEmoji[c.type]||'📋'} ${promoText}</span>
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;">
+            <span style="font-family:var(--mono);font-size:10px;color:var(--green);font-weight:600;">${campEmoji[c.type]||'📋'} ${promoText}</span>
+            ${statusTag}
+          </div>
           ${catRule?.max_redempt ? `<span style="font-family:var(--mono);font-size:8px;color:var(--muted);">${catRule.max_redempt}</span>` : ''}
         </div>
         ${minCtn > 0 ? `
@@ -979,6 +1038,7 @@ function renderDebtors() {
             ${curCtn}/${minCtn} CTN${pct>=100?' ✓':''}
           </span>
         </div>` : ''}
+        ${vs?.remark ? `<div style="font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:3px;font-style:italic;">"${vs.remark}"</div>` : ''}
       </div>`;
     }).join('');
 
@@ -1059,7 +1119,23 @@ function renderDebtors() {
           <div class="dc-meta">
             <span class="dc-code">${d.debtor_code}</span>
             ${d.debtor_type ? `<span class="dc-type">${d.debtor_type}</span>` : ''}
+            ${d.has_overdue ? `<span style="font-family:var(--mono);font-size:8px;background:rgba(200,56,26,.2);color:var(--red);padding:1px 6px;border-radius:4px;margin-left:4px;">💰 Overdue</span>` : ''}
           </div>
+          ${(() => {
+            const avg = d.avg_ctn_3m || 0;
+            const cur = d.ctn_cur || 0;
+            if (!avg && !cur) return '';
+            const pct = avg > 0 ? Math.min(cur/avg*100, 100) : 0;
+            const col = pct >= 100 ? 'var(--green)' : pct >= 60 ? 'var(--accent)' : 'var(--red)';
+            return `<div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
+              <div style="flex:1;height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;">
+                <div style="height:100%;width:${pct}%;background:${col};border-radius:2px;"></div>
+              </div>
+              <span style="font-family:var(--mono);font-size:8px;color:${col};white-space:nowrap;">
+                ${cur} / ${avg} CTN
+              </span>
+            </div>`;
+          })()}
         </div>
         <div class="dc-right">
           ${phone ? `<a href="tel:${phone}" class="dc-phone" onclick="event.stopPropagation()">📞 ${phone}</a>` : ''}
@@ -1451,49 +1527,112 @@ function renderAging() {
   const ag = DATA.agents[currentAgent]?.aging || {};
   const el = document.getElementById('aging-content');
 
-  const overdueCls = ag.overdue_count > 0 ? 'alert' : '';
+  const debtorList = ag.debtor_outstanding || [];
+  const totalUnpaidCtn = ag.canggih_unpaid_ctn || 0;
+  const overdueCount   = ag.overdue_count || 0;
 
-  const invoiceHtml = (ag.overdue_invoices || []).map(inv => `
-    <div class="invoice-row overdue">
-      <div>
-        <div class="inv-company">${inv.company_name || inv.debtor_code}</div>
-        <div class="inv-meta">${inv.doc_no} · ${inv.invoice_date} · ${inv.item_code}</div>
+  // ── Summary strip ──────────────────────────────────────────────
+  const summaryHtml = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-family:var(--display);font-size:22px;color:var(--accent);">${fmtNum(totalUnpaidCtn)}</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">Unpaid CTN</div>
       </div>
-      <div>
-        <div class="inv-days" style="color:var(--red)">${inv.days_outstanding}d</div>
-        <div class="inv-ctn">${fmtNum(inv.qty_ctn)} CTN</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-family:var(--display);font-size:22px;color:${overdueCount>0?'var(--red)':'var(--green)'};">${overdueCount}</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">Overdue ≥60d</div>
       </div>
-    </div>`).join('');
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-family:var(--display);font-size:22px;color:var(--text);">${debtorList.length}</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">Debtors Owing</div>
+      </div>
+    </div>`;
 
-  el.innerHTML = `
-    <div class="sec-label">Canggih CTN</div>
-    <div class="aging-summary">
-      <div class="aging-box">
-        <div class="aging-val" style="color:var(--green)">${fmtNum(ag.canggih_paid_ctn)}</div>
-        <div class="aging-lbl">Paid CTN</div>
-      </div>
-      <div class="aging-box">
-        <div class="aging-val" style="color:var(--orange)">${fmtNum(ag.canggih_unpaid_ctn)}</div>
-        <div class="aging-lbl">Unpaid CTN</div>
-      </div>
-    </div>
-    <div class="sec-label">8COM CTN</div>
-    <div class="aging-summary">
-      <div class="aging-box">
-        <div class="aging-val" style="color:var(--green)">${fmtNum(ag.eightcom_paid_ctn)}</div>
-        <div class="aging-lbl">8COM Paid</div>
-      </div>
-      <div class="aging-box">
-        <div class="aging-val" style="color:var(--orange)">${fmtNum(ag.eightcom_unpaid_ctn)}</div>
-        <div class="aging-lbl">8COM Unpaid</div>
-      </div>
-    </div>
-    <div class="sec-label">Overdue Invoices (≥ 60 days)</div>
-    <div class="aging-box ${overdueCls}" style="margin-bottom:10px;padding:12px;">
-      <div class="aging-val" style="color:${ag.overdue_count > 0 ? 'var(--red)' : 'var(--green)'}">${ag.overdue_count}</div>
-      <div class="aging-lbl">Overdue Invoices</div>
-    </div>
-    ${invoiceHtml || '<div style="text-align:center;padding:16px;font-family:var(--mono);font-size:11px;color:var(--green)">✓ No overdue invoices</div>'}`;
+  // ── Debtor outstanding list ─────────────────────────────────────
+  if (!debtorList.length) {
+    el.innerHTML = summaryHtml + `
+      <div style="text-align:center;padding:30px;background:var(--surface);border:1px solid var(--border);border-radius:14px;">
+        <div style="font-size:28px;margin-bottom:8px;">✓</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--green);">No outstanding invoices</div>
+      </div>`;
+    return;
+  }
+
+  const debtorHtml = debtorList.map(d => {
+    const isOverdue  = d.overdue_count > 0;
+    const borderCol  = isOverdue ? 'rgba(200,56,26,.5)' : 'rgba(255,154,60,.3)';
+    const daysCol    = d.oldest_days >= 60 ? 'var(--red)' : d.oldest_days >= 30 ? 'var(--accent)' : 'var(--muted)';
+    const phone      = DATA.agents[currentAgent]?.debtor_cards?.debtors
+                         ?.find(x => x.debtor_code === d.debtor_code)?.phone || '';
+    const phoneClean = phone.replace(/\s/g,'');
+
+    // Invoice rows (hidden by default, toggled)
+    const invoiceRows = d.invoices.map(inv => `
+      <div style="display:flex;justify-content:space-between;align-items:center;
+                  padding:6px 10px;border-radius:6px;
+                  background:${inv.overdue?'rgba(200,56,26,.08)':'rgba(255,255,255,.03)'};
+                  margin-bottom:2px;">
+        <div>
+          <div style="font-family:var(--mono);font-size:10px;color:${inv.overdue?'var(--red)':'var(--text)'};">
+            ${inv.doc_no}
+          </div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">
+            ${inv.invoice_date} · ${inv.item_code} · ${inv.days_outstanding}d
+            ${inv.overdue?'<span style="color:var(--red);"> ⚠ OVERDUE</span>':''}
+          </div>
+        </div>
+        <div style="font-family:var(--display);font-size:14px;color:${inv.overdue?'var(--red)':'var(--accent)'};">
+          ${inv.qty_ctn} CTN
+        </div>
+      </div>`).join('');
+
+    return `
+      <div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid ${borderCol};
+                  border-radius:12px;margin-bottom:8px;overflow:hidden;">
+        <!-- Debtor header — tap to expand -->
+        <div onclick="toggleOutstanding('${d.debtor_code}')"
+             style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-family:var(--body);font-size:13px;font-weight:600;
+                        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.company_name}</div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;">
+              ${d.debtor_code} &nbsp;·&nbsp;
+              <span style="color:${daysCol};">oldest: ${d.oldest_days}d</span>
+              &nbsp;·&nbsp; ${d.invoice_count} invoice${d.invoice_count!==1?'s':''}
+              ${d.overdue_count>0?`&nbsp;·&nbsp; <span style="color:var(--red);">${d.overdue_count} overdue</span>`:''}
+            </div>
+          </div>
+          <div style="text-align:right;margin-left:10px;">
+            <div style="font-family:var(--display);font-size:18px;color:${isOverdue?'var(--red)':'var(--accent)'};">
+              ${d.total_ctn} CTN
+            </div>
+            ${phoneClean ? `<a href="tel:${phoneClean}" onclick="event.stopPropagation()"
+              style="font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;">📞 Call</a>` : ''}
+          </div>
+          <div style="margin-left:10px;font-family:var(--mono);font-size:10px;color:var(--muted);"
+               id="toggle-icon-${d.debtor_code}">▼</div>
+        </div>
+        <!-- Invoice drill-down (collapsed by default) -->
+        <div id="outstanding-${d.debtor_code}"
+             style="display:none;padding:0 10px 10px;">
+          ${invoiceRows}
+        </div>
+      </div>`;
+  }).join('');
+
+  el.innerHTML = summaryHtml +
+    `<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:8px;">
+      Tap debtor to see invoice details &nbsp;·&nbsp; Sorted by oldest first
+    </div>` + debtorHtml;
+}
+
+function toggleOutstanding(debtorCode) {
+  const el   = document.getElementById(`outstanding-${debtorCode}`);
+  const icon = document.getElementById(`toggle-icon-${debtorCode}`);
+  if (!el) return;
+  const isHidden = el.style.display === 'none';
+  el.style.display   = isHidden ? 'block' : 'none';
+  if (icon) icon.textContent = isHidden ? '▲' : '▼';
 }
 
 // ── View 6: Group Brand Targets ───────────────────────────────────────────
@@ -1708,6 +1847,49 @@ function resolveFlag(agent, debtorCode) {
 }
 
 // ── View 7: KPI ────────────────────────────────────────────────────────────
+// ── 3-Month Trend Card ─────────────────────────────────────────────────────
+function trendCard() {
+  // Try to get historical data from window.HISTORY_DATA (injected by Streamlit)
+  const hist = window.HISTORY_DATA?.monthly || [];
+  if (!hist.length || !currentAgent) return '';
+
+  // Get last 3 months for this agent
+  const agentRows = hist
+    .filter(r => r.Agent === currentAgent)
+    .sort((a,b) => {
+      try { return new Date('01 '+a.Month) - new Date('01 '+b.Month); } catch(e) { return 0; }
+    })
+    .slice(-3);
+
+  if (!agentRows.length) return '';
+
+  const cols = ['var(--muted)','var(--muted)','var(--blue)'];
+  const maxSales = Math.max(...agentRows.map(r => r['Normal Actual']||0), 1);
+
+  return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;">📈 My 3-Month Trend</div>
+    <div style="display:grid;grid-template-columns:repeat(${agentRows.length},1fr);gap:8px;">
+      ${agentRows.map((r,i) => {
+        const salesPct = maxSales > 0 ? Math.round((r['Normal Actual']||0)/maxSales*100) : 0;
+        const kpiScore = r['KPI A+B+C Score'] || 0;
+        const kpiCol   = kpiScore >= 55 ? 'var(--green)' : kpiScore >= 40 ? 'var(--accent)' : 'var(--red)';
+        const salesCol = (r['Normal %']||0) >= 100 ? 'var(--green)' : (r['Normal %']||0) >= 80 ? 'var(--accent)' : 'var(--red)';
+        const isCur    = i === agentRows.length - 1;
+        return `<div style="text-align:center;${isCur?'background:rgba(77,166,255,.06);border:1px solid rgba(77,166,255,.2);':'border:1px solid var(--border);'}border-radius:10px;padding:10px 6px;">
+          <div style="font-family:var(--mono);font-size:9px;color:${isCur?'var(--blue)':'var(--muted)'};">${r.Month}${isCur?' ←':''}</div>
+          <div style="height:40px;display:flex;align-items:flex-end;justify-content:center;margin:6px 0;">
+            <div style="width:24px;background:${salesCol};border-radius:3px 3px 0 0;height:${Math.max(salesPct,4)}%;opacity:.8;"></div>
+          </div>
+          <div style="font-family:var(--display);font-size:14px;color:${salesCol};">${r['Normal %']||0}%</div>
+          <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">Sales T1</div>
+          <div style="margin-top:6px;font-family:var(--display);font-size:13px;color:${kpiCol};">${kpiScore.toFixed(1)}</div>
+          <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">KPI pts</div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
 function renderKPI() {
   if (!currentAgent || !DATA) return;
   const kpi = DATA.agents[currentAgent]?.kpi || {};
@@ -1796,10 +1978,14 @@ function renderKPI() {
           </div>
           <div>
             ${canEdit
-              ? `<button class="kpi-manual-btn" onclick="openEventSheet()">✏️ ${item.actual || 'Enter'}</button>`
+              ? key === 'birthday_campaign'
+                ? `<button class="kpi-manual-btn" onclick="openBdaySheet()">🎂 ${item.actual != null ? item.actual : 'Enter'}</button>`
+                : `<button class="kpi-manual-btn" onclick="openEventSheet()">✏️ ${item.actual || 'Enter'}</button>`
               : isManual
                 ? `<span style="font-family:var(--mono);font-size:8px;color:var(--muted);">Manual</span>`
-                : `<span class="kpi-item-pct" style="color:${col}">${(item.pct||0).toFixed(0)}%</span>`
+                : item.source === 'agent_self_report'
+                  ? `<span style="font-family:var(--mono);font-size:8px;color:var(--blue);">Self-report</span>`
+                  : `<span class="kpi-item-pct" style="color:${col}">${(item.pct||0).toFixed(0)}%</span>`
             }
           </div>
           <div class="kpi-item-score" style="color:${col}">${(item.score||0).toFixed(2)}<span style="font-family:var(--mono);font-size:7px;color:var(--muted)">/${(item.max_score||0).toFixed(2)}</span></div>
@@ -1818,15 +2004,65 @@ function renderKPI() {
       : '<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:6px;">Pending...</div>'}
   </div>`;
 
-  el.innerHTML = heroHtml + sectionsHtml + dePlaceholder;
+  el.innerHTML = heroHtml + trendCard() + sectionsHtml + dePlaceholder;
 }
 
 // ── Campaign Detail Popup ──────────────────────────────────────────────────
 const CAMP_EMOJI = {free_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',other:'📋'};
 const CAMP_LABEL = {free_sample:'Free Sample',birthday_gift:'Birthday Gift',promotion:'Brand Promotion',festive_gift:'Festive Gift',other:'Other'};
 
+// ── Campaign Visit Status Storage ──────────────────────────────────────────
+// Key: camp_status_{month}_{agent}  Value: { "campId_debtorCode": { status, remark, ts } }
+// Month-scoped so statuses auto-clear each new month
+const CAMP_STATUS_KEY = () => {
+  const month = DATA?.current_month || 'cur';
+  return `camp_status_${month}_${currentAgent}`;
+};
+
+function getCampStatuses() {
+  try { return JSON.parse(localStorage.getItem(CAMP_STATUS_KEY()) || '{}'); }
+  catch(e) { return {}; }
+}
+
+function getCampStatus(campId, debtorCode) {
+  return getCampStatuses()[`${campId}_${debtorCode}`] || null;
+}
+
+function setCampStatus(campId, debtorCode, status) {
+  const all    = getCampStatuses();
+  const key    = `${campId}_${debtorCode}`;
+  const remark = all[key]?.remark || '';   // preserve existing remark
+  all[key] = { status, remark, ts: new Date().toISOString(), agent: currentAgent };
+  try { localStorage.setItem(CAMP_STATUS_KEY(), JSON.stringify(all)); } catch(e) {}
+  renderDebtors();
+}
+
+function saveCampRemark(campId, debtorCode) {
+  const inp    = document.getElementById(`remark-${campId}`);
+  if (!inp) return;
+  const all    = getCampStatuses();
+  const key    = `${campId}_${debtorCode}`;
+  if (!all[key]) all[key] = { status: 'not_in', agent: currentAgent };
+  all[key].remark = inp.value.trim();
+  all[key].ts     = new Date().toISOString();
+  try { localStorage.setItem(CAMP_STATUS_KEY(), JSON.stringify(all)); } catch(e) {}
+  // Visual feedback
+  inp.style.borderColor = 'var(--green)';
+  setTimeout(() => { inp.style.borderColor = ''; }, 1000);
+}
+
+const VISIT_STATUS = {
+  delivered:  { label:'✓ Delivered',    color:'var(--green)',  bg:'rgba(42,122,75,.2)',  border:'rgba(42,122,75,.4)'  },
+  not_in:     { label:'📵 Not In',       color:'var(--muted)',  bg:'rgba(255,255,255,.08)',border:'rgba(255,255,255,.2)'},
+  next_visit: { label:'📅 Next Visit',   color:'var(--accent)', bg:'rgba(200,134,10,.15)',border:'rgba(200,134,10,.4)' },
+  refused:    { label:'❌ Refused',       color:'var(--red)',    bg:'rgba(200,56,26,.15)', border:'rgba(200,56,26,.4)'  },
+};
+
+let _campDetailDebtor = null; // store current debtor for remark save
+
 function showCampDetail(event, debtorCode, debtorName) {
   event.stopPropagation();
+  _campDetailDebtor = debtorCode;
   const debtors = DATA.agents[currentAgent]?.debtor_cards?.debtors || [];
   const debtor  = debtors.find(d => d.debtor_code === debtorCode);
   const camps   = debtor?.campaigns || [];
@@ -1835,6 +2071,8 @@ function showCampDetail(event, debtorCode, debtorName) {
   document.getElementById('cd-sub').textContent   = `${camps.length} active campaign${camps.length!==1?'s':''}`;
 
   document.getElementById('cd-list').innerHTML = camps.map(c => {
+    const status   = getCampStatus(c.id, debtorCode);
+    const sv       = status ? VISIT_STATUS[status.status] : null;
     const brandsHtml = c.brands?.length
       ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">
           ${c.brands.map(b=>`<span style="font-family:var(--mono);font-size:9px;background:rgba(255,154,60,.15);color:var(--orange);padding:2px 8px;border-radius:8px;border:1px solid rgba(255,154,60,.3);">${b}</span>`).join('')}
@@ -1848,15 +2086,50 @@ function showCampDetail(event, debtorCode, debtorName) {
     const descHtml = c.description
       ? `<div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:6px;">${c.description}</div>` : '';
 
-    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;border-left:4px solid var(--green);">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-        <span style="font-size:22px;">${CAMP_EMOJI[c.type]||'📋'}</span>
-        <div>
-          <div style="font-weight:600;font-size:14px;">${c.name}</div>
-          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">${CAMP_LABEL[c.type]||c.type}</div>
+    // Status buttons
+    const statusBtns = Object.entries(VISIT_STATUS).map(([key, vs]) => {
+      const isActive = status?.status === key;
+      return `<button onclick="setCampStatus('${c.id}','${debtorCode}','${key}');showCampDetail(event,'${debtorCode}','${debtorName.replace(/'/g,"\\'")}');event.stopPropagation();"
+        style="flex:1;background:${isActive?vs.bg:'transparent'};border:1px solid ${isActive?vs.border:'var(--border)'};
+               color:${isActive?vs.color:'var(--muted)'};font-family:var(--mono);font-size:10px;
+               padding:7px 4px;border-radius:8px;cursor:pointer;transition:all .15s;text-align:center;">
+        ${vs.label}
+      </button>`;
+    }).join('');
+
+    // Remark input
+    const remarkHtml = `<div style="margin-top:8px;">
+      <input type="text" id="remark-${c.id}" placeholder="Add remark (optional)..."
+        value="${status?.remark||''}"
+        style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);
+               font-family:var(--mono);font-size:11px;padding:7px 10px;border-radius:8px;box-sizing:border-box;">
+      <button onclick="saveCampRemark('${c.id}','${debtorCode}')"
+        style="margin-top:4px;width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);
+               color:var(--muted);font-family:var(--mono);font-size:9px;padding:5px;border-radius:6px;cursor:pointer;">
+        💾 Save Remark
+      </button>
+    </div>`;
+
+    const borderCol = sv ? sv.border.replace('.4)','.6)') : 'rgba(61,220,132,.4)';
+
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;border-left:4px solid ${borderCol};">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:20px;">${CAMP_EMOJI[c.type]||'📋'}</span>
+          <div>
+            <div style="font-weight:600;font-size:14px;">${c.name}</div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">${CAMP_LABEL[c.type]||c.type}</div>
+          </div>
         </div>
+        ${sv ? `<span style="font-family:var(--mono);font-size:10px;color:${sv.color};background:${sv.bg};border:1px solid ${sv.border};padding:3px 8px;border-radius:6px;">${sv.label}</span>` : ''}
       </div>
       ${brandsHtml}${promoHtml}${descHtml}
+      <div style="margin-top:10px;">
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Update Status:</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">${statusBtns}</div>
+        ${remarkHtml}
+        ${status?.ts ? `<div style="font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:6px;">Last updated: ${new Date(status.ts).toLocaleString('en-MY',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>` : ''}
+      </div>
     </div>`;
   }).join('') || `<div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;padding:20px 0;">No active campaigns</div>`;
 
@@ -1864,10 +2137,119 @@ function showCampDetail(event, debtorCode, debtorName) {
   document.body.style.overflow = 'hidden';
 }
 
+function saveCampRemark(campId, debtorCode) {
+  const inp = document.getElementById(`remark-${campId}`);
+  if (!inp) return;
+  const existing = getCampStatus(campId, debtorCode);
+  setCampStatus(campId, debtorCode, existing?.status || 'not_in', inp.value.trim());
+  inp.style.borderColor = 'var(--green)';
+  setTimeout(() => { if(inp) inp.style.borderColor = 'var(--border)'; }, 1000);
+}
+
 function closeCampDetail(e) {
   if (e && e.target !== document.getElementById('camp-detail-overlay')) return;
   document.getElementById('camp-detail-overlay').classList.remove('open');
   document.body.style.overflow = '';
+}
+
+// ── Campaigns View ─────────────────────────────────────────────────────────
+function renderCamps() {
+  const el = document.getElementById('camps-content');
+  if (!el || !currentAgent || !DATA) return;
+
+  const debtors  = DATA.agents[currentAgent]?.debtor_cards?.debtors || [];
+  const statuses = getCampStatuses();
+
+  // Collect all unique campaigns this agent has
+  const campMap  = {};
+  debtors.forEach(d => {
+    (d.campaigns || []).forEach(c => {
+      if (!campMap[c.id]) campMap[c.id] = { ...c, debtors: [] };
+      const vs = statuses[`${c.id}_${d.debtor_code}`];
+      campMap[c.id].debtors.push({ ...d, visit_status: vs });
+    });
+  });
+
+  const camps = Object.values(campMap);
+
+  if (!camps.length) {
+    el.innerHTML = `<div style="text-align:center;padding:40px;font-family:var(--mono);font-size:11px;color:var(--muted);">
+      No active campaigns for ${currentAgent}
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = camps.map(c => {
+    const total     = c.debtors.length;
+    const delivered = c.debtors.filter(d => d.visit_status?.status === 'delivered').length;
+    const notIn     = c.debtors.filter(d => d.visit_status?.status === 'not_in').length;
+    const nextVisit = c.debtors.filter(d => d.visit_status?.status === 'next_visit').length;
+    const refused   = c.debtors.filter(d => d.visit_status?.status === 'refused').length;
+    const pending   = total - delivered - notIn - nextVisit - refused;
+    const pct       = total > 0 ? Math.round(delivered/total*100) : 0;
+    const col       = pct >= 100 ? 'var(--green)' : pct >= 60 ? 'var(--accent)' : 'var(--red)';
+
+    // Debtor rows grouped by status
+    const groups = [
+      { key:'pending',    label:'⏳ Pending',     items: c.debtors.filter(d => !d.visit_status),                        col:'var(--muted)' },
+      { key:'next_visit', label:'📅 Next Visit',  items: c.debtors.filter(d => d.visit_status?.status==='next_visit'),  col:'var(--accent)' },
+      { key:'not_in',     label:'📵 Not In',      items: c.debtors.filter(d => d.visit_status?.status==='not_in'),      col:'var(--muted)' },
+      { key:'delivered',  label:'✓ Delivered',    items: c.debtors.filter(d => d.visit_status?.status==='delivered'),   col:'var(--green)' },
+      { key:'refused',    label:'❌ Refused',      items: c.debtors.filter(d => d.visit_status?.status==='refused'),     col:'var(--red)' },
+    ].filter(g => g.items.length > 0);
+
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;">
+      <!-- Camp header -->
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+          <div>
+            <div style="font-family:var(--display);font-size:16px;letter-spacing:.04em;">${CAMP_EMOJI[c.type]||'📋'} ${c.name}</div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;">${CAMP_LABEL[c.type]||c.type} · ${total} debtors</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-family:var(--display);font-size:22px;color:${col};">${pct}%</div>
+            <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">${delivered}/${total} sent</div>
+          </div>
+        </div>
+        <!-- Progress bar -->
+        <div style="height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;margin-bottom:8px;">
+          <div style="height:100%;width:${pct}%;background:${col};border-radius:3px;transition:width .4s;"></div>
+        </div>
+        <!-- Status summary chips -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${pending   > 0 ? `<span style="font-family:var(--mono);font-size:8px;background:rgba(255,255,255,.06);color:var(--muted);padding:2px 8px;border-radius:10px;">⏳ ${pending} pending</span>` : ''}
+          ${nextVisit > 0 ? `<span style="font-family:var(--mono);font-size:8px;background:rgba(200,134,10,.15);color:var(--accent);padding:2px 8px;border-radius:10px;">📅 ${nextVisit} next visit</span>` : ''}
+          ${notIn     > 0 ? `<span style="font-family:var(--mono);font-size:8px;background:rgba(255,255,255,.06);color:var(--muted);padding:2px 8px;border-radius:10px;">📵 ${notIn} not in</span>` : ''}
+          ${delivered > 0 ? `<span style="font-family:var(--mono);font-size:8px;background:rgba(42,122,75,.2);color:var(--green);padding:2px 8px;border-radius:10px;">✓ ${delivered} delivered</span>` : ''}
+          ${refused   > 0 ? `<span style="font-family:var(--mono);font-size:8px;background:rgba(200,56,26,.15);color:var(--red);padding:2px 8px;border-radius:10px;">❌ ${refused} refused</span>` : ''}
+        </div>
+      </div>
+      <!-- Debtor list by status group -->
+      <div style="padding:8px 12px;">
+        ${groups.map(g => `
+          <div style="margin-bottom:8px;">
+            <div style="font-family:var(--mono);font-size:8px;color:${g.col};text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">${g.label}</div>
+            ${g.items.map(d => {
+              const phone = (d.phone||'').replace(/\s/g,'');
+              const vs    = d.visit_status;
+              return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 8px;background:rgba(255,255,255,.03);border-radius:8px;margin-bottom:3px;">
+                <div style="flex:1;min-width:0;">
+                  <div style="font-family:var(--body);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.company_name||d.debtor_code}</div>
+                  <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">${d.debtor_code}${vs?.remark ? ` · "${vs.remark}"` : ''}</div>
+                </div>
+                <div style="display:flex;gap:6px;align-items:center;margin-left:8px;">
+                  ${phone ? `<a href="tel:${phone}" onclick="event.stopPropagation()" style="font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;">📞</a>` : ''}
+                  <button onclick="showCampDetail(event,'${d.debtor_code}','${(d.company_name||'').replace(/'/g,"\\'")}')"
+                    style="background:rgba(255,255,255,.08);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">
+                    Update
+                  </button>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ── Brand Tier Detail Popup ────────────────────────────────────────────────
@@ -1948,7 +2330,44 @@ function closeCtnTooltip() {
 }
 
 // ── Event Sheet ────────────────────────────────────────────────────────────
-function openEventSheet() {
+// ── Birthday Gift Entry ────────────────────────────────────────────────────
+function openBdaySheet() {
+  const kpi = DATA.agents[currentAgent]?.kpi || {};
+  const item = kpi.items?.birthday_campaign || {};
+  const target = item.target ?? DATA.birthday_campaign?.by_agent?.[currentAgent] ?? 0;
+  const actual = item.actual ?? 0;
+  document.getElementById('bday-target-display').textContent = target || '—';
+  document.getElementById('bday-actual-input').value = actual || '';
+  document.getElementById('bday-sheet-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeBdaySheet(e) {
+  if (e && e.target !== document.getElementById('bday-sheet-overlay')) return;
+  document.getElementById('bday-sheet-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function saveBdayActual() {
+  const val = parseInt(document.getElementById('bday-actual-input').value) || 0;
+  // Save to Streamlit storage (same pattern as event)
+  const key = `kpi_birthday_${currentAgent}`;
+  try {
+    const stored = JSON.parse(localStorage.getItem('kpi_manual') || '{}');
+    if (!stored[currentAgent]) stored[currentAgent] = {};
+    stored[currentAgent].birthday_campaign = val;
+    localStorage.setItem('kpi_manual', JSON.stringify(stored));
+  } catch(e) {}
+  // Update local display
+  if (DATA.agents[currentAgent]?.kpi?.items?.birthday_campaign) {
+    DATA.agents[currentAgent].kpi.items.birthday_campaign.actual = val;
+  }
+  document.getElementById('bday-sheet-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  renderKPI();
+}
+
+// ── Event Entry ────────────────────────────────────────────────────────────
   const kpi = DATA?.agents[currentAgent]?.kpi;
   const eventItem = kpi?.items?.event;
   document.getElementById('event-input').value = eventItem?.actual || '';
