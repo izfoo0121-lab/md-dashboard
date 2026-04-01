@@ -42,15 +42,16 @@ def inject_history(html):
 
 def point_to_github(html):
     """Redirect all fetch() calls to GitHub raw URLs."""
+    BUST = "?cache=1"  # simple cache bust, no JS expression needed
     html = html.replace(
         "fetch('dashboard_data.json')",
-        f"fetch('{REPO_RAW}/dashboard_data.json?_t='+Date.now())"
+        f"fetch('{REPO_RAW}/dashboard_data.json{BUST}')"
     ).replace(
         "fetch('targets.json')",
-        f"fetch('{REPO_RAW}/targets.json?_t='+Date.now())"
+        f"fetch('{REPO_RAW}/targets.json{BUST}')"
     ).replace(
         "fetch('campaigns.json')",
-        f"fetch('{REPO_RAW}/campaigns.json?_t='+Date.now())"
+        f"fetch('{REPO_RAW}/campaigns.json{BUST}')"
     )
     return html
 
