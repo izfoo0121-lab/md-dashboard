@@ -57,6 +57,12 @@ def build_monthly_rows(data, targets):
         ag_tgts = targets.get("agents", {}).get(agent, {})
         kpi_tgts = ag_tgts.get("kpi_targets", {})
 
+        ag_sp   = ag_tgts.get("sales_progression", {})
+        t1_tgt  = ag_sp.get("normal_t1") or 0
+        t2_tgt  = ag_sp.get("normal_t2") or 0
+        ga_tgt  = ag_sp.get("ga") or 0
+        ma_tgt  = ag_sp.get("ma") or 0
+
         tiers = sp.get("tiers", {})
         t1    = tiers.get("normal_t1", {}) or {}
         ga_t  = tiers.get("ga", {}) or {}
@@ -73,15 +79,15 @@ def build_monthly_rows(data, targets):
             "Agent":           agent,
             "Working Days":    wd.get("total_working_days", 0),
             # Sales
-            "Normal Target":   t1.get("target", 0) or 0,
+            "Normal Target":   t1_tgt,
             "Normal Actual":   sp.get("normal_ctn", 0) or 0,
-            "Normal %":        round(t1.get("pct", 0) or 0, 1),
-            "GA Target":       ga_t.get("target", 0) or 0,
+            "Normal %":        round(sp.get("normal_ctn",0)/t1_tgt*100, 1) if t1_tgt else 0,
+            "GA Target":       ga_tgt,
             "GA Actual":       sp.get("ga_ctn", 0) or 0,
-            "GA %":            round(ga_t.get("pct", 0) or 0, 1),
-            "MA Target":       ma_t.get("target", 0) or 0,
+            "GA %":            round(sp.get("ga_ctn",0)/ga_tgt*100, 1) if ga_tgt else 0,
+            "MA Target":       ma_tgt,
             "MA Actual":       sp.get("ma_ctn", 0) or 0,
-            "MA %":            round(ma_t.get("pct", 0) or 0, 1),
+            "MA %":            round(sp.get("ma_ctn",0)/ma_tgt*100, 1) if ma_tgt else 0,
             "Total Canggih CTN": sp.get("total_canggih_ctn", 0) or 0,
             "8COM Paid CTN":   sp.get("eightcom_paid_ctn", 0) or 0,
             "Txn Count":       sp.get("txn_count", 0) or 0,

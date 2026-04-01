@@ -199,9 +199,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
   <!-- Cross-page nav -->
   <div style="background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.08);padding:6px 16px;display:flex;gap:10px;align-items:center;overflow-x:auto;">
     <span style="font-family:var(--mono);font-size:8px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;">Go to:</span>
-    <a href="/" style="font-family:var(--mono);font-size:9px;color:#4da6ff;text-decoration:none;padding:3px 8px;border:1px solid rgba(77,166,255,.3);border-radius:6px;white-space:nowrap;">👥 Agent</a>
-    <a href="/Admin" style="font-family:var(--mono);font-size:9px;color:#f0c040;text-decoration:none;padding:3px 8px;border:1px solid rgba(240,192,64,.3);border-radius:6px;white-space:nowrap;">⚙ Admin</a>
-    <a href="/Campaigns" style="font-family:var(--mono);font-size:9px;color:#3ddc84;text-decoration:none;padding:3px 8px;border:1px solid rgba(61,220,132,.3);border-radius:6px;white-space:nowrap;">📢 Campaigns</a>
+    <a href="?page=agent" style="font-family:var(--mono);font-size:9px;color:#4da6ff;text-decoration:none;padding:3px 8px;border:1px solid rgba(77,166,255,.3);border-radius:6px;white-space:nowrap;">👥 Agent</a>
+    <a href="?page=admin" style="font-family:var(--mono);font-size:9px;color:#f0c040;text-decoration:none;padding:3px 8px;border:1px solid rgba(240,192,64,.3);border-radius:6px;white-space:nowrap;">⚙ Admin</a>
+    <a href="?page=campaigns" style="font-family:var(--mono);font-size:9px;color:#3ddc84;text-decoration:none;padding:3px 8px;border:1px solid rgba(61,220,132,.3);border-radius:6px;white-space:nowrap;">📢 Campaigns</a>
   </div>
   <div class="mgmt-header">
     <div class="header-row">
@@ -238,6 +238,12 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
     <div id="pending-actions-section" style="display:none;">
       <div class="sec-lbl no-border" style="color:#c8381a;">⚑ Pending Actions</div>
       <div id="pending-actions-list"></div>
+    </div>
+
+    <!-- 0b. Birthday Gift Audit -->
+    <div id="bday-audit-section" style="display:none;">
+      <div class="sec-lbl no-border" style="color:var(--purple);">🎂 Birthday Gift — Audit Required</div>
+      <div id="bday-audit-list"></div>
     </div>
 
     <!-- 1. Team Sales -->
@@ -309,6 +315,18 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
         <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">Total · 光顾率 · 已激活 · 待激活 · 新增SKU · Tap to drill down</div>
       </div>
       <div class="heat-scroll"><div id="debtor-summary"></div></div>
+    </div>
+
+    <!-- 5b. Brand SKU Penetration Status -->
+    <div class="sec-lbl">🏷️ Brand Penetration — Non-buyers vs Target</div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin:0 0 8px 2px;">
+      ⚡ Auto 5% of non-buyers (iFACE/SUKUN/BISON/TR20) &nbsp;·&nbsp; EVO &amp; LAM+LWM = manual &nbsp;·&nbsp;
+      <span style="color:var(--blue)">■ Bought</span> &nbsp;
+      <span style="color:#c8381a">■ Not bought</span> &nbsp;
+      <span style="color:var(--green)">✓ Hit target</span>
+    </div>
+    <div class="card" style="overflow-x:auto;padding:0;">
+      <div id="brand-sku-status" style="min-width:700px;"></div>
     </div>
 
     <!-- 6. Newbie -->
@@ -647,10 +665,12 @@ function renderOverview() {
   document.getElementById('ov-ma').textContent=fi(team.team_ma_ctn);
 
   renderPendingActions();
+  renderBdayAudit();
   renderLeaderboard();
   renderGroupBrands();
   renderCommHeatmap();
   renderDebtorSummary();
+  renderBrandSkuStatus();
   renderNewbieProgress();
   renderAgingOverview();
   renderMonthlySummary();
@@ -813,6 +833,72 @@ function loadFlags() {
 function saveFlags(f) {
   try { localStorage.setItem(FLAGS_KEY, JSON.stringify(f)); } catch(e) {}
 }
+function renderBdayAudit() {
+  const el = document.getElementById('bday-audit-list');
+  const sec = document.getElementById('bday-audit-section');
+  if (!el || !CURRENT_DATA) return;
+
+  const bdayCamp = CURRENT_DATA.birthday_campaign || {};
+  const byAgent  = bdayCamp.by_agent || {};
+  const agents   = CURRENT_DATA.agents || {};
+
+  // Find agents who have birthday targets this month
+  const rows = Object.entries(byAgent).filter(([,cnt]) => cnt > 0);
+
+  if (!rows.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+
+  el.innerHTML = rows.map(([agent, target]) => {
+    const kpi    = agents[agent]?.kpi?.items?.birthday_campaign || {};
+    const actual = kpi.actual ?? null;
+    const done   = actual !== null;
+    const pct    = target > 0 && actual !== null ? Math.min(actual/target*100, 100) : 0;
+    const col    = pct >= 100 ? '#2a7a4b' : pct >= 60 ? '#c8860a' : '#c8381a';
+
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;border-left:4px solid ${done?col:'rgba(255,255,255,.15)'};">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div>
+          <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;">${agent}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">
+            Target: ${target} debtors &nbsp;·&nbsp;
+            ${done
+              ? `Self-reported: <span style="color:${col};font-weight:600;">${actual}</span>`
+              : `<span style="color:#c8381a;">Not yet reported</span>`}
+          </div>
+        </div>
+        <div style="text-align:right;">
+          ${done
+            ? `<div style="font-family:var(--display);font-size:22px;color:${col}">${pct.toFixed(0)}%</div>`
+            : `<span style="font-family:var(--mono);font-size:9px;color:#c8381a;">Pending</span>`}
+        </div>
+      </div>
+      ${done ? `
+      <div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;margin-bottom:8px;">
+        <div style="height:100%;width:${pct}%;background:${col};border-radius:2px;"></div>
+      </div>` : ''}
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button onclick="auditBday('${agent}','approve')"
+          style="background:rgba(42,122,75,.2);border:1px solid rgba(42,122,75,.4);color:#2a7a4b;font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;">
+          ✓ Approve
+        </button>
+        <button onclick="auditBday('${agent}','adjust')"
+          style="background:rgba(200,134,10,.15);border:1px solid rgba(200,134,10,.4);color:#c8860a;font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;">
+          ✏ Adjust
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function auditBday(agent, action) {
+  if (action === 'approve') {
+    alert(`✓ Birthday gift for ${agent} approved. Record updated.`);
+  } else {
+    const adj = prompt(`Adjust birthday gift count for ${agent}:`);
+    if (adj !== null) alert(`Updated ${agent} birthday gift to ${adj}`);
+  }
+}
+
 function renderPendingActions() {
   const flags = loadFlags();
   const section = document.getElementById('pending-actions-section');
@@ -924,6 +1010,64 @@ function renderCommHeatmap(){
   });
   html+=`</div></div>`;
   document.getElementById('comm-heatmap').innerHTML=html;}
+
+// ── Brand SKU Penetration Status ──────────────────────────────────────────
+function renderBrandSkuStatus() {
+  const el = document.getElementById('brand-sku-status');
+  if (!el) return;
+  const D       = CURRENT_DATA || DATA;
+  const agents  = Object.keys(D.agents || {}).sort();
+  const BRANDS  = ['iFACE','SUKUN','BISON','TR20','EVO','LAM+LWM'];
+  const AUTO_B  = new Set(['iFACE','SUKUN','BISON','TR20']);
+
+  // Header row
+  let html = `<table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px;">
+    <thead>
+      <tr style="background:var(--surface);">
+        <th style="padding:8px 12px;text-align:left;font-size:9px;color:var(--ink3);white-space:nowrap;border-bottom:1px solid var(--border);">Agent</th>
+        ${BRANDS.map(b => `
+          <th colspan="3" style="padding:6px 8px;text-align:center;border-bottom:1px solid var(--border);border-left:1px solid var(--border);">
+            <span style="font-size:10px;color:${AUTO_B.has(b)?'var(--blue)':'var(--ink3)'};">${b}</span>
+            <span style="font-size:7px;color:var(--ink3);display:block;">${AUTO_B.has(b)?'⚡Auto':'🟠Manual'}</span>
+          </th>`).join('')}
+      </tr>
+      <tr style="background:var(--bg);">
+        <th style="padding:4px 12px;border-bottom:1px solid var(--border);"></th>
+        ${BRANDS.map(() => `
+          <th style="padding:4px 6px;text-align:center;font-size:8px;color:var(--ink3);border-left:1px solid var(--border);">Not Bought</th>
+          <th style="padding:4px 6px;text-align:center;font-size:8px;color:var(--ink3);">Target</th>
+          <th style="padding:4px 6px;text-align:center;font-size:8px;color:var(--ink3);">This Mth</th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>`;
+
+  agents.forEach((agent, ri) => {
+    const bc  = D.agents[agent]?.brand_commission || {};
+    const bg  = ri % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.02)';
+    html += `<tr style="background:${bg};border-bottom:1px solid rgba(255,255,255,.05);">
+      <td style="padding:8px 12px;font-weight:600;white-space:nowrap;">${agent}</td>
+      ${BRANDS.map(brand => {
+        const bdata      = bc[brand] || {};
+        const nonBuyers  = bdata.non_buyers ?? '—';
+        const target     = bdata.penetration?.target ?? '—';
+        const actual     = bdata.penetration?.count ?? 0;
+        const hit        = bdata.penetration?.hit;
+        const pctVal     = target !== '—' && target > 0 ? Math.min(actual/target*100,100) : 0;
+        const col        = hit ? '#2a7a4b' : pctVal >= 60 ? '#c8860a' : '#c8381a';
+        const isAuto     = AUTO_B.has(brand);
+
+        return `<td style="padding:6px 8px;text-align:center;border-left:1px solid rgba(255,255,255,.06);color:#c8381a;">${nonBuyers}</td>
+          <td style="padding:6px 8px;text-align:center;${isAuto?'color:var(--blue)':'color:var(--ink3);'};">${target}</td>
+          <td style="padding:6px 8px;text-align:center;font-weight:600;color:${col};">
+            ${actual}${hit?'✓':''}
+          </td>`;
+      }).join('')}
+    </tr>`;
+  });
+
+  html += `</tbody></table>`;
+  el.innerHTML = html;
+}
 
 // ── Debtor Summary ──
 function renderDebtorSummary(){

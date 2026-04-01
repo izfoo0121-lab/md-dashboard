@@ -100,16 +100,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
   <!-- Cross-page nav -->
   <div style="display:flex;gap:10px;align-items:center;overflow-x:auto;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:10px;">
     <span style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;">Go to:</span>
-    <a href="/" style="font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;padding:3px 8px;border:1px solid rgba(77,166,255,.3);border-radius:6px;white-space:nowrap;">👥 Agent</a>
-    <a href="/Management" style="font-family:var(--mono);font-size:9px;color:var(--purple);text-decoration:none;padding:3px 8px;border:1px solid rgba(167,139,250,.3);border-radius:6px;white-space:nowrap;">📊 Management</a>
-    <a href="/Admin" style="font-family:var(--mono);font-size:9px;color:var(--accent);text-decoration:none;padding:3px 8px;border:1px solid rgba(240,192,64,.3);border-radius:6px;white-space:nowrap;">⚙ Admin</a>
+    <a href="?page=agent" style="font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;padding:3px 8px;border:1px solid rgba(77,166,255,.3);border-radius:6px;white-space:nowrap;">👥 Agent</a>
+    <a href="?page=management" style="font-family:var(--mono);font-size:9px;color:var(--purple);text-decoration:none;padding:3px 8px;border:1px solid rgba(167,139,250,.3);border-radius:6px;white-space:nowrap;">📊 Management</a>
+    <a href="?page=admin" style="font-family:var(--mono);font-size:9px;color:var(--accent);text-decoration:none;padding:3px 8px;border:1px solid rgba(240,192,64,.3);border-radius:6px;white-space:nowrap;">⚙ Admin</a>
   </div>
   <div class="header-top">
     <div>
       <div class="header-title">CAMPAIGNS</div>
       <div class="header-sub">Marketing Tasks</div>
     </div>
-    <a href="/" class="back-link">← Dashboard</a>
+    <a href="?page=agent" class="back-link">← Dashboard</a>
   </div>
   <select class="agent-select" id="agent-select" onchange="selectAgent(this.value)">
     <option value="">— Select Agent —</option>

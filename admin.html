@@ -121,9 +121,9 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
   <!-- Cross-page nav -->
   <div style="background:var(--bg);border-bottom:1px solid var(--border);padding:6px 16px;display:flex;gap:10px;align-items:center;overflow-x:auto;">
     <span style="font-family:var(--mono);font-size:8px;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;">Go to:</span>
-    <a href="/" style="font-family:var(--mono);font-size:9px;color:#1a5c8f;text-decoration:none;padding:3px 8px;border:1px solid rgba(26,92,143,.3);border-radius:6px;white-space:nowrap;">👥 Agent</a>
-    <a href="/Management" style="font-family:var(--mono);font-size:9px;color:#6b3fa0;text-decoration:none;padding:3px 8px;border:1px solid rgba(107,63,160,.3);border-radius:6px;white-space:nowrap;">📊 Management</a>
-    <a href="/Campaigns" style="font-family:var(--mono);font-size:9px;color:#2a7a4b;text-decoration:none;padding:3px 8px;border:1px solid rgba(42,122,75,.3);border-radius:6px;white-space:nowrap;">📢 Campaigns</a>
+    <a href="?page=agent" style="font-family:var(--mono);font-size:9px;color:#1a5c8f;text-decoration:none;padding:3px 8px;border:1px solid rgba(26,92,143,.3);border-radius:6px;white-space:nowrap;">👥 Agent</a>
+    <a href="?page=management" style="font-family:var(--mono);font-size:9px;color:#6b3fa0;text-decoration:none;padding:3px 8px;border:1px solid rgba(107,63,160,.3);border-radius:6px;white-space:nowrap;">📊 Management</a>
+    <a href="?page=campaigns" style="font-family:var(--mono);font-size:9px;color:#2a7a4b;text-decoration:none;padding:3px 8px;border:1px solid rgba(42,122,75,.3);border-radius:6px;white-space:nowrap;">📢 Campaigns</a>
   </div>
 
   <div class="tab-bar">
@@ -131,6 +131,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
     <button class="tab-btn" onclick="switchTab('newbie',this)">Newbie Scheme</button>
     <button class="tab-btn" onclick="switchTab('group',this)">Group Brands</button>
     <button class="tab-btn" onclick="switchTab('sku',this)">SKU Config</button>
+    <button class="tab-btn" onclick="switchTab('brand_sku',this)">🏷️ Brand SKU Status</button>
     <button class="tab-btn" onclick="switchTab('holidays',this)">📅 Holidays</button>
     <button class="tab-btn" onclick="switchTab('brand_camps',this)">🔥 Brand Promo</button>
     <button class="tab-btn" onclick="switchTab('campaigns',this)">📢 Campaigns</button>
@@ -199,6 +200,26 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
 
       <button class="save-btn" onclick="saveAll()">SAVE SKU CONFIG</button>
       <div class="save-toast" id="save-toast-sku">✓ Saved</div>
+    </div>
+  </div>
+
+  <!-- ── Tab: Brand SKU Status ── -->
+  <div id="tab-brand_sku" class="tab-content">
+    <div class="page-body">
+      <div class="sec-header">🏷️ Brand Penetration Status</div>
+      <div class="sec-sub">Non-buyers vs penetration target per agent per brand. Auto-calculated targets shown in blue.</div>
+
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-family:var(--mono);font-size:9px;color:var(--ink3);">
+        <b style="color:var(--blue);">⚡ Auto (5% of non-buyers):</b> iFACE · SUKUN · BISON · TR20
+        &nbsp;&nbsp;
+        <b style="color:var(--accent);">🟠 Manual:</b> EVO · LAM+LWM
+        <br><br>
+        To override a target: go to <b>Agent Targets tab → Brand Commission Targets → edit Penetration target</b>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <div id="admin-brand-sku-status" style="min-width:700px;"></div>
+      </div>
     </div>
   </div>
 
@@ -557,6 +578,7 @@ async function initAdmin() {
   renderHolidayList();
   renderBirthdayCampList();
   renderBrandCampList();
+  renderAdminBrandSKU();
   updateRawJSON();
 
   // Load campaigns
@@ -682,49 +704,64 @@ function renderAgentForms() {
       ${brandRows}
 
       <div class="sec-divider">KPI Targets</div>
-      <div class="input-row" style="margin-bottom:8px;">
-        <div class="field-wrap">
-          <div class="field-lbl">开新户口 Target</div>
-          <input type="number" min="0" placeholder="5"
-            value="${a.kpi_targets?.new_accounts ?? ''}"
-            onchange="setKPI('${agent}','new_accounts',this.value)">
+      ${(() => {
+        const snap = CONFIG.monthly_snapshots?.[Object.keys(CONFIG.monthly_snapshots||{}).sort().pop()]?.[agent] || {};
+        const overrides = a.kpi_overrides || {};
+        const np = snap.non_personal || 0;
+        const pi = snap.prev_inactive || 0;
+        const autoVip   = np ? Math.max(1, Math.round(np * 0.20)) : null;
+        const autoReact = pi ? Math.max(1, Math.round(pi * 0.40)) : null;
+        const snapInfo  = np ? `<div style="font-family:var(--mono);font-size:9px;color:var(--blue);margin-bottom:8px;background:rgba(77,166,255,.08);border:1px solid rgba(77,166,255,.2);border-radius:8px;padding:6px 10px;">
+          📊 Month-start snapshot: <b>${np}</b> non-personal debtors · <b>${pi}</b> prev inactive
+          <span style="color:var(--muted);margin-left:6px;">${snap.captured_date||''}</span>
+        </div>` : `<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:8px;">No snapshot yet — run bat file to auto-calculate</div>`;
+
+        return `${snapInfo}
+        <div class="input-row" style="margin-bottom:8px;">
+          <div class="field-wrap">
+            <div class="field-lbl">开新户口 Target <span style="color:var(--accent);font-size:8px;">✏ Manual</span></div>
+            <input type="number" min="0" placeholder="5"
+              value="${a.kpi_targets?.new_accounts ?? ''}"
+              onchange="setKPI('${agent}','new_accounts',this.value)">
+          </div>
+          <div class="field-wrap">
+            <div class="field-lbl">VIP 招聘 Target ${autoVip&&!overrides.vip_count?`<span style="color:var(--green);font-size:8px;">⚡ Auto: ${autoVip}</span>`:overrides.vip_count?`<span style="color:var(--accent);font-size:8px;">✏ Override</span>`:''}</div>
+            <input type="number" min="0" placeholder="${autoVip||3}"
+              value="${a.kpi_targets?.vip_count ?? ''}"
+              onchange="setKPIOverride('${agent}','vip_count',this.value)">
+          </div>
         </div>
-        <div class="field-wrap">
-          <div class="field-lbl">VIP 招聘 Target</div>
-          <input type="number" min="0" placeholder="3"
-            value="${a.kpi_targets?.vip_count ?? ''}"
-            onchange="setKPI('${agent}','vip_count',this.value)">
+        <div class="input-row" style="margin-bottom:8px;">
+          <div class="field-wrap">
+            <div class="field-lbl">激活户口 Target ${autoReact&&!overrides.reactivation?`<span style="color:var(--green);font-size:8px;">⚡ Auto: ${autoReact}</span>`:overrides.reactivation?`<span style="color:var(--accent);font-size:8px;">✏ Override</span>`:''}</div>
+            <input type="number" min="0" placeholder="${autoReact||5}"
+              value="${a.kpi_targets?.reactivation ?? ''}"
+              onchange="setKPIOverride('${agent}','reactivation',this.value)">
+          </div>
+          <div class="field-wrap">
+            <div class="field-lbl">加SKU Target <span style="color:var(--green);font-size:8px;">⚡ Fixed 17</span></div>
+            <input type="number" min="0" placeholder="17"
+              value="${a.kpi_targets?.new_sku ?? 17}"
+              onchange="setKPIOverride('${agent}','new_sku',this.value)">
+          </div>
         </div>
-      </div>
-      <div class="input-row" style="margin-bottom:8px;">
-        <div class="field-wrap">
-          <div class="field-lbl">激活户口 Target</div>
-          <input type="number" min="0" placeholder="5"
-            value="${a.kpi_targets?.reactivation ?? ''}"
-            onchange="setKPI('${agent}','reactivation',this.value)">
+        <div class="input-row" style="margin-bottom:8px;">
+          <div class="field-wrap">
+            <div class="field-lbl">持续光顾率 Target (%) <span style="color:var(--green);font-size:8px;">⚡ Fixed 80%</span></div>
+            <input type="number" min="0" max="100" placeholder="80"
+              value="${a.kpi_targets?.activation_rate ?? 80}"
+              onchange="setKPIOverride('${agent}','activation_rate',this.value)">
+          </div>
+          <div class="field-wrap">
+            <div class="field-lbl">Event / PSR Target <span style="color:var(--accent);font-size:8px;">✏ Manual</span></div>
+            <input type="number" min="0" placeholder="16"
+              value="${a.kpi_targets?.event ?? ''}"
+              onchange="setKPI('${agent}','event',this.value)">
+          </div>
         </div>
-        <div class="field-wrap">
-          <div class="field-lbl">加SKU Target</div>
-          <input type="number" min="0" placeholder="17"
-            value="${a.kpi_targets?.new_sku ?? ''}"
-            onchange="setKPI('${agent}','new_sku',this.value)">
-        </div>
-      </div>
-      <div class="input-row" style="margin-bottom:8px;">
-        <div class="field-wrap">
-          <div class="field-lbl">持续光顾率 Target (%)</div>
-          <input type="number" min="0" max="100" placeholder="80"
-            value="${a.kpi_targets?.activation_rate ?? ''}"
-            onchange="setKPI('${agent}','activation_rate',this.value)">
-        </div>
-        <div class="field-wrap">
-          <div class="field-lbl">Event / PSR Target</div>
-          <input type="number" min="0" placeholder="16"
-            value="${a.kpi_targets?.event ?? ''}"
-            onchange="setKPI('${agent}','event',this.value)">
-        </div>
-      </div>
-    </div>`;
+        ${(overrides.vip_count||overrides.reactivation||overrides.new_sku)?
+          `<button onclick="clearKPIOverrides('${agent}')" style="background:none;border:1px solid var(--border);color:var(--ink3);font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;margin-top:4px;">↺ Reset to auto-calculate</button>`:''}`;
+      })()}
   }).join('');
 }
 
@@ -749,6 +786,28 @@ function setKPI(agent, field, val) {
   if (!CONFIG.agents[agent]) return;
   if (!CONFIG.agents[agent].kpi_targets) CONFIG.agents[agent].kpi_targets = {};
   CONFIG.agents[agent].kpi_targets[field] = val === '' ? null : parseFloat(val);
+  updateRawJSON();
+}
+
+function setKPIOverride(agent, field, val) {
+  if (!CONFIG.agents[agent]) return;
+  if (!CONFIG.agents[agent].kpi_targets)  CONFIG.agents[agent].kpi_targets  = {};
+  if (!CONFIG.agents[agent].kpi_overrides) CONFIG.agents[agent].kpi_overrides = {};
+  const num = val === '' ? null : parseFloat(val);
+  CONFIG.agents[agent].kpi_targets[field]  = num;
+  if (num !== null) {
+    CONFIG.agents[agent].kpi_overrides[field] = num; // mark as manually overridden
+  } else {
+    delete CONFIG.agents[agent].kpi_overrides[field]; // clear override → back to auto
+  }
+  updateRawJSON();
+}
+
+function clearKPIOverrides(agent) {
+  if (!CONFIG.agents[agent]) return;
+  CONFIG.agents[agent].kpi_overrides = {};
+  // Trigger re-render to show auto values
+  renderAgentForms();
   updateRawJSON();
 }
 
@@ -1323,6 +1382,69 @@ function saveTargetsJSON() {
   a.href = URL.createObjectURL(blob);
   a.download = 'targets.json';
   a.click();
+}
+
+// ── Brand SKU Status (Admin) ───────────────────────────────────────────────
+function renderAdminBrandSKU() {
+  const el = document.getElementById('admin-brand-sku-status');
+  if (!el) return;
+
+  const BRANDS   = ['iFACE','SUKUN','BISON','TR20','EVO','LAM+LWM'];
+  const AUTO_B   = new Set(['iFACE','SUKUN','BISON','TR20']);
+  const agents   = Object.keys(CONFIG.agents || {}).sort();
+
+  // Get latest penetration snapshot
+  const snaps    = CONFIG.penetration_snapshots || {};
+  const latestMo = Object.keys(snaps).sort().pop();
+  const snap     = latestMo ? snaps[latestMo] : {};
+
+  let html = `
+    <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-bottom:8px;">
+      Snapshot month: <b style="color:var(--blue);">${latestMo || 'None yet — run bat file'}</b>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px;">
+    <thead>
+      <tr style="background:var(--surface);">
+        <th style="padding:8px 10px;text-align:left;font-size:9px;color:var(--ink3);border-bottom:1px solid var(--border);">Agent</th>
+        ${BRANDS.map(b => `
+          <th colspan="3" style="padding:6px 8px;text-align:center;border-bottom:1px solid var(--border);border-left:1px solid var(--border);">
+            <span style="${AUTO_B.has(b)?'color:var(--blue)':'color:var(--ink3);'}">${b}</span>
+            <span style="display:block;font-size:7px;color:var(--ink3);">${AUTO_B.has(b)?'⚡Auto':'🟠Manual'}</span>
+          </th>`).join('')}
+      </tr>
+      <tr style="background:var(--bg);">
+        <th style="padding:4px 10px;border-bottom:1px solid var(--border);"></th>
+        ${BRANDS.map(() => `
+          <th style="padding:4px 6px;text-align:center;font-size:8px;color:var(--ink3);border-left:1px solid var(--border);">Not Bought</th>
+          <th style="padding:4px 6px;text-align:center;font-size:8px;color:var(--ink3);">Target</th>
+          <th style="padding:4px 6px;text-align:center;font-size:8px;color:var(--ink3);">Auto?</th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>`;
+
+  agents.forEach((agent, ri) => {
+    const bc      = CONFIG.agents[agent]?.brand_commission || {};
+    const agSnap  = snap[agent] || {};
+    const bg      = ri % 2 === 0 ? 'transparent' : 'rgba(0,0,0,.04)';
+    html += `<tr style="background:${bg};border-bottom:1px solid var(--border);">
+      <td style="padding:7px 10px;font-weight:600;">${agent}</td>
+      ${BRANDS.map(brand => {
+        const nonBuyers = agSnap[brand] ?? '—';
+        const tgt       = bc[brand]?.penetration_target ?? '—';
+        const isAuto    = bc[brand]?.pen_auto;
+        const col       = AUTO_B.has(brand) ? 'var(--blue)' : 'var(--ink3)';
+        return `
+          <td style="padding:6px 8px;text-align:center;color:var(--accent);border-left:1px solid rgba(0,0,0,.08);">${nonBuyers}</td>
+          <td style="padding:6px 8px;text-align:center;font-weight:600;color:${col};">${tgt}</td>
+          <td style="padding:6px 8px;text-align:center;font-size:9px;color:${isAuto===true?'var(--green)':isAuto===false?'var(--ink3)':'var(--muted)'};">
+            ${isAuto===true?'⚡':isAuto===false?'✏':'—'}
+          </td>`;
+      }).join('')}
+    </tr>`;
+  });
+
+  html += `</tbody></table>`;
+  el.innerHTML = html;
 }
 
 // ── Public Holidays ────────────────────────────────────────────────────────
