@@ -1,9 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="refresh" content="0; url=sales_dashboard.html">
-  <script>window.location.href = 'sales_dashboard.html';</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Miracle MD Sales Dashboard</title>
+<script>
+  // Route based on URL hash or query param
+  const p = new URLSearchParams(window.location.search).get('page') || 'agent';
+  const pages = {
+    'agent':      'sales_dashboard.html',
+    'management': 'management.html',
+    'admin':      'admin.html',
+    'campaigns':  'campaigns.html',
+  };
+  window.location.replace(pages[p] || 'sales_dashboard.html');
+</script>
 </head>
 <body>Loading...</body>
 </html>
