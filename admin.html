@@ -566,7 +566,7 @@ const AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','
 // ── Init ───────────────────────────────────────────────────────────────────
 async function initAdmin() {
   try {
-    const r = await fetch('https://raw.githubusercontent.com/izfoo0121-lab/md-dashboard/main/targets.json?v='+Date.now());
+    const r = await fetch('targets.json?v='+Date.now());
     CONFIG = await r.json();
   } catch(e) {
     CONFIG = buildDefaultConfig();

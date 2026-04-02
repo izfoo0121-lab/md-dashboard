@@ -211,8 +211,8 @@ async function loadAllProgress(campId, agents) {
 async function loadAll() {
   try {
     const [campRes, dashRes] = await Promise.all([
-      fetch('https://raw.githubusercontent.com/izfoo0121-lab/md-dashboard/main/campaigns.json?v='+Date.now()),
-      fetch('https://raw.githubusercontent.com/izfoo0121-lab/md-dashboard/main/dashboard_data.json?v='+Date.now())
+      fetch('campaigns.json?v='+Date.now()),
+      fetch('dashboard_data.json?v='+Date.now())
     ]);
     const campData = await campRes.json();
     CAMPAIGNS = (campData.campaigns || []).filter(c => c.active);

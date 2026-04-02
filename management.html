@@ -618,7 +618,7 @@ const bc = p => p==null?'var(--border)':p>=80?'#2a7a4b':p>=50?'#c8860a':'#c8381a
 
 async function loadData() {
   try {
-    const r = await fetch('https://raw.githubusercontent.com/izfoo0121-lab/md-dashboard/main/dashboard_data.json?v='+Date.now());
+    const r = await fetch('dashboard_data.json?v='+Date.now());
     DATA = await r.json();
     window.__DATA__ = DATA;
     CURRENT_DATA = DATA;

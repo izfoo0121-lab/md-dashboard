@@ -2,23 +2,15 @@ import streamlit as st
 import streamlit.components.v1 as components
 import os, json, pandas as pd
 
-# v2026.04.02c — inject slim data + lazy load debtors from GitHub per agent
-
-st.set_page_config(
-    page_title="Miracle MD Sales Dashboard",
-    page_icon="📊", layout="wide",
-    initial_sidebar_state="collapsed",
-)
-st.markdown("""
-<style>
-  #MainMenu, header, footer { visibility: hidden; }
-  .block-container { padding: 0 !important; max-width: 100% !important; }
-  iframe { border: none; }
-  [data-testid="stSidebarNav"] { display: none; }
+st.set_page_config(page_title="Miracle MD", page_icon="📊", layout="wide",
+                   initial_sidebar_state="collapsed")
+st.markdown("""<style>
+#MainMenu,header,footer{visibility:hidden}
+.block-container{padding:0!important;max-width:100%!important}
+iframe{border:none}
 </style>""", unsafe_allow_html=True)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_RAW = "https://raw.githubusercontent.com/izfoo0121-lab/md-dashboard/main"
 
 def read_file(f):
     p = os.path.join(BASE_DIR, f)
@@ -37,65 +29,24 @@ def get_history_json():
         dt = pd.read_excel(hp, sheet_name="Team_Summary") if "Team_Summary" in ef.sheet_names else pd.DataFrame()
         return json.dumps({
             "monthly": json.loads(df.to_json(orient="records", default_handler=str)),
-            "team":    json.loads(dt.to_json(orient="records", default_handler=str)) if not dt.empty else [],
+            "team": json.loads(dt.to_json(orient="records", default_handler=str)) if not dt.empty else [],
         })
     except: return "null"
 
-def build_slim(data, include_debtors=False):
-    slim = {
-        "current_month":       data.get("current_month"),
-        "generated_at":        data.get("generated_at"),
-        "working_days":        data.get("working_days"),
-        "team_summary":        data.get("team_summary"),
-        "group_brand_targets": data.get("group_brand_targets"),
-        "birthday_campaign":   data.get("birthday_campaign"),
-        "brand_campaigns":     data.get("brand_campaigns", []),
-        "agents": {}
-    }
-    for agent, adata in data.get("agents", {}).items():
-        dc = adata.get("debtor_cards", {})
-        ag = adata.get("aging", {})
-        slim["agents"][agent] = {
-            "sales_progression": adata.get("sales_progression"),
-            "brand_commission":  adata.get("brand_commission"),
-            "kpi":               adata.get("kpi"),
-            "newbie_scheme":     adata.get("newbie_scheme"),
-            "aging": {k:v for k,v in ag.items() if k != "all_unpaid_invoices"},
-            "debtor_cards": {k:v for k,v in dc.items() if k != "debtors"},
-        }
-        slim["agents"][agent]["debtor_cards"]["debtors"] = \
-            dc.get("debtors", []) if include_debtors else []
-    return slim
-
-def inject(html, data, include_debtors=False, include_history=False):
-    slim = build_slim(data, include_debtors)
-    data_json = json.dumps(slim, default=str)
-
-    # Get cache buster from file mtime
-    try:
-        mtime = int(os.path.getmtime(os.path.join(BASE_DIR, "dashboard_data.json")))
-    except:
-        mtime = 1
-
+def inject(html, data, history=False):
+    data_json = json.dumps(data, default=str)
+    # Match the fetch string including cache buster
     html = html.replace(
-        "fetch('dashboard_data.json')",
+        "fetch('dashboard_data.json?v='+Date.now())",
         f"Promise.resolve({{json:()=>Promise.resolve({data_json})}})"
     ).replace(
-        "fetch('targets.json')",
-        f"fetch('{REPO_RAW}/targets.json?v={mtime}')"
+        "fetch('targets.json?v='+Date.now())",
+        f"Promise.resolve({{json:()=>Promise.resolve({json.dumps(read_json('targets.json'))})}})"
     ).replace(
-        "fetch('campaigns.json')",
-        f"fetch('{REPO_RAW}/campaigns.json?v={mtime}')"
+        "fetch('campaigns.json?v='+Date.now())",
+        f"Promise.resolve({{json:()=>Promise.resolve({json.dumps(read_json('campaigns.json'))})}})"
     )
-
-    # Inject REPO_RAW and mtime so JS can lazy-load debtors
-    script = f"""<script>
-window.REPO_RAW = '{REPO_RAW}';
-window.CACHE_V = '{mtime}';
-</script>"""
-    html = html.replace("</head>", script + "\n</head>")
-
-    if include_history:
+    if history:
         html = html.replace("</head>",
             f"<script>window.HISTORY_DATA={get_history_json()};</script>\n</head>")
     return html
@@ -106,33 +57,16 @@ data = read_json("dashboard_data.json")
 if page == "management":
     html = read_file("management.html")
     if html:
-        st.components.v1.html(
-            inject(html, data, include_debtors=True, include_history=True),
-            height=900, scrolling=True
-        )
+        components.html(inject(html, data, history=True), height=900, scrolling=True)
 elif page == "admin":
     html = read_file("admin.html")
     if html:
-        targets = read_json("targets.json")
-        html = html.replace("fetch('targets.json')",
-            f"Promise.resolve({{json:()=>Promise.resolve({json.dumps(targets)})}})")
-        st.components.v1.html(html, height=900, scrolling=True)
+        components.html(inject(html, data), height=900, scrolling=True)
 elif page == "campaigns":
     html = read_file("campaigns.html")
     if html:
-        campaigns = read_json("campaigns.json")
-        html = html.replace("fetch('campaigns.json')",
-            f"Promise.resolve({{json:()=>Promise.resolve({json.dumps(campaigns)})}})")
-        try:
-            mtime = int(os.path.getmtime(os.path.join(BASE_DIR, "dashboard_data.json")))
-        except: mtime = 1
-        html = html.replace("fetch('dashboard_data.json')",
-            f"fetch('{REPO_RAW}/dashboard_data.json?v={mtime}')")
-        st.components.v1.html(html, height=900, scrolling=True)
+        components.html(inject(html, data), height=900, scrolling=True)
 else:
     html = read_file("sales_dashboard.html")
     if html:
-        st.components.v1.html(
-            inject(html, data, include_debtors=False),
-            height=900, scrolling=True
-        )
+        components.html(inject(html, data), height=900, scrolling=True)
