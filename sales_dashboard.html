@@ -628,7 +628,6 @@ async function switchMonth(slug) {
   // Read selected agent directly from DOM before anything changes
   const agSel = document.getElementById('agent-select');
   const prevAgent = (agSel && agSel.value) ? agSel.value : (currentAgent || '');
-  alert('switchMonth fired. slug=' + slug + ' prevAgent=' + prevAgent + ' currentAgent=' + currentAgent);
 
   const url = slug === 'current' || !slug
     ? 'dashboard_data.json?v=' + Date.now()
