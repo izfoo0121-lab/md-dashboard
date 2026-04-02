@@ -515,33 +515,74 @@ function populateMonthSelector(historyRows) {
 
 // Auto-load history from GitHub (GitHub Pages) or injected window.HISTORY_DATA (Streamlit)
 function initMonthSelector() {
-  if (window.HISTORY_DATA && window.HISTORY_DATA.monthly?.length) {
-    populateMonthSelector(window.HISTORY_DATA.monthly);
-    return;
-  }
-  // Load from GitHub
-  const REPO = 'https://raw.githubusercontent.com/izfoo0121-lab/md-dashboard/main';
-  fetch(`${REPO}/history.json?v=${Date.now()}`)
+  // First try months_index.json (full data files available)
+  fetch('months_index.json?v=' + Date.now())
     .then(r => r.ok ? r.json() : null)
-    .then(hist => {
-      if (hist?.monthly?.length) {
-        populateMonthSelector(hist.monthly);
-        HISTORY = hist.monthly; // also feed analytics tab
+    .then(months => {
+      if (months?.length) {
+        populateMonthSelectorFromIndex(months);
+      } else if (window.HISTORY_DATA?.monthly?.length) {
+        populateMonthSelector(window.HISTORY_DATA.monthly);
       }
     })
-    .catch(() => {}); // silently fail if no history
+    .catch(() => {
+      if (window.HISTORY_DATA?.monthly?.length) {
+        populateMonthSelector(window.HISTORY_DATA.monthly);
+      }
+    });
+}
+
+function populateMonthSelectorFromIndex(months) {
+  const sel = document.getElementById('month-selector');
+  if (!sel) return;
+  const curMonth = DATA?.current_month || '';
+  sel.innerHTML = '';
+  // Latest first
+  [...months].reverse().forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.replace(' ','').toLowerCase(); // e.g. "mar26"
+    opt.textContent = `📅 ${m.toUpperCase()}${m === curMonth ? ' ◀' : ''}`;
+    if (m === curMonth) opt.value = 'current';
+    sel.appendChild(opt);
+  });
+  sel.style.display = 'block';
 }
 
 function onMonthChange(val) {
-  if (val === 'current' || !HISTORY_MONTHLY) {
+  if (val === 'current' || !val) {
     CURRENT_DATA = DATA;
-  } else {
-    // Build a DATA-like object from history rows for this month
-    const rows = HISTORY_MONTHLY.filter(r => r.Month === val);
-    if (!rows.length) { CURRENT_DATA = DATA; return; }
-    CURRENT_DATA = buildDataFromHistory(rows, val);
+    renderOverview();
+    return;
   }
-  renderOverview();
+
+  // Load full monthly data file
+  const url = `data_${val}.json?v=` + Date.now();
+  const loadBtn = document.getElementById('month-selector');
+  if (loadBtn) loadBtn.disabled = true;
+
+  fetch(url)
+    .then(r => {
+      if (!r.ok) throw new Error(`${val} data not found`);
+      return r.json();
+    })
+    .then(monthData => {
+      CURRENT_DATA = monthData;
+      renderOverview();
+      if (loadBtn) loadBtn.disabled = false;
+    })
+    .catch(e => {
+      // Fallback to history summary if full data not available
+      if (HISTORY_MONTHLY) {
+        const month = val.replace(/(\w{3})(\d{2})/, (_, m, y) =>
+          m.charAt(0).toUpperCase() + m.slice(1) + ' ' + y);
+        const rows = HISTORY_MONTHLY.filter(r => r.Month === month);
+        if (rows.length) {
+          CURRENT_DATA = buildDataFromHistory(rows, month);
+          renderOverview();
+        }
+      }
+      if (loadBtn) loadBtn.disabled = false;
+    });
 }
 
 function buildDataFromHistory(rows, month) {

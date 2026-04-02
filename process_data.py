@@ -1992,6 +1992,31 @@ def main():
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, indent=2, default=str)
 
+    # Also save monthly snapshot e.g. data_mar26.json
+    month_slug = cur_month.replace(" ", "").lower()  # "mar26"
+    monthly_file = BASE_DIR / f"data_{month_slug}.json"
+    with open(monthly_file, "w", encoding="utf-8") as f:
+        json.dump(output, f, ensure_ascii=False, indent=2, default=str)
+    log(f"   Monthly snapshot saved: data_{month_slug}.json")
+
+    # Update months_index.json — list of available months
+    index_file = BASE_DIR / "months_index.json"
+    try:
+        existing = json.loads(index_file.read_text(encoding="utf-8")) if index_file.exists() else []
+    except:
+        existing = []
+    if cur_month not in existing:
+        existing.append(cur_month)
+    # Sort chronologically
+    MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    def msort(m):
+        try:
+            p = m.split(); return int(p[1])*12 + MONTH_ORDER.index(p[0])
+        except: return 0
+    existing = sorted(existing, key=msort)
+    index_file.write_text(json.dumps(existing, indent=2), encoding="utf-8")
+    log(f"   months_index.json updated: {existing}")
+
     size_kb = OUTPUT_FILE.stat().st_size / 1024
     log(f"\n✅ dashboard_data.json written — {size_kb:.0f} KB")
     log(f"   {len(agents)} agents  |  {cur_month}  |  Scope: {SCOPE_AREA}")
