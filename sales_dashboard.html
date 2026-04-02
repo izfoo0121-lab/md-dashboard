@@ -1045,7 +1045,14 @@ function renderDebtors() {
     if (filters.status !== 'all' && d.status !== filters.status) return false;
     if (filters.special === 'vip'      && !d.vip)                return false;
     if (filters.special === 'new'      && !d.is_new)             return false;
-    if (filters.special === 'birthday' && !d.birthday_this_month) return false;
+    if (filters.special === 'birthday') {
+      // Match birth_month to the selected month in DATA (not today)
+      const selMonth = DATA?.current_month || '';
+      const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const selMonthNum = MONTHS.indexOf((selMonth.split(' ')[0]||'')) + 1;
+      const matchBday = selMonthNum > 0 ? (d.birth_month === selMonthNum) : d.birthday_this_month;
+      if (!matchBday) return false;
+    }
     if (filters.special === 'drop'     && !d.volume_drop_pct)    return false;
     if (filters.special === 'newsku'   && !(d.new_sku_count > 0)) return false;
     if (filters.special === 'flagged'   && !getFlag(currentAgent, d.debtor_code)) return false;
@@ -1181,7 +1188,18 @@ function renderDebtors() {
       `<span class="status-inline ${stCls}">${stTxt}</span>`,
       d.vip             ? `<span class="status-inline" style="background:rgba(240,192,64,.2);color:var(--accent)">⭐ VIP</span>` : '',
       d.is_new          ? `<span class="status-inline" style="background:rgba(77,166,255,.15);color:var(--blue)">🆕 New</span>` : '',
-      d.birthday_this_month ? `<span class="status-inline" style="background:rgba(167,139,250,.15);color:var(--purple)">🎂 ${d.days_to_birthday??''}d</span>` : '',
+      (() => {
+        const selM = DATA?.current_month || '';
+        const MTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const selMNum = MTHS.indexOf((selM.split(' ')[0]||'')) + 1;
+        const showBday = selMNum > 0 ? (d.birth_month === selMNum) : d.birthday_this_month;
+        if (!showBday) return '';
+        const bdayKey = `bday_gift_${currentAgent}_${d.debtor_code}_${(DATA?.current_month||'').replace(' ','')}`;
+        const giftSent = localStorage.getItem(bdayKey) === '1';
+        const BDAY_MTHS = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const bdayLabel = d.birth_day ? `${String(d.birth_day).padStart(2,'0')} ${BDAY_MTHS[d.birth_month]||''}` : '';
+        return `<span class="status-inline" style="background:${giftSent?'rgba(61,220,132,.2)':'rgba(167,139,250,.15)'};color:${giftSent?'var(--green)':'var(--purple)'};cursor:pointer;" onclick="toggleBdayGift('${d.debtor_code}','${(d.company_name||'').replace(/'/g,'')}',event)">🎂 ${giftSent?'✓ Sent':bdayLabel||'Gift?'}</span>`;
+      })(),
       d.volume_drop_pct ? `<span class="status-inline" style="background:rgba(255,95,95,.15);color:var(--red)">📉 -${d.volume_drop_pct}%</span>` : '',
     ].filter(Boolean).join('');
 
@@ -2422,6 +2440,50 @@ function showBrandTierDetail(event, debtorCode, debtorName) {
 }
 
 // ── CTN Breakdown Tooltip ──────────────────────────────────────────────────
+function toggleBdayGift(debtorCode, debtorName, event) {
+  event.stopPropagation();
+  const month = (DATA?.current_month||'').replace(' ','');
+  const key = `bday_gift_${currentAgent}_${debtorCode}_${month}`;
+  const noteKey = `bday_note_${currentAgent}_${debtorCode}_${month}`;
+  const alreadySent = localStorage.getItem(key) === '1';
+  const existingNote = localStorage.getItem(noteKey) || '';
+
+  // Build popup
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;`;
+  overlay.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:340px;width:100%;">
+      <div style="font-family:var(--display);font-size:16px;color:var(--purple);margin-bottom:4px;">🎂 Birthday Gift</div>
+      <div style="font-family:var(--body);font-size:13px;color:var(--text);margin-bottom:16px;">${debtorName}</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">Remark (optional)</div>
+      <textarea id="bday-popup-note" style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--body);font-size:13px;padding:10px;resize:none;height:80px;box-sizing:border-box;">${existingNote}</textarea>
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        ${alreadySent
+          ? `<button onclick="saveBdayGift('${debtorCode}','${month}',false,this)" style="flex:1;background:rgba(255,95,95,.2);border:1px solid rgba(255,95,95,.4);color:var(--red);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;cursor:pointer;">✕ Undo Sent</button>`
+          : `<button onclick="saveBdayGift('${debtorCode}','${month}',true,this)" style="flex:1;background:rgba(61,220,132,.2);border:1px solid rgba(61,220,132,.4);color:var(--green);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;cursor:pointer;">✓ Mark Sent</button>`
+        }
+        <button onclick="this.closest('div[style*=fixed]').remove()" style="flex:1;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;cursor:pointer;">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+function saveBdayGift(debtorCode, month, sent, btn) {
+  const key = `bday_gift_${currentAgent}_${debtorCode}_${month}`;
+  const noteKey = `bday_note_${currentAgent}_${debtorCode}_${month}`;
+  const note = document.getElementById('bday-popup-note')?.value || '';
+  if (sent) {
+    localStorage.setItem(key, '1');
+    localStorage.setItem(noteKey, note);
+  } else {
+    localStorage.removeItem(key);
+    localStorage.removeItem(noteKey);
+  }
+  btn.closest('div[style*=fixed]').remove();
+  renderDebtors();
+}
+
 function showCtnBreakdown(mbKey, label, monthLabel) {
   const breakdown = window._ctnBreakdowns?.[mbKey] || {};
   const items = breakdown[monthLabel] || [];
