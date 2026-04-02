@@ -259,7 +259,7 @@ def calc_sales_progression(df, targets, agents, cur_month):
     eightcom_all = df[df["item_group"] == EIGHTCOM_GROUP]
 
     # Working days for avg calculation
-    wd = calc_working_days()
+    wd = calc_working_days(targets=None, cur_month=cur_month)
     elapsed_days = max(wd["elapsed_working_days"], 1)
 
     # All Canggih for 4-month SKU trend
@@ -695,9 +695,19 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None):
     log("Calculating debtor cards (Phase 1 logic)...")
 
     # Month labels for 3-month window
-    today = date.today()
+    # Use cur_month (auto-detected from data) NOT date.today()
+    # so that when April has no data and we fall back to March,
+    # 本月 = Mar, M-1 = Feb, M-2 = Jan (not Apr/Mar/Feb)
+    MONTH_ORDER_DC = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    try:
+        parts = cur_month.split()
+        mon_idx = MONTH_ORDER_DC.index(parts[0])
+        yr = int(parts[1])
+        anchor = date(2000 + yr, mon_idx + 1, 1)
+    except Exception:
+        anchor = date.today().replace(day=1)
     months = []
-    d = today.replace(day=1)
+    d = anchor
     for _ in range(4):  # current + 3 previous
         months.append(d.strftime("%b %y"))
         d = (d - timedelta(days=1)).replace(day=1)
@@ -904,9 +914,11 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None):
             birth_date = info.get("birth_date")
             days_to_bday = None
             birthday_this_month = False
+            birth_month = None  # store raw birth month (1-12) for frontend to check per selected month
             if birth_date and pd.notnull(birth_date):
                 try:
                     bd = pd.to_datetime(birth_date)
+                    birth_month = int(bd.month)  # always store this
                     today_d = date.today()
                     next_bday = bd.replace(year=today_d.year).date()
                     if next_bday < today_d:
@@ -960,6 +972,8 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None):
                 "is_new":             is_new,
                 "birthday_this_month": birthday_this_month,
                 "days_to_birthday":   days_to_bday,
+                "birth_month":        birth_month,
+                "birth_day":          int(pd.to_datetime(info.get("birth_date")).day) if info.get("birth_date") and pd.notnull(info.get("birth_date")) else None,
                 "status":             status,
                 "last_purchase_date": last_date_str,
                 "ctn_cur":            ctn_cur,
@@ -990,8 +1004,18 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None):
         # Summary counts
         active_count   = sum(1 for d in debtor_cards if d["status"] == "active")
         pending_count  = sum(1 for d in debtor_cards if d["status"] == "pending")
-        reactiv_count  = sum(1 for d in debtor_cards if d["status"] == "need_reactivation")
+        inactive_count = sum(1 for d in debtor_cards if d["status"] == "need_reactivation")
         total          = len(debtor_cards)
+
+        # 激活户口 = debtors who bought THIS month but NOT last month
+        # Any debtor returning after a missed month counts as reactivation
+        # Excludes: brand new accounts (is_new=True) — those count under new accounts KPI instead
+        reactiv_count = sum(
+            1 for d in debtor_cards
+            if (d.get("ctn_cur", 0) or 0) > 0
+            and (d.get("ctn_prev1", 0) or 0) == 0
+            and not d.get("is_new", False)
+        )
 
         # 持续光顾率 = active (excl. Personal) ÷ total (excl. Personal)
         # Exclude P-Personal debtor type from this calculation
@@ -1011,10 +1035,11 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None):
             "active_count":       active_count,
             "pending_count":      pending_count,
             "reactivation_count": reactiv_count,
+            "inactive_count":     inactive_count,
             "activation_rate":    activation_rate,
             "activation_base":    np_total,
             "activation_active":  np_active,
-            "pending_activation": reactiv_count,
+            "pending_activation": inactive_count,
             "total_new_sku":      total_new_sku,
         }
 
@@ -1110,17 +1135,30 @@ def save_debtor_snapshot(debtor_cards, targets, cur_month):
 
 
 
-def calc_birthday_campaign(debtor_cards, targets):
+def calc_birthday_campaign(debtor_cards, targets, cur_month=None):
     """
     Auto-generate birthday gift list:
     - VIP debtors only
     - Exclude P-Personal
     - Exclude new accounts opened this month
     - Target = total qualifying debtors (management audits agent's actual)
+    - Birthday matching uses cur_month (selected month), not today
     """
     log("Generating birthday campaign list...")
     today      = date.today()
     overrides  = targets.get("birthday_overrides", {})
+
+    # Determine which month to use for birthday matching
+    MONTH_ORDER_BD = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    bday_month = today.month  # default to today
+    bday_year  = today.year
+    if cur_month:
+        try:
+            parts = cur_month.split()
+            bday_month = MONTH_ORDER_BD.index(parts[0]) + 1
+            bday_year  = 2000 + int(parts[1])
+        except:
+            pass
     PERSONAL_TYPES = {"P-Personal","P-PERSONAL","personal","Personal","PERSONAL"}
 
     birthday_debtors = []
@@ -1132,7 +1170,20 @@ def calc_birthday_campaign(debtor_cards, targets):
             is_personal = db_type in PERSONAL_TYPES
             is_new      = d.get("is_new", False)
 
-            if (d.get("birthday_this_month", False)
+            # Recompute birthday match for selected month (not today)
+            birth_date = d.get("birth_date_raw") or None
+            birthday_matches = False
+            if birth_date:
+                try:
+                    bd = pd.to_datetime(birth_date)
+                    birthday_matches = (bd.month == bday_month)
+                except:
+                    pass
+            # Fallback: use pre-computed flag if no raw date (for current month it's always correct)
+            if not birth_date:
+                birthday_matches = d.get("birthday_this_month", False)
+
+            if (birthday_matches
                     and is_vip
                     and not is_personal
                     and not is_new
@@ -1171,9 +1222,11 @@ def calc_birthday_campaign(debtor_cards, targets):
     for d in result:
         by_agent.setdefault(d["agent"], []).append(d)
 
-    log(f"  Birthday campaign: {len(result)} VIP debtors ({today.strftime('%B %Y')}) — excl new & personal")
+    from datetime import date as _date
+    bday_label = _date(bday_year, bday_month, 1).strftime("%B %Y")
+    log(f"  Birthday campaign: {len(result)} VIP debtors ({bday_label}) — excl new & personal")
     return {
-        "month":    today.strftime("%B %Y"),
+        "month":    bday_label,
         "count":    len(result),
         "debtors":  result,
         "by_agent": {a: len(v) for a, v in by_agent.items()},
@@ -1257,7 +1310,20 @@ def save_penetration_snapshot(brand_comm, targets, cur_month):
             is_new     = d.get("is_new", False)  # new account this month
 
             # Criteria: birthday this month + VIP + not personal + not new account
-            if (d.get("birthday_this_month", False)
+            # Recompute birthday match for selected month (not today)
+            birth_date = d.get("birth_date_raw") or None
+            birthday_matches = False
+            if birth_date:
+                try:
+                    bd = pd.to_datetime(birth_date)
+                    birthday_matches = (bd.month == bday_month)
+                except:
+                    pass
+            # Fallback: use pre-computed flag if no raw date (for current month it's always correct)
+            if not birth_date:
+                birthday_matches = d.get("birthday_this_month", False)
+
+            if (birthday_matches
                     and is_vip
                     and not is_personal
                     and not is_new
@@ -1790,18 +1856,41 @@ def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_cam
 
     return result
 
-def calc_working_days(targets=None):
-    """Calculate working day progress for current month, deducting public holidays."""
-    today      = date.today()
-    first_day  = today.replace(day=1)
+def calc_working_days(targets=None, cur_month=None):
+    """Calculate working day progress for the given month, deducting public holidays.
+    For past months, elapsed = total (100%). For current month, use today's date.
+    cur_month: label like 'Mar 26' — if None, uses today's month.
+    """
     import calendar
-    last_day   = today.replace(day=calendar.monthrange(today.year, today.month)[1])
+    today = date.today()
 
-    # Public holidays — stored as list of "YYYY-MM-DD" strings or {"date":"YYYY-MM-DD","name":"..."}
+    # Determine which month to calculate for
+    MONTH_ORDER_WD = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    if cur_month:
+        try:
+            parts = cur_month.split()
+            mon_idx = MONTH_ORDER_WD.index(parts[0]) + 1
+            yr = 2000 + int(parts[1])
+            first_day = date(yr, mon_idx, 1)
+            last_day  = date(yr, mon_idx, calendar.monthrange(yr, mon_idx)[1])
+            is_past   = (yr, mon_idx) < (today.year, today.month)
+            is_current = (yr, mon_idx) == (today.year, today.month)
+        except:
+            first_day  = today.replace(day=1)
+            last_day   = today.replace(day=calendar.monthrange(today.year, today.month)[1])
+            is_past    = False
+            is_current = True
+    else:
+        first_day  = today.replace(day=1)
+        last_day   = today.replace(day=calendar.monthrange(today.year, today.month)[1])
+        is_past    = False
+        is_current = True
+
+    # Public holidays for this month
     ph_list = []
     if targets:
         all_ph = targets.get("public_holidays", [])
-        cur_ym = today.strftime("%Y-%m")
+        cur_ym = first_day.strftime("%Y-%m")
         for h in all_ph:
             date_str = h.get("date", h) if isinstance(h, dict) else h
             if isinstance(date_str, str) and date_str.startswith(cur_ym):
@@ -1812,11 +1901,13 @@ def calc_working_days(targets=None):
 
     total_working   = 0
     elapsed_working = 0
+    # For past months elapsed = total; for current use today; for future elapsed = 0
+    cutoff = last_day if is_past else (today if is_current else first_day - timedelta(days=1))
     d = first_day
     while d <= last_day:
         if d.weekday() < 6 and d not in ph_list:  # Mon–Sat, exclude PH
             total_working += 1
-            if d <= today:
+            if d <= cutoff:
                 elapsed_working += 1
         d += timedelta(days=1)
 
@@ -1824,7 +1915,7 @@ def calc_working_days(targets=None):
 
     return {
         "date":                    today.strftime("%Y-%m-%d"),
-        "month_label":             today.strftime("%b %Y"),
+        "month_label":             first_day.strftime("%b %Y"),
         "total_working_days":      total_working,
         "elapsed_working_days":    elapsed_working,
         "theoretical_pct":         theoretical_pct,
@@ -1938,7 +2029,7 @@ def main():
     birthday_camp = calc_birthday_campaign(debtor_cards, targets)
     kpi          = calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_camp)
     team         = calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month)
-    working_days = calc_working_days(targets)
+    working_days = calc_working_days(targets, cur_month)
     brand_camps  = calc_brand_campaigns(df, targets, agents, cur_month, prev_months, brand_config)
 
     # ── Enrich debtor cards with brand campaign tiers ───────────────────────
