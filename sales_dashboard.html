@@ -603,6 +603,7 @@ const BRAND_COLORS = {
 
 // ── Month Selector ─────────────────────────────────────────────────────────
 let CURRENT_MONTH_FILE = 'dashboard_data.json'; // default
+let CURRENT_MONTH_SLUG = 'current'; // tracks selected month slug
 
 async function loadMonthIndex() {
   try {
@@ -613,16 +614,22 @@ async function loadMonthIndex() {
 
     const sel = document.getElementById('month-selector-agent');
     if (!sel) return;
+    const currentSlug = CURRENT_MONTH_SLUG || (DATA?.current_month||'').replace(' ','').toLowerCase();
     sel.innerHTML = months.slice().reverse().map(m => {
       const slug = m.replace(' ','').toLowerCase();
-      const isCurrent = m === DATA?.current_month;
-      return `<option value="${slug}" ${isCurrent?'selected':''}>${m.toUpperCase()}${isCurrent?' ◀':''}</option>`;
+      return `<option value="${slug}">${m.toUpperCase()}${slug===currentSlug?' ◀':''}</option>`;
     }).join('');
+    sel.value = currentSlug;
     sel.style.display = 'block';
   } catch(e) {}
 }
 
 async function switchMonth(slug) {
+  // Read selected agent directly from DOM before anything changes
+  const agSel = document.getElementById('agent-select');
+  const prevAgent = (agSel && agSel.value) ? agSel.value : (currentAgent || '');
+  alert('switchMonth fired. slug=' + slug + ' prevAgent=' + prevAgent + ' currentAgent=' + currentAgent);
+
   const url = slug === 'current' || !slug
     ? 'dashboard_data.json?v=' + Date.now()
     : `data_${slug}.json?v=` + Date.now();
@@ -630,9 +637,9 @@ async function switchMonth(slug) {
     const r = await fetch(url);
     if (!r.ok) throw new Error('Not found');
     DATA = await r.json();
-    // Reset agent selection and re-init
-    currentAgent = '';
-    const agSel = document.getElementById('agent-select');
+    CURRENT_MONTH_SLUG = slug || 'current';
+
+    // Rebuild agent dropdown, restore previous selection
     if (agSel) {
       agSel.innerHTML = '<option value="">— Select Agent —</option>';
       Object.keys(DATA.agents || {}).sort().forEach(a => {
@@ -640,14 +647,43 @@ async function switchMonth(slug) {
         opt.value = a; opt.textContent = a;
         agSel.appendChild(opt);
       });
-      agSel.value = '';
+      agSel.value = (prevAgent && DATA.agents[prevAgent]) ? prevAgent : '';
     }
+
     // Update header
     const wd = DATA.working_days || {};
     document.getElementById('month-badge').textContent = (DATA.current_month||'').toUpperCase();
     document.getElementById('day-prog').textContent =
       `Day ${wd.elapsed_working_days||'?'} of ${wd.total_working_days||'?'} · ${wd.theoretical_pct||0}% elapsed`;
     renderGroupBrandTargets();
+    // Update month selector to reflect new selection without rebuilding
+    const mSel = document.getElementById('month-selector-agent');
+    if (mSel) mSel.value = CURRENT_MONTH_SLUG;
+
+    // Re-render agent if one was selected
+    if (prevAgent && DATA.agents[prevAgent]) {
+      currentAgent = prevAgent;
+      const debtors = DATA.agents[prevAgent]?.debtor_cards?.debtors || [];
+      const typeCounts = {};
+      debtors.forEach(d => {
+        const t = (d.debtor_type||'').trim();
+        if (t && t.toLowerCase() !== 'nan') typeCounts[t] = (typeCounts[t]||0) + 1;
+      });
+      const types = Object.keys(typeCounts).sort();
+      const typeRow = document.getElementById('type-filter-row');
+      if (typeRow) {
+        typeRow.innerHTML =
+          `<span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">Type:</span>
+           <button class="filter-chip active" onclick="setTypeFilter('all',this)">All (${debtors.length})</button>
+           ${types.map(t => `<button class="filter-chip" onclick="setTypeFilter('${t}',this)">${t} (${typeCounts[t]})</button>`).join('')}`;
+      }
+      renderAll();
+    } else {
+      currentAgent = '';
+      filters = { status:'all', special:null, type:'all', brand:'all' };
+      const listEl = document.getElementById('debtor-list');
+      if (listEl) listEl.innerHTML = '';
+    }
   } catch(e) {
     alert(`Could not load data for ${slug}: ${e.message}`);
   }
@@ -661,6 +697,7 @@ async function loadData() {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     DATA = await r.json();
     init();
+    CURRENT_MONTH_SLUG = (DATA?.current_month||'').replace(' ','').toLowerCase();
     loadMonthIndex(); // load month dropdown after data ready
   } catch(e) {
     document.body.innerHTML = `<div style="padding:40px;text-align:center;font-family:monospace;color:#ff5f5f;">
@@ -837,7 +874,10 @@ function selectAgent(agent) {
     const repoRaw = window.REPO_RAW || '';
     const cacheV  = window.CACHE_V  || '1';
     if (repoRaw) {
-      fetch('dashboard_data.json?v='+Date.now())
+      const fallbackUrl = (CURRENT_MONTH_SLUG && CURRENT_MONTH_SLUG !== 'current')
+        ? `data_${CURRENT_MONTH_SLUG}.json?v=` + Date.now()
+        : 'dashboard_data.json?v=' + Date.now();
+      fetch(fallbackUrl)
         .then(r => r.json())
         .then(fullData => {
           // Merge debtors into current DATA
