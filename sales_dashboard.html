@@ -1135,42 +1135,77 @@ function renderDebtors() {
 
     // Badges
     // Campaign badges — show category-specific promo if available
-    const campEmoji = {free_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',other:'📋'};
+    const campEmoji = {free_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',voucher:'🎟️',other:'📋'};
     const campBadges = (d.campaigns||[]).map(c => {
-      const catRule  = c.cat && c.cat_rules ? c.cat_rules[c.cat] : null;
-      const promoText = catRule?.promo || c.promo_detail || c.name;
-      const minCtn   = catRule?.min_ctn || c.min_order_ctn || 0;
-      const curCtn   = d.ctn_cur || 0;
-      const pct      = minCtn > 0 ? Math.min(curCtn/minCtn*100,100) : 0;
-      const barColor = pct>=100?'var(--green)':pct>=50?'var(--accent)':'var(--red)';
+      const promoText  = c.promo_detail || c.name;
+      const minCtn     = c.min_order_ctn || 0;
+      const curCtn     = c.ctn_this_month ?? 0;
+      const focEarned  = c.foc_earned ?? 0;
+      const qualified  = c.qualified ?? false;
+      const rType      = c.redemption_type || 'free_goods';
+      const accum      = c.accumulation || 'per_transaction';
+      const rLimit     = c.redemption_limit || 0;
+      const focItem    = c.foc_item_resolved || c.foc_item || '';
+      const catLabel   = c.cat ? `CAT ${c.cat}` : '';
+      const groupLabel = c.group ? `[${c.group}]` : '';
+      const approvalFlag = c.approval_required
+        ? `<span style="font-family:var(--mono);font-size:8px;color:var(--accent);margin-left:4px;">⚠ Case-by-case</span>`
+        : '';
+
+      // Progress bar
+      const pct      = minCtn > 0 ? Math.min(curCtn / minCtn * 100, 100) : (qualified ? 100 : 0);
+      const barColor = qualified ? 'var(--green)' : pct >= 50 ? 'var(--accent)' : 'rgba(255,255,255,.2)';
+
+      // Status label
+      let statusLine = '';
+      if (rType === 'voucher') {
+        const vAmt = c.voucher_amount || 0;
+        if (qualified) statusLine = `✅ RM${vAmt} Voucher claimable`;
+        else statusLine = `${curCtn}/${minCtn} CTN → RM${vAmt} Voucher`;
+      } else if (accum === 'accumulate') {
+        const rUnit = c.redemption_unit === 'pack' ? 'packs' : 'CTN';
+        const cap   = rLimit > 0 ? `/${rLimit}` : '';
+        statusLine  = `${curCtn} CTN → ${focEarned}${cap} ${rUnit} ${focItem} FOC`;
+      } else if (accum === 'per_transaction') {
+        statusLine  = `${curCtn} CTN total · ${focEarned} ${focItem} FOC earned`;
+      } else {
+        statusLine  = qualified ? `✅ Qualified` : `${curCtn}/${minCtn} CTN`;
+      }
+
+      // Claim button
+      const claimKey = `camp_claim_${currentAgent}_${d.debtor_code}_${c.id}`;
+      const claimed  = localStorage.getItem(claimKey) === '1';
+      const claimBtn = qualified
+        ? `<button onclick="toggleCampClaim(event,'${d.debtor_code}','${c.id}','${(d.company_name||'').replace(/'/g,'')}','${promoText.replace(/'/g,'')}')"
+            style="font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:6px;border:1px solid ${claimed?'var(--green)':'rgba(255,255,255,.3)'};background:${claimed?'rgba(61,220,132,.2)':'rgba(255,255,255,.08)'};color:${claimed?'var(--green)':'var(--text)'};cursor:pointer;margin-top:4px;">
+            ${claimed ? '✔ Claimed' : '🎁 Mark Claimed'}
+          </button>`
+        : '';
 
       // Visit status
       const vs       = getCampStatus(c.id, d.debtor_code);
       const vsInfo   = vs ? VISIT_STATUS[vs.status] : null;
-      const borderCol = vsInfo ? vsInfo.border.replace('.4)','.7)') : 'rgba(61,220,132,.25)';
-      const bgCol     = vsInfo ? vsInfo.bg : 'rgba(61,220,132,.08)';
-      const statusTag = vsInfo
-        ? `<span style="font-family:var(--mono);font-size:8px;color:${vsInfo.color};margin-left:4px;">${vsInfo.label}</span>`
-        : '';
+      const borderCol = qualified ? 'rgba(61,220,132,.4)' : vsInfo ? vsInfo.border.replace('.4)','.7)') : 'rgba(255,255,255,.1)';
+      const bgCol     = qualified ? 'rgba(61,220,132,.08)' : vsInfo ? vsInfo.bg : 'rgba(255,255,255,.03)';
 
-      return `<div style="margin-top:4px;background:${bgCol};border:1px solid ${borderCol};border-radius:8px;padding:6px 10px;cursor:pointer;"
-        onclick="showCampDetail(event,'${d.debtor_code}','${(d.company_name||'').replace(/'/g,"\\'")}')">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${minCtn?'4':'0'}px;">
-          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;">
-            <span style="font-family:var(--mono);font-size:10px;color:var(--green);font-weight:600;">${campEmoji[c.type]||'📋'} ${promoText}</span>
-            ${statusTag}
+      return `<div style="margin-top:4px;background:${bgCol};border:1px solid ${borderCol};border-radius:8px;padding:6px 10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
+            <span style="font-family:var(--mono);font-size:10px;color:var(--green);font-weight:600;">${campEmoji[c.type]||'📋'} ${c.name}</span>
+            ${catLabel ? `<span style="font-family:var(--mono);font-size:9px;color:var(--accent);background:rgba(240,192,64,.15);padding:1px 5px;border-radius:4px;">${catLabel}</span>` : ''}
+            ${groupLabel ? `<span style="font-family:var(--mono);font-size:8px;color:var(--muted);">${groupLabel}</span>` : ''}
+            ${approvalFlag}
           </div>
-          ${catRule?.max_redempt ? `<span style="font-family:var(--mono);font-size:8px;color:var(--muted);">${catRule.max_redempt}</span>` : ''}
         </div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:4px;">${promoText}</div>
         ${minCtn > 0 ? `
-        <div style="display:flex;align-items:center;gap:6px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
           <div style="flex:1;height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;">
             <div style="height:100%;width:${pct}%;background:${barColor};border-radius:2px;transition:width .4s;"></div>
           </div>
-          <span style="font-family:var(--mono);font-size:9px;color:${barColor};white-space:nowrap;">
-            ${curCtn}/${minCtn} CTN${pct>=100?' ✓':''}
-          </span>
-        </div>` : ''}
+          <span style="font-family:var(--mono);font-size:9px;color:${barColor};white-space:nowrap;">${statusLine}</span>
+        </div>` : `<div style="font-family:var(--mono);font-size:9px;color:var(--muted);">${statusLine}</div>`}
+        ${claimBtn}
         ${vs?.remark ? `<div style="font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:3px;font-style:italic;">"${vs.remark}"</div>` : ''}
       </div>`;
     }).join('');
@@ -2440,6 +2475,23 @@ function showBrandTierDetail(event, debtorCode, debtorName) {
 }
 
 // ── CTN Breakdown Tooltip ──────────────────────────────────────────────────
+function toggleCampClaim(event, debtorCode, campId, debtorName, promoText) {
+  event.stopPropagation();
+  const key     = `camp_claim_${currentAgent}_${debtorCode}_${campId}`;
+  const claimed = localStorage.getItem(key) === '1';
+  if (claimed) {
+    if (confirm(`Undo claim for ${debtorName}?`)) {
+      localStorage.removeItem(key);
+      renderDebtors();
+    }
+  } else {
+    if (confirm(`Mark "${promoText}" as claimed for ${debtorName}?`)) {
+      localStorage.setItem(key, '1');
+      renderDebtors();
+    }
+  }
+}
+
 function toggleBdayGift(debtorCode, debtorName, event) {
   event.stopPropagation();
   const month = (DATA?.current_month||'').replace(' ','');
