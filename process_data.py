@@ -1074,6 +1074,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 "vip":                info.get("vip", False),
                 "is_new":             is_new,
                 "birthday_this_month": birthday_this_month,
+                "birth_date_raw":     str(birth_date) if birth_date and pd.notnull(birth_date) else None,
                 "days_to_birthday":   days_to_bday,
                 "birth_month":        birth_month,
                 "birth_day":          int(pd.to_datetime(info.get("birth_date")).day) if info.get("birth_date") and pd.notnull(info.get("birth_date")) else None,
@@ -1169,6 +1170,7 @@ def calc_group_brand_targets(df, targets, cur_month, group_brand_config):
             "target_ctn": target,
             "gap":        round(actual - target, 1) if target else None,
             "pct":        pct(actual, target),
+            "item_codes": list(codes),
         }
     return result
 
@@ -1285,9 +1287,13 @@ def calc_birthday_campaign(debtor_cards, targets, cur_month=None):
                     birthday_matches = (bd.month == bday_month)
                 except:
                     pass
-            # Fallback: use pre-computed flag if no raw date (for current month it's always correct)
+            # Fallback: use birth_month (1-12) if raw date unavailable
             if not birth_date:
-                birthday_matches = d.get("birthday_this_month", False)
+                stored_birth_month = d.get("birth_month")
+                if stored_birth_month is not None:
+                    birthday_matches = (int(stored_birth_month) == bday_month)
+                else:
+                    birthday_matches = d.get("birthday_this_month", False)
 
             if (birthday_matches
                     and is_vip
@@ -1425,9 +1431,13 @@ def save_penetration_snapshot(brand_comm, targets, cur_month):
                     birthday_matches = (bd.month == bday_month)
                 except:
                     pass
-            # Fallback: use pre-computed flag if no raw date (for current month it's always correct)
+            # Fallback: use birth_month (1-12) if raw date unavailable
             if not birth_date:
-                birthday_matches = d.get("birthday_this_month", False)
+                stored_birth_month = d.get("birth_month")
+                if stored_birth_month is not None:
+                    birthday_matches = (int(stored_birth_month) == bday_month)
+                else:
+                    birthday_matches = d.get("birthday_this_month", False)
 
             if (birthday_matches
                     and is_vip
@@ -1648,21 +1658,57 @@ def calc_brand_campaigns(df, targets, agents, cur_month, prev_months, brand_conf
 
 # ── Team summary ──────────────────────────────────────────────────────────────
 
-def calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month):
+
+def _calc_prev_month_ctn(df, prev_months):
+    """Sum paid CTN for the immediate previous month."""
+    if df is None or not prev_months: return 0
+    prev_m = prev_months[0] if prev_months else None
+    if not prev_m: return 0
+    try:
+        canggih = df[df["item_group"] != EIGHTCOM_GROUP]
+        return round(float(canggih[canggih["paid_on"] == prev_m]["qty_ctn"].sum()), 2)
+    except: return 0
+
+def _calc_total_sales_ctn(df, cur_month):
+    """Sum all (paid + unpaid) canggih CTN for current month."""
+    if df is None: return 0
+    try:
+        canggih = df[df["item_group"] != EIGHTCOM_GROUP]
+        return round(float(canggih[canggih["invoice_month"] == cur_month]["qty_ctn"].sum()), 2)             if "invoice_month" in df.columns             else round(float(canggih[canggih["paid_on"] == cur_month]["qty_ctn"].sum()), 2)
+    except: return 0
+
+def calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month, df=None, prev_months=None):
     """Aggregate team-level totals for management view."""
     log("Calculating team summary...")
 
     team_targets = targets.get("team", {})
+    # Use monthly targets for correct month
+    monthly_agents = get_monthly_targets(targets, cur_month)
     t1_total = sum(
-        targets.get("agents", {}).get(a, {}).get("sales_progression", {}).get("normal_t1", 0) or 0
+        (monthly_agents.get(a) or targets.get("agents", {}).get(a, {})).get("sales_progression", {}).get("normal_t1", 0) or 0
         for a in agents
     )
 
-    team_normal_ctn = sum(sales_prog.get(a, {}).get("normal_ctn", 0) for a in agents)
-    team_ga_ctn     = sum(sales_prog.get(a, {}).get("ga_ctn", 0) for a in agents)
-    team_ma_ctn     = sum(sales_prog.get(a, {}).get("ma_ctn", 0) for a in agents)
-    team_canggih    = sum(sales_prog.get(a, {}).get("total_canggih_ctn", 0) for a in agents)
-    team_8com       = sum(sales_prog.get(a, {}).get("eightcom_paid_ctn", 0) for a in agents)
+    team_normal_ctn  = sum(sales_prog.get(a, {}).get("normal_ctn", 0) for a in agents)
+    team_ga_ctn      = sum(sales_prog.get(a, {}).get("ga_ctn", 0) for a in agents)
+    team_ma_ctn      = sum(sales_prog.get(a, {}).get("ma_ctn", 0) for a in agents)
+    team_canggih     = sum(sales_prog.get(a, {}).get("total_canggih_ctn", 0) for a in agents)
+    team_8com        = sum(sales_prog.get(a, {}).get("eightcom_paid_ctn", 0) for a in agents)
+    team_8com_unpaid = sum(sales_prog.get(a, {}).get("eightcom_unpaid_ctn", 0) for a in agents)
+
+    # T2/GA/MA total targets from monthly targets
+    t2_total = sum(
+        (monthly_agents.get(a) or targets.get("agents", {}).get(a, {})).get("sales_progression", {}).get("normal_t2", 0) or 0
+        for a in agents
+    )
+    ga_total = sum(
+        (monthly_agents.get(a) or targets.get("agents", {}).get(a, {})).get("sales_progression", {}).get("ga", 0) or 0
+        for a in agents
+    )
+    ma_total = sum(
+        (monthly_agents.get(a) or targets.get("agents", {}).get(a, {})).get("sales_progression", {}).get("ma", 0) or 0
+        for a in agents
+    )
 
     # Brand commission team totals
     brand_summary = {}
@@ -1719,11 +1765,24 @@ def calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month):
         "team_ma_ctn":       round(team_ma_ctn, 2),
         "team_canggih_ctn":  round(team_canggih, 2),
         "team_8com_ctn":     round(team_8com, 2),
+        "team_8com_unpaid":  round(team_8com_unpaid, 2),
         "t1_total_target":   t1_total,
+        "t2_total_target":   t2_total,
+        "ga_total_target":   ga_total,
+        "ma_total_target":   ma_total,
         "t1_pct":            pct(team_normal_ctn, t1_total),
+        "t2_pct":            pct(team_normal_ctn, t2_total),
+        "ga_pct":            pct(team_ga_ctn, ga_total),
+        "ma_pct":            pct(team_ma_ctn, ma_total),
+        "t1_gap":            round(team_normal_ctn - t1_total, 2) if t1_total else None,
+        "t2_gap":            round(team_normal_ctn - t2_total, 2) if t2_total else None,
+        "ga_gap":            round(team_ga_ctn - ga_total, 2) if ga_total else None,
+        "ma_gap":            round(team_ma_ctn - ma_total, 2) if ma_total else None,
         "t1_color":          color_code(pct(team_normal_ctn, t1_total)),
         "brand_summary":     brand_summary,
         "leaderboard":       leaderboard,
+        "prev_month_ctn":    _calc_prev_month_ctn(df, prev_months),
+        "total_sales_ctn":   _calc_total_sales_ctn(df, cur_month),
     }
 
 
@@ -2185,8 +2244,9 @@ def main():
                     code = d.get("code","") if isinstance(d, dict) else str(d)
                     cat  = d.get("cat","") if isinstance(d, dict) else ""
                     if not code: continue
-                    # Get CAT-specific rules
-                    crule = cat_rules.get(cat, {}) if cat else {}
+                    # Get CAT-specific rules — try full key first (e.g. "D2"), then first char (e.g. "D")
+                    cat_group = cat[0].upper() if cat else ""
+                    crule = cat_rules.get(cat) or cat_rules.get(cat_group) or {} if cat else {}
                     if code not in campaign_map: campaign_map[code] = []
                     campaign_map[code].append({
                         "id":              camp.get("id",""),
@@ -2256,9 +2316,9 @@ def main():
     # ── Save month-start snapshot + auto-calc KPI targets ───────────────────
     targets      = save_debtor_snapshot(debtor_cards, targets, cur_month)
     group_brands = calc_group_brand_targets(df, targets, cur_month, group_brand_config)
-    birthday_camp = calc_birthday_campaign(debtor_cards, targets)
+    birthday_camp = calc_birthday_campaign(debtor_cards, targets, cur_month)
     kpi          = calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_camp, cur_month)
-    team         = calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month)
+    team         = calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month, df_raw, prev_months)
     working_days = calc_working_days(targets, cur_month)
     brand_camps  = calc_brand_campaigns(df, targets, agents, cur_month, prev_months, brand_config)
 
@@ -2296,6 +2356,7 @@ def main():
             "group_brand_config": group_brand_config,
             "inhouse_codes":      targets.get("inhouse_codes", DEFAULT_INHOUSE_CODES),
             "scope":              SCOPE_AREA,
+            "group_incentive":    targets.get("team", {}).get("incentive", None),
         }
     }
 

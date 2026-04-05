@@ -230,6 +230,18 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
     <div class="page-body">
       <div class="sec-header">Group Brand Targets</div>
       <div class="sec-sub">Monthly CTN target for the whole team per brand. One value per brand — not per agent.</div>
+
+      <div class="admin-card" style="margin-bottom:10px;">
+        <div class="input-group">
+          <div class="input-label">Group Incentive (e.g. RM1600)</div>
+          <input type="text" id="group-incentive-input"
+            placeholder="e.g. RM1600"
+            oninput="CONFIG.team = CONFIG.team||{}; CONFIG.team.incentive = this.value; updateRawJSON();"
+            style="width:100%;">
+        </div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:4px;">Shown on Group tab as incentive target for the month</div>
+      </div>
+
       <div id="group-brand-form"></div>
       <button class="save-btn" onclick="saveAll()">SAVE GROUP TARGETS</button>
       <div class="save-toast" id="save-toast-grp">✓ Saved</div>
@@ -704,6 +716,9 @@ async function initAdmin() {
   renderAgentForms();
   renderNewbieForms();
   renderGroupBrandForms();
+  // Pre-fill group incentive
+  const incEl = document.getElementById('group-incentive-input');
+  if (incEl) incEl.value = CONFIG.team?.incentive || '';
   renderSKUForms();
   renderHolidayList();
   renderBirthdayCampList();

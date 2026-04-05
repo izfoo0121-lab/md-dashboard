@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>MD Scoring — Accounts & Supervisor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#0e0e12; --surface:#16161c; --card:#1c1c24; --border:rgba(255,255,255,.08);
+      --text:#e8e6f0; --muted:#6a687a; --accent:#c8381a; --green:#3ddc84;
+      --blue:#4da6ff; --gold:#f0c040; --purple:#a78bfa; --red:#ff5f5f;
+      --sec-d:#c85a1a; --sec-e:#6b3fa0; --sec-b:#1a5c8f;
+      --display:'Bebas Neue',sans-serif; --body:'DM Sans',sans-serif; --mono:'DM Mono',monospace;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;padding-bottom:80px;}
+
+    /* Header */
+    .hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 18px;position:sticky;top:0;z-index:100;}
+    .hdr-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;}
+    .hdr-title{font-family:var(--display);font-size:28px;letter-spacing:.06em;}
+    .hdr-sub{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+    .nav-pills{display:flex;gap:6px;}
+    .nav-pill{font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);color:var(--muted);text-decoration:none;}
+    .nav-pill:hover{border-color:var(--blue);color:var(--blue);}
+
+    /* Tab bar */
+    .tab-bar{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto;}
+    .tab-btn{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:12px 16px;border:none;background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-1px;}
+    .tab-btn.active-d{color:#ff8c5a;border-bottom-color:#ff8c5a;}
+    .tab-btn.active-e{color:#c4a0ff;border-bottom-color:#c4a0ff;}
+    .tab-content{display:none;}
+    .tab-content.active{display:block;}
+
+    /* Controls */
+    .controls{padding:12px 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--card);border-bottom:1px solid var(--border);}
+    .ctrl-label{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;}
+    select{background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:7px 12px;border-radius:8px;cursor:pointer;}
+    select:focus{outline:none;border-color:var(--blue);}
+
+    /* Body */
+    .page-body{padding:14px 18px;max-width:860px;margin:0 auto;}
+
+    /* Section banner */
+    .sec-banner{border-radius:12px;padding:12px 16px;margin-bottom:14px;}
+    .sec-banner-d{background:rgba(200,90,26,.12);border:1px solid rgba(200,90,26,.25);}
+    .sec-banner-e{background:rgba(107,63,160,.12);border:1px solid rgba(107,63,160,.25);}
+    .sec-banner-b{background:rgba(26,92,143,.12);border:1px solid rgba(26,92,143,.25);}
+    .sec-banner-title{font-family:var(--display);font-size:22px;letter-spacing:.05em;margin-bottom:2px;}
+    .sec-banner-sub{font-family:var(--mono);font-size:9px;color:var(--muted);}
+
+    /* Agent grid */
+    .agent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:10px;}
+
+    /* Agent card */
+    .agent-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;transition:border-color .2s;}
+    .agent-card:hover{border-color:rgba(255,255,255,.14);}
+    .agent-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+    .agent-name{font-family:var(--display);font-size:22px;letter-spacing:.05em;}
+    .agent-total{font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;}
+    .agent-total.full{background:rgba(61,220,132,.15);color:var(--green);border:1px solid rgba(61,220,132,.25);}
+    .agent-total.partial{background:rgba(240,192,64,.1);color:var(--gold);border:1px solid rgba(240,192,64,.25);}
+    .agent-total.empty{background:rgba(106,104,122,.1);color:var(--muted);border:1px solid var(--border);}
+
+    /* Score rows */
+    .score-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);}
+    .score-row:last-child{border-bottom:none;}
+    .score-info{flex:1;}
+    .score-lbl{font-size:12px;color:var(--text);}
+    .score-sub{font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:1px;}
+    .score-right{display:flex;align-items:center;gap:6px;}
+    .score-input{width:58px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;text-align:center;padding:5px 6px;border-radius:8px;transition:border-color .2s;}
+    .score-input:focus{outline:none;border-color:var(--blue);}
+    .score-max{font-family:var(--mono);font-size:9px;color:var(--muted);}
+    .score-bar-wrap{height:2px;background:rgba(255,255,255,.06);border-radius:1px;margin-top:3px;overflow:hidden;}
+    .score-bar-fill{height:100%;border-radius:1px;transition:width .3s;}
+
+    /* Divider */
+    .sec-divider{font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);padding:6px 0 4px;border-top:1px solid var(--border);margin-top:8px;margin-bottom:4px;}
+
+    /* Section subtotal */
+    .subtotal{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-radius:8px;margin-top:6px;}
+    .subtotal-d{background:rgba(200,90,26,.08);border:1px solid rgba(200,90,26,.15);}
+    .subtotal-e{background:rgba(107,63,160,.08);border:1px solid rgba(107,63,160,.15);}
+    .subtotal-b{background:rgba(26,92,143,.08);border:1px solid rgba(26,92,143,.15);}
+    .subtotal-lbl{font-family:var(--mono);font-size:9px;color:var(--muted);}
+    .subtotal-val{font-family:var(--mono);font-size:12px;font-weight:600;}
+
+    /* Save row */
+    .save-row{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:10px;}
+    .save-btn{background:var(--green);border:none;color:#0e0e12;font-family:var(--mono);font-size:11px;font-weight:600;padding:8px 18px;border-radius:10px;cursor:pointer;transition:opacity .2s;}
+    .save-btn:hover{opacity:.85;}
+    .saved-tag{font-family:var(--mono);font-size:9px;color:var(--green);opacity:0;transition:opacity .3s;}
+    .saved-tag.show{opacity:1;}
+
+    /* Summary */
+    .summary{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;gap:16px;flex-wrap:wrap;align-items:center;}
+    .sum-stat{text-align:center;min-width:60px;}
+    .sum-val{font-family:var(--display);font-size:26px;letter-spacing:.04em;}
+    .sum-val.g{color:var(--green);}
+    .sum-val.a{color:var(--gold);}
+    .sum-val.r{color:var(--red);}
+    .sum-lbl{font-family:var(--mono);font-size:7px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+
+    /* Toast */
+    .toast{position:fixed;bottom:20px;right:20px;background:var(--green);color:#0e0e12;font-family:var(--mono);font-size:11px;font-weight:600;padding:10px 20px;border-radius:12px;opacity:0;transition:opacity .3s;z-index:999;pointer-events:none;}
+    .toast.show{opacity:1;}
+
+    /* Login */
+    #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+    .login-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 24px;width:100%;max-width:340px;}
+    .login-title{font-family:var(--display);font-size:36px;letter-spacing:.05em;margin-bottom:4px;}
+    .login-sub{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:24px;}
+    .login-input{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text);font-family:var(--body);font-size:14px;padding:12px 14px;border-radius:10px;margin-bottom:10px;}
+    .login-input::placeholder{color:var(--muted);}
+    .login-btn{width:100%;background:var(--accent);border:none;color:#fff;font-family:var(--display);font-size:20px;letter-spacing:.05em;padding:12px;border-radius:10px;cursor:pointer;margin-top:4px;}
+    .login-err{font-family:var(--mono);font-size:10px;color:var(--red);text-align:center;margin-top:8px;display:none;}
+    .role-select{display:flex;gap:8px;margin-bottom:16px;}
+    .role-btn{flex:1;padding:10px;border-radius:10px;border:2px solid var(--border);background:transparent;color:var(--muted);font-family:var(--mono);font-size:10px;cursor:pointer;transition:all .2s;text-align:center;}
+    .role-btn.active-d{border-color:var(--sec-d);color:#ff8c5a;background:rgba(200,90,26,.1);}
+    .role-btn.active-e{border-color:var(--sec-e);color:#c4a0ff;background:rgba(107,63,160,.1);}
+
+    @media(max-width:480px){
+      .agent-grid{grid-template-columns:1fr;}
+      .page-body{padding:10px 12px;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-title">MD SCORING</div>
+    <div class="login-sub">KPI Manual Entry</div>
+    <div class="login-sub" style="margin-bottom:16px;margin-top:8px;">Select your role:</div>
+    <div class="role-select">
+      <button class="role-btn" id="role-btn-d" onclick="selectRole('accounts')">🏦 Accounts<br><span style="font-size:8px;opacity:.7;">Section D</span></button>
+      <button class="role-btn" id="role-btn-e" onclick="selectRole('supervisor')">👤 Supervisor<br><span style="font-size:8px;opacity:.7;">Section B+E</span></button>
+    </div>
+    <input class="login-input" type="password" id="pw-input" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">ENTER</button>
+    <div class="login-err" id="login-err">Incorrect password</div>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="main-app" style="display:none;">
+  <!-- Header -->
+  <div class="hdr">
+    <div class="hdr-top">
+      <div>
+        <div class="hdr-title">MD SCORING</div>
+        <div class="hdr-sub" id="role-label">KPI Manual Entry</div>
+      </div>
+      <div class="nav-pills">
+        <a href="sales_dashboard.html" class="nav-pill">👥 Agent View</a>
+        <a href="management.html" class="nav-pill">📊 Management</a>
+        <a href="admin.html" class="nav-pill">⚙️ Admin</a>
+        <a href="#" class="nav-pill" onclick="logout()">🚪 Logout</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar" id="tab-bar" style="display:none;">
+    <button class="tab-btn" id="tab-btn-d" onclick="switchTab('d')">🏦 Section D — 售后行政</button>
+    <button class="tab-btn" id="tab-btn-e" onclick="switchTab('e')">👤 Section E — 其它表现</button>
+    <button class="tab-btn" id="tab-btn-b" onclick="switchTab('b')">📊 Section B — Alt Sales</button>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <span class="ctrl-label">Month:</span>
+    <select id="month-select" onchange="renderAll()">
+      <option value="Jan 26">Jan 26</option>
+      <option value="Feb 26">Feb 26</option>
+      <option value="Mar 26">Mar 26</option>
+      <option value="Apr 26" selected>Apr 26</option>
+    </select>
+    <span id="unsaved-indicator" style="font-family:var(--mono);font-size:9px;color:var(--gold);display:none;">● Unsaved changes</span>
+  </div>
+
+  <!-- Section D Tab -->
+  <div id="tab-d" class="tab-content">
+    <div class="page-body">
+      <div class="sec-banner sec-banner-d">
+        <div class="sec-banner-title" style="color:#ff8c5a;">D — 售后行政</div>
+        <div class="sec-banner-sub">Entered by Accounts Dept · Score each agent out of their max points per item</div>
+      </div>
+      <div id="summary-d" class="summary"></div>
+      <div id="agents-d" class="agent-grid"></div>
+      <button class="save-btn" style="margin-top:16px;width:100%;" onclick="saveAll('d')">SAVE ALL SECTION D SCORES</button>
+    </div>
+  </div>
+
+  <!-- Section E Tab -->
+  <div id="tab-e" class="tab-content">
+    <div class="page-body">
+      <div class="sec-banner sec-banner-e">
+        <div class="sec-banner-title" style="color:#c4a0ff;">E — 其它表现</div>
+        <div class="sec-banner-sub">Entered by Supervisor · Score each agent out of their max points per item</div>
+      </div>
+      <div id="summary-e" class="summary"></div>
+      <div id="agents-e" class="agent-grid"></div>
+      <button class="save-btn" style="margin-top:16px;width:100%;background:var(--purple);" onclick="saveAll('e')">SAVE ALL SECTION E SCORES</button>
+    </div>
+  </div>
+
+  <!-- Section B Alt Sales Tab -->
+  <div id="tab-b" class="tab-content">
+    <div class="page-body">
+      <div class="sec-banner sec-banner-b">
+        <div class="sec-banner-title" style="color:#7dc4ff;">B — Alt Sales (来自替代渠道)</div>
+        <div class="sec-banner-sub">Entered by Supervisor · Alt Sales Contact <2days and 送货 <7days</div>
+      </div>
+      <div id="summary-b" class="summary"></div>
+      <div id="agents-b" class="agent-grid"></div>
+      <button class="save-btn" style="margin-top:16px;width:100%;background:var(--blue);" onclick="saveAll('b')">SAVE ALL ALT SALES SCORES</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">✓ Scores saved</div>
+
+<script>
+// ── Config ─────────────────────────────────────────────────────────────────
+const ACCOUNTS_PW  = 'accounts2026';
+const SUPERVISOR_PW = 'super2026';
+
+const AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','YI'];
+
+// Section D items: [key, label, description, max_score_pct]
+const SEC_D_ITEMS = [
+  ['d_key_accuracy',     'KEY 单精准度',    'Key order accuracy',                    5],
+  ['d_account_accuracy', '帐目精准度',      'Account accuracy',                      5],
+  ['d_outstanding',      '欠账',            'Outstanding accounts management',       5],
+  ['d_followup',         '其它 Follow Up',  'Other follow up tasks completed',       5],
+];
+// Apr 26: each = 4%
+const SEC_D_APR = [
+  ['d_key_accuracy',     'KEY 单精准度',    'Key order accuracy',                    4],
+  ['d_account_accuracy', '帐目精准度',      'Account accuracy',                      4],
+  ['d_outstanding',      '欠账',            'Outstanding accounts management',       4],
+  ['d_followup',         '其它 Follow Up',  'Other follow up tasks completed',       4],
+];
+
+// Section E items
+const SEC_E_ITEMS = [
+  ['e_punctuality',  '准时 Punctuality',  '10点前要到store 除非有急事做',             1],
+  ['e_warehouse',    '货仓整洁度',         '纸皮不能多和要打扫',                       1],
+  ['e_efficiency',   '有效率和有担待',     '被交代的事',                               1],
+  ['e_check_car',    'Check 车',          '跟群里扣钱就直接0分',                      1],
+  ['e_check_stock',  'Check Stock',       '准确&准时，每星期都有check',               1],
+];
+
+// Section B alt sales items
+const SEC_B_ITEMS = [
+  ['alt_channel_contact', 'Alt Sales - Contact <2 days', '替代渠道销售联系需在2天内完成', 2],
+  ['alt_channel_deliver', 'Alt Sales - 送货 <7 days',    '替代渠道销售送货需在7天内完成', 3],
+];
+const SEC_B_APR = [
+  ['alt_channel_contact', 'Alt Sales - Contact <2 days', '替代渠道销售联系需在2天内完成', 2],
+  ['alt_channel_deliver', 'Alt Sales - 送货 <7 days',    '替代渠道销售送货需在7天内完成', 3],
+];
+
+let ROLE = null; // 'accounts' or 'supervisor'
+let DATA = {};   // loaded from dashboard_data.json
+let SCORES = {}; // {month: {agent: {key: score}}}
+let currentTab = 'd';
+
+// ── Auth ───────────────────────────────────────────────────────────────────
+function selectRole(role) {
+  ROLE = role;
+  document.getElementById('role-btn-d').className = 'role-btn' + (role==='accounts'?' active-d':'');
+  document.getElementById('role-btn-e').className = 'role-btn' + (role==='supervisor'?' active-e':'');
+}
+
+function doLogin() {
+  if (!ROLE) { alert('Please select your role first.'); return; }
+  const pw = document.getElementById('pw-input').value;
+  const ok = (ROLE === 'accounts' && pw === ACCOUNTS_PW) ||
+             (ROLE === 'supervisor' && pw === SUPERVISOR_PW);
+  if (ok) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+    document.getElementById('role-label').textContent =
+      ROLE === 'accounts' ? '🏦 Accounts Dept — Section D' : '👤 Supervisor — Section B & E';
+    // Show relevant tabs
+    const tabBar = document.getElementById('tab-bar');
+    tabBar.style.display = 'flex';
+    if (ROLE === 'accounts') {
+      document.getElementById('tab-btn-d').style.display = '';
+      document.getElementById('tab-btn-e').style.display = 'none';
+      document.getElementById('tab-btn-b').style.display = 'none';
+      switchTab('d');
+    } else {
+      document.getElementById('tab-btn-d').style.display = 'none';
+      document.getElementById('tab-btn-e').style.display = '';
+      document.getElementById('tab-btn-b').style.display = '';
+      switchTab('e');
+    }
+    loadData();
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+  }
+}
+
+function logout() {
+  ROLE = null;
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('pw-input').value = '';
+  document.getElementById('login-err').style.display = 'none';
+}
+
+// ── Data ───────────────────────────────────────────────────────────────────
+async function loadData() {
+  try {
+    const r = await fetch('dashboard_data.json?v=' + Date.now());
+    DATA = await r.json();
+  } catch(e) { DATA = {}; }
+  loadScores();
+  renderAll();
+}
+
+function getStorageKey(month) { return `md_scores_${month.replace(' ','')}`; }
+
+function loadScores() {
+  const month = document.getElementById('month-select').value;
+  const key = getStorageKey(month);
+  try { SCORES[month] = JSON.parse(localStorage.getItem(key) || '{}'); }
+  catch(e) { SCORES[month] = {}; }
+}
+
+function getScore(month, agent, itemKey) {
+  return SCORES[month]?.[agent]?.[itemKey] ?? null;
+}
+
+function setScore(month, agent, itemKey, val) {
+  if (!SCORES[month]) SCORES[month] = {};
+  if (!SCORES[month][agent]) SCORES[month][agent] = {};
+  SCORES[month][agent][itemKey] = val;
+  document.getElementById('unsaved-indicator').style.display = 'inline';
+}
+
+function saveAll(sec) {
+  const month = document.getElementById('month-select').value;
+  // Read all inputs for this section
+  const items = sec === 'd' ? getSecDItems(month) :
+                sec === 'e' ? SEC_E_ITEMS : getSecBItems(month);
+  AGENTS.forEach(agent => {
+    items.forEach(([key,,,max]) => {
+      const el = document.getElementById(`score_${agent}_${key}`);
+      if (el) {
+        const val = parseFloat(el.value);
+        if (!isNaN(val)) setScore(month, agent, key, Math.min(val, max));
+      }
+    });
+  });
+  // Persist to localStorage
+  const storKey = getStorageKey(month);
+  localStorage.setItem(storKey, JSON.stringify(SCORES[month] || {}));
+  document.getElementById('unsaved-indicator').style.display = 'none';
+  showToast('✓ ' + (sec==='d'?'Section D':sec==='e'?'Section E':'Alt Sales') + ' scores saved');
+  renderAll();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Get items by month ─────────────────────────────────────────────────────
+function getSecDItems(month) {
+  return month === 'Apr 26' ? SEC_D_APR : SEC_D_ITEMS;
+}
+function getSecBItems(month) {
+  return month === 'Apr 26' ? SEC_B_APR : SEC_B_ITEMS;
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  ['d','e','b'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+    const btn = document.getElementById('tab-btn-' + t);
+    if (btn) {
+      btn.className = 'tab-btn' + (t === tab ? (t==='d'?' active-d':t==='e'?' active-e':' active-d') : '');
+    }
+  });
+}
+
+function renderAll() {
+  loadScores();
+  const month = document.getElementById('month-select').value;
+  renderSection('d', getSecDItems(month), 'sec-d', '#ff8c5a');
+  renderSection('e', SEC_E_ITEMS, 'sec-e', '#c4a0ff');
+  renderSection('b', getSecBItems(month), 'sec-b', '#7dc4ff');
+}
+
+function renderSection(secId, items, cssClass, color) {
+  const month = document.getElementById('month-select').value;
+  const container = document.getElementById('agents-' + secId);
+  if (!container) return;
+
+  const maxPerAgent = items.reduce((s,[,,,m]) => s + m, 0);
+  let totalEntered = 0, totalAgents = 0, totalScore = 0;
+
+  const cards = AGENTS.map(agent => {
+    const agentScores = items.map(([key,label,sub,max]) => {
+      const saved = getScore(month, agent, key);
+      const val = saved !== null ? saved : '';
+      const pct = saved !== null ? Math.min(saved / max, 1) * 100 : 0;
+      const barColor = pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--gold)' : pct > 0 ? 'var(--red)' : 'rgba(255,255,255,.1)';
+      return `<div class="score-row">
+        <div class="score-info">
+          <div class="score-lbl">${label}</div>
+          <div class="score-sub">${sub}</div>
+          <div class="score-bar-wrap"><div class="score-bar-fill" style="width:${pct}%;background:${barColor};"></div></div>
+        </div>
+        <div class="score-right">
+          <input type="number" class="score-input" id="score_${agent}_${key}"
+            min="0" max="${max}" step="0.1" value="${val}" placeholder="—"
+            oninput="onScoreInput('${agent}','${key}',this,${max})"
+            style="border-color:${saved!==null?color:'var(--border)'};">
+          <span class="score-max">/ ${max}</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    const agentTotal = items.reduce((s,[key,,,max]) => {
+      const v = getScore(month, agent, key);
+      return s + (v !== null ? Math.min(v, max) : 0);
+    }, 0);
+    const allEntered = items.every(([key]) => getScore(month, agent, key) !== null);
+    const anyEntered = items.some(([key]) => getScore(month, agent, key) !== null);
+
+    if (anyEntered) { totalAgents++; totalScore += agentTotal; }
+    if (allEntered) totalEntered++;
+
+    const badgeClass = allEntered ? 'full' : anyEntered ? 'partial' : 'empty';
+    const badgeText = allEntered ? `${agentTotal.toFixed(1)} / ${maxPerAgent}` :
+                      anyEntered ? `${agentTotal.toFixed(1)} / ${maxPerAgent} ⚠` : 'Not entered';
+
+    return `<div class="agent-card">
+      <div class="agent-hdr">
+        <div class="agent-name">${agent}</div>
+        <div class="agent-total ${badgeClass}">${badgeText}</div>
+      </div>
+      ${agentScores}
+      <div class="subtotal subtotal-${secId}">
+        <span class="subtotal-lbl">Section ${secId.toUpperCase()} Total</span>
+        <span class="subtotal-val" style="color:${color};">${agentTotal.toFixed(1)} / ${maxPerAgent}</span>
+      </div>
+      <div class="save-row">
+        <span class="saved-tag" id="saved_${secId}_${agent}">✓ Saved</span>
+        <button class="save-btn" onclick="saveAgent('${secId}','${agent}')"
+          style="${secId==='e'?'background:var(--purple);':secId==='b'?'background:var(--blue);':''}">
+          Save ${agent}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+
+  container.innerHTML = cards;
+
+  // Summary
+  const summaryEl = document.getElementById('summary-' + secId);
+  if (summaryEl) {
+    const avgScore = totalAgents > 0 ? totalScore / totalAgents : 0;
+    const pctComplete = Math.round(totalEntered / AGENTS.length * 100);
+    summaryEl.innerHTML = `
+      <div class="sum-stat"><div class="sum-val ${pctComplete===100?'g':pctComplete>50?'a':'r'}">${pctComplete}%</div><div class="sum-lbl">Complete</div></div>
+      <div class="sum-stat"><div class="sum-val g">${totalEntered}</div><div class="sum-lbl">Fully Entered</div></div>
+      <div class="sum-stat"><div class="sum-val a">${AGENTS.length - totalEntered}</div><div class="sum-lbl">Pending</div></div>
+      <div class="sum-stat"><div class="sum-val" style="color:${color};">${avgScore.toFixed(1)}</div><div class="sum-lbl">Avg Score</div></div>
+      <div style="flex:1;font-family:var(--mono);font-size:9px;color:var(--muted);">
+        ${month} · Max ${maxPerAgent} pts per agent · ${AGENTS.length} agents total
+      </div>`;
+  }
+}
+
+function onScoreInput(agent, key, el, max) {
+  const val = parseFloat(el.value);
+  if (!isNaN(val) && val > max) el.value = max;
+  document.getElementById('unsaved-indicator').style.display = 'inline';
+}
+
+function saveAgent(secId, agent) {
+  const month = document.getElementById('month-select').value;
+  const items = secId === 'd' ? getSecDItems(month) :
+                secId === 'e' ? SEC_E_ITEMS : getSecBItems(month);
+  items.forEach(([key,,,max]) => {
+    const el = document.getElementById(`score_${agent}_${key}`);
+    if (el && el.value !== '') {
+      const val = parseFloat(el.value);
+      if (!isNaN(val)) setScore(month, agent, key, Math.min(val, max));
+    }
+  });
+  localStorage.setItem(getStorageKey(month), JSON.stringify(SCORES[month] || {}));
+
+  // Flash saved indicator
+  const tag = document.getElementById(`saved_${secId}_${agent}`);
+  if (tag) { tag.classList.add('show'); setTimeout(() => tag.classList.remove('show'), 1500); }
+  document.getElementById('unsaved-indicator').style.display = 'none';
+  renderAll();
+}
+
+// ── Month change ────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('month-select').addEventListener('change', () => {
+    loadScores(); renderAll();
+  });
+});
+</script>
+</body>
+</html>
