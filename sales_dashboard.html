@@ -2056,35 +2056,35 @@ function renderGroupBrandTargets() {
       ${brandRows}
     </div>`;
 
-  // ── Right panel summary ────────────────────────────────────────────────
-  const prevMonthCtn    = team.prev_month_ctn   || 0;
-  const curMonthPaid    = team.team_canggih_ctn  || 0;
-  const totalPaidCtn    = prevMonthCtn + curMonthPaid;
-  const totalUnpaidCtn  = team.team_8com_unpaid  || 0;
-  const totalSalesCtn   = team.total_sales_ctn   || 0;
+  // ── Right panel summary (matches management pivot) ─────────────────────
+  const totalSalesCtn    = team.total_sales_ctn    || 0;  // Total Current Month Sales (paid+unpaid, tranx_mth=cur)
+  const prevMonthCtn     = team.prev_month_ctn     || 0;  // Previous Month Sales - Paid this month
+  const curMonthPaidCtn  = team.cur_month_paid_ctn || 0;  // Current Month Sales - Paid this month
+  const pendingCtn       = team.pending_payment_ctn|| 0;  // All Month Sales - Pending Payment
+  const totalPayable     = prevMonthCtn + curMonthPaidCtn; // TOTAL PAYABLE
 
   const rightPanelHtml = `
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;">
       <div style="font-family:var(--mono);font-size:9px;color:var(--blue);text-align:right;margin-bottom:8px;">${DATA.current_month||''}</div>
       <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">前月条数 (已付款)</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">本月总销售 (条数)</span>
+        <span style="font-family:var(--mono);font-size:11px;font-weight:600;">${fmtNum(totalSalesCtn)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">上月单-本月付款</span>
         <span style="font-family:var(--mono);font-size:11px;font-weight:600;">${fmtNum(prevMonthCtn)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">本月条数 (已付款)</span>
-        <span style="font-family:var(--mono);font-size:11px;font-weight:600;">${fmtNum(curMonthPaid)}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid var(--border);margin-bottom:10px;">
-        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">总共条数 (已付款)</span>
-        <span style="font-family:var(--display);font-size:20px;color:var(--green);">${fmtNum(totalPaidCtn)}</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">本月单-本月付款</span>
+        <span style="font-family:var(--mono);font-size:11px;font-weight:600;">${fmtNum(curMonthPaidCtn)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">总共条数 (待付款)</span>
-        <span style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--red);">${fmtNum(totalUnpaidCtn)}</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">待付款 (所有月)</span>
+        <span style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--red);">${fmtNum(pendingCtn)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid var(--border);">
-        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">${DATA.current_month||''} 销售 (条数)</span>
-        <span style="font-family:var(--display);font-size:24px;color:var(--accent);">${fmtNum(totalSalesCtn||curMonthPaid)}</span>
+        <span style="font-family:var(--mono);font-size:10px;font-weight:600;color:var(--muted);">TOTAL PAYABLE</span>
+        <span style="font-family:var(--display);font-size:22px;color:var(--green);">${fmtNum(totalPayable)}</span>
       </div>
     </div>`;
 
