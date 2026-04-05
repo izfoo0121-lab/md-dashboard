@@ -1175,6 +1175,71 @@ function importExcel(input) {
         return isNaN(n) ? null : Math.round(n);
       };
 
+      // ── 0. New Single-Sheet Format (Agent Targets Template) ──
+      const wsNew = getSheet('Agent Targets');
+      if (wsNew) {
+        // New template: single sheet, all data from row 6 onward (rows 1-5 are title/headers)
+        const rows = XLSX.utils.sheet_to_json(wsNew, {header:1, raw:true});
+        // Find data rows — skip until we hit a row where col 0 looks like an agent code
+        let dataStart = 5; // 0-indexed row 5 = Excel row 6
+        rows.slice(dataStart).forEach(row => {
+          const agent = String(row[0]||'').trim().toUpperCase();
+          if (!agent || agent.length > 10) return;
+          // Ensure agent exists in CONFIG
+          const BRANDS_LIST = ['iFACE','SUKUN','EVO','BISON','TR20','LAM+LWM'];
+          if (!CONFIG.agents[agent]) {
+            const bc = {};
+            BRANDS_LIST.forEach(b => { bc[b] = {penetration_target:0,ctn_target:0}; });
+            CONFIG.agents[agent] = {is_newbie:false,active:true,sales_progression:{},brand_commission:bc,kpi_targets:{},kpi_overrides:{}};
+          }
+          // Columns: 0=Agent, 1=T1, 2=T2, 3=GA, 4=MA,
+          //          5=iFACE Pen, 6=iFACE CTN, 7=SUKUN Pen, 8=SUKUN CTN,
+          //          9=EVO Pen, 10=EVO CTN, 11=BISON Pen, 12=BISON CTN,
+          //          13=TR20 Pen, 14=TR20 CTN, 15=LAM+LWM Pen, 16=LAM+LWM CTN,
+          //          17=VIP Target, 18=Reactiv Target, 19=Active(Y/N), 20=Newbie(Y/N)
+          CONFIG.agents[agent].sales_progression = {
+            normal_t1: rnd(row[1]) || null,
+            normal_t2: rnd(row[2]) || null,
+            ga:        row[3] !== '' && row[3] != null ? rnd(row[3]) : null,
+            ma:        row[4] !== '' && row[4] != null ? rnd(row[4]) : null,
+          };
+          const brandMap = [
+            {brand:'iFACE',  p:5,  c:6},
+            {brand:'SUKUN',  p:7,  c:8},
+            {brand:'EVO',    p:9,  c:10},
+            {brand:'BISON',  p:11, c:12},
+            {brand:'TR20',   p:13, c:14},
+            {brand:'LAM+LWM',p:15, c:16},
+          ];
+          if (!CONFIG.agents[agent].brand_commission) CONFIG.agents[agent].brand_commission = {};
+          brandMap.forEach(({brand,p,c}) => {
+            CONFIG.agents[agent].brand_commission[brand] = {
+              penetration_target: rnd(row[p]) || 0,
+              ctn_target:         rnd(row[c]) || 0,
+            };
+          });
+          // KPI overrides
+          if (row[17] != null && row[17] !== '') {
+            if (!CONFIG.agents[agent].kpi_targets) CONFIG.agents[agent].kpi_targets = {};
+            if (!CONFIG.agents[agent].kpi_overrides) CONFIG.agents[agent].kpi_overrides = {};
+            CONFIG.agents[agent].kpi_targets.vip_count = rnd(row[17]);
+            CONFIG.agents[agent].kpi_overrides.vip_count = rnd(row[17]);
+          }
+          if (row[18] != null && row[18] !== '') {
+            if (!CONFIG.agents[agent].kpi_targets) CONFIG.agents[agent].kpi_targets = {};
+            if (!CONFIG.agents[agent].kpi_overrides) CONFIG.agents[agent].kpi_overrides = {};
+            CONFIG.agents[agent].kpi_targets.reactivation = rnd(row[18]);
+            CONFIG.agents[agent].kpi_overrides.reactivation = rnd(row[18]);
+          }
+          // Active / Newbie flags
+          const activeVal = String(row[19]||'Y').trim().toUpperCase();
+          CONFIG.agents[agent].active = activeVal !== 'N';
+          const newbieVal = String(row[20]||'N').trim().toUpperCase();
+          CONFIG.agents[agent].is_newbie = newbieVal === 'Y';
+        });
+        imported.push('✓ Agent Targets (new format)');
+      }
+
       // ── 1. Sales Targets ──────────────────────────────────────
       const ws1 = getSheet('Sales Targets');
       if (ws1) {
@@ -1328,6 +1393,83 @@ function importExcel(input) {
           saveCampaignsData();
           imported.push(`✓ Campaigns (${campCount} new)`);
         }
+      }
+
+      // ── 8. Campaign Template (new format) ───────────────────
+      const wsCampInfo = getSheet('Campaign Info');
+      const wsCampDebtors = getSheet('Debtor List');
+      if (wsCampInfo && wsCampDebtors) {
+        // Parse Campaign Info sheet — key-value pairs from rows 3+
+        const infoRows = XLSX.utils.sheet_to_json(wsCampInfo, {header:1, raw:true});
+        const campInfo = {};
+        infoRows.slice(2).forEach(row => {
+          const key = String(row[0]||'').trim();
+          const val = row[2] != null ? String(row[2]).trim() : (row[1] != null ? String(row[1]).trim() : '');
+          if (key && val && !['CAMPAIGN DETAILS','REDEMPTION SETTINGS','ELIGIBLE CUSTOMERS','TARGET (Management KPI)','','HOW TO UPLOAD'].includes(key)) {
+            campInfo[key] = val;
+          }
+        });
+
+        // Parse debtor list — skip rows 1-3 (title + header + sub-header)
+        const debtorRows = XLSX.utils.sheet_to_json(wsCampDebtors, {header:1, raw:true});
+        const debtors = [];
+        debtorRows.slice(3).forEach(row => {
+          const code = String(row[0]||'').trim();
+          if (!code || code.length < 3) return;
+          debtors.push({
+            code,
+            name:     String(row[1]||'').trim(),
+            agent:    String(row[2]||'').trim().toUpperCase(),
+            cat:      String(row[3]||'').trim().toUpperCase(),
+            approval: String(row[4]||'FALSE').trim().toUpperCase() === 'TRUE',
+            notes:    String(row[5]||'').trim(),
+            foc_override: String(row[6]||'').trim(),
+          });
+        });
+
+        const campId = campInfo['Campaign ID'] || ('camp_' + Date.now());
+        const exists = CAMPAIGNS_DATA.campaigns.find(c => c.id === campId);
+        const campObj = {
+          id:          campId,
+          name:        campInfo['Campaign Name'] || campId,
+          brand:       campInfo['Brand'] || '',
+          type:        campInfo['Type'] || 'promotion',
+          description: campInfo['Description'] || '',
+          start_date:  campInfo['Start Date'] || '',
+          deadline:    campInfo['End Date (Deadline)'] || '',
+          active:      campInfo['Active'] !== 'FALSE',
+          approval_required: campInfo['Approval Required'] === 'TRUE',
+          eligible_sales_type: campInfo['Eligible Sales Type'] ? campInfo['Eligible Sales Type'].split(',').map(s=>s.trim()) : ['Target'],
+          eligible_types: campInfo['Eligible Debtor Types'] ? campInfo['Eligible Debtor Types'].split(',').map(s=>s.trim()) : [],
+          cat_rules: {
+            A: {
+              promo_detail:     campInfo['Campaign Name'] || '',
+              redemption_type:  campInfo['Redemption Type'] || 'free_goods',
+              accumulation:     campInfo['Accumulation'] || 'per_transaction',
+              redemption_limit: parseInt(campInfo['Redemption Limit'])||0,
+              redemption_unit:  campInfo['Redemption Unit'] || 'ctn',
+              min_order_ctn:    parseFloat(campInfo['Min Order CTN'])||0,
+              foc_per_ctn:      parseFloat(campInfo['FOC Per CTN'])||0,
+              foc_per_threshold:parseFloat(campInfo['FOC Per Threshold'])||0,
+              foc_item:         campInfo['FOC Item'] || '',
+              voucher_amount:   parseFloat(campInfo['Voucher Amount (RM)'])||0,
+              voucher_tracking: campInfo['Voucher Tracking'] === 'TRUE',
+              foc_note:         campInfo['FOC Note'] || '',
+              target_pct:       parseFloat(campInfo['Target %'])||0,
+              target_label:     campInfo['Target Label'] || '',
+            }
+          },
+          debtors,
+          created_at: new Date().toISOString().split('T')[0],
+        };
+        if (exists) {
+          // Update existing
+          Object.assign(exists, campObj);
+        } else {
+          CAMPAIGNS_DATA.campaigns.push(campObj);
+        }
+        saveCampaignsData();
+        imported.push(`✓ Campaign "${campObj.name}" (${debtors.length} debtors)`);
       }
 
       // Re-render all forms
