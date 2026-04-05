@@ -181,6 +181,22 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
     <div class="page-body">
       <div class="sec-header">Agent Targets</div>
       <div class="sec-sub">Set monthly targets per agent. Leave blank = not applicable.</div>
+
+      <!-- Add / Remove Agent -->
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+        <input type="text" id="new-agent-input" placeholder="New agent code e.g. JOHN"
+          style="font-family:var(--mono);font-size:12px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);width:180px;text-transform:uppercase;"
+          oninput="this.value=this.value.toUpperCase()"
+          onkeydown="if(event.key==='Enter')addAgent()">
+        <button onclick="addAgent()"
+          style="background:var(--green);border:none;color:#fff;font-family:var(--mono);font-size:11px;padding:8px 16px;border-radius:8px;cursor:pointer;">
+          ＋ Add Agent
+        </button>
+        <span style="font-family:var(--mono);font-size:9px;color:var(--ink3);">
+          To deactivate an agent — uncheck the toggle on their card below.
+        </span>
+      </div>
+
       <div id="agent-forms"></div>
       <button class="save-btn" onclick="saveAll()">SAVE ALL TARGETS</button>
       <div class="save-toast" id="save-toast">✓ Saved to targets.json</div>
@@ -669,6 +685,49 @@ function switchTab(tab, el) {
 }
 
 // ── Agent Forms ────────────────────────────────────────────────────────────
+function addAgent() {
+  const input = document.getElementById('new-agent-input');
+  const code  = (input.value || '').trim().toUpperCase();
+  if (!code) { alert('Please enter an agent code.'); return; }
+  if (CONFIG.agents[code]) { alert(`Agent "${code}" already exists.`); return; }
+
+  // Create blank agent entry
+  const BRANDS = ['iFACE','SUKUN','EVO','BISON','TR20','LAM+LWM'];
+  const bc = {};
+  BRANDS.forEach(b => { bc[b] = {penetration_target:0, ctn_target:0}; });
+  CONFIG.agents[code] = {
+    is_newbie: false,
+    active: true,
+    sales_progression: {},
+    brand_commission: bc,
+    kpi_targets: {},
+    kpi_overrides: {},
+  };
+  input.value = '';
+  renderAgentForms();
+  updateRawJSON();
+  // Scroll to new agent card
+  setTimeout(() => {
+    const el = document.getElementById('agent-card-' + code);
+    if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+  }, 200);
+}
+
+function removeAgent(agent) {
+  if (!confirm(`Permanently remove agent "${agent}" from targets.json?
+
+Note: Historical data in monthly JSON files is preserved.`)) return;
+  delete CONFIG.agents[agent];
+  renderAgentForms();
+  updateRawJSON();
+}
+
+function toggleAgentActive(agent, active) {
+  if (!CONFIG.agents[agent]) return;
+  CONFIG.agents[agent].active = active;
+  updateRawJSON();
+}
+
 function renderAgentForms() {
   const container = document.getElementById('agent-forms');
   const agents = Object.keys(CONFIG.agents || {});
@@ -712,14 +771,35 @@ function renderAgentForms() {
       </div>`;
     }).join('');
 
-    return `<div class="admin-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div class="agent-name">${agent}</div>
-        <label class="toggle" title="Newbie scheme">
-          <input type="checkbox" ${a.is_newbie ? 'checked' : ''}
-            onchange="setNewbie('${agent}',this.checked)">
-          <div class="toggle-slider"></div>
-        </label>
+    const isActive = a.active !== false; // default true if not set
+    return `<div class="admin-card" id="agent-card-${agent}" style="${isActive?'':'opacity:.5;border-left:4px solid var(--accent);'}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:6px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="agent-name">${agent}</div>
+          ${!isActive ? '<span style="font-family:var(--mono);font-size:9px;color:var(--accent);background:rgba(200,56,26,.1);padding:2px 8px;border-radius:10px;">INACTIVE</span>' : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+            <span style="font-family:var(--mono);font-size:8px;color:var(--ink3);">Active</span>
+            <label class="toggle" title="Toggle agent active/inactive">
+              <input type="checkbox" ${isActive ? 'checked' : ''}
+                onchange="toggleAgentActive('${agent}',this.checked);renderAgentForms();updateRawJSON();">
+              <div class="toggle-slider"></div>
+            </label>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+            <span style="font-family:var(--mono);font-size:8px;color:var(--ink3);">Newbie</span>
+            <label class="toggle" title="Newbie scheme">
+              <input type="checkbox" ${a.is_newbie ? 'checked' : ''}
+                onchange="setNewbie('${agent}',this.checked)">
+              <div class="toggle-slider"></div>
+            </label>
+          </div>
+          <button onclick="removeAgent('${agent}')"
+            style="background:none;border:1px solid rgba(200,56,26,.4);color:var(--accent);font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;">
+            ✕ Remove
+          </button>
+        </div>
       </div>
 
       <div class="sec-divider" style="margin-top:0">Sales Progression Targets (CTN)</div>

@@ -2137,6 +2137,8 @@ def main():
     agents_from_data    = sorted(df["agent"].unique().tolist())
     agents = agents_from_targets if agents_from_targets else agents_from_data
     agents = [a for a in agents if a]  # remove blanks
+    # Filter out inactive agents (active=False in targets.json)
+    agents = [a for a in agents if targets.get("agents", {}).get(a, {}).get("active", True) != False]
     log(f"Agents: {agents}")
 
     # ── Run modules ─────────────────────────────────────────────────
