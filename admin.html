@@ -41,7 +41,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
 
 /* Page body */
-.page-body{padding:14px 16px;max-width:520px;margin:0 auto;width:100%;}
+.page-body{padding:14px 20px;width:100%;max-width:100%;}
 
 /* Sections */
 .sec-header{font-family:var(--display);font-size:22px;letter-spacing:.05em;margin-bottom:4px;}
@@ -801,7 +801,8 @@ function renderAgentForms() {
           `<button onclick="clearKPIOverrides('${agent}')" style="background:none;border:1px solid var(--border);color:var(--ink3);font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;margin-top:4px;">↺ Reset to auto-calculate</button>`:''}
       `;
       })()}
-  `}).join('');
+    </div>`;
+  }).join('');
 }
 
 function setSP(agent, field, val) {
