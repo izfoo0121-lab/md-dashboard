@@ -580,14 +580,10 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
 const ADMIN_PW = 'touro2026'; // Change this password
 
 function doLogin() {
-  const pw = document.getElementById('pw-input').value;
-  if (pw === ADMIN_PW) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('main-app').style.display = 'block';
-    initAdmin();
-  } else {
-    document.getElementById('login-err').style.display = 'block';
-  }
+  // Password check temporarily disabled for review
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+  initAdmin();
 }
 function logout() {
   document.getElementById('login-screen').style.display = 'flex';
