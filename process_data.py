@@ -683,7 +683,100 @@ def calc_aging(df, agents, cur_month):
 
 # ── Phase 1 compatibility: existing debtor card data ─────────────────────────
 
-def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None):
+def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups):
+    """Calculate campaign progress for a single debtor."""
+    import copy
+    camps = copy.deepcopy(campaign_map.get(dcode, []))
+    if not camps:
+        return []
+
+    # Determine debtor's group from area_groups
+    # area_groups maps area_code → group; agent's area is GRP 2A etc.
+    # We'll resolve group from the area_code in the transaction rows
+    debtor_area = ""
+    if not d_rows.empty and "area_code" in d_rows.columns:
+        debtor_area = d_rows["area_code"].iloc[0] if not d_rows.empty else ""
+    group = area_groups.get(debtor_area, "")
+
+    for camp in camps:
+        camp["group"] = group
+
+        # Resolve FOC item based on group
+        foc_rule = camp.get("foc_item_rule", {})
+        if foc_rule and group:
+            camp["foc_item_resolved"] = foc_rule.get(group, camp.get("foc_item", ""))
+        else:
+            camp["foc_item_resolved"] = camp.get("foc_item", "")
+
+        # Get this month's CTN for this brand
+        brand    = camp.get("brand", "")
+        brand_codes = []
+        if brand:
+            # Map brand to item codes using DEFAULT_BRAND_CONFIG
+            brand_codes = DEFAULT_BRAND_CONFIG.get(brand, [])
+
+        # Filter rows: this month + Target sales type only (if eligible_sales_type set)
+        eligible_st = camp.get("eligible_sales_type", [])
+        cur_rows = d_rows[d_rows["paid_on"] == cur_m] if not d_rows.empty else d_rows
+        if eligible_st and not cur_rows.empty:
+            cur_rows = cur_rows[cur_rows["sales_type"].isin(eligible_st)]
+        if brand_codes and not cur_rows.empty:
+            cur_rows = cur_rows[cur_rows["item_code"].isin(brand_codes)]
+
+        ctn_this_month = round(float(cur_rows["qty_ctn"].sum()), 2) if not cur_rows.empty else 0.0
+        camp["ctn_this_month"] = ctn_this_month
+
+        # Calculate FOC earned and qualified status
+        min_ctn    = camp.get("min_order_ctn", 0) or 0
+        accum      = camp.get("accumulation", "per_transaction")
+        r_limit    = camp.get("redemption_limit", 0) or 0
+        r_unit     = camp.get("redemption_unit", "ctn")
+        foc_per_t  = camp.get("foc_per_threshold", 0) or 0
+        foc_per_c  = camp.get("foc_per_ctn", 0) or 0
+        r_type     = camp.get("redemption_type", "free_goods")
+
+        foc_earned  = 0
+        qualified   = False
+
+        if accum == "one_time":
+            # Hit threshold once = 1 redemption
+            qualified  = ctn_this_month >= min_ctn
+            foc_earned = 1 if qualified else 0
+
+        elif accum == "per_transaction":
+            # Each invoice that hits threshold = 1 redemption
+            # We approximate using total CTN ÷ threshold (floor)
+            if min_ctn > 0:
+                redemptions = int(ctn_this_month // min_ctn)
+                foc_earned  = redemptions * foc_per_t if foc_per_t else redemptions
+                qualified   = redemptions > 0
+            # Apply cap
+            if r_limit > 0 and foc_earned > r_limit:
+                foc_earned = r_limit
+
+        elif accum == "accumulate":
+            # Accumulate total CTN, every min_ctn = foc_per_ctn packs
+            if min_ctn > 0 and foc_per_c > 0:
+                packs = int(ctn_this_month // min_ctn) * foc_per_c
+                foc_earned = min(packs, r_limit) if r_limit > 0 else packs
+                qualified  = foc_earned > 0
+            elif ctn_this_month >= min_ctn:
+                qualified  = True
+                foc_earned = 1
+
+        elif accum == "tiered_accumulate":
+            if min_ctn > 0:
+                redemptions = int(ctn_this_month // min_ctn)
+                foc_earned  = redemptions * foc_per_t if foc_per_t else redemptions
+                qualified   = redemptions > 0
+
+        camp["foc_earned"]  = foc_earned
+        camp["qualified"]   = qualified
+
+    return camps
+
+
+def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_groups=None):
     """
     Preserve existing Phase 1 debtor card logic:
     - Activation status per debtor (Active / Pending / Need Reactivation)
@@ -991,7 +1084,10 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None):
                 "new_sku_status":     new_sku_status,
                 "new_sku_total":      len(new_sku_groups),
                 "sales_types":        cur_sales_types,
-                "campaigns":          (campaign_map or {}).get(dcode, []),
+                "campaigns":          _calc_camp_progress(
+                                        dcode, agent, (campaign_map or {}),
+                                        d_rows, cur_m, area_groups
+                                    ),
                 "brand_camp_tiers":   {},
                 "has_overdue":        has_overdue,
                 "overdue_ctn":        round(overdue_amount, 1),
@@ -1971,30 +2067,60 @@ def main():
 
     log(f"Current month: {cur_month}  |  Lookback: {prev_months}")
 
-    # Load campaigns.json — build debtor→campaigns lookup
-    campaign_map = {}  # debtor_code → [{"id","name","type"}]
+    # Load campaigns.json — build debtor→campaigns lookup + area_groups
+    campaign_map = {}  # debtor_code → [campaign info with progress fields]
+    area_groups  = {}  # area_code → group (MVP/MI/SS/SBG)
+    camp_data_global = {}
     if CAMPAIGNS_FILE.exists():
         try:
             with open(CAMPAIGNS_FILE, encoding="utf-8") as f:
-                camp_data = json.load(f)
-            for camp in camp_data.get("campaigns", []):
+                camp_data_global = json.load(f)
+            area_groups = camp_data_global.get("area_groups", {})
+            for camp in camp_data_global.get("campaigns", []):
                 if not camp.get("active", True): continue
                 cat_rules = camp.get("cat_rules", {})
                 for d in camp.get("debtors", []):
                     code = d.get("code","") if isinstance(d, dict) else str(d)
                     cat  = d.get("cat","") if isinstance(d, dict) else ""
-                    if code:
-                        if code not in campaign_map: campaign_map[code] = []
-                        campaign_map[code].append({
-                            "id":        camp.get("id",""),
-                            "name":      camp.get("name",""),
-                            "type":      camp.get("type","other"),
-                            "promo_detail": camp.get("promo_detail",""),
-                            "min_order_ctn": camp.get("min_order_ctn"),
-                            "cat":       cat,
-                            "cat_rules": cat_rules,
-                        })
-            log(f"Campaigns: {len(camp_data.get('campaigns',[]))} loaded, {len(campaign_map)} debtors tagged")
+                    if not code: continue
+                    # Get CAT-specific rules
+                    crule = cat_rules.get(cat, {}) if cat else {}
+                    if code not in campaign_map: campaign_map[code] = []
+                    campaign_map[code].append({
+                        "id":              camp.get("id",""),
+                        "name":            camp.get("name",""),
+                        "type":            camp.get("type","other"),
+                        "brand":           camp.get("brand",""),
+                        "cat":             cat,
+                        "start_date":      camp.get("start_date",""),
+                        "deadline":        camp.get("deadline",""),
+                        "approval_required": camp.get("approval_required", False),
+                        # CAT-level rules (fallback to campaign level)
+                        "promo_detail":    crule.get("promo_detail", camp.get("promo_detail","")),
+                        "redemption_type": crule.get("redemption_type", "free_goods"),
+                        "accumulation":    crule.get("accumulation", "per_transaction"),
+                        "redemption_limit":crule.get("redemption_limit", 0),
+                        "redemption_unit": crule.get("redemption_unit", "ctn"),
+                        "min_order_ctn":   crule.get("min_order_ctn", camp.get("min_order_ctn", 0)),
+                        "foc_per_ctn":     crule.get("foc_per_ctn", 0),
+                        "foc_per_threshold": crule.get("foc_per_threshold", 0),
+                        "foc_item":        crule.get("foc_item", ""),
+                        "foc_item_rule":   crule.get("foc_item_rule", {}),
+                        "foc_note":        crule.get("foc_note", ""),
+                        "voucher_amount":  crule.get("voucher_amount", 0),
+                        "voucher_tracking":crule.get("voucher_tracking", False),
+                        "eligible_sales_type": camp.get("eligible_sales_type", []),
+                        "eligible_types":  camp.get("eligible_types", []),
+                        "target_pct":      crule.get("target_pct", 0),
+                        "target_label":    crule.get("target_label", ""),
+                        # Progress fields — filled in calc_debtor_cards
+                        "ctn_this_month":  0,
+                        "foc_earned":      0,
+                        "qualified":       False,
+                        "group":           "",
+                        "foc_item_resolved": "",
+                    })
+            log(f"Campaigns: {len(camp_data_global.get('campaigns',[]))} loaded, {len(campaign_map)} debtors tagged")
         except Exception as e:
             log(f"⚠ Could not load campaigns.json: {e}")
 
@@ -2021,7 +2147,7 @@ def main():
     targets = save_penetration_snapshot(brand_comm, targets, cur_month)
     newbie      = calc_newbie_scheme(df, targets, agents, cur_month)
     aging       = calc_aging(df, agents, cur_month)
-    debtor_cards = calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map)
+    debtor_cards = calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map, area_groups)
 
     # ── Save month-start snapshot + auto-calc KPI targets ───────────────────
     targets      = save_debtor_snapshot(debtor_cards, targets, cur_month)

@@ -1,5 +1,29 @@
 {
-  "_comment": "Campaign list — created by marketing via Admin Page, pushed to GitHub",
+  "_comment": "Campaign list — managed via Admin Page. See field guide below.",
+  "_field_guide": {
+    "type": "birthday_gift | free_sample | promotion | voucher | festive_gift | other",
+    "accumulation": "per_transaction=each invoice counts | accumulate=total across month | one_time=hit threshold once | tiered_accumulate=every X CTN = 1 claim",
+    "redemption_type": "free_goods | voucher | cash_rebate | gift_item | bundle",
+    "redemption_unit": "ctn | pack | rm",
+    "redemption_limit": "0=unlimited | 1=one-time | N=max N times",
+    "eligible_sales_type": ["Target", "Grey Area", "Master Agent"],
+    "eligible_types": "debtor types allowed e.g. SH-Shop, FL-Freelancer etc. Empty = all",
+    "approval_required": "true = case-by-case, agent sees flag, management audits",
+    "foc_item_rule": "per group MVP/MI/SS/SBG → item code",
+    "target_pct": "management KPI target % per CAT",
+    "voucher_tracking": "true = track if voucher used current or next invoice"
+  },
+
+  "area_groups": {
+    "GRP 1":  "MVP",
+    "GRP 2":  "MI",
+    "GRP 2A": "MI",
+    "GRP 3":  "SS",
+    "GRP 3A": "SS",
+    "GRP 4":  "SBG",
+    "GRP 4A": "SBG"
+  },
+
   "campaigns": [
     {
       "id": "camp_001",
@@ -9,6 +33,148 @@
       "created_at": "2026-03-01",
       "deadline": "2026-03-31",
       "active": true,
+      "debtors": []
+    },
+
+    {
+      "id": "sukun_raya_mar26",
+      "name": "SUKUN Raya Promo Mar 26",
+      "type": "promotion",
+      "brand": "SUKUN",
+      "description": "SUKUN 3月份 RAYA PROMO 2026",
+      "created_at": "2026-03-02",
+      "start_date": "2026-03-02",
+      "deadline": "2026-03-31",
+      "active": false,
+      "eligible_sales_type": ["Target"],
+      "eligible_types": ["D-Dealer/Distributor", "FL-Freelancer", "SH-Shop", "SL-Stall", "ST-Site"],
+      "approval_required": true,
+      "stackable": false,
+      "cat_rules": {
+        "A": {
+          "promo_detail": "买80条 → 送 RM40 Raya Voucher",
+          "redemption_type": "voucher",
+          "accumulation": "one_time",
+          "redemption_limit": 1,
+          "redemption_unit": "ctn",
+          "min_order_ctn": 80,
+          "voucher_amount": 40,
+          "voucher_tracking": true,
+          "foc_item": "",
+          "foc_item_rule": {},
+          "target_pct": 30,
+          "target_label": "30% incremental"
+        },
+        "B": {
+          "promo_detail": "买40条 → 送 RM20 Raya Voucher",
+          "redemption_type": "voucher",
+          "accumulation": "one_time",
+          "redemption_limit": 1,
+          "redemption_unit": "ctn",
+          "min_order_ctn": 40,
+          "voucher_amount": 20,
+          "voucher_tracking": true,
+          "foc_item": "",
+          "foc_item_rule": {},
+          "target_pct": 30,
+          "target_label": "30% incremental"
+        },
+        "C": {
+          "promo_detail": "买1条 → 送3包 EVO/LC20（最多9包）",
+          "redemption_type": "free_goods",
+          "accumulation": "accumulate",
+          "redemption_limit": 9,
+          "redemption_unit": "pack",
+          "min_order_ctn": 1,
+          "foc_per_ctn": 3,
+          "foc_item_rule": {
+            "MVP": "LC20",
+            "MI":  "EVO",
+            "SS":  "EVO",
+            "SBG": "EVO"
+          },
+          "target_pct": 60,
+          "target_label": "60% take max FOC"
+        },
+        "D": {
+          "promo_detail": "新客户 买1条 → 送3包 EVO/LC20（最多9包）",
+          "redemption_type": "free_goods",
+          "accumulation": "accumulate",
+          "redemption_limit": 9,
+          "redemption_unit": "pack",
+          "min_order_ctn": 1,
+          "foc_per_ctn": 3,
+          "foc_item_rule": {
+            "MVP": "LC20",
+            "MI":  "EVO",
+            "SS":  "EVO",
+            "SBG": "EVO"
+          },
+          "target_pct": 15,
+          "target_label": "15% conversion rate"
+        }
+      },
+      "debtors": []
+    },
+
+    {
+      "id": "bison_pen_apr26",
+      "name": "BISON 突破渗透率 Apr 26",
+      "type": "promotion",
+      "brand": "BISON",
+      "description": "BISON 突破渗透率+提高客单量 April 2026",
+      "created_at": "2026-04-01",
+      "start_date": "2026-04-01",
+      "deadline": "2026-04-30",
+      "active": true,
+      "eligible_sales_type": ["Target"],
+      "eligible_types": ["D-Dealer/Distributor", "FL-Freelancer", "SH-Shop", "SL-Stall", "ST-Site"],
+      "approval_required": false,
+      "stackable": false,
+      "cat_rules": {
+        "A": {
+          "promo_detail": "买2条 → 送1条 BISON",
+          "redemption_type": "free_goods",
+          "accumulation": "per_transaction",
+          "redemption_limit": 0,
+          "redemption_unit": "ctn",
+          "min_order_ctn": 2,
+          "foc_per_threshold": 1,
+          "foc_item": "BISON",
+          "foc_item_rule": {},
+          "foc_note": "FOC must state BISON PEN",
+          "target_pct": 30,
+          "target_label": "30% penetration rate"
+        },
+        "B": {
+          "promo_detail": "买5条 → 送2条 BISON",
+          "redemption_type": "free_goods",
+          "accumulation": "per_transaction",
+          "redemption_limit": 0,
+          "redemption_unit": "ctn",
+          "min_order_ctn": 5,
+          "foc_per_threshold": 2,
+          "foc_item": "BISON",
+          "foc_item_rule": {},
+          "foc_note": "FOC must state BISON PEN",
+          "target_pct": 30,
+          "target_label": "30% increase order quantity"
+        },
+        "C": {
+          "promo_detail": "买10条 → 送4条 BISON",
+          "redemption_type": "free_goods",
+          "accumulation": "per_transaction",
+          "redemption_limit": 0,
+          "redemption_unit": "ctn",
+          "min_order_ctn": 10,
+          "foc_per_threshold": 4,
+          "foc_item": "BISON",
+          "foc_item_rule": {},
+          "foc_note": "FOC must state BISON PEN",
+          "target_pct": 100,
+          "target_label": "100% base purchase"
+        }
+      },
       "debtors": []
     }
   ]

@@ -38,7 +38,7 @@ echo.
 
 REM ── Step 4: Push to GitHub ──────────────────────────────────────
 echo [4/4] Pushing to GitHub...
-git add dashboard_data.json history.xlsx history.json targets.json
+git add dashboard_data.json history.xlsx history.json targets.json sales_dashboard.html management.html
 git add data_*.json months_index.json 2>nul
 git commit -m "Daily update %date% %time%"
 git push origin main
