@@ -2064,7 +2064,23 @@ function bdayExcludeDebtor(code) {
 let CAMPAIGNS_DATA = { campaigns: [] };
 let _campFileDebtors = [];
 
-function loadCampaignsData() {
+async function loadCampaignsData() {
+  // Load from campaigns.json (source of truth) then fall back to localStorage
+  try {
+    const r = await fetch('campaigns.json?v=' + Date.now());
+    if (r.ok) {
+      const fromFile = await r.json();
+      // Merge: file wins, but keep any localStorage-only campaigns not in file
+      const fileIds = new Set((fromFile.campaigns||[]).map(c=>c.id));
+      const lsRaw   = localStorage.getItem('touro_campaigns');
+      const lsData  = lsRaw ? JSON.parse(lsRaw) : { campaigns: [] };
+      const lsOnly  = (lsData.campaigns||[]).filter(c => !fileIds.has(c.id));
+      CAMPAIGNS_DATA = { ...fromFile, campaigns: [...(fromFile.campaigns||[]), ...lsOnly] };
+      localStorage.setItem('touro_campaigns', JSON.stringify(CAMPAIGNS_DATA));
+      renderCampaignsList();
+      return;
+    }
+  } catch(e) { /* fallback */ }
   try { CAMPAIGNS_DATA = JSON.parse(localStorage.getItem('touro_campaigns')||'{"campaigns":[]}'); }
   catch(e) { CAMPAIGNS_DATA = { campaigns: [] }; }
 }
