@@ -593,6 +593,7 @@ function logout() {
 
 // ── State ──────────────────────────────────────────────────────────────────
 let CONFIG = null;
+let DASH_DATA = {};
 
 const BRANDS = ['iFACE','SUKUN','EVO','BISON','TR20','LAM+LWM'];
 const AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','YI'];
@@ -605,6 +606,11 @@ async function initAdmin() {
   } catch(e) {
     CONFIG = buildDefaultConfig();
   }
+  // Load dashboard data for non-buyer stats
+  try {
+    const rd = await fetch('dashboard_data.json?v='+Date.now());
+    DASH_DATA = await rd.json();
+  } catch(e) { DASH_DATA = {}; }
   renderAgentForms();
   renderNewbieForms();
   renderGroupBrandForms();
@@ -675,12 +681,24 @@ function renderAgentForms() {
 
     const brandRows = BRANDS.map(b => {
       const bval = bc[b] || {};
+      // Get non-buyer stats from dashboard_data
+      const agentDash = DASH_DATA?.agents?.[agent]?.brand_commission?.[b] || {};
+      const nonBuyers = agentDash.non_buyers ?? null;
+      const curBuyers = agentDash.cur_buyers ?? null;
+      const suggested = nonBuyers !== null ? Math.max(1, Math.round(nonBuyers * 0.05)) : null;
+      const statsLine = nonBuyers !== null
+        ? `<div style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-bottom:4px;">
+            ${nonBuyers} non-buyers · ${curBuyers} bought this month
+            ${suggested !== null ? `<span style="color:var(--green);margin-left:6px;">→ Suggested penetration: ${suggested} (5%)</span>` : ''}
+          </div>`
+        : '';
       return `<div style="margin-bottom:8px;">
-        <div style="font-family:var(--mono);font-size:9px;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">${b}</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">${b}</div>
+        ${statsLine}
         <div class="input-row">
           <div class="field-wrap">
             <div class="field-lbl">Penetration target</div>
-            <input type="number" min="0" placeholder="0"
+            <input type="number" min="0" placeholder="${suggested ?? 0}"
               value="${bval.penetration_target ?? ''}"
               onchange="setBC('${agent}','${b}','penetration_target',this.value)">
           </div>
@@ -754,12 +772,14 @@ function renderAgentForms() {
         <div class="input-row" style="margin-bottom:8px;">
           <div class="field-wrap">
             <div class="field-lbl">开新户口 Target <span style="color:var(--accent);font-size:8px;">✏ Manual</span></div>
+            <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-bottom:3px;">New accounts opened this month. Enter manually each month.</div>
             <input type="number" min="0" placeholder="5"
               value="${a.kpi_targets?.new_accounts ?? ''}"
               onchange="setKPI('${agent}','new_accounts',this.value)">
           </div>
           <div class="field-wrap">
             <div class="field-lbl">VIP 招聘 Target ${autoVip&&!overrides.vip_count?`<span style="color:var(--green);font-size:8px;">⚡ Auto: ${autoVip}</span>`:overrides.vip_count?`<span style="color:var(--accent);font-size:8px;">✏ Override</span>`:''}</div>
+            <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-bottom:3px;">Auto = 20% × ${np} non-personal debtors${autoVip?` = ${autoVip}`:''}. Override to set manually.</div>
             <input type="number" min="0" placeholder="${autoVip||3}"
               value="${a.kpi_targets?.vip_count ?? ''}"
               onchange="setKPIOverride('${agent}','vip_count',this.value)">
@@ -768,12 +788,14 @@ function renderAgentForms() {
         <div class="input-row" style="margin-bottom:8px;">
           <div class="field-wrap">
             <div class="field-lbl">激活户口 Target ${autoReact&&!overrides.reactivation?`<span style="color:var(--green);font-size:8px;">⚡ Auto: ${autoReact}</span>`:overrides.reactivation?`<span style="color:var(--accent);font-size:8px;">✏ Override</span>`:''}</div>
+            <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-bottom:3px;">Auto = 40% × ${pi} prev inactive debtors${autoReact?` = ${autoReact}`:''}. Debtors who missed last month but bought this month.</div>
             <input type="number" min="0" placeholder="${autoReact||5}"
               value="${a.kpi_targets?.reactivation ?? ''}"
               onchange="setKPIOverride('${agent}','reactivation',this.value)">
           </div>
           <div class="field-wrap">
             <div class="field-lbl">加SKU Target <span style="color:var(--green);font-size:8px;">⚡ Fixed 17</span></div>
+            <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-bottom:3px;">Debtors who bought a new brand they didn't buy in the last 3 months. Fixed at 17.</div>
             <input type="number" min="0" placeholder="17"
               value="${a.kpi_targets?.new_sku ?? 17}"
               onchange="setKPIOverride('${agent}','new_sku',this.value)">
@@ -782,12 +804,14 @@ function renderAgentForms() {
         <div class="input-row" style="margin-bottom:8px;">
           <div class="field-wrap">
             <div class="field-lbl">持续光顾率 Target (%) <span style="color:var(--green);font-size:8px;">⚡ Fixed 80%</span></div>
+            <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-bottom:3px;">Active debtors ÷ total (excl Personal) × 100%. Target fixed at 80%.</div>
             <input type="number" min="0" max="100" placeholder="80"
               value="${a.kpi_targets?.activation_rate ?? 80}"
               onchange="setKPIOverride('${agent}','activation_rate',this.value)">
           </div>
           <div class="field-wrap">
             <div class="field-lbl">Event / PSR Target <span style="color:var(--accent);font-size:8px;">✏ Manual</span></div>
+            <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-bottom:3px;">No. of events or PSR visits planned this month. Enter manually.</div>
             <input type="number" min="0" placeholder="16"
               value="${a.kpi_targets?.event ?? ''}"
               onchange="setKPI('${agent}','event',this.value)">
