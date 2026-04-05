@@ -114,6 +114,14 @@ def load_targets():
         return json.load(f)
 
 
+def get_monthly_targets(targets, cur_month):
+    # Return agent targets for the given month, falling back to current targets
+    monthly = targets.get("monthly_targets", {})
+    if cur_month and cur_month in monthly:
+        return monthly[cur_month]
+    return targets.get("agents", {})
+
+
 def current_month_label(today=None):
     """Return PAID ON label for current month, e.g. 'Mar 26'."""
     d = today or date.today()
@@ -279,7 +287,8 @@ def calc_sales_progression(df, targets, agents, cur_month):
     result = {}
 
     for agent in agents:
-        ag_tgts   = targets.get("agents", {}).get(agent, {})
+        monthly_agents = get_monthly_targets(targets, cur_month)
+        ag_tgts   = monthly_agents.get(agent, targets.get("agents", {}).get(agent, {}))
         sp_tgts   = ag_tgts.get("sales_progression", {})
 
         ag_canggih     = canggih_paid[canggih_paid["agent"] == agent]
@@ -404,7 +413,8 @@ def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_con
     result = {}
 
     for agent in agents:
-        ag_tgts   = targets.get("agents", {}).get(agent, {})
+        monthly_agents = get_monthly_targets(targets, cur_month)
+        ag_tgts   = monthly_agents.get(agent, targets.get("agents", {}).get(agent, {}))
         bc_tgts   = ag_tgts.get("brand_commission", {})
 
         ag_paid_cur  = paid_cur[paid_cur["agent"] == agent]
@@ -1719,41 +1729,125 @@ def calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month):
 
 # ── Module: KPI Calculation ───────────────────────────────────────────────────
 
-def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_camp=None):
+# Full KPI item definitions — (key, label, section, source, default_weight)
+# source: auto=calculated, manual_agent=agent enters, manual_mgmt=management enters, manual_accounts=accounts dept
+KPI_ITEM_DEFS = [
+    # Section A
+    ("sales_normal_pct",    "销售 Normal %",               "A",  "auto",             0.35),
+    # Section B
+    ("alt_channel_contact", "Alt Sales - Contact <2 days", "B",  "manual_mgmt",      0.02),
+    ("alt_channel_deliver", "Alt Sales - 送货 <7 days",    "B",  "manual_mgmt",      0.03),
+    ("event",               "做Event / PSR",               "B",  "manual_agent",     0.03),
+    ("new_accounts",        "开户口 (新户口)",              "B",  "auto",             0.04),
+    ("vip_count",           "VIP 招聘",                    "B",  "auto",             0.01),
+    ("reactivation",        "激活户口",                    "B",  "auto",             0.03),
+    ("new_sku",             "加SKU数量",                   "B",  "auto",             0.03),
+    ("activation_rate",     "持续光顾率",                  "B",  "auto",             0.03),
+    ("iface_pen",           "iFACE Penetration",           "B",  "auto",             0.01875),
+    ("iface_target",        "iFACE CTN Target",            "B",  "auto",             0.01875),
+    ("sukun_pen",           "SUKUN Penetration",           "B",  "auto",             0.01875),
+    ("sukun_target",        "SUKUN CTN Target",            "B",  "auto",             0.01875),
+    ("evo_pen",             "EVO Penetration",             "B",  "auto",             0.01875),
+    ("evo_target",          "EVO CTN Target",              "B",  "auto",             0.01875),
+    ("bison_pen",           "BISON Penetration",           "B",  "auto",             0.0),
+    ("bison_target",        "BISON CTN Target",            "B",  "auto",             0.0),
+    ("tr20_pen",            "TR20 Penetration",            "B",  "auto",             0.01875),
+    ("tr20_target",         "TR20 CTN Target",             "B",  "auto",             0.01875),
+    ("lam_lwm_pen",         "LAM+LWM Penetration",         "B",  "auto",             0.0),
+    ("lam_lwm_target",      "LAM+LWM CTN Target",          "B",  "auto",             0.0),
+    # Section C
+    ("birthday_campaign",   "生日礼物 Campaign",           "C",  "manual_agent",     0.01),
+    ("campaign_1",          "Campaign Related",            "C",  "manual_agent",     0.02),
+    # Section D - Accounts dept manual scoring
+    ("d_key_accuracy",      "KEY 单精准度",                "D",  "manual_accounts",  0.05),
+    ("d_account_accuracy",  "帐目精准度",                  "D",  "manual_accounts",  0.05),
+    ("d_outstanding",       "欠账",                        "D",  "manual_accounts",  0.05),
+    ("d_followup",          "其它 Follow Up",              "D",  "manual_accounts",  0.05),
+    # Section E - Management manual scoring
+    ("e_punctuality",       "准时 Punctuality",            "E",  "manual_mgmt",      0.01),
+    ("e_warehouse",         "货仓整洁度",                  "E",  "manual_mgmt",      0.01),
+    ("e_efficiency",        "有效率和有担待",              "E",  "manual_mgmt",      0.01),
+    ("e_check_car",         "Check 车",                    "E",  "manual_mgmt",      0.01),
+    ("e_check_stock",       "Check Stock",                 "E",  "manual_mgmt",      0.01),
+]
+
+# Default monthly weights (used if kpi_weights not set in targets.json)
+DEFAULT_KPI_WEIGHTS = {
+    "Jan 26": {
+        "sales_normal_pct":0.35,"alt_channel_contact":0.02,"alt_channel_deliver":0.03,
+        "event":0.03,"new_accounts":0.04,"vip_count":0.01,"reactivation":0.03,
+        "new_sku":0.03,"activation_rate":0.03,
+        "iface_pen":0.01875,"iface_target":0.01875,"sukun_pen":0.01875,"sukun_target":0.01875,
+        "evo_pen":0.01875,"evo_target":0.01875,"bison_pen":0.0,"bison_target":0.0,
+        "tr20_pen":0.01875,"tr20_target":0.01875,"lam_lwm_pen":0.0,"lam_lwm_target":0.0,
+        "birthday_campaign":0.01,"campaign_1":0.02,
+        "d_key_accuracy":0.05,"d_account_accuracy":0.05,"d_outstanding":0.05,"d_followup":0.05,
+        "e_punctuality":0.01,"e_warehouse":0.01,"e_efficiency":0.01,"e_check_car":0.01,"e_check_stock":0.01,
+    },
+    "Feb 26": {
+        "sales_normal_pct":0.35,"alt_channel_contact":0.02,"alt_channel_deliver":0.03,
+        "event":0.03,"new_accounts":0.04,"vip_count":0.01,"reactivation":0.03,
+        "new_sku":0.03,"activation_rate":0.03,
+        "iface_pen":0.015,"iface_target":0.015,"sukun_pen":0.015,"sukun_target":0.015,
+        "evo_pen":0.015,"evo_target":0.015,"bison_pen":0.015,"bison_target":0.015,
+        "tr20_pen":0.015,"tr20_target":0.015,"lam_lwm_pen":0.0,"lam_lwm_target":0.0,
+        "birthday_campaign":0.01,"campaign_1":0.02,
+        "d_key_accuracy":0.05,"d_account_accuracy":0.05,"d_outstanding":0.05,"d_followup":0.05,
+        "e_punctuality":0.01,"e_warehouse":0.01,"e_efficiency":0.01,"e_check_car":0.01,"e_check_stock":0.01,
+    },
+    "Mar 26": {
+        "sales_normal_pct":0.35,"alt_channel_contact":0.02,"alt_channel_deliver":0.03,
+        "event":0.03,"new_accounts":0.03,"vip_count":0.01,"reactivation":0.03,
+        "new_sku":0.03,"activation_rate":0.03,
+        "iface_pen":0.015,"iface_target":0.015,"sukun_pen":0.015,"sukun_target":0.015,
+        "evo_pen":0.015,"evo_target":0.015,"bison_pen":0.015,"bison_target":0.015,
+        "tr20_pen":0.015,"tr20_target":0.015,"lam_lwm_pen":0.0,"lam_lwm_target":0.0,
+        "birthday_campaign":0.01,"campaign_1":0.02,
+        "d_key_accuracy":0.05,"d_account_accuracy":0.05,"d_outstanding":0.05,"d_followup":0.05,
+        "e_punctuality":0.01,"e_warehouse":0.01,"e_efficiency":0.01,"e_check_car":0.01,"e_check_stock":0.01,
+    },
+    "Apr 26": {
+        "sales_normal_pct":0.37,"alt_channel_contact":0.02,"alt_channel_deliver":0.03,
+        "event":0.03,"new_accounts":0.03,"vip_count":0.01,"reactivation":0.03,
+        "new_sku":0.03,"activation_rate":0.03,
+        "iface_pen":0.015,"iface_target":0.015,"sukun_pen":0.015,"sukun_target":0.015,
+        "evo_pen":0.015,"evo_target":0.015,"bison_pen":0.015,"bison_target":0.015,
+        "tr20_pen":0.015,"tr20_target":0.015,"lam_lwm_pen":0.015,"lam_lwm_target":0.015,
+        "birthday_campaign":0.01,"campaign_1":0.02,
+        "d_key_accuracy":0.04,"d_account_accuracy":0.04,"d_outstanding":0.04,"d_followup":0.04,
+        "e_punctuality":0.01,"e_warehouse":0.01,"e_efficiency":0.01,"e_check_car":0.01,"e_check_stock":0.01,
+    },
+}
+
+def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_camp=None, cur_month=None):
     """
-    Calculate KPI scores for Sections A, B, C.
-    Section D & E keyed in manually by Accounts (later).
-    Scoring: min(actual/target, 1.0) × weight = score points
+    Calculate KPI scores for all Sections A-E.
+    Sections A/B/C = auto-calculated from sales data.
+    Section D = manual scores by accounts dept.
+    Section E = manual scores by management.
+    Weights loaded from targets.json kpi_weights per month.
     """
     log("Calculating KPI scores...")
 
     kpi_config = targets.get("kpi_config", {})
 
-    # ── Default weightages ────────────────────────────────────────────────────
-    KPI_ITEMS = [
-        # key                   label                          section  weight
-        ("sales_normal_pct",    "销售 Normal %",               "A",     0.35),
-        ("new_accounts",        "开新户口",                     "B",     0.04),
-        ("vip_count",           "VIP 招聘",                    "B",     0.01),
-        ("reactivation",        "激活户口",                     "B",     0.03),
-        ("new_sku",             "加SKU数量",                    "B",     0.03),
-        ("activation_rate",     "持续光顾率",                   "B",     0.03),
-        ("event",               "Event / PSR",                 "B",     0.03),
-        ("alt_channel",         "来自替代渠道的销售",            "B",     0.02),
-        ("case_followup",       "确保70%案件7天内完成",          "B",     0.03),
-        ("evo_pen",             "EVO Penetration",             "B",     0.015),
-        ("evo_target",          "EVO Target",                  "B",     0.015),
-        ("iface_pen",           "iFACE Penetration",           "B",     0.015),
-        ("iface_target",        "iFACE Target",                "B",     0.015),
-        ("sukun_pen",           "SUKUN Penetration",           "B",     0.015),
-        ("sukun_target",        "SUKUN Target",                "B",     0.015),
-        ("bison_pen",           "BISON Penetration",           "B",     0.015),
-        ("bison_target",        "BISON Target",                "B",     0.015),
-        ("tr20_pen",            "TR20 Penetration",            "B",     0.015),
-        ("tr20_target",         "TR20 Target",                 "B",     0.015),
-        ("birthday_campaign",   "生日礼物 Campaign",            "C",     0.01),
-        ("iface_campaign",      "iFACE Campaign",              "C",     0.02),
-    ]
+    # Load monthly weights — fallback to default if not set
+    kpi_weights_all = targets.get("kpi_weights", DEFAULT_KPI_WEIGHTS)
+    month_key = cur_month or "Apr 26"
+    # Find best matching month weights
+    month_weights = kpi_weights_all.get(month_key)
+    if not month_weights:
+        # Try to find nearest month
+        for mk in sorted(kpi_weights_all.keys()):
+            month_weights = kpi_weights_all[mk]
+        if not month_weights:
+            month_weights = DEFAULT_KPI_WEIGHTS.get(month_key, DEFAULT_KPI_WEIGHTS["Apr 26"])
+
+    # Build KPI_ITEMS with weights from monthly config
+    KPI_ITEMS = []
+    for key, label, section, source, default_w in KPI_ITEM_DEFS:
+        w = month_weights.get(key, default_w)
+        KPI_ITEMS.append((key, label, section, source, float(w)))
 
     def score_item(actual, target, weight):
         """Score = min(actual/target, 1.0) × weight × 100"""
@@ -1763,36 +1857,28 @@ def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_cam
     result = {}
 
     for agent in agents:
-        ag_cfg  = targets.get("agents", {}).get(agent, {})
-        kpi_ag  = kpi_config.get(agent, {})
-        # Inject birthday campaign data for target calculation
-        kpi_config["_birthday_camp"] = birthday_camp or {}
-        # KPI targets now stored under agent.kpi_targets in targets.json
+        monthly_agents = get_monthly_targets(targets, cur_month)
+        ag_cfg   = monthly_agents.get(agent, targets.get("agents", {}).get(agent, {}))
+        # Also check current agents for manual scores (kpi_manual is not stored monthly)
+        ag_cfg_current = targets.get("agents", {}).get(agent, {})
         kpi_tgts = ag_cfg.get("kpi_targets", {})
-        # Manual scores stored under agent.kpi_manual
-        manual = ag_cfg.get("kpi_manual", {})
+        manual   = ag_cfg_current.get("kpi_manual", {})
+        kpi_config["_birthday_camp"] = birthday_camp or {}
 
         # ── Pull actuals ──────────────────────────────────────────────────────
         sp = sales_prog.get(agent, {})
         bc = brand_comm.get(agent, {})
         dc = debtor_cards.get(agent, {})
 
-        normal_pct    = (sp.get("tiers", {}).get("normal_t1", {}).get("pct", 0) or 0)
-        debtors       = dc.get("debtors", [])
-        new_acc_count = sum(1 for d in debtors if d.get("is_new", False))
+        normal_pct = (sp.get("tiers", {}).get("normal_t1", {}).get("pct", 0) or 0)
+        debtors    = dc.get("debtors", [])
+        PERSONAL_TYPES_KPI = {"P-Personal","P-PERSONAL","personal","Personal","PERSONAL"}
+        new_acc_count = sum(1 for d in debtors if d.get("is_new", False) and d.get("debtor_type","") not in PERSONAL_TYPES_KPI)
         vip_count     = sum(1 for d in debtors if d.get("vip", False))
         reactiv_count = dc.get("reactivation_count", 0) or 0
         new_sku_count = dc.get("total_new_sku", 0) or 0
         act_rate      = dc.get("activation_rate", 0) or 0
 
-        # Manual entries from agent config
-        event_actual     = manual.get("event", 0) or 0
-        alt_ch_score     = manual.get("alt_channel", 0) or 0
-        case_fu_score    = manual.get("case_followup", 0) or 0
-        bday_camp_score  = manual.get("birthday_campaign", 0) or 0
-        iface_camp_score = manual.get("iface_campaign", 0) or 0
-
-        # Brand commission data
         def bdata(brand):
             d = bc.get(brand, {})
             return {
@@ -1801,153 +1887,152 @@ def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_cam
                 "ctn_actual":  d.get("ctn", {}).get("sold", 0) or 0,
                 "ctn_target":  d.get("ctn", {}).get("target", 1) or 1,
             }
+        bv = {b: bdata(b) for b in ["EVO","iFACE","SUKUN","BISON","TR20","LAM+LWM"]}
 
-        bv = {b: bdata(b) for b in ["EVO","iFACE","SUKUN","BISON","TR20"]}
-
-        # ── Build items with scores ───────────────────────────────────────────
-        # Get targets from kpi_tgts (set per agent in Admin Page under kpi_targets)
         def tgt(key, default): return float(kpi_tgts.get(key, default) or default)
 
-        actuals = {
+        # ── Auto actuals and targets ──────────────────────────────────────────
+        auto_actuals = {
             "sales_normal_pct": normal_pct,
             "new_accounts":     new_acc_count,
             "vip_count":        vip_count,
             "reactivation":     reactiv_count,
             "new_sku":          new_sku_count,
             "activation_rate":  act_rate,
-            "event":            event_actual,
-            "evo_pen":          bv["EVO"]["pen_actual"],
-            "evo_target":       bv["EVO"]["ctn_actual"],
             "iface_pen":        bv["iFACE"]["pen_actual"],
             "iface_target":     bv["iFACE"]["ctn_actual"],
             "sukun_pen":        bv["SUKUN"]["pen_actual"],
             "sukun_target":     bv["SUKUN"]["ctn_actual"],
+            "evo_pen":          bv["EVO"]["pen_actual"],
+            "evo_target":       bv["EVO"]["ctn_actual"],
             "bison_pen":        bv["BISON"]["pen_actual"],
             "bison_target":     bv["BISON"]["ctn_actual"],
             "tr20_pen":         bv["TR20"]["pen_actual"],
             "tr20_target":      bv["TR20"]["ctn_actual"],
+            "lam_lwm_pen":      bv["LAM+LWM"]["pen_actual"],
+            "lam_lwm_target":   bv["LAM+LWM"]["ctn_actual"],
         }
-
-        item_targets = {
+        auto_targets = {
             "sales_normal_pct": tgt("sales_normal_pct", 100),
             "new_accounts":     tgt("new_accounts",     5),
             "vip_count":        tgt("vip_count",        3),
             "reactivation":     tgt("reactivation",     5),
             "new_sku":          tgt("new_sku",          17),
             "activation_rate":  tgt("activation_rate",  80),
-            "event":            tgt("event",            16),
-            "evo_pen":          bv["EVO"]["pen_target"],
-            "evo_target":       bv["EVO"]["ctn_target"],
             "iface_pen":        bv["iFACE"]["pen_target"],
             "iface_target":     bv["iFACE"]["ctn_target"],
             "sukun_pen":        bv["SUKUN"]["pen_target"],
             "sukun_target":     bv["SUKUN"]["ctn_target"],
+            "evo_pen":          bv["EVO"]["pen_target"],
+            "evo_target":       bv["EVO"]["ctn_target"],
             "bison_pen":        bv["BISON"]["pen_target"],
             "bison_target":     bv["BISON"]["ctn_target"],
             "tr20_pen":         bv["TR20"]["pen_target"],
             "tr20_target":      bv["TR20"]["ctn_target"],
+            "lam_lwm_pen":      bv["LAM+LWM"]["pen_target"],
+            "lam_lwm_target":   bv["LAM+LWM"]["ctn_target"],
         }
 
         items_out = {}
-        total_auto_score  = 0.0
-        total_manual_score = 0.0
-        total_max_auto    = 0.0
 
-        for key, label, section, default_weight in KPI_ITEMS:
-            # Per-agent weight override from Admin
-            weight = float(kpi_ag.get(f"{key}_weight", default_weight))
-
-            if key in ("alt_channel", "case_followup"):
-                # Manual score entered directly (not actual/target ratio)
-                # alt_channel max = weight*100, entered as direct score
-                sc = round(min(float(manual.get(key, 0) or 0), weight * 100), 3)
+        for key, label, section, source, weight in KPI_ITEMS:
+            if weight == 0.0:
+                # Excluded this month — still record but 0 weight/score
                 items_out[key] = {
-                    "label": label, "section": section, "weight": weight,
-                    "actual": manual.get(key, 0), "target": None,
-                    "score": sc, "max_score": round(weight * 100, 3),
-                    "pct": round(sc / (weight * 100) * 100, 1) if weight else 0,
-                    "source": "manual", "input_role": "management" if key == "case_followup" else "marketing",
+                    "label": label, "section": section, "weight": 0,
+                    "actual": auto_actuals.get(key, manual.get(key, 0)),
+                    "target": auto_targets.get(key, None),
+                    "score": 0.0, "max_score": 0.0, "pct": 0,
+                    "source": source, "excluded": True,
                 }
-                total_manual_score += sc
+                continue
 
-            elif key in ("birthday_campaign", "iface_campaign"):
-                # Birthday: target = auto-calculated from birthday_campaign list per agent
-                # Actual = agent self-reports gifts delivered (stored in kpi_manual)
-                # Management audits
-                if key == "birthday_campaign":
-                    bday_data = kpi_config.get("_birthday_camp", {})
-                    auto_target = bday_data.get("by_agent", {}).get(agent, 0)
-                    bday_actual = manual.get("birthday_campaign", 0) or 0
-                    sc = score_item(bday_actual, auto_target, weight) if auto_target else 0
-                    items_out[key] = {
-                        "label": label, "section": section, "weight": weight,
-                        "actual": bday_actual,
-                        "target": auto_target,
-                        "score": sc, "max_score": round(weight * 100, 3),
-                        "pct": round(bday_actual / auto_target * 100, 1) if auto_target else 0,
-                        "source": "agent_self_report",
-                        "input_role": "agent",
-                        "audit_role": "management",
-                    }
-                else:
-                    sc = round(min(float(manual.get(key, 0) or 0), weight * 100), 3)
-                    items_out[key] = {
-                        "label": label, "section": section, "weight": weight,
-                        "actual": manual.get(key, 0), "target": None,
-                        "score": sc, "max_score": round(weight * 100, 3),
-                        "pct": round(sc / (weight * 100) * 100, 1) if weight else 0,
-                        "source": "manual", "input_role": "marketing",
-                    }
-                total_manual_score += items_out[key]["score"]
+            max_score = round(weight * 100, 3)
 
-            elif key == "event":
-                sc = score_item(actuals[key], item_targets[key], weight)
-                items_out[key] = {
-                    "label": label, "section": section, "weight": weight,
-                    "actual": actuals[key], "target": item_targets[key],
-                    "score": sc, "max_score": round(weight * 100, 3),
-                    "pct": round(actuals[key] / item_targets[key] * 100, 1) if item_targets[key] else 0,
-                    "source": "manual", "input_role": "agent",
-                }
-                total_manual_score += sc
-
-            else:
-                actual = actuals.get(key, 0)
-                target = item_targets.get(key, 1)
+            if source == "auto":
+                actual = auto_actuals.get(key, 0)
+                target = auto_targets.get(key, 1)
                 sc     = score_item(actual, target, weight)
                 pct    = round(actual / target * 100, 1) if target else 0
                 items_out[key] = {
                     "label": label, "section": section, "weight": weight,
                     "actual": actual, "target": target,
-                    "score": sc, "max_score": round(weight * 100, 3),
-                    "pct": pct,
-                    "source": "auto", "input_role": "system",
+                    "score": sc, "max_score": max_score, "pct": pct,
+                    "source": source, "excluded": False,
                 }
-                total_auto_score  += sc
-                total_manual_score += 0  # counted separately
 
-        # Section scores
+            elif key == "event":
+                actual = manual.get("event", 0) or 0
+                target = tgt("event", 16)
+                sc     = score_item(actual, target, weight)
+                items_out[key] = {
+                    "label": label, "section": section, "weight": weight,
+                    "actual": actual, "target": target,
+                    "score": sc, "max_score": max_score,
+                    "pct": round(actual / target * 100, 1) if target else 0,
+                    "source": source, "excluded": False,
+                }
+
+            elif key == "birthday_campaign":
+                bday_data   = kpi_config.get("_birthday_camp", {})
+                auto_target = bday_data.get("by_agent", {}).get(agent, 0)
+                actual      = manual.get("birthday_campaign", 0) or 0
+                sc          = score_item(actual, auto_target, weight) if auto_target else 0
+                items_out[key] = {
+                    "label": label, "section": section, "weight": weight,
+                    "actual": actual, "target": auto_target,
+                    "score": sc, "max_score": max_score,
+                    "pct": round(actual / auto_target * 100, 1) if auto_target else 0,
+                    "source": source, "excluded": False,
+                    "input_role": "agent", "audit_role": "management",
+                }
+
+            elif key in ("alt_channel_contact", "alt_channel_deliver",
+                         "campaign_1",
+                         "d_key_accuracy","d_account_accuracy","d_outstanding","d_followup",
+                         "e_punctuality","e_warehouse","e_efficiency","e_check_car","e_check_stock"):
+                # Direct score entry — actual entered as score out of max
+                actual = float(manual.get(key, 0) or 0)
+                sc     = round(min(actual, max_score), 3)
+                items_out[key] = {
+                    "label": label, "section": section, "weight": weight,
+                    "actual": actual, "target": max_score,
+                    "score": sc, "max_score": max_score,
+                    "pct": round(sc / max_score * 100, 1) if max_score else 0,
+                    "source": source, "excluded": False,
+                }
+
+            else:
+                # Fallback
+                actual = manual.get(key, 0) or 0
+                sc     = round(min(float(actual), max_score), 3)
+                items_out[key] = {
+                    "label": label, "section": section, "weight": weight,
+                    "actual": actual, "target": max_score,
+                    "score": sc, "max_score": max_score,
+                    "pct": round(sc / max_score * 100, 1) if max_score else 0,
+                    "source": source, "excluded": False,
+                }
+
+        # Section scores A-E
         section_scores = {}
-        for sec in ["A", "B", "C"]:
+        for sec in ["A","B","C","D","E"]:
             sec_items = {k: v for k, v in items_out.items() if v["section"] == sec}
             section_scores[sec] = {
                 "score":     round(sum(v["score"] for v in sec_items.values()), 3),
                 "max_score": round(sum(v["max_score"] for v in sec_items.values()), 3),
             }
 
-        total_abc = round(sum(v["score"] for v in items_out.values()), 3)
-        max_abc   = round(sum(v["max_score"] for v in items_out.values()), 3)
+        grand_total = round(sum(v["score"] for v in items_out.values()), 3)
+        max_total   = round(sum(v["max_score"] for v in items_out.values()), 3)
 
         result[agent] = {
             "items":          items_out,
             "section_scores": section_scores,
-            "total_abc":      total_abc,
-            "max_abc":        max_abc,
-            "total_pct":      round(total_abc / max_abc * 100, 1) if max_abc else 0,
-            # Placeholder for D & E (keyed by Accounts dept)
-            "section_d":      {"score": manual.get("section_d_score", None), "max_score": 20.0},
-            "section_e":      {"score": manual.get("section_e_score", None), "max_score": 5.0},
-            "grand_total":    round(total_abc + (manual.get("section_d_score") or 0) + (manual.get("section_e_score") or 0), 3),
+            "grand_total":    grand_total,
+            "max_total":      max_total,
+            "grand_pct":      round(grand_total / max_total * 100, 1) if max_total else 0,
+            "kpi_month":      month_key,
         }
 
     return result
@@ -2078,6 +2163,23 @@ def main():
             area_groups = camp_data_global.get("area_groups", {})
             for camp in camp_data_global.get("campaigns", []):
                 if not camp.get("active", True): continue
+                # ── Month filter — only show campaigns active in cur_month ──
+                # start_date must be <= cur_month, deadline must be >= cur_month
+                # Fall back to created_at if start_date missing
+                camp_start    = camp.get("start_date") or camp.get("created_at", "")
+                camp_deadline = camp.get("deadline", "")
+                try:
+                    from dateutil.parser import parse as dparse
+                    cm_date = dparse("01 " + cur_month)
+                    cm_str  = cm_date.strftime("%Y-%m")
+                    if camp_start:
+                        sd_str = dparse(str(camp_start)).strftime("%Y-%m")
+                        if sd_str > cm_str: continue  # campaign not started yet
+                    if camp_deadline:
+                        dl_str = dparse(str(camp_deadline)).strftime("%Y-%m")
+                        if dl_str < cm_str: continue  # campaign already ended
+                except Exception:
+                    pass  # if date parsing fails, include campaign
                 cat_rules = camp.get("cat_rules", {})
                 for d in camp.get("debtors", []):
                     code = d.get("code","") if isinstance(d, dict) else str(d)
@@ -2155,7 +2257,7 @@ def main():
     targets      = save_debtor_snapshot(debtor_cards, targets, cur_month)
     group_brands = calc_group_brand_targets(df, targets, cur_month, group_brand_config)
     birthday_camp = calc_birthday_campaign(debtor_cards, targets)
-    kpi          = calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_camp)
+    kpi          = calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_camp, cur_month)
     team         = calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month)
     working_days = calc_working_days(targets, cur_month)
     brand_camps  = calc_brand_campaigns(df, targets, agents, cur_month, prev_months, brand_config)

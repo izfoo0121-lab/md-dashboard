@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache,no-store,must-revalidate">
+  <title>Campaign Audit — MIRACLE-奇迹 MD</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0e0e12;--surface:#16161c;--card:#1c1c24;--border:rgba(255,255,255,.08);
+      --text:#e8e6f0;--muted:#6a687a;--accent:#c8381a;--green:#3ddc84;
+      --blue:#4da6ff;--gold:#f0c040;--purple:#a78bfa;--red:#ff5f5f;
+      --display:'Bebas Neue',sans-serif;--body:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;padding-bottom:80px;}
+
+    /* Header */
+    .hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 18px;position:sticky;top:0;z-index:100;}
+    .hdr-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+    .hdr-title{font-family:var(--display);font-size:28px;letter-spacing:.06em;}
+    .hdr-sub{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+    .nav-pills{display:flex;gap:6px;flex-wrap:wrap;}
+    .nav-pill{font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);color:var(--muted);text-decoration:none;}
+    .nav-pill:hover{border-color:var(--blue);color:var(--blue);}
+
+    /* Controls */
+    .controls{padding:12px 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--card);border-bottom:1px solid var(--border);}
+    .ctrl-label{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;}
+    select{background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:7px 12px;border-radius:8px;cursor:pointer;}
+    select:focus{outline:none;border-color:var(--blue);}
+
+    /* Campaign type tabs */
+    .camp-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto;}
+    .camp-tab{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border:none;background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-1px;}
+    .camp-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+    /* Body */
+    .page-body{padding:14px 18px;max-width:900px;margin:0 auto;}
+
+    /* Summary row */
+    .summary-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+    .sum-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 16px;flex:1;min-width:120px;}
+    .sum-val{font-family:var(--display);font-size:28px;letter-spacing:.04em;}
+    .sum-val.g{color:var(--green);}
+    .sum-val.a{color:var(--gold);}
+    .sum-val.r{color:var(--red);}
+    .sum-val.b{color:var(--blue);}
+    .sum-lbl{font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;}
+
+    /* Agent section */
+    .agent-section{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;}
+    .agent-hdr{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;}
+    .agent-hdr:hover{background:rgba(255,255,255,.02);}
+    .agent-name{font-family:var(--display);font-size:20px;letter-spacing:.05em;}
+    .agent-stats{display:flex;gap:10px;align-items:center;}
+    .stat-chip{font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:10px;}
+    .stat-chip.done{background:rgba(61,220,132,.15);color:var(--green);border:1px solid rgba(61,220,132,.25);}
+    .stat-chip.pending{background:rgba(106,104,122,.1);color:var(--muted);border:1px solid var(--border);}
+    .stat-chip.pct{background:rgba(77,166,255,.12);color:var(--blue);border:1px solid rgba(77,166,255,.2);}
+
+    /* Progress bar */
+    .prog-bar{height:3px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;margin:0 14px 8px;}
+    .prog-fill{height:100%;border-radius:2px;transition:width .4s;}
+
+    /* Claim rows */
+    .claims-body{padding:6px 10px 10px;}
+    .claim-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:10px;margin-bottom:4px;background:rgba(255,255,255,.02);border:1px solid transparent;}
+    .claim-row.claimed{background:rgba(61,220,132,.04);border-color:rgba(61,220,132,.12);}
+    .claim-row.pending{background:rgba(255,255,255,.02);}
+    .claim-row.verified{background:rgba(77,166,255,.05);border-color:rgba(77,166,255,.15);}
+    .claim-row.rejected{background:rgba(255,95,95,.05);border-color:rgba(255,95,95,.15);}
+    .claim-info{flex:1;min-width:0;}
+    .claim-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .claim-code{font-family:var(--mono);font-size:9px;color:var(--muted);}
+    .claim-meta{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:1px;}
+    .claim-actions{display:flex;gap:6px;align-items:center;margin-left:10px;flex-shrink:0;}
+    .claim-status{font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:8px;}
+    .claim-status.pending{color:var(--muted);background:rgba(255,255,255,.06);}
+    .claim-status.claimed{color:var(--green);background:rgba(61,220,132,.12);}
+    .claim-status.verified{color:var(--blue);background:rgba(77,166,255,.12);}
+    .claim-status.rejected{color:var(--red);background:rgba(255,95,95,.12);}
+    .audit-btn{font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:8px;border:1px solid;cursor:pointer;background:transparent;transition:all .15s;}
+    .audit-btn.verify{color:var(--green);border-color:rgba(61,220,132,.4);}
+    .audit-btn.verify:hover{background:rgba(61,220,132,.15);}
+    .audit-btn.reject{color:var(--red);border-color:rgba(255,95,95,.3);}
+    .audit-btn.reject:hover{background:rgba(255,95,95,.12);}
+    .audit-btn.undo{color:var(--muted);border-color:var(--border);}
+    .audit-btn.undo:hover{color:var(--text);}
+
+    /* Collapsed */
+    .claims-body.collapsed{display:none;}
+
+    /* Empty */
+    .empty{text-align:center;padding:40px 20px;color:var(--muted);font-family:var(--mono);font-size:11px;}
+
+    /* Toast */
+    .toast{position:fixed;bottom:20px;right:20px;background:var(--green);color:#0e0e12;font-family:var(--mono);font-size:11px;font-weight:600;padding:10px 20px;border-radius:12px;opacity:0;transition:opacity .3s;z-index:999;pointer-events:none;}
+    .toast.show{opacity:1;}
+
+    /* Export btn */
+    .export-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;padding:7px 14px;border-radius:8px;cursor:pointer;}
+    .export-btn:hover{border-color:var(--blue);color:var(--blue);}
+
+    @media(max-width:480px){
+      .page-body{padding:10px 12px;}
+      .summary-row{gap:8px;}
+      .sum-card{min-width:90px;}
+    }
+  </style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-top">
+    <div>
+      <div class="hdr-title">CAMPAIGN AUDIT</div>
+      <div class="hdr-sub">Management View — Review & Verify Agent Claims</div>
+    </div>
+    <div class="nav-pills">
+      <a href="sales_dashboard.html" class="nav-pill">👥 Agent</a>
+      <a href="management.html" class="nav-pill">📊 Management</a>
+      <a href="admin.html" class="nav-pill">⚙️ Admin</a>
+    </div>
+  </div>
+</div>
+
+<!-- Controls -->
+<div class="controls">
+  <span class="ctrl-label">Month:</span>
+  <select id="month-select" onchange="loadAuditData()">
+    <option value="Jan 26">Jan 26</option>
+    <option value="Feb 26">Feb 26</option>
+    <option value="Mar 26">Mar 26</option>
+    <option value="Apr 26" selected>Apr 26</option>
+  </select>
+  <span class="ctrl-label">Agent:</span>
+  <select id="agent-select" onchange="renderAudit()">
+    <option value="ALL">All Agents</option>
+  </select>
+  <button class="export-btn" onclick="exportAuditCSV()">⬇ Export CSV</button>
+</div>
+
+<!-- Campaign type tabs -->
+<div class="camp-tabs" id="camp-tabs"></div>
+
+<!-- Main content -->
+<div class="page-body">
+  <div id="summary-row" class="summary-row"></div>
+  <div id="audit-content"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','YI'];
+const CAMP_EMOJI = {free_sample:'🎁',foc_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',other:'📋'};
+const CAMP_LABEL = {free_sample:'FOC Sample',foc_sample:'FOC Sample',birthday_gift:'Birthday Gift',promotion:'Brand Promo',festive_gift:'Festive Gift',other:'Other'};
+
+let DASH_DATA  = null;   // current month data
+let CAMP_DATA  = null;   // campaigns.json
+let activeCampId = 'ALL';
+
+// ── Storage helpers ────────────────────────────────────────────────────────
+function getClaimKey(month, agent, campId, debtorCode) {
+  return `camp_claim_${month.replace(' ','')}_${agent}_${campId}_${debtorCode}`;
+}
+function getClaim(month, agent, campId, debtorCode) {
+  try { return JSON.parse(localStorage.getItem(getClaimKey(month,agent,campId,debtorCode))||'null'); }
+  catch { return null; }
+}
+function getAuditKey(month, agent, campId, debtorCode) {
+  return `camp_audit_${month.replace(' ','')}_${agent}_${campId}_${debtorCode}`;
+}
+function getAudit(month, agent, campId, debtorCode) {
+  try { return JSON.parse(localStorage.getItem(getAuditKey(month,agent,campId,debtorCode))||'null'); }
+  catch { return null; }
+}
+function saveAudit(month, agent, campId, debtorCode, auditData) {
+  localStorage.setItem(getAuditKey(month,agent,campId,debtorCode), JSON.stringify(auditData));
+}
+
+// ── Load data ─────────────────────────────────────────────────────────────
+async function loadAuditData() {
+  const month = document.getElementById('month-select').value;
+  const slug  = month.toLowerCase().replace(' ','');
+  try {
+    const r = await fetch(`data_${slug}.json?v=${Date.now()}`);
+    DASH_DATA = await r.json();
+  } catch(e) { DASH_DATA = null; }
+  try {
+    const r2 = await fetch(`campaigns.json?v=${Date.now()}`);
+    CAMP_DATA = await r2.json();
+  } catch(e) { CAMP_DATA = null; }
+  buildCampTabs();
+  renderAudit();
+}
+
+// ── Campaign tabs ──────────────────────────────────────────────────────────
+function buildCampTabs() {
+  const camps = CAMP_DATA?.campaigns?.filter(c=>c.active) || [];
+  const tabs  = document.getElementById('camp-tabs');
+  tabs.innerHTML = `<button class="camp-tab ${activeCampId==='ALL'?'active':''}" onclick="switchCamp('ALL',this)">ALL</button>`
+    + camps.map(c => `<button class="camp-tab ${activeCampId===c.id?'active':''}" onclick="switchCamp('${c.id}',this)">${CAMP_EMOJI[c.type]||'📋'} ${c.name}</button>`).join('');
+}
+
+function switchCamp(id, btn) {
+  activeCampId = id;
+  document.querySelectorAll('.camp-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAudit();
+}
+
+// ── Main render ────────────────────────────────────────────────────────────
+function renderAudit() {
+  const month     = document.getElementById('month-select').value;
+  const agentSel  = document.getElementById('agent-select').value;
+  const camps     = (CAMP_DATA?.campaigns||[]).filter(c => activeCampId==='ALL' || c.id===activeCampId);
+
+  // Build all claim records
+  const records = []; // {camp, agent, debtor, claim, audit}
+  AGENTS.forEach(agent => {
+    if (agentSel !== 'ALL' && agent !== agentSel) return;
+    const debtors = DASH_DATA?.agents?.[agent]?.debtor_cards?.debtors || [];
+    debtors.forEach(d => {
+      (d.campaigns||[]).forEach(c => {
+        if (activeCampId !== 'ALL' && c.id !== activeCampId) return;
+        const camp  = camps.find(x=>x.id===c.id);
+        if (!camp) return;
+        const claim = getClaim(month, agent, c.id, d.debtor_code);
+        const audit = getAudit(month, agent, c.id, d.debtor_code);
+        records.push({camp, agent, debtor:d, campEntry:c, claim, audit});
+      });
+    });
+  });
+
+  // Summary
+  const total    = records.length;
+  const claimed  = records.filter(r=>r.claim).length;
+  const verified = records.filter(r=>r.audit?.status==='verified').length;
+  const rejected = records.filter(r=>r.audit?.status==='rejected').length;
+  const pending  = claimed - verified - rejected;
+  const pct      = total > 0 ? Math.round(claimed/total*100) : 0;
+
+  document.getElementById('summary-row').innerHTML = `
+    <div class="sum-card"><div class="sum-val b">${total}</div><div class="sum-lbl">Total Debtors</div></div>
+    <div class="sum-card"><div class="sum-val g">${claimed}</div><div class="sum-lbl">Claimed / Delivered</div></div>
+    <div class="sum-card"><div class="sum-val a">${pct}%</div><div class="sum-lbl">Completion Rate</div></div>
+    <div class="sum-card"><div class="sum-val b">${verified}</div><div class="sum-lbl">Verified ✓</div></div>
+    <div class="sum-card"><div class="sum-val r">${rejected}</div><div class="sum-lbl">Rejected ✗</div></div>
+    <div class="sum-card"><div class="sum-val a">${pending}</div><div class="sum-lbl">Pending Audit</div></div>`;
+
+  if (!records.length) {
+    document.getElementById('audit-content').innerHTML = `<div class="empty">No campaign data for ${month}${activeCampId!=='ALL'?' for this campaign':''}</div>`;
+    return;
+  }
+
+  // Group by agent
+  const byAgent = {};
+  records.forEach(r => {
+    if (!byAgent[r.agent]) byAgent[r.agent] = [];
+    byAgent[r.agent].push(r);
+  });
+
+  document.getElementById('audit-content').innerHTML = Object.entries(byAgent).map(([agent, recs]) => {
+    const agentClaimed  = recs.filter(r=>r.claim).length;
+    const agentVerified = recs.filter(r=>r.audit?.status==='verified').length;
+    const agentRejected = recs.filter(r=>r.audit?.status==='rejected').length;
+    const agentPending  = agentClaimed - agentVerified - agentRejected;
+    const agentPct      = recs.length > 0 ? Math.round(agentClaimed/recs.length*100) : 0;
+    const progColor     = agentPct>=80?'var(--green)':agentPct>=50?'var(--gold)':'var(--red)';
+
+    const rows = recs.map(r => {
+      const statusLabel = r.audit?.status === 'verified' ? '✓ Verified'
+                        : r.audit?.status === 'rejected' ? '✗ Rejected'
+                        : r.claim ? '● Claimed'
+                        : '○ Pending';
+      const statusClass = r.audit?.status || (r.claim ? 'claimed' : 'pending');
+      const isFOC = r.camp.type==='foc_sample'||r.camp.type==='festive_gift'||r.camp.type==='birthday_gift';
+      const actionLabel = isFOC ? 'Delivered' : 'Claimed';
+
+      return `<div class="claim-row ${statusClass}" id="row-${agent}-${r.camp.id}-${r.debtor.debtor_code}">
+        <div class="claim-info">
+          <div class="claim-name">${r.debtor.company_name||r.debtor.debtor_code}</div>
+          <div class="claim-code">${r.debtor.debtor_code} · ${CAMP_EMOJI[r.camp.type]} ${r.camp.name}${r.campEntry.cat?' · CAT '+r.campEntry.cat:''}</div>
+          <div class="claim-meta">
+            ${r.claim ? `${actionLabel}: ${r.claim.ts||'—'}${r.claim.count>1?' · '+r.claim.count+'× claims':''}${r.claim.remark?' · "'+r.claim.remark+'"':''}` : 'Not yet ' + actionLabel.toLowerCase()}
+            ${r.audit?.status==='verified'?` · ✓ Verified ${r.audit.ts||''}`:r.audit?.status==='rejected'?` · ✗ Rejected: ${r.audit.reason||''}${r.audit.ts?' · '+r.audit.ts:''}` : ''}
+          </div>
+        </div>
+        <div class="claim-actions">
+          <span class="claim-status ${statusClass}">${statusLabel}</span>
+          ${r.claim && !r.audit ? `
+            <button class="audit-btn verify" onclick="auditClaim('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}','verified')">✓</button>
+            <button class="audit-btn reject" onclick="promptReject('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}')">✗</button>
+          ` : r.audit ? `
+            <button class="audit-btn undo" onclick="auditClaim('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}','undo')">Undo</button>
+          ` : ''}
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="agent-section">
+      <div class="agent-hdr" onclick="toggleAgentSection(this)">
+        <div class="agent-name">${agent}</div>
+        <div class="agent-stats">
+          <span class="stat-chip pct">${agentPct}%</span>
+          <span class="stat-chip done">${agentClaimed}/${recs.length} ${activeCampId==='ALL'?'claimed':''}</span>
+          ${agentPending>0?`<span class="stat-chip pending">${agentPending} pending audit</span>`:''}
+          ${agentVerified>0?`<span style="font-family:var(--mono);font-size:9px;color:var(--blue);">✓${agentVerified}</span>`:''}
+          ${agentRejected>0?`<span style="font-family:var(--mono);font-size:9px;color:var(--red);">✗${agentRejected}</span>`:''}
+          <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">▾</span>
+        </div>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${agentPct}%;background:${progColor};"></div></div>
+      <div class="claims-body" id="claims-${agent}">${rows}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleAgentSection(hdr) {
+  const agent   = hdr.querySelector('.agent-name').textContent;
+  const body    = document.getElementById('claims-'+agent);
+  if (body) body.classList.toggle('collapsed');
+}
+
+// ── Audit actions ──────────────────────────────────────────────────────────
+function auditClaim(month, agent, campId, debtorCode, action) {
+  if (action === 'undo') {
+    localStorage.removeItem(getAuditKey(month,agent,campId,debtorCode));
+  } else {
+    const now = new Date();
+    const ts  = now.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    saveAudit(month, agent, campId, debtorCode, {status:action, ts, by:'management'});
+  }
+  showToast(action==='verified'?'✓ Verified':action==='undo'?'Undo done':'✗ Rejected');
+  renderAudit();
+}
+
+function promptReject(month, agent, campId, debtorCode) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
+  overlay.innerHTML = `
+    <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;">
+      <div style="font-family:var(--display);font-size:20px;color:var(--red);margin-bottom:12px;">✗ Reject Claim</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Reason (required)</div>
+      <input type="text" id="reject-reason" placeholder="e.g. No photo proof, wrong quantity, duplicate"
+        style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--body);font-size:13px;padding:11px 12px;margin-bottom:14px;">
+      <div style="display:flex;gap:10px;">
+        <button onclick="confirmReject('${month}','${agent}','${campId}','${debtorCode}',this)"
+          style="flex:1;background:rgba(255,95,95,.2);border:1px solid rgba(255,95,95,.4);color:var(--red);font-family:var(--mono);font-size:12px;font-weight:700;padding:12px;border-radius:10px;cursor:pointer;">
+          ✗ CONFIRM REJECT
+        </button>
+        <button onclick="this.closest('div[style*=fixed]').remove()"
+          style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:12px;border-radius:10px;cursor:pointer;">
+          Cancel
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+  setTimeout(()=>document.getElementById('reject-reason')?.focus(),100);
+}
+
+function confirmReject(month, agent, campId, debtorCode, btn) {
+  const reason = document.getElementById('reject-reason')?.value?.trim();
+  if (!reason) { document.getElementById('reject-reason').style.borderColor='var(--red)'; return; }
+  const now = new Date();
+  const ts  = now.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  saveAudit(month, agent, campId, debtorCode, {status:'rejected', reason, ts, by:'management'});
+  btn.closest('div[style*=fixed]').remove();
+  showToast('✗ Claim rejected');
+  renderAudit();
+}
+
+// ── Export CSV ─────────────────────────────────────────────────────────────
+function exportAuditCSV() {
+  const month   = document.getElementById('month-select').value;
+  const camps   = CAMP_DATA?.campaigns?.filter(c=>activeCampId==='ALL'||c.id===activeCampId)||[];
+  const rows    = [['Month','Agent','Debtor Code','Debtor Name','Campaign','Type','CAT','Claim Status','Claim Time','Remark','Audit Status','Audit Time','Reject Reason']];
+
+  AGENTS.forEach(agent => {
+    const debtors = DASH_DATA?.agents?.[agent]?.debtor_cards?.debtors || [];
+    debtors.forEach(d => {
+      (d.campaigns||[]).forEach(c => {
+        if (activeCampId!=='ALL'&&c.id!==activeCampId) return;
+        const camp  = camps.find(x=>x.id===c.id);
+        if (!camp) return;
+        const claim = getClaim(month,agent,c.id,d.debtor_code);
+        const audit = getAudit(month,agent,c.id,d.debtor_code);
+        rows.push([
+          month, agent,
+          d.debtor_code, (d.company_name||'').replace(/,/g,''),
+          (camp.name||'').replace(/,/g,''), CAMP_LABEL[camp.type]||camp.type,
+          c.cat||'',
+          claim?'Claimed':'Pending',
+          claim?.ts||'',
+          (claim?.remark||'').replace(/,/g,''),
+          audit?.status||'',
+          audit?.ts||'',
+          (audit?.reason||'').replace(/,/g,''),
+        ]);
+      });
+    });
+  });
+
+  const csv  = rows.map(r=>r.join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `campaign_audit_${month.replace(' ','')}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Populate agent dropdown
+  const sel = document.getElementById('agent-select');
+  AGENTS.forEach(a => sel.add(new Option(a,a)));
+  loadAuditData();
+});
+</script>
+</body>
+</html>

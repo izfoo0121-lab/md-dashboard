@@ -292,6 +292,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
   <a href="https://izfoo0121-lab.github.io/md-dashboard/management.html" style="font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;padding:3px 8px;border:1px solid rgba(77,166,255,.3);border-radius:6px;white-space:nowrap;">📊 Management</a>
   <a href="https://izfoo0121-lab.github.io/md-dashboard/admin.html" style="font-family:var(--mono);font-size:9px;color:var(--accent);text-decoration:none;padding:3px 8px;border:1px solid rgba(240,192,64,.3);border-radius:6px;white-space:nowrap;">⚙ Admin</a>
   <a href="https://izfoo0121-lab.github.io/md-dashboard/campaigns.html" style="font-family:var(--mono);font-size:9px;color:var(--green);text-decoration:none;padding:3px 8px;border:1px solid rgba(61,220,132,.3);border-radius:6px;white-space:nowrap;">📢 Campaigns</a>
+  <a href="https://izfoo0121-lab.github.io/md-dashboard/campaign_audit.html" style="font-family:var(--mono);font-size:9px;color:#a78bfa;text-decoration:none;padding:3px 8px;border:1px solid rgba(167,139,250,.3);border-radius:6px;white-space:nowrap;">🔍 Audit</a>
   <a href="https://izfoo0121-lab.github.io/md-dashboard/accounts.html" style="font-family:var(--mono);font-size:9px;color:#ff8c5a;text-decoration:none;padding:3px 8px;border:1px solid rgba(200,90,26,.3);border-radius:6px;white-space:nowrap;">🏦 Accounts</a>
 </div>
 
@@ -485,6 +486,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 
 <!-- ── Campaigns View ── -->
 <div id="view-camps" class="view">
+  <!-- Campaign type filter -->
+  <div id="camps-filter-bar" style="display:none;padding:10px 14px 4px;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;white-space:nowrap;">
+    <span style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-right:8px;">Filter:</span>
+    <button onclick="setCampFilter('all',this)" class="filter-chip active">ALL</button>
+    <button onclick="setCampFilter('promotion',this)" class="filter-chip">📢 PROMO</button>
+    <button onclick="setCampFilter('foc_sample',this)" class="filter-chip">🎁 FOC</button>
+    <button onclick="setCampFilter('festive_gift',this)" class="filter-chip">🧧 FESTIVE</button>
+    <button onclick="setCampFilter('birthday_gift',this)" class="filter-chip">🎂 BIRTHDAY</button>
+  </div>
   <div id="camps-content">
     <div style="text-align:center;padding:30px;font-family:var(--mono);font-size:11px;color:var(--muted);">Select an agent to view campaigns</div>
   </div>
@@ -1173,13 +1183,21 @@ function renderDebtors() {
         statusLine  = qualified ? `✅ Qualified` : `${curCtn}/${minCtn} CTN`;
       }
 
-      // Claim button
-      const claimKey = `camp_claim_${currentAgent}_${d.debtor_code}_${c.id}`;
-      const claimed  = localStorage.getItem(claimKey) === '1';
-      const claimBtn = qualified
-        ? `<button onclick="toggleCampClaim(event,'${d.debtor_code}','${c.id}','${(d.company_name||'').replace(/'/g,'')}','${promoText.replace(/'/g,'')}')"
-            style="font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:6px;border:1px solid ${claimed?'var(--green)':'rgba(255,255,255,.3)'};background:${claimed?'rgba(61,220,132,.2)':'rgba(255,255,255,.08)'};color:${claimed?'var(--green)':'var(--text)'};cursor:pointer;margin-top:4px;">
-            ${claimed ? '✔ Claimed' : '🎁 Mark Claimed'}
+      // Claim / Deliver button — show for promo if qualified, always show for FOC/Festive
+      const claimData  = getCampClaims(currentAgent, c.id, d.debtor_code);
+      const claimed    = !!claimData;
+      const isFOCType  = c.type === 'foc_sample' || c.type === 'festive_gift';
+      const showBtn    = isFOCType || qualified;
+      const btnLabel   = claimed
+        ? (isFOCType ? '✔ Delivered' : '✔ Claimed')
+        : (isFOCType ? '🎁 Mark Delivered' : '🎁 Mark Claimed');
+      const btnBorder  = claimed ? 'var(--green)' : isFOCType ? 'var(--gold)' : 'rgba(255,255,255,.3)';
+      const btnBg      = claimed ? 'rgba(61,220,132,.2)' : isFOCType ? 'rgba(200,134,10,.15)' : 'rgba(255,255,255,.08)';
+      const btnColor   = claimed ? 'var(--green)' : isFOCType ? 'var(--gold)' : 'var(--text)';
+      const claimBtn   = showBtn
+        ? `<button onclick="toggleCampClaim(event,'${d.debtor_code}','${c.id}','${(d.company_name||'').replace(/'/g,'')}','${promoText.replace(/'/g,'')}','${c.type}')"
+            style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:6px;border:1px solid ${btnBorder};background:${btnBg};color:${btnColor};cursor:pointer;margin-top:4px;">
+            ${btnLabel}
           </button>`
         : '';
 
@@ -2337,6 +2355,10 @@ function renderCamps() {
   const el = document.getElementById('camps-content');
   if (!el || !currentAgent || !DATA) return;
 
+  // Show filter bar
+  const fb = document.getElementById('camps-filter-bar');
+  if (fb) fb.style.display = 'block';
+
   const debtors  = DATA.agents[currentAgent]?.debtor_cards?.debtors || [];
   const statuses = getCampStatuses();
 
@@ -2344,6 +2366,7 @@ function renderCamps() {
   const campMap  = {};
   debtors.forEach(d => {
     (d.campaigns || []).forEach(c => {
+      if (_campFilter !== 'all' && c.type !== _campFilter) return;
       if (!campMap[c.id]) campMap[c.id] = { ...c, debtors: [] };
       const vs = statuses[`${c.id}_${d.debtor_code}`];
       campMap[c.id].debtors.push({ ...d, visit_status: vs });
@@ -2412,16 +2435,23 @@ function renderCamps() {
             ${g.items.map(d => {
               const phone = (d.phone||'').replace(/\s/g,'');
               const vs    = d.visit_status;
-              return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 8px;background:rgba(255,255,255,.03);border-radius:8px;margin-bottom:3px;">
+              const claimData  = getCampClaims(currentAgent, c.id, d.debtor_code);
+              const isClaimed  = !!claimData;
+              const isFOCt     = c.type==='foc_sample'||c.type==='festive_gift';
+              const claimLbl   = isClaimed ? (isFOCt?'✔ Delivered':'✔ Claimed') : (isFOCt?'🎁 Deliver':'🎁 Claim');
+              const claimBg    = isClaimed ? 'rgba(61,220,132,.2)' : isFOCt ? 'rgba(200,134,10,.15)' : 'rgba(255,255,255,.08)';
+              const claimColor = isClaimed ? 'var(--green)' : isFOCt ? 'var(--gold)' : 'var(--muted)';
+              const claimBdr   = isClaimed ? 'var(--green)' : isFOCt ? 'var(--gold)' : 'var(--border)';
+              return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 8px;background:${isClaimed?'rgba(61,220,132,.04)':'rgba(255,255,255,.03)'};border-radius:8px;margin-bottom:3px;border:1px solid ${isClaimed?'rgba(61,220,132,.15)':'transparent'};">
                 <div style="flex:1;min-width:0;">
                   <div style="font-family:var(--body);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.company_name||d.debtor_code}</div>
-                  <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">${d.debtor_code}${vs?.remark ? ` · "${vs.remark}"` : ''}</div>
+                  <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">${d.debtor_code}${claimData?.ts ? ` · ${claimData.ts}` : ''}${claimData?.count > 1 ? ` · ${claimData.count}× claims` : ''}</div>
                 </div>
                 <div style="display:flex;gap:6px;align-items:center;margin-left:8px;">
                   ${phone ? `<a href="tel:${phone}" onclick="event.stopPropagation()" style="font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;">📞</a>` : ''}
-                  <button onclick="showCampDetail(event,'${d.debtor_code}','${(d.company_name||'').replace(/'/g,"\\'")}')"
-                    style="background:rgba(255,255,255,.08);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">
-                    Update
+                  <button onclick="toggleCampClaim(event,'${d.debtor_code}','${c.id}','${(d.company_name||'').replace(/'/g,"\\'")}','${(c.promo_detail||'').replace(/'/g,'')}','${c.type}')"
+                    style="background:${claimBg};border:1px solid ${claimBdr};color:${claimColor};font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;">
+                    ${claimLbl}
                   </button>
                 </div>
               </div>`;
@@ -2476,21 +2506,149 @@ function showBrandTierDetail(event, debtorCode, debtorName) {
 }
 
 // ── CTN Breakdown Tooltip ──────────────────────────────────────────────────
-function toggleCampClaim(event, debtorCode, campId, debtorName, promoText) {
+let _campUndoTimer = null;
+
+// ── Campaign claim/deliver storage helpers ────────────────────────────────
+function getCampClaimKey(agent, campId, debtorCode) {
+  const month = (DATA?.current_month||'').replace(' ','');
+  return `camp_claim_${month}_${agent}_${campId}_${debtorCode}`;
+}
+function getCampClaims(agent, campId, debtorCode) {
+  const key = getCampClaimKey(agent, campId, debtorCode);
+  try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; }
+}
+function saveCampClaim(agent, campId, debtorCode, claimData) {
+  const key = getCampClaimKey(agent, campId, debtorCode);
+  localStorage.setItem(key, JSON.stringify(claimData));
+}
+function removeCampClaim(agent, campId, debtorCode) {
+  const key = getCampClaimKey(agent, campId, debtorCode);
+  localStorage.removeItem(key);
+}
+
+// ── Campaign filter state ─────────────────────────────────────────────────
+let _campFilter = 'all';
+function setCampFilter(type, btn) {
+  _campFilter = type;
+  document.querySelectorAll('#camps-filter-bar .filter-chip').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderCamps();
+}
+
+// ── Mark Claimed popup (for promotion type) ────────────────────────────────
+function toggleCampClaim(event, debtorCode, campId, debtorName, promoText, campType) {
   event.stopPropagation();
-  const key     = `camp_claim_${currentAgent}_${debtorCode}_${campId}`;
-  const claimed = localStorage.getItem(key) === '1';
-  if (claimed) {
-    if (confirm(`Undo claim for ${debtorName}?`)) {
-      localStorage.removeItem(key);
-      renderDebtors();
-    }
+  const existing = getCampClaims(currentAgent, campId, debtorCode);
+  const isFOC    = campType === 'foc_sample' || campType === 'festive_gift' || campType === 'birthday_gift';
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:0;`;
+
+  const emoji  = isFOC ? '🎁' : '📢';
+  const action = isFOC ? 'Mark Delivered' : 'Mark Claimed';
+  const accentColor = isFOC ? 'var(--gold)' : 'var(--green)';
+
+  if (existing) {
+    // Already claimed — show undo option
+    overlay.innerHTML = `
+      <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;">
+        <div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 auto 16px;"></div>
+        <div style="font-family:var(--display);font-size:18px;color:${accentColor};margin-bottom:4px;">${emoji} Already Marked</div>
+        <div style="font-family:var(--body);font-size:13px;color:var(--text);margin-bottom:4px;">${debtorName}</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:16px;">Marked at ${existing.ts || '—'}${existing.count > 1 ? ` · ${existing.count} claims total` : ''}</div>
+        <div style="display:flex;gap:10px;">
+          <button id="undo-camp-btn" onclick="undoCampClaim('${debtorCode}','${campId}','${debtorName}',this)"
+            style="flex:1;background:rgba(255,95,95,.15);border:1px solid rgba(255,95,95,.3);color:var(--red);font-family:var(--mono);font-size:11px;padding:12px;border-radius:10px;cursor:pointer;">
+            ✕ Undo
+          </button>
+          <button onclick="this.closest('div[style*=fixed]').remove()"
+            style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:12px;border-radius:10px;cursor:pointer;">
+            Close
+          </button>
+        </div>
+      </div>`;
   } else {
-    if (confirm(`Mark "${promoText}" as claimed for ${debtorName}?`)) {
-      localStorage.setItem(key, '1');
-      renderDebtors();
-    }
+    overlay.innerHTML = `
+      <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;">
+        <div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 auto 16px;"></div>
+        <div style="font-family:var(--display);font-size:20px;color:${accentColor};margin-bottom:2px;">${emoji} ${action}</div>
+        <div style="font-family:var(--body);font-size:13px;color:var(--text);margin-bottom:2px;">${debtorName}</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:16px;">${promoText}</div>
+        ${!isFOC ? `
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Remark (optional)</div>
+        <input type="text" id="camp-claim-remark" placeholder="e.g. Delivered, confirmed order"
+          style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--body);font-size:13px;padding:11px 12px;box-sizing:border-box;margin-bottom:14px;">` : ''}
+        <div style="display:flex;gap:10px;">
+          <button onclick="confirmCampClaim('${debtorCode}','${campId}','${debtorName}','${campType}',this)"
+            style="flex:1;background:${accentColor};border:none;color:#0e0e12;font-family:var(--mono);font-size:12px;font-weight:700;padding:13px;border-radius:10px;cursor:pointer;">
+            ✓ CONFIRM
+          </button>
+          <button onclick="this.closest('div[style*=fixed]').remove()"
+            style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:13px;border-radius:10px;cursor:pointer;">
+            Cancel
+          </button>
+        </div>
+      </div>`;
   }
+
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+function confirmCampClaim(debtorCode, campId, debtorName, campType, btn) {
+  const remark  = document.getElementById('camp-claim-remark')?.value?.trim() || '';
+  const now     = new Date();
+  const ts      = now.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) + ' ' + now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  const existing = getCampClaims(currentAgent, campId, debtorCode);
+  const count    = (existing?.count || 0) + 1;
+  saveCampClaim(currentAgent, campId, debtorCode, { status:'claimed', remark, ts, count, campType });
+
+  btn.closest('div[style*=fixed]').remove();
+
+  // Show undo toast for 30 seconds
+  showCampUndoToast(debtorCode, campId, debtorName, campType);
+  renderDebtors();
+  renderCamps();
+}
+
+function undoCampClaim(debtorCode, campId, debtorName, btn) {
+  removeCampClaim(currentAgent, campId, debtorCode);
+  btn.closest('div[style*=fixed]').remove();
+  if (_campUndoTimer) clearTimeout(_campUndoTimer);
+  document.getElementById('camp-undo-toast')?.remove();
+  renderDebtors();
+  renderCamps();
+}
+
+function showCampUndoToast(debtorCode, campId, debtorName, campType) {
+  if (_campUndoTimer) clearTimeout(_campUndoTimer);
+  document.getElementById('camp-undo-toast')?.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'camp-undo-toast';
+  toast.style.cssText = `position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--green);color:#0e0e12;font-family:var(--mono);font-size:11px;font-weight:700;padding:10px 16px;border-radius:12px;z-index:9998;display:flex;align-items:center;gap:10px;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4);`;
+  toast.innerHTML = `<span>✓ Marked · ${debtorName}</span>
+    <button onclick="undoCampClaimFromToast('${debtorCode}','${campId}',this)"
+      style="background:rgba(0,0,0,.2);border:none;color:#0e0e12;font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer;">UNDO</button>
+    <span id="camp-undo-countdown" style="font-size:9px;opacity:.7;">30s</span>`;
+  document.body.appendChild(toast);
+
+  let secs = 30;
+  const ticker = setInterval(() => {
+    secs--;
+    const el = document.getElementById('camp-undo-countdown');
+    if (el) el.textContent = secs + 's';
+    if (secs <= 0) { clearInterval(ticker); toast.remove(); }
+  }, 1000);
+  _campUndoTimer = setTimeout(() => { toast.remove(); }, 30000);
+}
+
+function undoCampClaimFromToast(debtorCode, campId, btn) {
+  removeCampClaim(currentAgent, campId, debtorCode);
+  clearTimeout(_campUndoTimer);
+  btn.closest('#camp-undo-toast')?.remove();
+  renderDebtors();
+  renderCamps();
 }
 
 function toggleBdayGift(debtorCode, debtorName, event) {

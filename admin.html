@@ -162,6 +162,8 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
     <a href="https://izfoo0121-lab.github.io/md-dashboard/sales_dashboard.html" style="font-family:var(--mono);font-size:9px;color:#1a5c8f;text-decoration:none;padding:3px 8px;border:1px solid rgba(26,92,143,.3);border-radius:6px;white-space:nowrap;">👥 Agent</a>
     <a href="https://izfoo0121-lab.github.io/md-dashboard/management.html" style="font-family:var(--mono);font-size:9px;color:#6b3fa0;text-decoration:none;padding:3px 8px;border:1px solid rgba(107,63,160,.3);border-radius:6px;white-space:nowrap;">📊 Management</a>
     <a href="https://izfoo0121-lab.github.io/md-dashboard/campaigns.html" style="font-family:var(--mono);font-size:9px;color:#2a7a4b;text-decoration:none;padding:3px 8px;border:1px solid rgba(42,122,75,.3);border-radius:6px;white-space:nowrap;">📢 Campaigns</a>
+    <a href="https://izfoo0121-lab.github.io/md-dashboard/campaign_audit.html" style="font-family:var(--mono);font-size:9px;color:#6b3fa0;text-decoration:none;padding:3px 8px;border:1px solid rgba(107,63,160,.3);border-radius:6px;white-space:nowrap;">🔍 Camp Audit</a>
+    <a href="https://izfoo0121-lab.github.io/md-dashboard/accounts.html" style="font-family:var(--mono);font-size:9px;color:#c85a1a;text-decoration:none;padding:3px 8px;border:1px solid rgba(200,90,26,.3);border-radius:6px;white-space:nowrap;">🏦 Accounts</a>
   </div>
 
   <div class="tab-bar">
@@ -173,6 +175,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
     <button class="tab-btn" onclick="switchTab('holidays',this)">📅 Holidays</button>
     <button class="tab-btn" onclick="switchTab('brand_camps',this)">🔥 Brand Promo</button>
     <button class="tab-btn" onclick="switchTab('campaigns',this)">📢 Campaigns</button>
+    <button class="tab-btn" onclick="switchTab('kpi_weights',this)">⚖️ KPI Weights</button>
     <button class="tab-btn" onclick="switchTab('export',this)">Export / Import</button>
   </div>
 
@@ -482,6 +485,47 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
           </select>
         </div>
 
+        <!-- FOC fields — shown for free_sample and festive_gift types -->
+        <div id="foc-camp-fields" style="display:none;">
+          <div class="input-group">
+            <div class="input-label">Default FOC Item (e.g. LAM, EVO, LC20)</div>
+            <input type="text" id="new-camp-foc-item" placeholder="e.g. LAM" style="text-transform:uppercase;">
+          </div>
+          <div class="input-row">
+            <div class="field-wrap">
+              <div class="field-lbl">Default Qty</div>
+              <input type="number" id="new-camp-foc-qty" min="0" placeholder="e.g. 2">
+            </div>
+            <div class="field-wrap">
+              <div class="field-lbl">Unit</div>
+              <select id="new-camp-foc-unit" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 12px;border-radius:8px;">
+                <option value="packs">packs</option>
+                <option value="ctn">ctn</option>
+                <option value="box">box</option>
+                <option value="piece">piece</option>
+              </select>
+            </div>
+          </div>
+          <div class="input-group">
+            <div class="input-label">Delivery Note (shown to agent)</div>
+            <input type="text" id="new-camp-foc-note" placeholder="e.g. Deliver before Raya / Must state LAM FOC">
+          </div>
+        </div>
+
+        <!-- Festive fields — shown for festive_gift type -->
+        <div id="festive-camp-fields" style="display:none;">
+          <div class="input-group">
+            <div class="input-label">Festive Occasion</div>
+            <select id="new-camp-festive" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 12px;border-radius:8px;">
+              <option value="Raya">🌙 Raya</option>
+              <option value="CNY">🧧 CNY</option>
+              <option value="Deepavali">🪔 Deepavali</option>
+              <option value="Christmas">🎄 Christmas</option>
+              <option value="Other">📅 Other</option>
+            </select>
+          </div>
+        </div>
+
         <!-- Brand fields — shown for promotion type -->
         <div id="brand-camp-fields" style="display:none;">
           <div class="input-group">
@@ -554,6 +598,36 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
         <button class="save-btn" onclick="saveCampaignsJSON()" style="background:#2a7a4b;width:100%;font-size:16px;">⬇ DOWNLOAD CAMPAIGNS.JSON</button>
       </div>
       <div class="save-toast" id="save-toast-camp">✓ Campaign created</div>
+    </div>
+  </div>
+
+  <!-- ── KPI Weights Tab ── -->
+  <div id="tab-kpi_weights" class="tab-content">
+    <div class="page-body">
+      <div class="sec-header">⚖️ KPI Weights</div>
+      <div class="sec-sub">Set KPI weightage per month. Total must = 100%. Changes take effect on next bat file run.</div>
+
+      <!-- Month selector -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+        <span style="font-family:var(--mono);font-size:9px;color:var(--ink3);text-transform:uppercase;">Month:</span>
+        <select id="kpi-month-select" onchange="renderKPIWeights()"
+          style="font-family:var(--mono);font-size:12px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);">
+          <option value="Jan 26">Jan 26</option>
+          <option value="Feb 26">Feb 26</option>
+          <option value="Mar 26">Mar 26</option>
+          <option value="Apr 26" selected>Apr 26</option>
+        </select>
+        <span id="kpi-total-display" style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--green);">Total: 0.00%</span>
+        <button onclick="copyKPIWeightsFromMonth()"
+          style="font-family:var(--mono);font-size:10px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);cursor:pointer;">
+          📋 Copy from another month
+        </button>
+      </div>
+
+      <div id="kpi-weights-form"></div>
+
+      <button class="save-btn" onclick="saveKPIWeights()">SAVE KPI WEIGHTS</button>
+      <div class="save-toast" id="kpi-save-toast">✓ KPI Weights saved</div>
     </div>
   </div>
 
@@ -640,6 +714,7 @@ async function initAdmin() {
   // Load campaigns
   loadCampaignsData();
   renderCampaignsList();
+  renderKPIWeights();
   // Set default deadline to end of current month
   const now = new Date();
   const lastDay = new Date(now.getFullYear(), now.getMonth()+1, 0);
@@ -1100,6 +1175,147 @@ function removeInhouse(code) {
   CONFIG.inhouse_codes = (CONFIG.inhouse_codes || []).filter(c => c !== code);
   renderInhouseCodes();
   updateRawJSON();
+}
+
+// ── KPI Weights ────────────────────────────────────────────────────────────────
+
+const KPI_ITEM_DEFS = [
+  // [key, label, section, section_label]
+  ["sales_normal_pct",    "销售 Normal %",               "A", "A — 销售 Sales"],
+  ["alt_channel_contact", "Alt Sales - Contact <2 days", "B", "B — Penetration / Service / Event"],
+  ["alt_channel_deliver", "Alt Sales - 送货 <7 days",    "B", "B — Penetration / Service / Event"],
+  ["event",               "做Event / PSR",               "B", "B — Penetration / Service / Event"],
+  ["new_accounts",        "开户口 (新户口)",              "B", "B — Penetration / Service / Event"],
+  ["vip_count",           "VIP 招聘",                    "B", "B — Penetration / Service / Event"],
+  ["reactivation",        "激活户口",                    "B", "B — Penetration / Service / Event"],
+  ["new_sku",             "加SKU数量",                   "B", "B — Penetration / Service / Event"],
+  ["activation_rate",     "持续光顾率",                  "B", "B — Penetration / Service / Event"],
+  ["iface_pen",           "iFACE Penetration",           "B", "B — Penetration / Service / Event"],
+  ["iface_target",        "iFACE CTN Target",            "B", "B — Penetration / Service / Event"],
+  ["sukun_pen",           "SUKUN Penetration",           "B", "B — Penetration / Service / Event"],
+  ["sukun_target",        "SUKUN CTN Target",            "B", "B — Penetration / Service / Event"],
+  ["evo_pen",             "EVO Penetration",             "B", "B — Penetration / Service / Event"],
+  ["evo_target",          "EVO CTN Target",              "B", "B — Penetration / Service / Event"],
+  ["bison_pen",           "BISON Penetration",           "B", "B — Penetration / Service / Event"],
+  ["bison_target",        "BISON CTN Target",            "B", "B — Penetration / Service / Event"],
+  ["tr20_pen",            "TR20 Penetration",            "B", "B — Penetration / Service / Event"],
+  ["tr20_target",         "TR20 CTN Target",             "B", "B — Penetration / Service / Event"],
+  ["lam_lwm_pen",         "LAM+LWM Penetration",         "B", "B — Penetration / Service / Event"],
+  ["lam_lwm_target",      "LAM+LWM CTN Target",          "B", "B — Penetration / Service / Event"],
+  ["birthday_campaign",   "生日礼物 Campaign",           "C", "C — 生日礼物 / Promo"],
+  ["campaign_1",          "Campaign Related",            "C", "C — 生日礼物 / Promo"],
+  ["d_key_accuracy",      "KEY 单精准度",                "D", "D — 售后行政 (Accounts Dept)"],
+  ["d_account_accuracy",  "帐目精准度",                  "D", "D — 售后行政 (Accounts Dept)"],
+  ["d_outstanding",       "欠账",                        "D", "D — 售后行政 (Accounts Dept)"],
+  ["d_followup",          "其它 Follow Up",              "D", "D — 售后行政 (Accounts Dept)"],
+  ["e_punctuality",       "准时 Punctuality",            "E", "E — 其它表现 (Management)"],
+  ["e_warehouse",         "货仓整洁度",                  "E", "E — 其它表现 (Management)"],
+  ["e_efficiency",        "有效率和有担待",              "E", "E — 其它表现 (Management)"],
+  ["e_check_car",         "Check 车",                    "E", "E — 其它表现 (Management)"],
+  ["e_check_stock",       "Check Stock",                 "E", "E — 其它表现 (Management)"],
+];
+
+const SEC_COLORS = {
+  "A": "#1A3A6F", "B": "#1E5C35", "C": "#9A6A08", "D": "#C85A1A", "E": "#4A1A6A"
+};
+
+const DEFAULT_KPI_WEIGHTS = {
+  "Jan 26": {sales_normal_pct:35,alt_channel_contact:2,alt_channel_deliver:3,event:3,new_accounts:4,vip_count:1,reactivation:3,new_sku:3,activation_rate:3,iface_pen:1.875,iface_target:1.875,sukun_pen:1.875,sukun_target:1.875,evo_pen:1.875,evo_target:1.875,bison_pen:0,bison_target:0,tr20_pen:1.875,tr20_target:1.875,lam_lwm_pen:0,lam_lwm_target:0,birthday_campaign:1,campaign_1:2,d_key_accuracy:5,d_account_accuracy:5,d_outstanding:5,d_followup:5,e_punctuality:1,e_warehouse:1,e_efficiency:1,e_check_car:1,e_check_stock:1},
+  "Feb 26": {sales_normal_pct:35,alt_channel_contact:2,alt_channel_deliver:3,event:3,new_accounts:4,vip_count:1,reactivation:3,new_sku:3,activation_rate:3,iface_pen:1.5,iface_target:1.5,sukun_pen:1.5,sukun_target:1.5,evo_pen:1.5,evo_target:1.5,bison_pen:1.5,bison_target:1.5,tr20_pen:1.5,tr20_target:1.5,lam_lwm_pen:0,lam_lwm_target:0,birthday_campaign:1,campaign_1:2,d_key_accuracy:5,d_account_accuracy:5,d_outstanding:5,d_followup:5,e_punctuality:1,e_warehouse:1,e_efficiency:1,e_check_car:1,e_check_stock:1},
+  "Mar 26": {sales_normal_pct:35,alt_channel_contact:2,alt_channel_deliver:3,event:3,new_accounts:3,vip_count:1,reactivation:3,new_sku:3,activation_rate:3,iface_pen:1.5,iface_target:1.5,sukun_pen:1.5,sukun_target:1.5,evo_pen:1.5,evo_target:1.5,bison_pen:1.5,bison_target:1.5,tr20_pen:1.5,tr20_target:1.5,lam_lwm_pen:0,lam_lwm_target:0,birthday_campaign:1,campaign_1:2,d_key_accuracy:5,d_account_accuracy:5,d_outstanding:5,d_followup:5,e_punctuality:1,e_warehouse:1,e_efficiency:1,e_check_car:1,e_check_stock:1},
+  "Apr 26": {sales_normal_pct:37,alt_channel_contact:2,alt_channel_deliver:3,event:3,new_accounts:3,vip_count:1,reactivation:3,new_sku:3,activation_rate:3,iface_pen:1.5,iface_target:1.5,sukun_pen:1.5,sukun_target:1.5,evo_pen:1.5,evo_target:1.5,bison_pen:1.5,bison_target:1.5,tr20_pen:1.5,tr20_target:1.5,lam_lwm_pen:1.5,lam_lwm_target:1.5,birthday_campaign:1,campaign_1:2,d_key_accuracy:4,d_account_accuracy:4,d_outstanding:4,d_followup:4,e_punctuality:1,e_warehouse:1,e_efficiency:1,e_check_car:1,e_check_stock:1},
+};
+
+function getKPIWeights(month) {
+  if (!CONFIG.kpi_weights) CONFIG.kpi_weights = {};
+  return CONFIG.kpi_weights[month] || DEFAULT_KPI_WEIGHTS[month] || DEFAULT_KPI_WEIGHTS["Apr 26"];
+}
+
+function renderKPIWeights() {
+  const month = document.getElementById('kpi-month-select').value;
+  const weights = getKPIWeights(month);
+  const container = document.getElementById('kpi-weights-form');
+  if (!container) return;
+
+  let prevSec = null;
+  let html = '';
+
+  KPI_ITEM_DEFS.forEach(([key, label, sec, secLabel]) => {
+    if (sec !== prevSec) {
+      const color = SEC_COLORS[sec] || '#1A1714';
+      html += `<div style="background:${color};color:#fff;font-family:var(--mono);font-size:9px;font-weight:700;padding:6px 12px;border-radius:8px;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.08em;">${secLabel}</div>`;
+      prevSec = sec;
+    }
+    const w = weights[key] ?? 0;
+    const isZero = w === 0;
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:${isZero?'var(--bg)':'var(--surface)'};border:1px solid var(--border);border-radius:8px;margin-bottom:4px;">
+      <div>
+        <div style="font-family:var(--body);font-size:12px;color:${isZero?'var(--ink3)':'var(--ink)'};">${label}</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);">${key}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <input type="number" min="0" max="100" step="0.001"
+          value="${w}"
+          id="kpiw_${key}"
+          onchange="updateKPITotal()"
+          style="width:70px;font-family:var(--mono);font-size:12px;text-align:center;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:${isZero?'var(--ink3)':'var(--blue)'};">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--ink3);">%</span>
+      </div>
+    </div>`;
+  });
+
+  container.innerHTML = html;
+  updateKPITotal();
+}
+
+function updateKPITotal() {
+  let total = 0;
+  KPI_ITEM_DEFS.forEach(([key]) => {
+    const el = document.getElementById('kpiw_' + key);
+    if (el) total += parseFloat(el.value) || 0;
+  });
+  const disp = document.getElementById('kpi-total-display');
+  if (disp) {
+    const ok = Math.abs(total - 100) < 0.01;
+    disp.textContent = `Total: ${total.toFixed(3)}%`;
+    disp.style.color = ok ? 'var(--green)' : 'var(--accent)';
+  }
+}
+
+function saveKPIWeights() {
+  const month = document.getElementById('kpi-month-select').value;
+  if (!CONFIG.kpi_weights) CONFIG.kpi_weights = {};
+  const weights = {};
+  KPI_ITEM_DEFS.forEach(([key]) => {
+    const el = document.getElementById('kpiw_' + key);
+    weights[key] = parseFloat(el?.value || 0);
+  });
+  const total = Object.values(weights).reduce((a, b) => a + b, 0);
+  if (Math.abs(total - 100) > 0.1) {
+    alert(`Total is ${total.toFixed(3)}% — must be 100% before saving.`);
+    return;
+  }
+  // Store as decimal (÷100) to match process_data.py format
+  const weightsDecimal = {};
+  KPI_ITEM_DEFS.forEach(([key]) => { weightsDecimal[key] = (weights[key] / 100); });
+  CONFIG.kpi_weights[month] = weightsDecimal;
+  updateRawJSON();
+  const toast = document.getElementById('kpi-save-toast');
+  if (toast) { toast.style.display = 'block'; setTimeout(() => toast.style.display = 'none', 2500); }
+}
+
+function copyKPIWeightsFromMonth() {
+  const months = ["Jan 26","Feb 26","Mar 26","Apr 26"];
+  const current = document.getElementById('kpi-month-select').value;
+  const from = prompt(`Copy weights from which month?
+${months.filter(m=>m!==current).join(' / ')}`);
+  if (!from || !months.includes(from)) return;
+  const srcWeights = getKPIWeights(from);
+  KPI_ITEM_DEFS.forEach(([key]) => {
+    const el = document.getElementById('kpiw_' + key);
+    if (el) el.value = ((srcWeights[key] ?? 0) * (srcWeights[key] <= 1 ? 100 : 1)).toFixed(3);
+  });
+  updateKPITotal();
 }
 
 // ── Save / Export / Import ─────────────────────────────────────────────────
@@ -1928,10 +2144,23 @@ function createCampaign() {
   const minOrder = parseFloat(document.getElementById('new-camp-min-order')?.value)||null;
   const catRules = getCatRules();
 
+  // FOC fields
+  const focItem  = document.getElementById('new-camp-foc-item')?.value?.trim().toUpperCase()||'';
+  const focQty   = parseFloat(document.getElementById('new-camp-foc-qty')?.value)||0;
+  const focUnit  = document.getElementById('new-camp-foc-unit')?.value||'packs';
+  const focNote  = document.getElementById('new-camp-foc-note')?.value?.trim()||'';
+  const festive  = document.getElementById('new-camp-festive')?.value||'';
+
   CAMPAIGNS_DATA.campaigns.push({
     id:'camp_'+Date.now(), name, type, description:desc,
     brands, promo_detail:promo, min_order_ctn:minOrder,
     cat_rules: catRules,
+    // FOC/Festive fields
+    default_foc_item:  focItem,
+    default_foc_qty:   focQty,
+    default_foc_unit:  focUnit,
+    foc_note:          focNote,
+    festive_occasion:  festive,
     created_at:new Date().toISOString().split('T')[0],
     deadline, active:true, debtors:_campFileDebtors,
   });
@@ -1939,7 +2168,8 @@ function createCampaign() {
 
   // Reset form
   ['new-camp-name','new-camp-desc','new-camp-deadline','new-camp-file',
-   'new-camp-promo','new-camp-min-order'].forEach(id=>{
+   'new-camp-promo','new-camp-min-order',
+   'new-camp-foc-item','new-camp-foc-qty','new-camp-foc-note'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
   document.getElementById('camp-file-preview').textContent='';
@@ -1960,15 +2190,31 @@ function previewCampFile(input) {
   const reader = new FileReader();
 
   function processRows(headers, rows) {
-    const ci   = headers.findIndex(h=>h.includes('code'));
-    const ni   = headers.findIndex(h=>h.includes('name')||h.includes('company'));
-    const cati = headers.findIndex(h=>h==='cat'||h.includes('categ')||h.includes('rebate'));
+    const ci    = headers.findIndex(h=>h.includes('code'));
+    const ni    = headers.findIndex(h=>h.includes('name')||h.includes('company'));
+    const cati  = headers.findIndex(h=>h==='cat'||h.includes('categ')||h.includes('rebate'));
+    const agi   = headers.findIndex(h=>h==='agent');
+    const foci1 = headers.findIndex(h=>h.includes('foc item 1')||h.includes('foc_item_1')||h==='foc item');
+    const qty1  = headers.findIndex(h=>h.includes('qty 1')||h==='qty1'||h==='qty');
+    const foci2 = headers.findIndex(h=>h.includes('foc item 2')||h.includes('foc_item_2'));
+    const qty2  = headers.findIndex(h=>h.includes('qty 2')||h==='qty2');
+    const uniti = headers.findIndex(h=>h==='unit');
+    const appi  = headers.findIndex(h=>h.includes('approval'));
+    const notei = headers.findIndex(h=>h==='notes'||h.includes('note'));
 
     _campFileDebtors = rows.filter(r=>r[ci]&&String(r[ci]).trim()&&String(r[ci]).toLowerCase()!=='nan')
       .map(r=>({
-        code: String(r[ci]||'').trim(),
-        name: String(r[ni]||'').trim(),
-        cat:  cati>=0 ? String(r[cati]||'').trim() : '',
+        code:     String(r[ci]||'').trim(),
+        name:     String(r[ni]||'').trim(),
+        agent:    agi>=0  ? String(r[agi]||'').trim().toUpperCase() : '',
+        cat:      cati>=0 ? String(r[cati]||'').trim().toUpperCase() : '',
+        foc_item: foci1>=0 ? String(r[foci1]||'').trim().toUpperCase() : '',
+        foc_qty:  qty1>=0  ? parseFloat(r[qty1])||0 : 0,
+        foc_item2:foci2>=0 ? String(r[foci2]||'').trim().toUpperCase() : '',
+        foc_qty2: qty2>=0  ? parseFloat(r[qty2])||0 : 0,
+        foc_unit: uniti>=0 ? String(r[uniti]||'').trim() : '',
+        approval: appi>=0  ? String(r[appi]||'').trim().toUpperCase() === 'TRUE' : false,
+        notes:    notei>=0 ? String(r[notei]||'').trim() : '',
       }));
 
     // Detect unique categories
@@ -2016,6 +2262,10 @@ function previewCampFile(input) {
 function toggleBrandFields(type) {
   document.getElementById('brand-camp-fields').style.display =
     type === 'promotion' ? 'block' : 'none';
+  document.getElementById('foc-camp-fields').style.display =
+    (type === 'free_sample' || type === 'festive_gift') ? 'block' : 'none';
+  document.getElementById('festive-camp-fields').style.display =
+    type === 'festive_gift' ? 'block' : 'none';
 }
 
 function closeCampaign(id) {
@@ -2027,23 +2277,82 @@ function renderCampaignsList() {
   const el=document.getElementById('campaigns-list');
   if(!el)return;
   const active=CAMPAIGNS_DATA.campaigns.filter(c=>c.active);
-  const TYPES={free_sample:'🎁 Free Sample',birthday_gift:'🎂 Birthday Gift',promotion:'📢 Brand Promotion',festive_gift:'🧧 Festive Gift',other:'📋 Other'};
-  el.innerHTML=active.length?active.map(c=>`
-    <div class="admin-card" style="margin-bottom:8px;border-left:4px solid var(--accent);">
+  const inactive=CAMPAIGNS_DATA.campaigns.filter(c=>!c.active);
+  const TYPES={free_sample:'🎁 Free Sample',birthday_gift:'🎂 Birthday Gift',promotion:'📢 Brand Promotion',festive_gift:'🧧 Festive Gift',foc_sample:'🎁 FOC Sample',other:'📋 Other'};
+  const TYPE_COLORS={free_sample:'#c8860a',foc_sample:'#c8860a',birthday_gift:'#c8381a',promotion:'#1a5c8f',festive_gift:'#6b3fa0',other:'#555'};
+
+  const renderCard = (c, isInactive) => `
+    <div class="admin-card" id="camp-card-${c.id}" style="margin-bottom:8px;border-left:4px solid ${TYPE_COLORS[c.type]||'var(--accent)'};opacity:${isInactive?0.6:1};">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
         <div style="flex:1;">
-          <div style="font-family:var(--mono);font-size:9px;color:#888;">${TYPES[c.type]||c.type}</div>
-          <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;">${c.name}</div>
-          ${c.description?`<div style="font-family:var(--mono);font-size:9px;color:#888;margin-top:2px;">${c.description}</div>`:''}
-          ${c.brands?.length?`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">${c.brands.map(b=>`<span style="font-family:var(--mono);font-size:9px;background:rgba(200,56,26,.1);color:#c8381a;padding:2px 8px;border-radius:8px;border:1px solid rgba(200,56,26,.3);">${b}</span>`).join('')}</div>`:''}
-          ${c.promo_detail?`<div style="font-family:var(--mono);font-size:10px;color:var(--green);margin-top:4px;font-weight:600;">💬 "${c.promo_detail}"</div>`:''}
-          ${c.min_order_ctn?`<div style="font-family:var(--mono);font-size:9px;color:#888;margin-top:2px;">Min order: ${c.min_order_ctn} CTN</div>`:''}
+          <div style="font-family:var(--mono);font-size:9px;color:#888;">${TYPES[c.type]||c.type}${isInactive?' · CLOSED':''}</div>
+          <div id="camp-name-${c.id}" style="font-family:var(--display);font-size:18px;letter-spacing:.05em;">${c.name}</div>
+          <div id="camp-desc-disp-${c.id}" style="font-family:var(--mono);font-size:9px;color:#888;margin-top:2px;">${c.description||''}</div>
+          <div id="camp-edit-form-${c.id}" style="display:none;margin-top:8px;">
+            <input type="text" id="camp-edit-name-${c.id}" value="${c.name}"
+              style="width:100%;font-family:var(--body);font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);margin-bottom:6px;">
+            <input type="text" id="camp-edit-desc-${c.id}" value="${(c.description||'').replace(/"/g,'&quot;')}" placeholder="Description shown to agents"
+              style="width:100%;font-family:var(--body);font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);margin-bottom:6px;">
+            <input type="text" id="camp-edit-promo-${c.id}" value="${(c.promo_detail||'').replace(/"/g,'&quot;')}" placeholder="Promo detail (e.g. 买10条送4条 BISON)"
+              style="width:100%;font-family:var(--body);font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);margin-bottom:6px;">
+            <div style="display:flex;gap:6px;">
+              <input type="date" id="camp-edit-deadline-${c.id}" value="${c.deadline||''}"
+                style="flex:1;font-family:var(--mono);font-size:11px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);">
+              <button onclick="saveCampEdit('${c.id}')" style="background:var(--green);border:none;color:#fff;font-family:var(--mono);font-size:10px;padding:6px 14px;border-radius:8px;cursor:pointer;">✓ Save</button>
+              <button onclick="cancelCampEdit('${c.id}')" style="background:none;border:1px solid var(--border);color:var(--ink3);font-family:var(--mono);font-size:10px;padding:6px 10px;border-radius:8px;cursor:pointer;">Cancel</button>
+            </div>
+          </div>
+          ${c.brand?`<span style="font-family:var(--mono);font-size:9px;background:rgba(200,56,26,.1);color:#c8381a;padding:2px 8px;border-radius:8px;border:1px solid rgba(200,56,26,.3);margin-top:6px;display:inline-block;">${c.brand}</span>`:''}
+          ${c.promo_detail?`<div id="camp-promo-disp-${c.id}" style="font-family:var(--mono);font-size:10px;color:var(--green);margin-top:4px;font-weight:600;">💬 "${c.promo_detail}"</div>`:''}
+          ${c.default_foc_item?`<div style="font-family:var(--mono);font-size:9px;color:#888;margin-top:2px;">🎁 Default FOC: ${c.default_foc_item} × ${c.default_foc_qty} ${c.default_foc_unit||''}</div>`:''}
         </div>
-        <button onclick="closeCampaign('${c.id}')" style="background:none;border:1px solid #ddd;color:#888;font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;margin-left:8px;flex-shrink:0;">Close</button>
+        <div style="display:flex;gap:6px;margin-left:8px;flex-shrink:0;">
+          <button onclick="editCampaign('${c.id}')" style="background:none;border:1px solid var(--border);color:var(--blue);font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">✏ Edit</button>
+          ${!isInactive?`<button onclick="closeCampaign('${c.id}')" style="background:none;border:1px solid #ddd;color:#888;font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">Close</button>`:`<button onclick="reopenCampaign('${c.id}')" style="background:none;border:1px solid var(--green);color:var(--green);font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">Reopen</button>`}
+        </div>
       </div>
-      <div style="font-family:var(--mono);font-size:10px;color:#555;">📋 ${c.debtors?.length||0} debtors &nbsp;·&nbsp; ⏰ ${c.deadline}</div>
-    </div>`).join('')
-  :'<div style="font-family:var(--mono);font-size:10px;color:#888;padding:8px 0;">No active campaigns. Create one below.</div>';
+      <div style="font-family:var(--mono);font-size:10px;color:#555;">📋 ${c.debtors?.length||0} debtors &nbsp;·&nbsp; ⏰ ${c.deadline||'no deadline'} &nbsp;·&nbsp; 📅 Start: ${c.start_date||c.created_at||'—'}</div>
+    </div>`;
+
+  el.innerHTML = (active.length ? active.map(c=>renderCard(c,false)).join('') : '<div style="font-family:var(--mono);font-size:10px;color:#888;padding:8px 0;">No active campaigns.</div>')
+    + (inactive.length ? `<div style="font-family:var(--mono);font-size:9px;color:#888;margin-top:12px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Closed Campaigns (${inactive.length})</div>`
+    + inactive.map(c=>renderCard(c,true)).join('') : '');
+}
+
+function editCampaign(id) {
+  document.getElementById('camp-edit-form-'+id).style.display = 'block';
+  document.getElementById('camp-name-'+id).style.opacity = '.4';
+  document.getElementById('camp-desc-disp-'+id).style.display = 'none';
+  const promoDisp = document.getElementById('camp-promo-disp-'+id);
+  if (promoDisp) promoDisp.style.display = 'none';
+}
+
+function cancelCampEdit(id) {
+  document.getElementById('camp-edit-form-'+id).style.display = 'none';
+  document.getElementById('camp-name-'+id).style.opacity = '1';
+  document.getElementById('camp-desc-disp-'+id).style.display = 'block';
+  const promoDisp = document.getElementById('camp-promo-disp-'+id);
+  if (promoDisp) promoDisp.style.display = 'block';
+}
+
+function saveCampEdit(id) {
+  const camp = CAMPAIGNS_DATA.campaigns.find(c=>c.id===id);
+  if (!camp) return;
+  const name     = document.getElementById('camp-edit-name-'+id)?.value?.trim();
+  const desc     = document.getElementById('camp-edit-desc-'+id)?.value?.trim();
+  const promo    = document.getElementById('camp-edit-promo-'+id)?.value?.trim();
+  const deadline = document.getElementById('camp-edit-deadline-'+id)?.value;
+  if (name)     camp.name         = name;
+  if (desc !== undefined) camp.description  = desc;
+  if (promo !== undefined) camp.promo_detail = promo;
+  if (deadline) camp.deadline     = deadline;
+  saveCampaignsData();
+  renderCampaignsList();
+}
+
+function reopenCampaign(id) {
+  const c = CAMPAIGNS_DATA.campaigns.find(x=>x.id===id);
+  if (c) { c.active = true; saveCampaignsData(); renderCampaignsList(); }
 }
 
 function saveCampaignsJSON() {
