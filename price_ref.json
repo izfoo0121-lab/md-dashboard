@@ -1,0 +1,612 @@
+{
+  "_description": "Price reference for MIRACLE & SS2 (GRP 2A). Extracted from Other Ref.xlsx.",
+  "_last_updated": "2026-04-05",
+  "_notes": {
+    "rm_below_sub": "RM/CTN threshold — if actual RM/CTN >= this → Sales Type = Target",
+    "rm_ma_3045": "RM/CTN threshold — if >= this → Grey Area (unified=true) or MA 35/45/55 (unified=false)",
+    "rm_ma": "RM/CTN threshold — if >= this → Master Agent/Promo; below = Below Master Agent",
+    "unified": "True means Grey Area instead of Master Agent 35/45/55 for the middle tier",
+    "pkt_ctn": "Packets per carton — used to convert: RM/CTN = unit_price × pkt_ctn, QTY_CTN = smallest_qty ÷ pkt_ctn",
+    "comm_rate": "Commission rate for this item (Miracle-specific rate, or MVP fallback)"
+  },
+  "items": {
+    "90": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 36.0,
+      "rm_ma_3045": 35.52,
+      "rm_ma": 35.0,
+      "unified": false,
+      "comm_rate": 35.0
+    },
+    "IMP-001": {
+      "ctn_box": 80.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 36.0,
+      "rm_ma_3045": 34.25,
+      "rm_ma": 32.5,
+      "unified": true,
+      "comm_rate": 32.0
+    },
+    "EVO": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 33.0,
+      "rm_ma_3045": 32.52,
+      "rm_ma": 32.0,
+      "unified": false,
+      "comm_rate": 35.0
+    },
+    "LB22": {
+      "ctn_box": 60.0,
+      "pkt_ctn": 8.0,
+      "rm_below_sub": 38.5,
+      "rm_ma_3045": 37.1667,
+      "rm_ma": 35.83,
+      "unified": true,
+      "comm_rate": 24.0
+    },
+    "LC22": {
+      "ctn_box": 60.0,
+      "pkt_ctn": 8.0,
+      "rm_below_sub": 35.2333,
+      "rm_ma_3045": 34.75,
+      "rm_ma": 34.23,
+      "unified": false,
+      "comm_rate": 45.0
+    },
+    "LC20": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 37.0,
+      "rm_ma_3045": 34.7,
+      "rm_ma": 32.4,
+      "unified": true,
+      "comm_rate": 35.0
+    },
+    "LF-002": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 44.0,
+      "rm_ma_3045": 42.5,
+      "rm_ma": 41.0,
+      "unified": true,
+      "comm_rate": 35.0
+    },
+    "LG-001": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 37.0,
+      "rm_ma_3045": 37.0,
+      "rm_ma": 36.0,
+      "unified": false
+    },
+    "LIC-001": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 43.0,
+      "rm_ma_3045": 41.5,
+      "rm_ma": 40.0,
+      "unified": true,
+      "comm_rate": 35.0
+    },
+    "LMM-002": {
+      "ctn_box": 80.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 42.25,
+      "rm_ma_3045": 39.6,
+      "rm_ma": 36.93,
+      "unified": true,
+      "comm_rate": 32.0
+    },
+    "LR-001": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 36.0,
+      "rm_ma_3045": 0.0,
+      "rm_ma": 36.0,
+      "unified": false
+    },
+    "MI-002": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 44.0,
+      "rm_ma_3045": 44.0,
+      "rm_ma": 44.0,
+      "unified": false
+    },
+    "MM": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 20.0,
+      "rm_ma_3045": 0.0,
+      "rm_ma": 20.0,
+      "unified": false
+    },
+    "MS-002": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 44.0,
+      "rm_ma_3045": 0.0,
+      "rm_ma": 44.0,
+      "unified": false
+    },
+    "PA-003": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 17.0,
+      "rm_ma_3045": 17.0,
+      "rm_ma": 17.0,
+      "unified": false
+    },
+    "PC-002": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 17.0,
+      "rm_ma_3045": 17.0,
+      "rm_ma": 17.0,
+      "unified": false
+    },
+    "PM": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 17.0,
+      "rm_ma_3045": 0.0,
+      "rm_ma": 17.0,
+      "unified": false
+    },
+    "CMP": {
+      "ctn_box": 80.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 40.0,
+      "rm_ma_3045": 40.0,
+      "rm_ma": 35.0,
+      "unified": true,
+      "comm_rate": 32.0
+    },
+    "LAM": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 40.0,
+      "rm_ma_3045": 36.5,
+      "rm_ma": 33.0,
+      "unified": true,
+      "comm_rate": 35.0
+    },
+    "LWM": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 40.0,
+      "rm_ma_3045": 36.5,
+      "rm_ma": 33.0,
+      "unified": true,
+      "comm_rate": 35.0
+    },
+    "TR-002": {
+      "ctn_box": 80.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 34.5,
+      "rm_ma_3045": 33.1875,
+      "rm_ma": 31.87,
+      "unified": true,
+      "comm_rate": 32.0
+    },
+    "TR20": {
+      "ctn_box": 60.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 54.5,
+      "rm_ma_3045": 52.25,
+      "rm_ma": 50.0,
+      "unified": true,
+      "comm_rate": 24.0
+    },
+    "MINNA": {
+      "ctn_box": 80.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 18.0,
+      "rm_ma_3045": 0.0,
+      "rm_ma": 18.0,
+      "unified": false
+    },
+    "PS-003": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 39.0,
+      "rm_ma_3045": 0.0,
+      "rm_ma": 39.0,
+      "unified": false
+    },
+    "CM-002": {
+      "ctn_box": 80.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 41.5,
+      "rm_ma_3045": 39.6875,
+      "rm_ma": 37.87,
+      "unified": true,
+      "comm_rate": 32.0
+    },
+    "CMX": {
+      "ctn_box": 80.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 41.5,
+      "rm_ma_3045": 39.6875,
+      "rm_ma": 37.87,
+      "unified": true,
+      "comm_rate": 32.0
+    },
+    "CLASS MILD": {
+      "ctn_box": 80.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 26.0,
+      "rm_ma_3045": 0.0,
+      "rm_ma": 26.0,
+      "unified": false
+    },
+    "DPM EVO": {
+      "ctn_box": 80.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 38.0,
+      "rm_ma_3045": 35.375,
+      "rm_ma": 32.75,
+      "unified": true,
+      "comm_rate": 32.0
+    },
+    "IFACE DB": {
+      "ctn_box": 60.0,
+      "pkt_ctn": 8.0,
+      "rm_below_sub": 46.2667,
+      "rm_ma_3045": 45.7833,
+      "rm_ma": 45.2667,
+      "unified": false,
+      "comm_rate": 45.0
+    },
+    "IFACE B": {
+      "ctn_box": 60.0,
+      "pkt_ctn": 8.0,
+      "rm_below_sub": 29.1,
+      "rm_ma_3045": 29.1,
+      "rm_ma": 29.1,
+      "unified": false
+    },
+    "IFACE M": {
+      "ctn_box": 60.0,
+      "pkt_ctn": 8.0,
+      "rm_below_sub": 29.1,
+      "rm_ma_3045": 29.1,
+      "rm_ma": 29.1,
+      "unified": false
+    },
+    "IFACE R": {
+      "ctn_box": 60.0,
+      "pkt_ctn": 8.0,
+      "rm_below_sub": 29.1,
+      "rm_ma_3045": 29.1,
+      "rm_ma": 29.1,
+      "unified": false
+    },
+    "SKNR": {
+      "ctn_box": 80.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 37.0,
+      "rm_ma_3045": 37.0,
+      "rm_ma": 37.0,
+      "unified": false,
+      "comm_rate": 55.0
+    },
+    "SKNW": {
+      "ctn_box": 80.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 37.0,
+      "rm_ma_3045": 37.0,
+      "rm_ma": 37.0,
+      "unified": false,
+      "comm_rate": 55.0
+    },
+    "LR22": {
+      "ctn_box": 60.0,
+      "pkt_ctn": 8.0,
+      "rm_below_sub": 40.0,
+      "rm_ma_3045": 37.1667,
+      "rm_ma": 35.8333,
+      "unified": true,
+      "comm_rate": 24.0
+    },
+    "LG22": {
+      "ctn_box": 60.0,
+      "pkt_ctn": 8.0,
+      "rm_below_sub": 38.5,
+      "rm_ma_3045": 37.1667,
+      "rm_ma": 35.8333,
+      "unified": true,
+      "comm_rate": 24.0
+    },
+    "MARISE": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 22.0,
+      "rm_ma_3045": 22.0,
+      "rm_ma": 22.0,
+      "unified": false
+    },
+    "HTM-002": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": null,
+      "rm_ma_3045": null,
+      "rm_ma": null,
+      "unified": false
+    },
+    "HTM QG": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": null,
+      "rm_ma_3045": null,
+      "rm_ma": null,
+      "unified": false
+    },
+    "TS R": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 45.0,
+      "rm_ma_3045": 45.0,
+      "rm_ma": 45.0,
+      "unified": false
+    },
+    "HHL G": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 67.0,
+      "rm_ma_3045": 67.0,
+      "rm_ma": 67.0,
+      "unified": false
+    },
+    "FRW B": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 102.0,
+      "rm_ma_3045": 102.0,
+      "rm_ma": 102.0,
+      "unified": false
+    },
+    "FRW G": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 77.0,
+      "rm_ma_3045": 77.0,
+      "rm_ma": 77.0,
+      "unified": false
+    },
+    "HTS": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 57.0,
+      "rm_ma_3045": 57.0,
+      "rm_ma": 57.0,
+      "unified": false
+    },
+    "GY": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 122.0,
+      "rm_ma_3045": 122.0,
+      "rm_ma": 122.0,
+      "unified": false
+    },
+    "EC": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 50.0,
+      "rm_ma_3045": 50.0,
+      "rm_ma": 50.0,
+      "unified": false
+    },
+    "PC DW": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 50.0,
+      "rm_ma_3045": 50.0,
+      "rm_ma": 50.0,
+      "unified": false
+    },
+    "ZYG": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 60.0,
+      "rm_ma_3045": 60.0,
+      "rm_ma": 60.0,
+      "unified": false
+    },
+    "ZPA": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 60.0,
+      "rm_ma_3045": 60.0,
+      "rm_ma": 60.0,
+      "unified": false
+    },
+    "ZL": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 60.0,
+      "rm_ma_3045": 60.0,
+      "rm_ma": 60.0,
+      "unified": false
+    },
+    "BISON-G": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 28.0,
+      "rm_ma_3045": 28.0,
+      "rm_ma": 28.0,
+      "unified": false
+    },
+    "BISON-R": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 28.0,
+      "rm_ma_3045": 28.0,
+      "rm_ma": 28.0,
+      "unified": false
+    },
+    "BISON-M": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 28.0,
+      "rm_ma_3045": 28.0,
+      "rm_ma": 28.0,
+      "unified": false
+    },
+    "CM-MI": {
+      "ctn_box": 80.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 39.0,
+      "rm_ma_3045": 39.0,
+      "rm_ma": 39.0,
+      "unified": false
+    },
+    "CM-SS": {
+      "ctn_box": 80.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 38.5,
+      "rm_ma_3045": 38.5,
+      "rm_ma": 38.5,
+      "unified": false
+    },
+    "EVO-MI": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 33.0,
+      "rm_ma_3045": 33.0,
+      "rm_ma": 33.0,
+      "unified": false
+    },
+    "TR-SS": {
+      "ctn_box": 80.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 32.5,
+      "rm_ma_3045": 32.5,
+      "rm_ma": 32.5,
+      "unified": false
+    },
+    "TR-MI": {
+      "ctn_box": 80.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 33.0,
+      "rm_ma_3045": 33.0,
+      "rm_ma": 33.0,
+      "unified": false
+    },
+    "LBOLD": {
+      "ctn_box": 60.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": 41.0,
+      "rm_ma_3045": 41.0,
+      "rm_ma": 41.0,
+      "unified": false
+    },
+    "CANYON R": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": null,
+      "rm_ma_3045": null,
+      "rm_ma": null,
+      "unified": false
+    },
+    "GB": {
+      "ctn_box": 60.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": null,
+      "rm_ma_3045": null,
+      "rm_ma": null,
+      "unified": false
+    },
+    "JDB": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": null,
+      "rm_ma_3045": null,
+      "rm_ma": null,
+      "unified": false
+    },
+    "RE16-60": {
+      "ctn_box": 60.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": null,
+      "rm_ma_3045": null,
+      "rm_ma": null,
+      "unified": false
+    },
+    "AMR16": {
+      "ctn_box": 60.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": null,
+      "rm_ma_3045": null,
+      "rm_ma": null,
+      "unified": false
+    },
+    "JGI": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": null,
+      "rm_ma_3045": null,
+      "rm_ma": null,
+      "unified": false
+    },
+    "AMR12": {
+      "ctn_box": 80.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": null,
+      "rm_ma_3045": null,
+      "rm_ma": null,
+      "unified": false
+    },
+    "U2-R": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": null,
+      "rm_ma_3045": null,
+      "rm_ma": null,
+      "unified": false
+    },
+    "RE-B (20S)": {
+      "ctn_box": 60.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": null,
+      "rm_ma_3045": null,
+      "rm_ma": null,
+      "unified": false
+    },
+    "JW25": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": null,
+      "rm_ma_3045": null,
+      "rm_ma": null,
+      "unified": false
+    },
+    "JDBSS": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 20.0,
+      "rm_below_sub": null,
+      "rm_ma_3045": null,
+      "rm_ma": null,
+      "unified": false
+    },
+    "CANYON G": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": null,
+      "rm_ma_3045": null,
+      "rm_ma": null,
+      "unified": false
+    },
+    "DF": {
+      "ctn_box": 50.0,
+      "pkt_ctn": 10.0,
+      "rm_below_sub": null,
+      "rm_ma_3045": null,
+      "rm_ma": null,
+      "unified": false
+    }
+  }
+}
