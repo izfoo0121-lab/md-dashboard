@@ -90,6 +90,44 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
 /* View tabs */
 .tab-content{display:none;}
 .tab-content.active{display:block;}
+
+/* ── Mobile Responsive ── */
+@media (max-width: 600px) {
+  .page-body{padding:10px 12px;max-width:100%;}
+  .admin-header{padding:12px 14px;}
+  .admin-title{font-size:24px;}
+  .tab-btn{font-size:9px;padding:10px 10px;}
+
+  /* Stack 2-col grids to single column on small screens */
+  .input-row{grid-template-columns:1fr;}
+  .input-row-4{grid-template-columns:1fr 1fr;}
+
+  /* Agent card */
+  .admin-card{padding:12px;}
+  .agent-name{font-size:16px;}
+
+  /* Nav bar */
+  .nav-bar{gap:4px;padding:6px 10px;}
+  .nav-btn{font-size:9px;padding:5px 8px;}
+
+  /* SKU status table — allow horizontal scroll */
+  #admin-brand-sku-status{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+
+  /* Save button */
+  .save-btn{font-size:18px;padding:12px;}
+
+  /* Section headers */
+  .sec-header{font-size:18px;}
+}
+
+@media (min-width: 601px) and (max-width: 900px) {
+  .page-body{max-width:100%;padding:14px 20px;}
+  .input-row-4{grid-template-columns:1fr 1fr;}
+}
+
+@media (min-width: 901px) {
+  .page-body{max-width:640px;}
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
