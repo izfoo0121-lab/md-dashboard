@@ -2373,6 +2373,36 @@ function renderCamps() {
     });
   });
 
+  // ── Inject birthday campaign debtors ───────────────────────────────────
+  if (_campFilter === 'all' || _campFilter === 'birthday_gift') {
+    const bdayCamp = DATA.birthday_campaign;
+    if (bdayCamp) {
+      const bdayId = 'birthday_gift_auto';
+      const agentBdayDebtors = (bdayCamp.debtors || []).filter(d => d.agent === currentAgent);
+      if (agentBdayDebtors.length) {
+        if (!campMap[bdayId]) campMap[bdayId] = {
+          id: bdayId,
+          name: 'Birthday Gift — ' + (bdayCamp.month || 'This Month'),
+          type: 'birthday_gift',
+          brand: '',
+          debtors: [],
+          description: 'VIP debtors with birthday this month',
+          deadline: '',
+        };
+        agentBdayDebtors.forEach(bd => {
+          const fullDebtor = debtors.find(d => d.debtor_code === bd.code) || {
+            debtor_code: bd.code,
+            company_name: bd.name,
+            phone: bd.phone,
+            debtor_type: bd.type,
+          };
+          const vs = statuses[`${bdayId}_${bd.code}`];
+          campMap[bdayId].debtors.push({ ...fullDebtor, visit_status: vs });
+        });
+      }
+    }
+  }
+
   const camps = Object.values(campMap);
 
   if (!camps.length) {
@@ -2438,7 +2468,10 @@ function renderCamps() {
               const claimData  = getCampClaims(currentAgent, c.id, d.debtor_code);
               const isClaimed  = !!claimData;
               const isFOCt     = c.type==='foc_sample'||c.type==='festive_gift';
-              const claimLbl   = isClaimed ? (isFOCt?'✔ Delivered':'✔ Claimed') : (isFOCt?'🎁 Deliver':'🎁 Claim');
+              const isBday     = c.type==='birthday_gift';
+              const claimLbl   = isClaimed
+                ? (isBday?'✔ Sent':isFOCt?'✔ Delivered':'✔ Claimed')
+                : (isBday?'🎂 Mark Sent':isFOCt?'🎁 Deliver':'🎁 Claim');
               const claimBg    = isClaimed ? 'rgba(61,220,132,.2)' : isFOCt ? 'rgba(200,134,10,.15)' : 'rgba(255,255,255,.08)';
               const claimColor = isClaimed ? 'var(--green)' : isFOCt ? 'var(--gold)' : 'var(--muted)';
               const claimBdr   = isClaimed ? 'var(--green)' : isFOCt ? 'var(--gold)' : 'var(--border)';
