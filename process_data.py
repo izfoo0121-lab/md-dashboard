@@ -1847,9 +1847,14 @@ def calc_brand_campaigns(df, targets, agents, cur_month, prev_months, brand_conf
 # ── Team summary ──────────────────────────────────────────────────────────────
 
 
+def _month_short(label):
+    """Extract just the month name: 'Mar 26' → 'Mar', 'Mar' → 'Mar'."""
+    if not label: return ""
+    return str(label).split()[0]
+
 def _calc_prev_month_ctn(df, prev_months, cur_month=None):
     """Sum CTN for prev month invoices that got paid THIS month.
-    i.e. tranx_mth == prev_month AND paid_on == cur_month
+    i.e. tranx_mth == prev_month (short) AND paid_on == cur_month (full)
     Scoped to GRP 2A only.
     """
     if df is None or not prev_months or not cur_month: return 0
@@ -1858,7 +1863,9 @@ def _calc_prev_month_ctn(df, prev_months, cur_month=None):
     try:
         scoped = df[df["area_code"] == SCOPE_AREA]
         canggih = scoped[scoped["item_group"] != EIGHTCOM_GROUP]
-        mask = (canggih["tranx_mth"] == prev_m) & (canggih["paid_on"] == cur_month)
+        # tranx_mth may be "Feb" or "Feb 26" — match both formats
+        prev_short = _month_short(prev_m)
+        mask = (canggih["tranx_mth"].isin([prev_m, prev_short])) & (canggih["paid_on"] == cur_month)
         return round(float(canggih[mask]["qty_ctn"].sum()), 2)
     except: return 0
 
@@ -1869,7 +1876,8 @@ def _calc_total_sales_ctn(df, cur_month):
     try:
         scoped = df[df["area_code"] == SCOPE_AREA]
         canggih = scoped[scoped["item_group"] != EIGHTCOM_GROUP]
-        return round(float(canggih[canggih["tranx_mth"] == cur_month]["qty_ctn"].sum()), 2)
+        cur_short = _month_short(cur_month)
+        return round(float(canggih[canggih["tranx_mth"].isin([cur_month, cur_short])]["qty_ctn"].sum()), 2)
     except: return 0
 
 
@@ -1880,7 +1888,8 @@ def _calc_cur_month_paid_ctn(df, cur_month):
     try:
         scoped = df[df["area_code"] == SCOPE_AREA]
         canggih = scoped[scoped["item_group"] != EIGHTCOM_GROUP]
-        mask = (canggih["tranx_mth"] == cur_month) & (canggih["paid_on"] == cur_month)
+        cur_short = _month_short(cur_month)
+        mask = (canggih["tranx_mth"].isin([cur_month, cur_short])) & (canggih["paid_on"] == cur_month)
         return round(float(canggih[mask]["qty_ctn"].sum()), 2)
     except: return 0
 
