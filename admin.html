@@ -1246,7 +1246,9 @@ function renderKPIWeights() {
       html += `<div style="background:${color};color:#fff;font-family:var(--mono);font-size:9px;font-weight:700;padding:6px 12px;border-radius:8px;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.08em;">${secLabel}</div>`;
       prevSec = sec;
     }
-    const w = weights[key] ?? 0;
+    const raw = weights[key] ?? 0;
+    // weights stored as decimal (0.37) — display as % (37)
+    const w = raw <= 1 ? parseFloat((raw * 100).toFixed(3)) : parseFloat(raw.toFixed(3));
     const isZero = w === 0;
     html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:${isZero?'var(--bg)':'var(--surface)'};border:1px solid var(--border);border-radius:8px;margin-bottom:4px;">
       <div>
