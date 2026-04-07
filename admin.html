@@ -270,12 +270,19 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
         </div>
 
         <div class="sec-divider" style="margin-top:14px;">Step 2 — Create or Connect Gist</div>
-        <div style="display:flex;gap:10px;margin-top:8px;">
-          <button class="save-btn" onclick="createNewGist()" style="flex:1;background:var(--green);">
-            ✨ Create New Gist (First Time Setup)
+        <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;">
+          <button class="save-btn" onclick="createNewGist()" style="flex:1;min-width:200px;background:var(--green);">
+            ✨ Create New Gist (First Time)
           </button>
-          <button class="save-btn" onclick="connectExistingGist()" style="flex:1;background:var(--blue);">
+          <button class="save-btn" onclick="connectExistingGist()" style="flex:1;min-width:200px;background:var(--blue);">
             🔗 Connect Existing Gist
+          </button>
+        </div>
+        <div style="margin-top:10px;padding:12px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);border-radius:8px;">
+          <div style="font-family:var(--mono);font-size:10px;color:var(--purple);font-weight:700;margin-bottom:6px;">📱 Deploy to All Agent Devices</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-bottom:8px;">After connecting, click below to generate the sales_dashboard.html with the token baked in — all agent phones sync automatically without any setup.</div>
+          <button class="save-btn" onclick="showDeployInstructions()" style="width:100%;background:var(--purple);">
+            📱 Show Deploy Instructions for All Devices
           </button>
         </div>
         <div class="input-group" style="margin-top:10px;">
@@ -896,6 +903,53 @@ async function connectExistingGist() {
   } else {
     alert('Connection failed: ' + result.error);
   }
+}
+
+function showDeployInstructions() {
+  const cfg = GistSync.getConfig();
+  if (!GistSync.isConfigured()) {
+    alert('Please connect a Gist first (Step 2)');
+    return;
+  }
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;';
+  overlay.innerHTML = `
+    <div style="background:#1c1c24;border:1px solid rgba(167,139,250,.4);border-radius:16px;padding:24px;width:100%;max-width:560px;margin-top:20px;">
+      <div style="font-family:monospace;font-size:18px;color:var(--purple,#a78bfa);font-weight:700;margin-bottom:4px;">📱 Deploy to All Agent Devices</div>
+      <div style="font-family:monospace;font-size:10px;color:#6a687a;margin-bottom:18px;">Follow these steps to make ALL agent phones sync automatically</div>
+
+      <div style="font-family:monospace;font-size:11px;color:#f0c040;background:rgba(240,192,64,.08);border:1px solid rgba(240,192,64,.2);border-radius:8px;padding:10px;margin-bottom:16px;">
+        ⚠ After this, every phone that opens the dashboard will sync claims and flags automatically — no setup needed per device.
+      </div>
+
+      <div style="font-family:monospace;font-size:9px;color:#6a687a;text-transform:uppercase;margin-bottom:5px;">Step 1 — Open this file on your computer</div>
+      <div style="font-family:monospace;font-size:11px;color:#4da6ff;background:#0e0e12;border:1px solid rgba(77,166,255,.2);border-radius:8px;padding:10px;margin-bottom:14px;">
+        C:\Users\tgy_3\Desktop\md-dashboard\sales_dashboard.html
+      </div>
+
+      <div style="font-family:monospace;font-size:9px;color:#6a687a;text-transform:uppercase;margin-bottom:5px;">Step 2 — Find this line in the file (search with Ctrl+F)</div>
+      <div style="background:#0e0e12;border:1px solid rgba(255,95,95,.3);border-radius:8px;padding:10px;margin-bottom:14px;">
+        <div style="font-family:monospace;font-size:11px;color:#ff5f5f;">const HARDCODED_TOKEN   = '%%GITHUB_TOKEN%%';</div>
+      </div>
+
+      <div style="font-family:monospace;font-size:9px;color:#6a687a;text-transform:uppercase;margin-bottom:5px;">Step 3 — Replace it with (copy exactly)</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <div id="deploy-snippet" style="flex:1;background:#0e0e12;border:1px solid rgba(61,220,132,.3);border-radius:8px;padding:10px;font-family:monospace;font-size:11px;color:#3ddc84;word-break:break-all;">const HARDCODED_TOKEN   = '${cfg.token}';</div>
+        <button onclick="const el=document.getElementById('deploy-snippet');const range=document.createRange();range.selectNodeContents(el);window.getSelection().removeAllRanges();window.getSelection().addRange(range);document.execCommand('copy');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',2000);"
+          style="background:#3ddc84;border:none;color:#000;font-family:monospace;font-size:11px;font-weight:700;padding:10px 14px;border-radius:8px;cursor:pointer;white-space:nowrap;align-self:flex-start;">Copy</button>
+      </div>
+
+      <div style="font-family:monospace;font-size:9px;color:#6a687a;text-transform:uppercase;margin-bottom:5px;">Step 4 — Save file and run bat</div>
+      <div style="font-family:monospace;font-size:11px;color:#6a687a;margin-bottom:16px;">Save the file → run update_dashboard.bat → all agent phones will now sync automatically on next refresh.</div>
+
+      <div style="font-family:monospace;font-size:9px;color:#3ddc84;background:rgba(61,220,132,.08);border:1px solid rgba(61,220,132,.2);border-radius:8px;padding:10px;margin-bottom:16px;">
+        Gist ID already hardcoded: ${cfg.gist_id}
+      </div>
+
+      <button onclick="this.closest('div[style*=fixed]').remove();"
+        style="width:100%;background:#3ddc84;border:none;color:#000;font-family:monospace;font-size:13px;font-weight:800;padding:12px;border-radius:10px;cursor:pointer;">Close</button>
+    </div>`;
+  document.body.appendChild(overlay);
 }
 
 async function forcePull() {
@@ -2695,18 +2749,31 @@ const GistSync = (() => {
 
   const CONFIG_KEY = 'md_gist_config';
 
+  // ── Hardcoded fallback — set by admin, works for ALL devices automatically ──
+  // Token scope: gist only (cannot touch code repo — safe to embed)
+  const HARDCODED_GIST_ID = 'c0d507b6d645bda40b9884b184e5414b';
+  const HARDCODED_TOKEN   = '%%GITHUB_TOKEN%%';  // Admin replaces this via admin.html
+
   function getConfig() {
-    try { return JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}'); }
-    catch { return {}; }
+    // Priority: localStorage (admin override) → hardcoded defaults
+    try {
+      const ls = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
+      return {
+        gist_id: ls.gist_id || HARDCODED_GIST_ID,
+        token:   ls.token   || HARDCODED_TOKEN,
+      };
+    }
+    catch { return { gist_id: HARDCODED_GIST_ID, token: HARDCODED_TOKEN }; }
   }
 
   function saveConfig(cfg) {
     localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
+    // Note: hardcoded values in HTML are the fallback — localStorage takes priority
   }
 
   function isConfigured() {
     const c = getConfig();
-    return !!(c.gist_id && c.token);
+    return !!(c.gist_id && c.token && c.token !== '%%GITHUB_TOKEN%%');
   }
 
   // ── Read all data from Gist ─────────────────────────────────────────────

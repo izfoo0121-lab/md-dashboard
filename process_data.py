@@ -295,9 +295,16 @@ def calc_sales_progression(df, targets, agents, cur_month):
         ag_canggih_all = canggih_all[canggih_all["agent"] == agent]
 
         # Tier split
-        normal_ctn = ag_canggih[ag_canggih["sales_type"].map(SALES_TYPE_MAP) == "normal"]["qty_ctn"].sum()
-        ga_ctn     = ag_canggih[ag_canggih["sales_type"].map(SALES_TYPE_MAP) == "ga"]["qty_ctn"].sum()
-        ma_ctn     = ag_canggih[ag_canggih["sales_type"].map(SALES_TYPE_MAP) == "ma"]["qty_ctn"].sum()
+        mapped_type = ag_canggih["sales_type"].map(SALES_TYPE_MAP)
+        normal_ctn = ag_canggih[mapped_type == "normal"]["qty_ctn"].sum()
+        ga_ctn     = ag_canggih[mapped_type == "ga"]["qty_ctn"].sum()
+        ma_ctn     = ag_canggih[mapped_type == "ma"]["qty_ctn"].sum()
+        # Any rows with unmapped sales_type go into normal (don't lose CTN)
+        unmapped_ctn = ag_canggih[mapped_type.isna()]["qty_ctn"].sum()
+        if unmapped_ctn > 0:
+            unmapped_types = ag_canggih[mapped_type.isna()]["sales_type"].unique().tolist()
+            log(f"  {agent}: {round(float(unmapped_ctn),1)} CTN with unmapped sales_type: {unmapped_types} → added to Normal")
+            normal_ctn += unmapped_ctn
         total_canggih_ctn = ag_canggih["qty_ctn"].sum()
 
         # 8COM
@@ -937,18 +944,25 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
         for dcode in all_debtor_codes:
             d_rows = ag_data[ag_data["debtor_code"] == dcode]
 
-            # Activation status — debtors with no transactions = need_reactivation
+            # Activation status
+            # active         = bought this month
+            # pending        = bought last month but not this month yet
+            # need_reactivation = bought prev-prev month but missed last month (your Excel definition)
+            # long_inactive  = didn't buy in prev-prev month either
             if d_rows.empty:
                 status = "need_reactivation"
             else:
                 bought_cur   = cur_m   in d_rows["paid_on"].values
                 bought_prev1 = prev1_m in d_rows["paid_on"].values
+                bought_prev2 = prev2_m in d_rows["paid_on"].values if prev2_m else False
                 if bought_cur:
                     status = "active"
                 elif bought_prev1:
                     status = "pending"
+                elif bought_prev2:
+                    status = "need_reactivation"  # bought 2 months ago, missed last month → visit needed
                 else:
-                    status = "need_reactivation"
+                    status = "need_reactivation"  # long inactive — still shows as 待激活
 
             # Last purchase date
             last_date = d_rows["date_parsed"].max() if not d_rows.empty else None
@@ -1133,7 +1147,13 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
         # Summary counts
         active_count   = sum(1 for d in debtor_cards if d["status"] == "active")
         pending_count  = sum(1 for d in debtor_cards if d["status"] == "pending")
-        inactive_count = sum(1 for d in debtor_cards if d["status"] == "need_reactivation")
+        # 待激活 = bought prev-prev month (e.g. Feb) but missed prev month (e.g. Mar) → need reactivation visit
+        inactive_count = sum(
+            1 for d in debtor_cards
+            if (d.get("ctn_prev2", 0) or 0) > 0
+            and (d.get("ctn_prev1", 0) or 0) == 0
+            and (d.get("ctn_cur",   0) or 0) == 0
+        )
         total          = len(debtor_cards)
 
         # 激活户口 = debtors who bought THIS month but NOT last month

@@ -3067,18 +3067,31 @@ const GistSync = (() => {
 
   const CONFIG_KEY = 'md_gist_config';
 
+  // ── Hardcoded fallback — set by admin, works for ALL devices automatically ──
+  // Token scope: gist only (cannot touch code repo — safe to embed)
+  const HARDCODED_GIST_ID = 'c0d507b6d645bda40b9884b184e5414b';
+  const HARDCODED_TOKEN   = '%%GITHUB_TOKEN%%';  // Admin replaces this via admin.html
+
   function getConfig() {
-    try { return JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}'); }
-    catch { return {}; }
+    // Priority: localStorage (admin override) → hardcoded defaults
+    try {
+      const ls = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
+      return {
+        gist_id: ls.gist_id || HARDCODED_GIST_ID,
+        token:   ls.token   || HARDCODED_TOKEN,
+      };
+    }
+    catch { return { gist_id: HARDCODED_GIST_ID, token: HARDCODED_TOKEN }; }
   }
 
   function saveConfig(cfg) {
     localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
+    // Note: hardcoded values in HTML are the fallback — localStorage takes priority
   }
 
   function isConfigured() {
     const c = getConfig();
-    return !!(c.gist_id && c.token);
+    return !!(c.gist_id && c.token && c.token !== '%%GITHUB_TOKEN%%');
   }
 
   // ── Read all data from Gist ─────────────────────────────────────────────
