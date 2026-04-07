@@ -39,6 +39,7 @@ TARGETS_FILE    = BASE_DIR / "targets.json"
 CAMPAIGNS_FILE  = BASE_DIR / "campaigns.json"
 PRICE_REF_FILE  = BASE_DIR / "price_ref.json"
 KPI_SCORES_FILE = BASE_DIR / "kpi_scores.json"
+ANNUAL_FILE     = BASE_DIR / "annual_targets.json"
 OUTPUT_FILE     = BASE_DIR / "dashboard_data.json"
 
 # Area scope — Phase 2 covers GRP 2A only
@@ -139,6 +140,157 @@ def load_kpi_scores():
         data = json.load(f)
     log(f"  KPI scores loaded: {len(data)} months")
     return data
+
+
+def load_annual_targets():
+    """Load annual_targets.json — yearly group + per-agent targets for T1/GA/MA."""
+    if not ANNUAL_FILE.exists():
+        log("⚠  annual_targets.json not found — annual tracking disabled")
+        return {}
+    with open(ANNUAL_FILE, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    log(f"  Annual targets loaded: year {data.get('_year', '?')}, grand total {data.get('group_summary',{}).get('grand_total',{}).get('total',0):,.0f} CTN")
+    return data
+
+
+def calc_annual_progress(annual, all_month_data, cur_month):
+    """Calculate YTD progress against annual targets.
+
+    Args:
+        annual: annual_targets.json data
+        all_month_data: dict of month_label → team summary from each month's JSON
+        cur_month: current month label e.g. "Mar 26"
+
+    Returns dict with group + per-agent YTD vs annual targets.
+    """
+    if not annual:
+        return {}
+
+    MONTH_MAP = {
+        "Jan": "January", "Feb": "February", "Mar": "March", "Apr": "April",
+        "May": "May", "Jun": "June", "Jul": "July", "Aug": "August",
+        "Sep": "September", "Oct": "October", "Nov": "November", "Dec": "December",
+    }
+
+    group_summary = annual.get("group_summary", {})
+    t1_agents = annual.get("t1", {})
+    ga_agents = annual.get("ga", {})
+    ma_agents = annual.get("ma", {})
+
+    # Determine which months are completed (Jan through cur_month)
+    MONTH_ORDER = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    cur_short = cur_month.split()[0] if cur_month else ""
+    cur_idx = MONTH_ORDER.index(cur_short) if cur_short in MONTH_ORDER else -1
+
+    completed_months = MONTH_ORDER[:cur_idx + 1] if cur_idx >= 0 else []
+
+    # Group-level YTD targets (sum of monthly targets for completed months)
+    def ytd_target(section_data, months_list):
+        total = 0
+        monthly = section_data.get("monthly", {})
+        for m_short in months_list:
+            m_full = MONTH_MAP.get(m_short, "")
+            total += monthly.get(m_full, 0)
+        return round(total, 2)
+
+    group_ytd = {
+        "t1_target_ytd": ytd_target(group_summary.get("t1", {}), completed_months),
+        "ga_target_ytd": ytd_target(group_summary.get("ga", {}), completed_months),
+        "ma_target_ytd": ytd_target(group_summary.get("ma", {}), completed_months),
+        "t1_target_annual": group_summary.get("t1", {}).get("total", 0),
+        "ga_target_annual": group_summary.get("ga", {}).get("total", 0),
+        "ma_target_annual": group_summary.get("ma", {}).get("total", 0),
+        "grand_total_annual": group_summary.get("grand_total", {}).get("total", 0),
+        "completed_months": completed_months,
+        "months_remaining": 12 - len(completed_months),
+    }
+
+    # Per-agent YTD targets
+    agent_ytd = {}
+    for agent in t1_agents:
+        agent_ytd[agent] = {
+            "t1_target_ytd": ytd_target(t1_agents.get(agent, {}), completed_months),
+            "ga_target_ytd": ytd_target(ga_agents.get(agent, {}), completed_months),
+            "ma_target_ytd": ytd_target(ma_agents.get(agent, {}), completed_months),
+            "t1_target_annual": t1_agents.get(agent, {}).get("total", 0),
+            "ga_target_annual": ga_agents.get(agent, {}).get("total", 0),
+            "ma_target_annual": ma_agents.get(agent, {}).get("total", 0),
+            "t1_pct": t1_agents.get(agent, {}).get("pct", 0),
+        }
+
+    # Now sum actual YTD from monthly JSON snapshots
+    group_actual = {"t1": 0, "ga": 0, "ma": 0}
+
+    for m_short in completed_months:
+        # Try to load monthly data file
+        year = cur_month.split()[1] if len(cur_month.split()) > 1 else "26"
+        month_label = f"{m_short} {year}"
+        month_slug = month_label.replace(" ", "").lower()
+        month_file = BASE_DIR / f"data_{month_slug}.json"
+
+        if month_file.exists():
+            try:
+                with open(month_file, "r", encoding="utf-8") as f:
+                    mdata = json.load(f)
+                team = mdata.get("team", {})
+                group_actual["t1"] += team.get("team_normal_ctn", 0)
+                group_actual["ga"] += team.get("team_ga_ctn", 0)
+                group_actual["ma"] += team.get("team_ma_ctn", 0)
+
+                # Per-agent actuals
+                for agent, adata in mdata.get("agents", {}).items():
+                    if agent not in agent_ytd:
+                        continue
+                    sp = adata.get("sales_progression", {})
+                    agent_ytd[agent]["t1_actual_ytd"] = agent_ytd[agent].get("t1_actual_ytd", 0) + sp.get("normal_ctn", 0)
+                    agent_ytd[agent]["ga_actual_ytd"] = agent_ytd[agent].get("ga_actual_ytd", 0) + sp.get("ga_ctn", 0)
+                    agent_ytd[agent]["ma_actual_ytd"] = agent_ytd[agent].get("ma_actual_ytd", 0) + sp.get("ma_ctn", 0)
+            except Exception as e:
+                log(f"  ⚠ Could not read {month_file.name}: {e}")
+
+    group_ytd["t1_actual_ytd"] = round(group_actual["t1"], 2)
+    group_ytd["ga_actual_ytd"] = round(group_actual["ga"], 2)
+    group_ytd["ma_actual_ytd"] = round(group_actual["ma"], 2)
+    group_ytd["grand_actual_ytd"] = round(sum(group_actual.values()), 2)
+    group_ytd["grand_target_ytd"] = round(group_ytd["t1_target_ytd"] + group_ytd["ga_target_ytd"] + group_ytd["ma_target_ytd"], 2)
+
+    # Pct calculations
+    for key in ["t1", "ga", "ma"]:
+        tgt = group_ytd.get(f"{key}_target_ytd", 0)
+        act = group_ytd.get(f"{key}_actual_ytd", 0)
+        group_ytd[f"{key}_pct_ytd"] = round(act / tgt * 100, 1) if tgt else 0
+        ann = group_ytd.get(f"{key}_target_annual", 0)
+        group_ytd[f"{key}_pct_annual"] = round(act / ann * 100, 1) if ann else 0
+
+    grand_tgt_ytd = group_ytd.get("grand_target_ytd", 0)
+    grand_act_ytd = group_ytd.get("grand_actual_ytd", 0)
+    group_ytd["grand_pct_ytd"] = round(grand_act_ytd / grand_tgt_ytd * 100, 1) if grand_tgt_ytd else 0
+
+    # Agent pct
+    for agent in agent_ytd:
+        for key in ["t1", "ga", "ma"]:
+            tgt = agent_ytd[agent].get(f"{key}_target_ytd", 0)
+            act = agent_ytd[agent].get(f"{key}_actual_ytd", 0)
+            agent_ytd[agent][f"{key}_pct_ytd"] = round(act / tgt * 100, 1) if tgt else 0
+
+    # Monthly breakdown for chart/table
+    monthly_breakdown = []
+    for m_short in MONTH_ORDER:
+        m_full = MONTH_MAP.get(m_short, "")
+        monthly_breakdown.append({
+            "month": m_short,
+            "t1_target": group_summary.get("t1", {}).get("monthly", {}).get(m_full, 0),
+            "ga_target": group_summary.get("ga", {}).get("monthly", {}).get(m_full, 0),
+            "ma_target": group_summary.get("ma", {}).get("monthly", {}).get(m_full, 0),
+            "completed": m_short in completed_months,
+        })
+
+    return {
+        "group": group_ytd,
+        "agents": agent_ytd,
+        "monthly_breakdown": monthly_breakdown,
+        "year": annual.get("_year", 2026),
+    }
 
 
 def calc_formula_columns(df, price_ref):
@@ -2412,6 +2564,7 @@ def main():
     targets   = load_targets()
     price_ref  = load_price_ref()
     kpi_scores = load_kpi_scores()
+    annual     = load_annual_targets()
     df_raw    = load_sales_report(price_ref)
     debtor_df = load_debtors()
 
@@ -2576,6 +2729,11 @@ def main():
                     }
                     break
 
+    # ── Annual progress ────────────────────────────────────────────
+    annual_progress = calc_annual_progress(annual, {}, cur_month)
+    if annual_progress:
+        log(f"Annual tracking: {annual_progress['group'].get('grand_actual_ytd',0):,.0f} / {annual_progress['group'].get('grand_target_annual',0):,.0f} CTN ({annual_progress['group'].get('grand_pct_ytd',0):.1f}% YTD vs target)")
+
     # ── Assemble output ─────────────────────────────────────────────
     output = {
         "generated_at":   datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -2584,6 +2742,7 @@ def main():
         "group_brand_targets": group_brands,
         "birthday_campaign":   birthday_camp,
         "brand_campaigns":     brand_camps,
+        "annual":              annual_progress,
         "agents":         {},
         "team":           team,
         "config": {
