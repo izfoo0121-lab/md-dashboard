@@ -725,6 +725,18 @@ function init() {
   document.getElementById('month-badge').textContent = (DATA.current_month || '').toUpperCase();
   document.getElementById('day-prog').textContent =
     `Day ${wd.elapsed_working_days||'?'} of ${wd.total_working_days||'?'} · ${wd.theoretical_pct||0}% elapsed${wd.public_holidays_this_month>0?' ('+wd.public_holidays_this_month+' PH)':''}`;
+  // Colour the theoretical pct in day-prog
+  const dpEl = document.getElementById('day-prog');
+  if (dpEl) {
+    const team = DATA.team || {};
+    const t1pct = team.t1_pct || 0;
+    const theo  = wd.theoretical_pct || 0;
+    const col   = t1pct >= theo ? '#3ddc84' : '#ff5f5f';
+    dpEl.innerHTML = dpEl.textContent.replace(
+      theo + '% elapsed',
+      `<span style="color:${col};font-weight:700;">${theo}% elapsed</span>`
+    );
+  }
   // Last update
   if (DATA.generated_at) {
     const dt = new Date(DATA.generated_at);
@@ -1948,7 +1960,7 @@ function renderGroupBrandTargets() {
 
   const gbt  = DATA.group_brand_targets || {};
   const wd   = DATA.working_days || {};
-  const team = DATA.team || DATA.team_summary || {};
+  const team = DATA.team || {};
   const sp   = DATA.agents || {};
 
   // ── Working days header ───────────────────────────────────────────────
@@ -1963,6 +1975,11 @@ function renderGroupBrandTargets() {
       <div style="font-family:var(--mono);font-size:10px;">
         <span style="color:var(--muted);">理应达标率: </span>
         <span style="color:var(--blue);font-weight:600;text-decoration:underline;">${wd.theoretical_pct||0}%</span>
+        ${(() => { const t1pct = team.t1_pct||0; const theo = wd.theoretical_pct||0;
+          return t1pct >= theo
+            ? `<span style="font-family:var(--mono);font-size:9px;color:var(--green);margin-left:8px;">✓ On track (${t1pct.toFixed(1)}%)</span>`
+            : `<span style="font-family:var(--mono);font-size:9px;color:var(--red);margin-left:8px;">▼ Behind (${t1pct.toFixed(1)}%)</span>`;
+        })()}
       </div>
     </div>`;
 
@@ -1982,12 +1999,12 @@ function renderGroupBrandTargets() {
   const tierTableHtml = `
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;">
       <!-- Header -->
-      <div style="display:grid;grid-template-columns:minmax(60px,1.2fr) repeat(4,1fr);gap:0;background:var(--card);border-bottom:1px solid var(--border);">
-        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:6px 8px;">TIER / RATE</div>
-        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:6px 4px;text-align:right;">${DATA.current_month||''}<br>目标</div>
-        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:6px 4px;text-align:right;">总共条数<br>已付款</div>
-        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:6px 4px;text-align:right;">距离目标</div>
-        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:6px 4px;text-align:right;">达标%</div>
+      <div style="display:grid;grid-template-columns:1fr 100px 100px 90px 80px;gap:0;background:var(--card);border-bottom:1px solid var(--border);">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 12px;">TIER / RATE</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">${DATA.current_month||''}<br>目标</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">总共条数<br>已付款</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">距离目标</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">达标率%</div>
       </div>
       ${tierRows.map((r,i) => {
         const pctVal  = r.pct || 0;
@@ -1996,21 +2013,21 @@ function renderGroupBrandTargets() {
         const gapCol  = gapVal>=0?'var(--green)':'var(--red)';
         const isMa    = r.key === 'ma';
         const rowBg   = isMa && gapVal < 0 ? 'background:rgba(255,95,95,.06);' : i%2===0?'':'background:rgba(255,255,255,.02);';
-        return `<div style="display:grid;grid-template-columns:minmax(60px,1.2fr) repeat(4,1fr);gap:0;${rowBg}border-bottom:1px solid rgba(255,255,255,.04);">
-          <div style="font-family:var(--mono);font-size:9px;padding:7px 8px;color:var(--text);">${r.label}</div>
-          <div style="font-family:var(--mono);font-size:9px;padding:7px 4px;text-align:right;color:var(--muted);">${fmtNum(r.target)}</div>
-          <div style="font-family:var(--mono);font-size:9px;padding:7px 4px;text-align:right;color:var(--text);">${fmtNum(r.actual)}</div>
-          <div style="font-family:var(--mono);font-size:9px;padding:7px 4px;text-align:right;font-weight:600;color:${gapCol};">${gapVal>=0?'+':''}${fmtNum(gapVal)}</div>
-          <div style="font-family:var(--mono);font-size:10px;padding:7px 4px;text-align:right;font-weight:700;color:${pctCol};">${fmtPct(pctVal)}</div>
+        return `<div style="display:grid;grid-template-columns:1fr 100px 100px 90px 80px;gap:0;${rowBg}border-bottom:1px solid rgba(255,255,255,.04);">
+          <div style="font-family:var(--mono);font-size:10px;padding:8px 12px;color:var(--text);">${r.label}</div>
+          <div style="font-family:var(--mono);font-size:10px;padding:8px 6px;text-align:center;color:var(--muted);">${fmtNum(r.target)}</div>
+          <div style="font-family:var(--mono);font-size:10px;padding:8px 6px;text-align:center;color:var(--text);">${fmtNum(r.actual)}</div>
+          <div style="font-family:var(--mono);font-size:11px;padding:8px 6px;text-align:center;font-weight:600;color:${gapCol};">${gapVal>=0?'+':''}${fmtNum(gapVal)}</div>
+          <div style="font-family:var(--mono);font-size:11px;padding:8px 6px;text-align:center;font-weight:700;color:${pctCol};">${fmtPct(pctVal)}</div>
         </div>`;
       }).join('')}
       <!-- Total row -->
-      <div style="display:grid;grid-template-columns:minmax(60px,1.2fr) repeat(4,1fr);gap:0;background:rgba(255,255,255,.05);border-top:2px solid var(--border);">
-        <div style="font-family:var(--mono);font-size:9px;font-weight:700;padding:8px 8px;color:var(--text);">TOTAL</div>
-        <div style="font-family:var(--mono);font-size:9px;padding:8px 4px;text-align:right;color:var(--muted);">${fmtNum(totalTarget)}</div>
-        <div style="font-family:var(--mono);font-size:9px;padding:8px 4px;text-align:right;font-weight:700;">${fmtNum(totalActual)}</div>
-        <div style="font-family:var(--mono);font-size:9px;padding:8px 4px;text-align:right;font-weight:700;color:${totalGap>=0?'var(--green)':'var(--red)'};">${totalGap>=0?'+':''}${fmtNum(totalGap)}</div>
-        <div style="font-family:var(--mono);font-size:10px;padding:8px 4px;text-align:right;font-weight:700;color:${parseFloat(totalPct)>=100?'var(--green)':parseFloat(totalPct)>=80?'var(--text)':'var(--red)'};">${totalPct}%</div>
+      <div style="display:grid;grid-template-columns:1fr 100px 100px 90px 80px;gap:0;background:rgba(255,255,255,.05);border-top:2px solid var(--border);">
+        <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:9px 12px;color:var(--text);">TOTAL</div>
+        <div style="font-family:var(--mono);font-size:10px;padding:9px 6px;text-align:center;color:var(--muted);">${fmtNum(totalTarget)}</div>
+        <div style="font-family:var(--mono);font-size:10px;padding:9px 6px;text-align:center;font-weight:700;">${fmtNum(totalActual)}</div>
+        <div style="font-family:var(--mono);font-size:11px;padding:9px 6px;text-align:center;font-weight:700;color:${totalGap>=0?'var(--green)':'var(--red)'};">${totalGap>=0?'+':''}${fmtNum(totalGap)}</div>
+        <div style="font-family:var(--mono);font-size:11px;padding:9px 6px;text-align:center;font-weight:700;color:${parseFloat(totalPct)>=100?'var(--green)':parseFloat(totalPct)>=80?'var(--text)':'var(--red)'};">${totalPct}%</div>
       </div>
     </div>`;
 
@@ -2035,56 +2052,56 @@ function renderGroupBrandTargets() {
     const gapCol  = gap!=null&&gap>=0?'var(--green)':'var(--red)';
     const color   = GB_COLORS[brand] || '#888';
     const rowBg   = gap!=null&&gap<0 ? 'background:rgba(255,95,95,.06);' : '';
-    return `<div style="display:grid;grid-template-columns:minmax(55px,1fr) repeat(4,1fr);gap:0;${rowBg}border-bottom:1px solid rgba(255,255,255,.04);">
-      <div style="font-family:var(--mono);font-size:9px;font-weight:700;padding:7px 8px;color:${color};">${brand}</div>
-      <div style="font-family:var(--mono);font-size:9px;padding:7px 4px;text-align:right;color:var(--muted);">${fmtNum(data.target_ctn)}</div>
-      <div style="font-family:var(--mono);font-size:9px;padding:7px 4px;text-align:right;color:var(--text);">${fmtNum(data.actual_ctn)}</div>
-      <div style="font-family:var(--mono);font-size:9px;padding:7px 4px;text-align:right;font-weight:600;color:${gapCol};">${gap!=null?(gap>=0?'+':'')+fmtNum(gap):'—'}</div>
-      <div style="font-family:var(--mono);font-size:10px;padding:7px 4px;text-align:right;font-weight:700;color:${pctCol};">${fmtPct(p)}</div>
+    return `<div style="display:grid;grid-template-columns:90px 100px 100px 90px 80px;gap:0;${rowBg}border-bottom:1px solid rgba(255,255,255,.04);">
+      <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:8px 12px;color:${color};">${brand}</div>
+      <div style="font-family:var(--mono);font-size:10px;padding:8px 6px;text-align:center;color:var(--muted);">${fmtNum(data.target_ctn)}</div>
+      <div style="font-family:var(--mono);font-size:10px;padding:8px 6px;text-align:center;color:var(--text);">${fmtNum(data.actual_ctn)}</div>
+      <div style="font-family:var(--mono);font-size:11px;padding:8px 6px;text-align:center;font-weight:600;color:${gapCol};">${gap!=null?(gap>=0?'+':'')+fmtNum(gap):'—'}</div>
+      <div style="font-family:var(--mono);font-size:11px;padding:8px 6px;text-align:center;font-weight:700;color:${pctCol};">${fmtPct(p)}</div>
     </div>`;
   }).join('');
 
   const brandTableHtml = `
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;">
-      <div style="display:grid;grid-template-columns:minmax(55px,1fr) repeat(4,1fr);gap:0;background:var(--card);border-bottom:1px solid var(--border);">
-        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:6px 8px;">牌子</div>
-        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:6px 4px;text-align:right;">${DATA.current_month||''}<br>目标</div>
-        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:6px 4px;text-align:right;">总共条数<br>已付款</div>
-        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:6px 4px;text-align:right;">距离目标</div>
-        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:6px 4px;text-align:right;">达标%</div>
+      <div style="display:grid;grid-template-columns:90px 100px 100px 90px 80px;gap:0;background:var(--card);border-bottom:1px solid var(--border);">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 12px;">牌子</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">${DATA.current_month||''}<br>目标</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">总共条数<br>已付款</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">距离目标</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">达标率%</div>
       </div>
       ${brandRows}
     </div>`;
 
-  // ── Right panel summary (matches management pivot) ─────────────────────
-  const totalSalesCtn    = team.total_sales_ctn    || 0;  // Total Current Month Sales (paid+unpaid, tranx_mth=cur)
-  const prevMonthCtn     = team.prev_month_ctn     || 0;  // Previous Month Sales - Paid this month
-  const curMonthPaidCtn  = team.cur_month_paid_ctn || 0;  // Current Month Sales - Paid this month
-  const pendingCtn       = team.pending_payment_ctn|| 0;  // All Month Sales - Pending Payment
-  const totalPayable     = prevMonthCtn + curMonthPaidCtn; // TOTAL PAYABLE
+  // ── Right panel summary ────────────────────────────────────────────────
+  const prevMonthCtn    = team.prev_month_ctn   || 0;
+  const curMonthPaid    = team.team_canggih_ctn  || 0;
+  const totalPaidCtn    = prevMonthCtn + curMonthPaid;
+  const totalUnpaidCtn  = team.team_8com_unpaid  || 0;
+  const totalSalesCtn   = team.total_sales_ctn   || 0;
 
   const rightPanelHtml = `
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;">
       <div style="font-family:var(--mono);font-size:9px;color:var(--blue);text-align:right;margin-bottom:8px;">${DATA.current_month||''}</div>
       <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">本月总销售 (条数)</span>
-        <span style="font-family:var(--mono);font-size:11px;font-weight:600;">${fmtNum(totalSalesCtn)}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">上月单-本月付款</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">前月条数 (已付款)</span>
         <span style="font-family:var(--mono);font-size:11px;font-weight:600;">${fmtNum(prevMonthCtn)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">本月单-本月付款</span>
-        <span style="font-family:var(--mono);font-size:11px;font-weight:600;">${fmtNum(curMonthPaidCtn)}</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">本月条数 (已付款)</span>
+        <span style="font-family:var(--mono);font-size:11px;font-weight:600;">${fmtNum(curMonthPaid)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid var(--border);margin-bottom:10px;">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">总共条数 (已付款)</span>
+        <span style="font-family:var(--display);font-size:20px;color:var(--green);">${fmtNum(totalPaidCtn)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">待付款 (所有月)</span>
-        <span style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--red);">${fmtNum(pendingCtn)}</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">总共条数 (待付款)</span>
+        <span style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--red);">${fmtNum(totalUnpaidCtn)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid var(--border);">
-        <span style="font-family:var(--mono);font-size:10px;font-weight:600;color:var(--muted);">TOTAL PAYABLE</span>
-        <span style="font-family:var(--display);font-size:22px;color:var(--green);">${fmtNum(totalPayable)}</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">${DATA.current_month||''} 销售 (条数)</span>
+        <span style="font-family:var(--display);font-size:24px;color:var(--accent);">${fmtNum(totalSalesCtn||curMonthPaid)}</span>
       </div>
     </div>`;
 
@@ -2793,7 +2810,7 @@ function toggleCampClaim(event, debtorCode, campId, debtorName, promoText, campT
           style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--body);font-size:13px;padding:11px 12px;box-sizing:border-box;margin-bottom:14px;">` : ''}
         <div style="display:flex;gap:10px;">
           <button onclick="confirmCampClaim('${debtorCode}','${campId}','${debtorName}','${campType}',this)"
-            style="flex:1;background:${accentColor};border:none;color:#0e0e12;font-family:var(--mono);font-size:12px;font-weight:700;padding:13px;border-radius:10px;cursor:pointer;">
+            style="flex:1;background:${accentColor};border:2px solid ${accentColor};color:#000;font-family:var(--mono);font-size:13px;font-weight:800;padding:14px;border-radius:10px;cursor:pointer;letter-spacing:.05em;box-shadow:0 0 16px ${accentColor}88;">
             ✓ CONFIRM
           </button>
           <button onclick="this.closest('div[style*=fixed]').remove()"
