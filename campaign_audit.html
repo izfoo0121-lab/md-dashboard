@@ -109,6 +109,7 @@
       .sum-card{min-width:90px;}
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -140,6 +141,10 @@
     <option value="ALL">All Agents</option>
   </select>
   <button class="export-btn" onclick="exportAuditCSV()">⬇ Export CSV</button>
+  <button class="export-btn" onclick="showBulkMarkPanel()" style="background:rgba(61,220,132,.15);border-color:rgba(61,220,132,.4);color:var(--green);">📥 Bulk Mark Delivered</button>
+  <button class="export-btn" onclick="exportClaimsBackup()" style="background:rgba(77,166,255,.12);border-color:rgba(77,166,255,.3);color:var(--blue);">💾 Backup Claims</button>
+  <button class="export-btn" onclick="importClaimsBackup()" style="background:rgba(167,139,250,.12);border-color:rgba(167,139,250,.3);color:var(--purple);">📤 Restore Claims</button>
+  <input type="file" id="claims-restore-input" accept=".json" style="display:none;" onchange="doRestoreClaims(this)">
 </div>
 
 <!-- Campaign type tabs -->
@@ -179,6 +184,15 @@ function getAudit(month, agent, campId, debtorCode) {
 }
 function saveAudit(month, agent, campId, debtorCode, auditData) {
   localStorage.setItem(getAuditKey(month,agent,campId,debtorCode), JSON.stringify(auditData));
+  // Sync audit decisions to Gist
+  if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+    const slug = month.replace(' ','');
+    const cache = GistSync.getCache();
+    const fileKey = `audit_${slug}`;
+    if (!cache[fileKey]) cache[fileKey] = {};
+    cache[fileKey][`${agent}_${campId}_${debtorCode}`] = auditData;
+    GistSync.push(fileKey, cache[fileKey]).catch(()=>{});
+  }
 }
 
 // ── Load data ─────────────────────────────────────────────────────────────
@@ -413,6 +427,213 @@ function exportAuditCSV() {
   a.click();
 }
 
+// ── Bulk Mark Delivered ────────────────────────────────────────────────────
+function showBulkMarkPanel() {
+  const month  = document.getElementById('month-select').value;
+  const camps  = (CAMP_DATA?.campaigns||[]).filter(c=>c.active);
+  
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
+  overlay.innerHTML = `
+    <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;">
+      <div style="font-family:var(--display);font-size:22px;margin-bottom:4px;">📥 Bulk Mark Delivered</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px;">For past deliveries that weren't recorded</div>
+
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Campaign</div>
+      <select id="bulk-camp-sel" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;margin-bottom:12px;">
+        ${camps.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
+      </select>
+
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Agent</div>
+      <select id="bulk-agent-sel" onchange="loadBulkDebtors()" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;margin-bottom:12px;">
+        <option value="">— Select Agent —</option>
+        ${AGENTS.map(a=>`<option value="${a}">${a}</option>`).join('')}
+      </select>
+
+      <!-- Excel/CSV Upload option -->
+      <div style="margin-bottom:12px;">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">
+          OR — Upload Excel/CSV with debtor codes
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="file" id="bulk-file-input" accept=".xlsx,.csv" onchange="handleBulkFile(this)"
+            style="font-family:var(--mono);font-size:10px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px;flex:1;">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">Column: "Code" or "Debtor Code"</div>
+        </div>
+        <div id="bulk-file-status" style="font-family:var(--mono);font-size:9px;color:var(--green);margin-top:4px;display:none;"></div>
+      </div>
+
+      <div id="bulk-debtor-list" style="margin-bottom:14px;"></div>
+
+      <div style="display:flex;gap:10px;">
+        <button onclick="confirmBulkMark('${month}')" 
+          style="flex:1;background:var(--green);border:none;color:#000;font-family:var(--mono);font-size:12px;font-weight:800;padding:13px;border-radius:10px;cursor:pointer;box-shadow:0 0 14px rgba(61,220,132,.4);">
+          ✓ MARK ALL SELECTED
+        </button>
+        <button onclick="this.closest('div[style*=fixed]').remove()"
+          style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:13px;border-radius:10px;cursor:pointer;">
+          Cancel
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+}
+
+function loadBulkDebtors() {
+  const agent  = document.getElementById('bulk-agent-sel')?.value;
+  const campId = document.getElementById('bulk-camp-sel')?.value;
+  const month  = document.getElementById('month-select').value;
+  const el     = document.getElementById('bulk-debtor-list');
+  if (!el || !agent || !campId) return;
+
+  const debtors = DASH_DATA?.agents?.[agent]?.debtor_cards?.debtors || [];
+  const campDebtors = debtors.filter(d => (d.campaigns||[]).some(c=>c.id===campId));
+
+  if (!campDebtors.length) {
+    el.innerHTML = `<div style="font-family:var(--mono);font-size:10px;color:var(--muted);padding:10px 0;">No debtors found for this agent/campaign</div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;">${campDebtors.length} debtors</div>
+      <button onclick="toggleAllBulk(true)" style="font-family:var(--mono);font-size:9px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:3px 8px;border-radius:6px;cursor:pointer;">Select All</button>
+    </div>
+    ${campDebtors.map(d => {
+      const alreadyClaimed = !!getClaim(month, agent, campId, d.debtor_code);
+      return `<label style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:rgba(255,255,255,.02);margin-bottom:4px;cursor:pointer;${alreadyClaimed?'opacity:.4;pointer-events:none;':''}">
+        <input type="checkbox" class="bulk-check" value="${d.debtor_code}" ${alreadyClaimed?'disabled':''} style="width:16px;height:16px;">
+        <div>
+          <div style="font-family:var(--mono);font-size:11px;font-weight:500;">${d.company_name||d.debtor_code}</div>
+          <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">${d.debtor_code}${alreadyClaimed?' · ✓ Already marked':''}</div>
+        </div>
+      </label>`;
+    }).join('')}`;
+}
+
+function toggleAllBulk(state) {
+  document.querySelectorAll('.bulk-check:not([disabled])').forEach(cb => cb.checked = state);
+}
+
+function confirmBulkMark(month) {
+  const agent  = document.getElementById('bulk-agent-sel')?.value;
+  const campId = document.getElementById('bulk-camp-sel')?.value;
+  if (!agent || !campId) { showToast('Select agent and campaign first'); return; }
+
+  const checked = Array.from(document.querySelectorAll('.bulk-check:checked')).map(cb=>cb.value);
+  if (!checked.length) { showToast('No debtors selected'); return; }
+
+  const now = new Date();
+  const ts  = now.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+
+  checked.forEach(debtorCode => {
+    const key = `camp_claim_${month.replace(' ','')}_${agent}_${campId}_${debtorCode}`;
+    localStorage.setItem(key, JSON.stringify({ts, count:1, remark:'Bulk import - delivered earlier', bulk:true}));
+  });
+
+  document.querySelector('div[style*=fixed]')?.remove();
+  showToast(`✓ ${checked.length} debtors marked as delivered`);
+  renderAudit();
+}
+
+// ── Claims Backup / Restore ────────────────────────────────────────────────
+function exportClaimsBackup() {
+  const month = document.getElementById('month-select').value;
+  const slug  = month.replace(' ','');
+  const claims = {};
+  Object.keys(localStorage).forEach(k => {
+    if (k.startsWith('camp_claim_' + slug)) claims[k] = JSON.parse(localStorage.getItem(k));
+  });
+  const blob = new Blob([JSON.stringify(claims, null, 2)], {type:'application/json'});
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `claims_backup_${slug}_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  showToast(`💾 ${Object.keys(claims).length} claims backed up`);
+}
+
+function importClaimsBackup() {
+  document.getElementById('claims-restore-input').click();
+}
+
+function doRestoreClaims(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const claims = JSON.parse(e.target.result);
+      let count = 0;
+      Object.entries(claims).forEach(([k, v]) => {
+        if (k.startsWith('camp_claim_')) {
+          localStorage.setItem(k, JSON.stringify(v));
+          count++;
+        }
+      });
+      showToast(`✓ ${count} claims restored`);
+      renderAudit();
+    } catch(err) {
+      showToast('❌ Invalid backup file');
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+function handleBulkFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('bulk-file-status');
+
+  if (file.name.endsWith('.csv')) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const lines = e.target.result.split('\n');
+      const header = lines[0].toLowerCase().split(',');
+      const codeCol = header.findIndex(h => h.includes('code') || h.includes('debtor'));
+      if (codeCol < 0) { statusEl.textContent = '❌ No "Code" or "Debtor Code" column found'; statusEl.style.color='var(--red)'; statusEl.style.display='block'; return; }
+      const codes = lines.slice(1).map(l => l.split(',')[codeCol]?.trim()).filter(Boolean);
+      applyBulkCodes(codes, file.name, statusEl);
+    };
+    reader.readAsText(file);
+  } else if (file.name.endsWith('.xlsx')) {
+    // Use SheetJS if available
+    if (typeof XLSX !== 'undefined') {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const wb = XLSX.read(e.target.result, {type:'binary'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+        const codeKey = Object.keys(rows[0]||{}).find(k => k.toLowerCase().includes('code') || k.toLowerCase().includes('debtor'));
+        if (!codeKey) { statusEl.textContent = '❌ No "Code" or "Debtor Code" column found'; statusEl.style.color='var(--red)'; statusEl.style.display='block'; return; }
+        const codes = rows.map(r => String(r[codeKey]||'').trim()).filter(Boolean);
+        applyBulkCodes(codes, file.name, statusEl);
+      };
+      reader.readAsBinaryString(file);
+    } else {
+      statusEl.textContent = '⚠ SheetJS not loaded — use CSV format instead';
+      statusEl.style.color = 'var(--gold)';
+      statusEl.style.display = 'block';
+    }
+  }
+}
+
+function applyBulkCodes(codes, filename, statusEl) {
+  // Match uploaded codes against debtor list and auto-check them
+  const checkboxes = document.querySelectorAll('.bulk-check:not([disabled])');
+  let matched = 0;
+  checkboxes.forEach(cb => {
+    if (codes.includes(cb.value)) {
+      cb.checked = true;
+      matched++;
+    }
+  });
+  statusEl.textContent = `✓ ${filename}: ${codes.length} codes loaded, ${matched} matched and selected`;
+  statusEl.style.color = matched > 0 ? 'var(--green)' : 'var(--gold)';
+  statusEl.style.display = 'block';
+}
+
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -421,12 +642,266 @@ function showToast(msg) {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   // Populate agent dropdown
   const sel = document.getElementById('agent-select');
   AGENTS.forEach(a => sel.add(new Option(a,a)));
+  // Pull latest data from Gist before loading
+  if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+    const month = document.getElementById('month-select')?.value || 'Apr 26';
+    await GistSync.pull().catch(()=>{});
+    await GistSync.syncToLocal(month).catch(()=>{});
+  }
   loadAuditData();
 });
+
+// ── GistSync Module ─────────────────────────────────────────────────
+/**
+ * MIRACLE-奇迹 MD Dashboard — Gist Sync Module
+ * Stores all agent interactions in a GitHub Gist
+ * Cross-device, permanent, audit trail
+ * 
+ * Setup: Admin sets GIST_ID + GITHUB_PAT in admin.html once
+ * All pages load this module and use GistSync.* functions
+ */
+
+const GistSync = (() => {
+
+  const CONFIG_KEY = 'md_gist_config';
+
+  function getConfig() {
+    try { return JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}'); }
+    catch { return {}; }
+  }
+
+  function saveConfig(cfg) {
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
+  }
+
+  function isConfigured() {
+    const c = getConfig();
+    return !!(c.gist_id && c.token);
+  }
+
+  // ── Read all data from Gist ─────────────────────────────────────────────
+  async function pull() {
+    const { gist_id, token } = getConfig();
+    if (!gist_id || !token) return null;
+    try {
+      const r = await fetch(`https://api.github.com/gists/${gist_id}`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
+      });
+      if (!r.ok) return null;
+      const data = await r.json();
+      const result = {};
+      Object.entries(data.files || {}).forEach(([fname, f]) => {
+        try { result[fname.replace('.json','')] = JSON.parse(f.content || '{}'); }
+        catch { result[fname.replace('.json','')] = {}; }
+      });
+      // Cache locally
+      localStorage.setItem('md_gist_cache', JSON.stringify(result));
+      localStorage.setItem('md_gist_cache_ts', Date.now().toString());
+      return result;
+    } catch { return null; }
+  }
+
+  // ── Write a single file to Gist ─────────────────────────────────────────
+  async function push(filename, data) {
+    const { gist_id, token } = getConfig();
+    if (!gist_id || !token) return false;
+    try {
+      const r = await fetch(`https://api.github.com/gists/${gist_id}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          files: { [`${filename}.json`]: { content: JSON.stringify(data, null, 2) } }
+        })
+      });
+      return r.ok;
+    } catch { return false; }
+  }
+
+  // ── Get cached data (fast, no network) ──────────────────────────────────
+  function getCache() {
+    try { return JSON.parse(localStorage.getItem('md_gist_cache') || '{}'); }
+    catch { return {}; }
+  }
+
+  function getCacheAge() {
+    const ts = localStorage.getItem('md_gist_cache_ts');
+    return ts ? (Date.now() - parseInt(ts)) / 1000 : 9999;
+  }
+
+  // ── Campaign Claims ──────────────────────────────────────────────────────
+  async function saveClaim(month, agent, campId, debtorCode, claimData) {
+    const slug = month.replace(' ','');
+    const key  = `${agent}_${campId}_${debtorCode}`;
+
+    // 1. Save to localStorage immediately (instant)
+    const lsKey = `camp_claim_${slug}_${key}`;
+    localStorage.setItem(lsKey, JSON.stringify(claimData));
+
+    // 2. Push to Gist asynchronously (background, non-blocking)
+    if (isConfigured()) {
+      const cache   = getCache();
+      const fileKey = `claims_${slug}`;
+      if (!cache[fileKey]) cache[fileKey] = {};
+      cache[fileKey][key] = claimData;
+      localStorage.setItem('md_gist_cache', JSON.stringify(cache));
+      push(fileKey, cache[fileKey]).catch(() => {});  // fire and forget
+    }
+  }
+
+  async function removeClaim(month, agent, campId, debtorCode) {
+    const slug = month.replace(' ','');
+    const key  = `${agent}_${campId}_${debtorCode}`;
+
+    // Remove from localStorage
+    localStorage.removeItem(`camp_claim_${slug}_${key}`);
+
+    // Remove from Gist
+    if (isConfigured()) {
+      const cache   = getCache();
+      const fileKey = `claims_${slug}`;
+      if (cache[fileKey]) {
+        delete cache[fileKey][key];
+        localStorage.setItem('md_gist_cache', JSON.stringify(cache));
+        push(fileKey, cache[fileKey]).catch(() => {});
+      }
+    }
+  }
+
+  // ── Flags ────────────────────────────────────────────────────────────────
+  async function saveFlags(month, agent, flags) {
+    const slug    = month.replace(' ','');
+    const fileKey = `flags_${slug}`;
+
+    // localStorage
+    localStorage.setItem(`touro_debtor_flags_${agent}`, JSON.stringify(flags));
+
+    // Gist
+    if (isConfigured()) {
+      const cache = getCache();
+      if (!cache[fileKey]) cache[fileKey] = {};
+      cache[fileKey][agent] = flags;
+      localStorage.setItem('md_gist_cache', JSON.stringify(cache));
+      push(fileKey, cache[fileKey]).catch(() => {});
+    }
+  }
+
+  // ── KPI Scores ───────────────────────────────────────────────────────────
+  async function saveKPIScores(month, scores) {
+    const slug    = month.replace(' ','');
+    const fileKey = `kpi_scores`;
+
+    // localStorage
+    localStorage.setItem(`md_scores_${slug}`, JSON.stringify(scores));
+
+    // Gist
+    if (isConfigured()) {
+      const cache = getCache();
+      if (!cache[fileKey]) cache[fileKey] = {};
+      cache[fileKey][month] = scores;
+      localStorage.setItem('md_gist_cache', JSON.stringify(cache));
+      push(fileKey, cache[fileKey]).then(ok => {
+        if (ok) console.log(`[GistSync] KPI scores for ${month} saved to Gist ✓`);
+      }).catch(() => {});
+    }
+  }
+
+  // ── Sync from Gist to localStorage (on page load) ────────────────────────
+  async function syncToLocal(month) {
+    if (!isConfigured()) return;
+    const slug = month.replace(' ','');
+
+    // Pull if cache is older than 5 minutes
+    let data;
+    if (getCacheAge() > 300) {
+      data = await pull();
+    } else {
+      data = getCache();
+    }
+    if (!data) return;
+
+    // Claims → localStorage
+    const claims = data[`claims_${slug}`] || {};
+    Object.entries(claims).forEach(([key, val]) => {
+      localStorage.setItem(`camp_claim_${slug}_${key}`, JSON.stringify(val));
+    });
+
+    // Flags → localStorage
+    const flags = data[`flags_${slug}`] || {};
+    Object.entries(flags).forEach(([agent, agentFlags]) => {
+      localStorage.setItem(`touro_debtor_flags_${agent}`, JSON.stringify(agentFlags));
+    });
+
+    // KPI scores → localStorage
+    const kpi = data['kpi_scores'] || {};
+    if (kpi[month]) {
+      localStorage.setItem(`md_scores_${slug}`, JSON.stringify(kpi[month]));
+    }
+
+    console.log(`[GistSync] Synced ${Object.keys(claims).length} claims, ${Object.keys(flags).length} agents' flags for ${month}`);
+  }
+
+  // ── Setup (called from Admin to configure) ───────────────────────────────
+  async function setup(gistId, token) {
+    // Test the credentials
+    try {
+      const r = await fetch(`https://api.github.com/gists/${gistId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!r.ok) return { ok: false, error: `HTTP ${r.status} — check Gist ID and token` };
+      saveConfig({ gist_id: gistId, token });
+      return { ok: true };
+    } catch(e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  async function createGist(token, description = 'MIRACLE-奇迹 MD Dashboard Data') {
+    try {
+      const r = await fetch('https://api.github.com/gists', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          description,
+          public: false,
+          files: {
+            'claims_init.json': { content: '{}' },
+            'flags_init.json':  { content: '{}' },
+            'kpi_scores.json':  { content: '{}' },
+          }
+        })
+      });
+      if (!r.ok) return { ok: false, error: `HTTP ${r.status}` };
+      const data = await r.json();
+      saveConfig({ gist_id: data.id, token });
+      return { ok: true, gist_id: data.id, url: data.html_url };
+    } catch(e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  return {
+    isConfigured, getConfig, setup, createGist,
+    pull, push, getCache, syncToLocal,
+    saveClaim, removeClaim, saveFlags, saveKPIScores,
+  };
+
+})();
+
+// Export for use in other files
+if (typeof module !== 'undefined') module.exports = GistSync;
+
 </script>
 </body>
 </html>

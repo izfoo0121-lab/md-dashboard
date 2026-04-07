@@ -176,7 +176,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
     <button class="tab-btn" onclick="switchTab('brand_camps',this)">🔥 Brand Promo</button>
     <button class="tab-btn" onclick="switchTab('campaigns',this)">📢 Campaigns</button>
     <button class="tab-btn" onclick="switchTab('kpi_weights',this)">⚖️ KPI Weights</button>
-    <button class="tab-btn" onclick="switchTab('price_ref',this)">💰 Price Ref</button>
+    <button class="tab-btn" onclick="switchTab('sync',this)">☁️ Cloud Sync</button>
     <button class="tab-btn" onclick="switchTab('export',this)">Export / Import</button>
   </div>
 
@@ -249,6 +249,70 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
     </div>
   </div>
 
+
+  <!-- ── Cloud Sync Tab ── -->
+  <div id="tab-sync" class="tab-content">
+    <div class="page-body">
+      <div class="sec-header">☁️ Cloud Sync — GitHub Gist</div>
+      <div class="sec-sub">Store agent interactions (claims, flags, KPI scores) permanently in a GitHub Gist. Cross-device — any agent's phone, any browser.</div>
+
+      <div class="admin-card" style="margin-bottom:16px;">
+        <div id="sync-status-banner" style="padding:10px 14px;border-radius:8px;font-family:var(--mono);font-size:11px;margin-bottom:14px;background:rgba(255,255,255,.06);"></div>
+
+        <div class="sec-divider">Step 1 — GitHub Personal Access Token</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);margin-bottom:8px;">
+          Go to github.com → Settings → Developer settings → Personal access tokens → Fine-grained tokens → New token<br>
+          Scopes needed: <strong>Gist</strong> only. Expiry: No expiration (or 1 year).
+        </div>
+        <div class="input-group">
+          <div class="input-label">GitHub Personal Access Token</div>
+          <input type="password" id="gist-token-input" placeholder="github_pat_..." style="width:100%;font-family:var(--mono);">
+        </div>
+
+        <div class="sec-divider" style="margin-top:14px;">Step 2 — Create or Connect Gist</div>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <button class="save-btn" onclick="createNewGist()" style="flex:1;background:var(--green);">
+            ✨ Create New Gist (First Time Setup)
+          </button>
+          <button class="save-btn" onclick="connectExistingGist()" style="flex:1;background:var(--blue);">
+            🔗 Connect Existing Gist
+          </button>
+        </div>
+        <div class="input-group" style="margin-top:10px;">
+          <div class="input-label">Existing Gist ID (if connecting)</div>
+          <input type="text" id="gist-id-input" placeholder="e.g. a1b2c3d4e5f6..." style="width:100%;font-family:var(--mono);">
+        </div>
+
+        <div class="sec-divider" style="margin-top:14px;">Current Config</div>
+        <div id="gist-current-config" style="font-family:var(--mono);font-size:10px;color:var(--ink3);"></div>
+
+        <div class="sec-divider" style="margin-top:14px;">Manual Sync</div>
+        <div style="display:flex;gap:10px;">
+          <button class="save-btn" onclick="forcePull()" style="flex:1;">
+            ⬇ Pull from Gist (sync to this device)
+          </button>
+          <button class="save-btn" onclick="forcePush()" style="flex:1;">
+            ⬆ Push all local data to Gist
+          </button>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <div class="sec-divider">What Gets Synced</div>
+        <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px;">
+          <tr style="background:var(--bg);">
+            <td style="padding:6px 10px;font-weight:700;">Data</td>
+            <td style="padding:6px 10px;font-weight:700;">Who writes</td>
+            <td style="padding:6px 10px;font-weight:700;">Who reads</td>
+          </tr>
+          <tr><td style="padding:6px 10px;">Campaign claims / Mark Delivered</td><td style="padding:6px 10px;color:var(--blue);">Agent (phone)</td><td style="padding:6px 10px;">MD / Audit page</td></tr>
+          <tr style="background:var(--bg);"><td style="padding:6px 10px;">Debtor flags 🚩</td><td style="padding:6px 10px;color:var(--blue);">Agent (phone)</td><td style="padding:6px 10px;">MD / Management</td></tr>
+          <tr><td style="padding:6px 10px;">KPI scores (Section D/E/B)</td><td style="padding:6px 10px;color:var(--orange);">Accounts + Supervisor</td><td style="padding:6px 10px;">MD / Admin export</td></tr>
+          <tr style="background:var(--bg);"><td style="padding:6px 10px;">Audit decisions (verify/reject)</td><td style="padding:6px 10px;color:var(--purple);">MD (audit page)</td><td style="padding:6px 10px;">All audit views</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
 
   <div id="tab-sku" class="tab-content">
     <div class="page-body">
@@ -477,6 +541,56 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
         </div>
       </div>
 
+      <!-- ── Bulk Mark Delivered ── -->
+      <div class="sec-divider">📥 Bulk Mark Delivered / Claimed</div>
+      <div class="admin-card" style="margin-bottom:12px;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);margin-bottom:10px;">
+          Agents already delivered but forgot to mark in the app? Paste debtor codes here to bulk-mark as delivered.
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+          <div>
+            <div class="input-label">Campaign</div>
+            <select id="bulk-camp-select" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:8px 10px;border-radius:8px;">
+              <option value="">-- Select --</option>
+            </select>
+          </div>
+          <div>
+            <div class="input-label">Month</div>
+            <select id="bulk-month-select" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:8px 10px;border-radius:8px;">
+              <option>Jan 26</option><option>Feb 26</option><option>Mar 26</option><option selected>Apr 26</option>
+            </select>
+          </div>
+          <div>
+            <div class="input-label">Agent</div>
+            <select id="bulk-agent-select" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:8px 10px;border-radius:8px;">
+              <option value="">All agents</option>
+              <option>BEN</option><option>CJ</option><option>JACKY</option><option>JAMES</option>
+              <option>JW</option><option>KEAN</option><option>KEE</option><option>KF</option>
+              <option>KI-MI</option><option>KW</option><option>LEON</option><option>NMK</option>
+              <option>SAM</option><option>YI</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-bottom:10px;">
+          <div class="input-label">Debtor Codes (one per line or comma-separated)</div>
+          <textarea id="bulk-debtor-codes" rows="5"
+            placeholder="300-J001&#10;300-J002&#10;300-J003"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--ink);font-family:var(--mono);font-size:11px;padding:10px;box-sizing:border-box;resize:vertical;"></textarea>
+        </div>
+        <div style="margin-bottom:10px;">
+          <div class="input-label">Remark</div>
+          <input type="text" id="bulk-remark" placeholder="e.g. Delivered in March, forgot to update"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--ink);font-family:var(--body);font-size:12px;padding:9px 10px;box-sizing:border-box;">
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <button onclick="bulkMarkDelivered()"
+            style="background:#1e5c35;border:1px solid #3ddc84;color:#3ddc84;font-family:var(--mono);font-size:11px;font-weight:700;padding:10px 20px;border-radius:8px;cursor:pointer;">
+            ✓ BULK MARK DELIVERED
+          </button>
+          <div id="bulk-result" style="font-family:var(--mono);font-size:10px;color:var(--ink3);"></div>
+        </div>
+      </div>
+
       <div class="sec-divider">Active Campaigns</div>
       <div id="campaigns-list"></div>
 
@@ -644,103 +758,6 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
     </div>
   </div>
 
-  <!-- ── Tab: Price Ref ── -->
-  <div id="tab-price_ref" class="tab-content">
-    <div class="page-body">
-      <div class="sec-header">💰 Price Reference — GRP 2A (Miracle)</div>
-      <div class="sec-sub">Manage item prices, Sales Type thresholds, and commission rates. Used by process_data.py to calculate formula columns R–Z.</div>
-
-      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
-        <input type="text" id="price-search" placeholder="🔍 Search item code..." oninput="renderPriceTable()" style="font-family:var(--mono);font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;flex:1;min-width:160px">
-        <button class="save-btn" onclick="openPriceAddModal()" style="background:var(--green);padding:6px 14px;font-size:11px">＋ Add Item</button>
-        <button class="save-btn" onclick="openPriceImportModal()" style="background:#b8860b;padding:6px 14px;font-size:11px">📥 Import Excel</button>
-        <button class="save-btn" onclick="downloadPriceRef()" style="padding:6px 14px;font-size:11px">💾 Download JSON</button>
-        <button class="save-btn" onclick="exportPriceCSV()" style="background:var(--ink3);padding:6px 14px;font-size:11px">📤 CSV</button>
-      </div>
-
-      <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">
-        <div class="admin-card" style="flex:1;min-width:80px;text-align:center;padding:10px">
-          <div style="font-family:var(--display);font-size:22px;font-weight:700;color:var(--blue)" id="pr-total">0</div>
-          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3)">Total Items</div>
-        </div>
-        <div class="admin-card" style="flex:1;min-width:80px;text-align:center;padding:10px">
-          <div style="font-family:var(--display);font-size:22px;font-weight:700;color:var(--green)" id="pr-comm">0</div>
-          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3)">With Commission</div>
-        </div>
-        <div class="admin-card" style="flex:1;min-width:80px;text-align:center;padding:10px">
-          <div style="font-family:var(--display);font-size:22px;font-weight:700;color:#b8860b" id="pr-unified">0</div>
-          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3)">Unified (Grey Area)</div>
-        </div>
-        <div class="admin-card" style="flex:1;min-width:80px;text-align:center;padding:10px">
-          <div style="font-family:var(--display);font-size:14px;font-weight:600;color:var(--ink3)" id="pr-updated">—</div>
-          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3)">Last Updated</div>
-        </div>
-      </div>
-
-      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
-        <table style="width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)">
-          <thead>
-            <tr style="background:var(--bg)">
-              <th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap">Item Code</th>
-              <th style="padding:6px 8px;text-align:right;border-bottom:2px solid var(--border)">Pkt/CTN</th>
-              <th style="padding:6px 8px;text-align:right;border-bottom:2px solid var(--border)">CTN/Box</th>
-              <th style="padding:6px 8px;text-align:right;border-bottom:2px solid var(--border)">RM Below Sub<br><span style="font-size:8px;color:var(--ink3)">(Target threshold)</span></th>
-              <th style="padding:6px 8px;text-align:right;border-bottom:2px solid var(--border)">RM MA 3045<br><span style="font-size:8px;color:var(--ink3)">(GA/MA threshold)</span></th>
-              <th style="padding:6px 8px;text-align:right;border-bottom:2px solid var(--border)">RM MA<br><span style="font-size:8px;color:var(--ink3)">(Promo threshold)</span></th>
-              <th style="padding:6px 8px;text-align:center;border-bottom:2px solid var(--border)">Unified</th>
-              <th style="padding:6px 8px;text-align:right;border-bottom:2px solid var(--border)">Comm Rate</th>
-              <th style="padding:6px 8px;text-align:center;border-bottom:2px solid var(--border)">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="price-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- Price Ref: Add/Edit Modal -->
-  <div id="price-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:200;justify-content:center;align-items:center">
-    <div style="background:var(--surface);border-radius:12px;padding:20px;width:90%;max-width:440px;max-height:80vh;overflow-y:auto">
-      <div style="font-family:var(--display);font-size:15px;font-weight:700;margin-bottom:12px" id="price-modal-title">Add Item</div>
-      <label style="display:block;font-size:10px;color:var(--ink3);margin-top:8px">Item Code *</label>
-      <input type="text" id="pm_code" style="width:100%;font-family:var(--mono);font-size:12px;padding:8px;border:1px solid var(--border);border-radius:6px;text-transform:uppercase">
-      <label style="display:block;font-size:10px;color:var(--ink3);margin-top:8px">Pkt / CTN</label>
-      <input type="number" id="pm_pkt" value="10" step="1" style="width:100%;font-family:var(--mono);font-size:12px;padding:8px;border:1px solid var(--border);border-radius:6px">
-      <label style="display:block;font-size:10px;color:var(--ink3);margin-top:8px">CTN / Box</label>
-      <input type="number" id="pm_ctn" value="50" step="1" style="width:100%;font-family:var(--mono);font-size:12px;padding:8px;border:1px solid var(--border);border-radius:6px">
-      <label style="display:block;font-size:10px;color:var(--ink3);margin-top:8px">RM/CTN — Below Sub Agent (≥ this = Target)</label>
-      <input type="number" id="pm_below" step="0.01" style="width:100%;font-family:var(--mono);font-size:12px;padding:8px;border:1px solid var(--border);border-radius:6px">
-      <label style="display:block;font-size:10px;color:var(--ink3);margin-top:8px">RM/CTN — MA 30/40/50 (≥ this = Grey Area or MA)</label>
-      <input type="number" id="pm_ma3045" step="0.01" style="width:100%;font-family:var(--mono);font-size:12px;padding:8px;border:1px solid var(--border);border-radius:6px">
-      <label style="display:block;font-size:10px;color:var(--ink3);margin-top:8px">RM/CTN — Master Agent (≥ this = MA/Promo)</label>
-      <input type="number" id="pm_ma" step="0.01" style="width:100%;font-family:var(--mono);font-size:12px;padding:8px;border:1px solid var(--border);border-radius:6px">
-      <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
-        <input type="checkbox" id="pm_unified">
-        <label for="pm_unified" style="font-size:11px;margin:0">Unified pricing (Grey Area instead of MA 35/45/55)</label>
-      </div>
-      <label style="display:block;font-size:10px;color:var(--ink3);margin-top:8px">Commission Rate</label>
-      <input type="number" id="pm_comm" value="0" step="0.5" style="width:100%;font-family:var(--mono);font-size:12px;padding:8px;border:1px solid var(--border);border-radius:6px">
-      <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
-        <button class="save-btn" onclick="closePriceModal()" style="background:var(--ink3);padding:8px 20px;font-size:12px">Cancel</button>
-        <button class="save-btn" onclick="savePriceItem()" style="padding:8px 20px;font-size:12px">Save</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Price Ref: Import Excel Modal -->
-  <div id="price-import-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:200;justify-content:center;align-items:center">
-    <div style="background:var(--surface);border-radius:12px;padding:20px;width:90%;max-width:440px">
-      <div style="font-family:var(--display);font-size:15px;font-weight:700;margin-bottom:12px">📥 Import from Other Ref Excel</div>
-      <div style="font-size:11px;color:var(--ink3);margin-bottom:12px">Upload your <b>Other_ref.xlsx</b>. Reads the MIRACLE & SS2 section + commission rates.</div>
-      <input type="file" id="price-import-file" accept=".xlsx,.xls" style="font-family:var(--mono);font-size:11px;width:100%;margin-bottom:12px">
-      <div style="font-size:11px;color:#b8860b;margin-bottom:8px">⚠ This will overwrite all current prices with values from the Excel.</div>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button class="save-btn" onclick="closePriceImportModal()" style="background:var(--ink3);padding:8px 20px;font-size:12px">Cancel</button>
-        <button class="save-btn" onclick="doPriceImport()" style="background:#b8860b;padding:8px 20px;font-size:12px">Import</button>
-      </div>
-    </div>
-  </div>
-
   <!-- ── Tab 4: Export / Import ── -->
   <div id="tab-export" class="tab-content">
     <div class="page-body">
@@ -770,27 +787,6 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
         <div style="font-weight:600;margin-bottom:6px;">Raw JSON Preview</div>
         <textarea id="raw-json" style="width:100%;height:200px;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:10px;padding:10px;border-radius:8px;resize:vertical;" readonly></textarea>
       </div>
-
-      <div class="admin-card" style="margin-top:10px;border:2px solid #c85a1a;">
-        <div style="font-weight:600;margin-bottom:4px;color:#c85a1a">📋 Export KPI Scores (Section D + E)</div>
-        <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);margin-bottom:8px;">
-          Reads Section D+E scores from browser localStorage (entered via <b>accounts.html</b>)
-          and exports as <b>kpi_scores.json</b>. Copy to md-dashboard folder so <code>process_data.py</code> can include them in KPI calculation.
-        </div>
-        <div id="kpi-scores-preview" style="font-family:var(--mono);font-size:10px;color:var(--ink3);margin-bottom:8px;max-height:120px;overflow-y:auto;background:var(--bg);padding:8px;border-radius:6px;display:none"></div>
-        <div style="display:flex;gap:8px">
-          <button onclick="previewKPIScores()" style="flex:1;background:var(--ink3);border:none;color:#fff;font-family:var(--display);font-size:14px;letter-spacing:.05em;padding:10px;border-radius:10px;cursor:pointer;">👁 PREVIEW SCORES</button>
-          <button onclick="exportKPIScores()" style="flex:1;background:#c85a1a;border:none;color:#fff;font-family:var(--display);font-size:14px;letter-spacing:.05em;padding:10px;border-radius:10px;cursor:pointer;">⬇ DOWNLOAD KPI_SCORES.JSON</button>
-        </div>
-      </div>
-
-      <div class="admin-card" style="margin-top:10px;border:2px solid #6b3fa0;">
-        <div style="font-weight:600;margin-bottom:4px;color:#6b3fa0">📋 Import KPI Scores</div>
-        <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);margin-bottom:8px;">
-          Upload an existing <b>kpi_scores.json</b> to load scores into localStorage (so they appear in accounts.html).
-        </div>
-        <input type="file" id="kpi-scores-import" accept=".json" onchange="importKPIScores(this)" style="font-family:var(--mono);font-size:11px;width:100%;">
-      </div>
     </div>
   </div>
 
@@ -818,6 +814,120 @@ let DASH_DATA = {};
 
 const BRANDS = ['iFACE','SUKUN','EVO','BISON','TR20','LAM+LWM'];
 const AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','YI'];
+
+// ── Gist Setup Functions ──────────────────────────────────────────────────
+function renderSyncStatus() {
+  const banner = document.getElementById('sync-status-banner');
+  const cfg    = document.getElementById('gist-current-config');
+  if (!banner) return;
+  if (typeof GistSync === 'undefined') {
+    banner.style.background = 'rgba(255,95,95,.15)';
+    banner.textContent = '❌ GistSync module not loaded';
+    return;
+  }
+  const config = GistSync.getConfig();
+  if (config.gist_id && config.token) {
+    banner.style.background = 'rgba(61,220,132,.15)';
+    banner.textContent = `✓ Connected — Gist ID: ${config.gist_id.substring(0,12)}... | All interactions syncing to cloud`;
+    if (cfg) cfg.textContent = `Gist ID: ${config.gist_id} | Token: ${config.token.substring(0,8)}...`;
+  } else {
+    banner.style.background = 'rgba(240,192,64,.12)';
+    banner.textContent = '⚠ Not configured — agent data stored in localStorage only (device-specific)';
+    if (cfg) cfg.textContent = 'No Gist configured yet. Complete setup above.';
+  }
+}
+
+async function createNewGist() {
+  const token = document.getElementById('gist-token-input')?.value?.trim();
+  if (!token) { alert('Enter your GitHub Personal Access Token first'); return; }
+  const btn = event.target;
+  btn.textContent = 'Creating...'; btn.disabled = true;
+  const result = await GistSync.createGist(token, 'MIRACLE-奇迹 MD Dashboard — Agent Interactions');
+  if (result.ok) {
+    renderSyncStatus();
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    const gid = result.gist_id;
+    overlay.innerHTML = `
+      <div style="background:#1c1c24;border:2px solid #3ddc84;border-radius:16px;padding:28px;width:100%;max-width:480px;">
+        <div style="font-family:monospace;font-size:22px;color:#3ddc84;font-weight:700;margin-bottom:6px;">Gist Created!</div>
+        <div style="font-family:monospace;font-size:10px;color:#6a687a;margin-bottom:18px;">Save this Gist ID — share with all agent devices</div>
+        <div style="font-family:monospace;font-size:9px;color:#6a687a;text-transform:uppercase;margin-bottom:5px;">Gist ID</div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <input id="modal-gist-id" value="${gid}" readonly
+            style="flex:1;background:#0e0e12;border:1px solid #3ddc84;border-radius:8px;color:#3ddc84;font-family:monospace;font-size:13px;padding:10px 12px;">
+          <button onclick="document.getElementById('modal-gist-id').select();document.execCommand('copy');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',2000);"
+            style="background:#3ddc84;border:none;color:#000;font-family:monospace;font-size:11px;font-weight:700;padding:10px 16px;border-radius:8px;cursor:pointer;">Copy</button>
+        </div>
+        <div style="font-family:monospace;font-size:9px;color:#f0c040;background:rgba(240,192,64,.08);border:1px solid rgba(240,192,64,.2);border-radius:8px;padding:10px;margin-bottom:16px;">
+          Each agent phone needs this same Gist ID and your token to connect and sync.
+        </div>
+        <button onclick="this.closest('div[style*=fixed]').remove();"
+          style="width:100%;background:#3ddc84;border:none;color:#000;font-family:monospace;font-size:13px;font-weight:800;padding:13px;border-radius:10px;cursor:pointer;">Done</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    setTimeout(()=>{ document.getElementById('modal-gist-id')?.select(); }, 150);
+  } else {
+    alert('Failed: ' + result.error + ' — Check your token has gist scope.');
+  }
+  btn.textContent = '✨ Create New Gist (First Time Setup)'; btn.disabled = false;
+}
+
+async function connectExistingGist() {
+  const token  = document.getElementById('gist-token-input')?.value?.trim();
+  const gistId = document.getElementById('gist-id-input')?.value?.trim();
+  if (!token || !gistId) { alert('Enter both the token and Gist ID'); return; }
+  const result = await GistSync.setup(gistId, token);
+  if (result.ok) {
+    renderSyncStatus();
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = `
+      <div style="background:#1c1c24;border:1px solid #3ddc84;border-radius:16px;padding:28px;width:90%;max-width:400px;text-align:center;">
+        <div style="font-size:48px;margin-bottom:12px;">☁️</div>
+        <div style="font-family:monospace;font-size:20px;color:#3ddc84;font-weight:700;margin-bottom:8px;">Connected!</div>
+        <div style="font-family:monospace;font-size:11px;color:#6a687a;margin-bottom:20px;">This device will now sync all claims, flags, and KPI scores to the shared Gist.</div>
+        <button onclick="this.closest('div[style*=fixed]').remove();"
+          style="width:100%;background:#3ddc84;border:none;color:#000;font-family:monospace;font-size:13px;font-weight:800;padding:13px;border-radius:10px;cursor:pointer;">
+          ✓ OK
+        </button>
+      </div>`;
+    document.body.appendChild(overlay);
+  } else {
+    alert('Connection failed: ' + result.error);
+  }
+}
+
+async function forcePull() {
+  if (!GistSync.isConfigured()) { alert('Configure Gist first'); return; }
+  const data = await GistSync.pull();
+  if (data) {
+    const month = 'Apr 26';
+    await GistSync.syncToLocal(month);
+    alert(`✓ Pulled from Gist: ${Object.keys(data).length} data files synced to this device`);
+  } else {
+    alert('❌ Pull failed — check connection and token');
+  }
+}
+
+async function forcePush() {
+  if (!GistSync.isConfigured()) { alert('Configure Gist first'); return; }
+  // Push all localStorage camp_claim_* keys
+  const months = ['Jan26','Feb26','Mar26','Apr26'];
+  let pushed = 0;
+  for (const slug of months) {
+    const claims = {};
+    Object.keys(localStorage).filter(k => k.startsWith(`camp_claim_${slug}`)).forEach(k => {
+      const parts = k.replace(`camp_claim_${slug}_`,'').split('_');
+      claims[k.replace(`camp_claim_${slug}_`,'')] = JSON.parse(localStorage.getItem(k)||'null');
+    });
+    if (Object.keys(claims).length > 0) {
+      await GistSync.push(`claims_${slug}`, claims);
+      pushed += Object.keys(claims).length;
+    }
+  }
+  alert(`✓ Pushed ${pushed} claims to Gist`);
+}
 
 // ── Init ───────────────────────────────────────────────────────────────────
 async function initAdmin() {
@@ -848,6 +958,7 @@ async function initAdmin() {
   // Load campaigns
   loadCampaignsData();
   renderCampaignsList();
+  populateBulkCampSelect();
   renderKPIWeights();
   // Set default deadline to end of current month
   const now = new Date();
@@ -2507,6 +2618,59 @@ function reopenCampaign(id) {
   if (c) { c.active = true; saveCampaignsData(); renderCampaignsList(); }
 }
 
+function populateBulkCampSelect() {
+  const sel = document.getElementById('bulk-camp-select');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Select Campaign --</option>';
+  (CAMPAIGNS_DATA.campaigns || []).filter(c => c.active).forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.name;
+    sel.appendChild(opt);
+  });
+}
+
+function bulkMarkDelivered() {
+  const campId   = document.getElementById('bulk-camp-select')?.value;
+  const month    = document.getElementById('bulk-month-select')?.value;
+  const agent    = document.getElementById('bulk-agent-select')?.value;
+  const raw      = document.getElementById('bulk-debtor-codes')?.value || '';
+  const remark   = document.getElementById('bulk-remark')?.value || 'Bulk import';
+  const resultEl = document.getElementById('bulk-result');
+
+  if (!campId) { resultEl.textContent = '⚠ Select a campaign first'; resultEl.style.color = 'var(--red)'; return; }
+  if (!month)  { resultEl.textContent = '⚠ Select a month'; resultEl.style.color = 'var(--red)'; return; }
+  if (!raw.trim()) { resultEl.textContent = '⚠ Paste debtor codes first'; resultEl.style.color = 'var(--red)'; return; }
+
+  // Parse codes — split by newline, comma, semicolon
+  const codes = raw.split(/[\n,;]+/).map(c => c.trim()).filter(Boolean);
+  if (!codes.length) { resultEl.textContent = '⚠ No valid codes found'; return; }
+
+  const now = new Date();
+  const ts  = now.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) + ' ' + now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  const monthSlug = month.replace(' ', '');
+
+  let count = 0;
+  const AGENTS = agent ? [agent] : ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','YI'];
+
+  codes.forEach(code => {
+    AGENTS.forEach(ag => {
+      const key = `camp_claim_${monthSlug}_${ag}_${campId}_${code}`;
+      // Only set if not already claimed
+      if (!localStorage.getItem(key)) {
+        localStorage.setItem(key, JSON.stringify({ ts, remark, count: 1, bulk: true }));
+        count++;
+      }
+    });
+  });
+
+  resultEl.style.color = '#3ddc84';
+  resultEl.textContent = `✓ Marked ${count} entries delivered (${codes.length} codes × ${AGENTS.length} agent${AGENTS.length>1?'s':''})`;
+
+  // Clear textarea
+  document.getElementById('bulk-debtor-codes').value = '';
+}
+
 function saveCampaignsJSON() {
   const blob=new Blob([JSON.stringify(CAMPAIGNS_DATA,null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='campaigns.json';a.click();
@@ -2517,370 +2681,253 @@ document.getElementById('pw-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') doLogin();
 });
 
-// ══════════════════════════════════════════════════════════════════════════════
-// ── KPI Scores Export/Import (Section D+E from localStorage) ─────────────────
-// ══════════════════════════════════════════════════════════════════════════════
+// ── GistSync Module ─────────────────────────────────────────────────
+/**
+ * MIRACLE-奇迹 MD Dashboard — Gist Sync Module
+ * Stores all agent interactions in a GitHub Gist
+ * Cross-device, permanent, audit trail
+ * 
+ * Setup: Admin sets GIST_ID + GITHUB_PAT in admin.html once
+ * All pages load this module and use GistSync.* functions
+ */
 
-const KPI_SCORE_MONTHS = ['Jan 26','Feb 26','Mar 26','Apr 26','May 26','Jun 26',
-                          'Jul 26','Aug 26','Sep 26','Oct 26','Nov 26','Dec 26'];
+const GistSync = (() => {
 
-function getKPIStorageKey(month) { return `md_scores_${month.replace(' ','')}`; }
+  const CONFIG_KEY = 'md_gist_config';
 
-function collectAllKPIScores() {
-  const all = {};
-  let totalMonths = 0, totalAgents = 0;
-  for (const month of KPI_SCORE_MONTHS) {
-    const key = getKPIStorageKey(month);
+  function getConfig() {
+    try { return JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}'); }
+    catch { return {}; }
+  }
+
+  function saveConfig(cfg) {
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
+  }
+
+  function isConfigured() {
+    const c = getConfig();
+    return !!(c.gist_id && c.token);
+  }
+
+  // ── Read all data from Gist ─────────────────────────────────────────────
+  async function pull() {
+    const { gist_id, token } = getConfig();
+    if (!gist_id || !token) return null;
     try {
-      const data = JSON.parse(localStorage.getItem(key) || '{}');
-      if (Object.keys(data).length > 0) {
-        all[month] = data;
-        totalMonths++;
-        totalAgents += Object.keys(data).length;
-      }
-    } catch(e) { /* skip */ }
-  }
-  return { data: all, totalMonths, totalAgents };
-}
-
-function previewKPIScores() {
-  const { data, totalMonths, totalAgents } = collectAllKPIScores();
-  const preview = document.getElementById('kpi-scores-preview');
-  preview.style.display = 'block';
-
-  if (totalMonths === 0) {
-    preview.innerHTML = '<span style="color:var(--accent)">No scores found in localStorage. Enter scores via accounts.html first.</span>';
-    return;
-  }
-
-  let html = `<b>${totalMonths} month(s), ${totalAgents} agent entries found:</b><br>`;
-  for (const [month, agents] of Object.entries(data)) {
-    const agentNames = Object.keys(agents).sort();
-    html += `<br><b style="color:#c85a1a">${month}:</b> ${agentNames.length} agents — ${agentNames.join(', ')}<br>`;
-    // Show first agent's scores as sample
-    const firstAgent = agentNames[0];
-    const scores = agents[firstAgent];
-    const scoreKeys = Object.keys(scores);
-    const dCount = scoreKeys.filter(k => k.startsWith('d_')).length;
-    const eCount = scoreKeys.filter(k => k.startsWith('e_')).length;
-    const bCount = scoreKeys.filter(k => k.startsWith('alt_')).length;
-    html += `  └ Sample (${firstAgent}): ${dCount} Sec D, ${eCount} Sec E, ${bCount} Sec B items<br>`;
-  }
-  preview.innerHTML = html;
-}
-
-function exportKPIScores() {
-  const { data, totalMonths } = collectAllKPIScores();
-
-  if (totalMonths === 0) {
-    alert('No KPI scores found in localStorage.\n\nEnter scores via accounts.html first, then come back here to export.');
-    return;
-  }
-
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'kpi_scores.json';
-  a.click();
-  showToast('💾 kpi_scores.json downloaded — copy to md-dashboard folder');
-}
-
-function importKPIScores(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const data = JSON.parse(e.target.result);
-      let imported = 0;
-      for (const [month, agents] of Object.entries(data)) {
-        if (typeof agents !== 'object') continue;
-        const key = getKPIStorageKey(month);
-        // Merge with existing
-        let existing = {};
-        try { existing = JSON.parse(localStorage.getItem(key) || '{}'); } catch(e) {}
-        const merged = { ...existing, ...agents };
-        localStorage.setItem(key, JSON.stringify(merged));
-        imported += Object.keys(agents).length;
-      }
-      showToast(`✅ Imported ${imported} agent scores across ${Object.keys(data).length} months into localStorage`);
-    } catch(e) {
-      alert('Invalid JSON: ' + e.message);
-    }
-  };
-  reader.readAsText(file);
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// ── Global Toast ─────────────────────────────────────────────────────────────
-// ══════════════════════════════════════════════════════════════════════════════
-function showToast(msg) {
-  let el = document.getElementById('global-toast');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'global-toast';
-    el.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 24px;border-radius:8px;font-size:12px;z-index:300;font-family:var(--mono);display:none';
-    document.body.appendChild(el);
-  }
-  el.textContent = msg;
-  el.style.display = 'block';
-  clearTimeout(el._timer);
-  el._timer = setTimeout(() => { el.style.display = 'none'; }, 3000);
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// ── Price Ref Management ─────────────────────────────────────────────────────
-// ══════════════════════════════════════════════════════════════════════════════
-
-let PRICE_REF = { items: {} };
-let priceEditCode = null;
-
-async function loadPriceRef() {
-  try {
-    const resp = await fetch('price_ref.json?t=' + Date.now());
-    if (resp.ok) PRICE_REF = await resp.json();
-    else PRICE_REF = { items: {} };
-  } catch(e) {
-    PRICE_REF = { items: {} };
-  }
-  renderPriceTable();
-  renderPriceStats();
-}
-
-function renderPriceStats() {
-  const items = Object.keys(PRICE_REF.items || {});
-  const withComm = items.filter(k => (PRICE_REF.items[k].comm_rate || 0) > 0).length;
-  const unified = items.filter(k => PRICE_REF.items[k].unified === true).length;
-  document.getElementById('pr-total').textContent = items.length;
-  document.getElementById('pr-comm').textContent = withComm;
-  document.getElementById('pr-unified').textContent = unified;
-  document.getElementById('pr-updated').textContent = PRICE_REF._last_updated || '—';
-}
-
-function renderPriceTable() {
-  const search = (document.getElementById('price-search')?.value || '').toUpperCase();
-  const items = PRICE_REF.items || {};
-  const codes = Object.keys(items).sort();
-  const filtered = search ? codes.filter(c => c.toUpperCase().includes(search)) : codes;
-
-  const tbody = document.getElementById('price-tbody');
-  if (!tbody) return;
-
-  tbody.innerHTML = filtered.map(code => {
-    const p = items[code];
-    const fmtRM = v => (v !== null && v !== undefined) ? Number(v).toFixed(2) : '—';
-    return `<tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:5px 8px;font-weight:600;color:var(--blue)">${code}</td>
-      <td style="padding:5px 8px;text-align:right">${p.pkt_ctn ?? '—'}</td>
-      <td style="padding:5px 8px;text-align:right">${p.ctn_box ?? '—'}</td>
-      <td style="padding:5px 8px;text-align:right">${fmtRM(p.rm_below_sub)}</td>
-      <td style="padding:5px 8px;text-align:right">${fmtRM(p.rm_ma_3045)}</td>
-      <td style="padding:5px 8px;text-align:right">${fmtRM(p.rm_ma)}</td>
-      <td style="padding:5px 8px;text-align:center;color:${p.unified?'var(--green)':'var(--ink3)'};font-weight:${p.unified?600:400}">${p.unified ? 'Yes' : '—'}</td>
-      <td style="padding:5px 8px;text-align:right">${p.comm_rate || '—'}</td>
-      <td style="padding:5px 8px;text-align:center">
-        <button onclick="openPriceEditModal('${code}')" style="background:none;border:1px solid var(--border);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:10px">✏</button>
-        <button onclick="deletePriceItem('${code}')" style="background:none;border:1px solid var(--accent);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:10px;color:var(--accent)">✕</button>
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-// ── Add/Edit Modal ────────────────────────────────────────────────────────
-function openPriceAddModal() {
-  priceEditCode = null;
-  document.getElementById('price-modal-title').textContent = 'Add New Item';
-  document.getElementById('pm_code').value = '';
-  document.getElementById('pm_code').disabled = false;
-  document.getElementById('pm_pkt').value = 10;
-  document.getElementById('pm_ctn').value = 50;
-  document.getElementById('pm_below').value = '';
-  document.getElementById('pm_ma3045').value = '';
-  document.getElementById('pm_ma').value = '';
-  document.getElementById('pm_unified').checked = false;
-  document.getElementById('pm_comm').value = 0;
-  document.getElementById('price-modal').style.display = 'flex';
-}
-
-function openPriceEditModal(code) {
-  priceEditCode = code;
-  const p = PRICE_REF.items[code] || {};
-  document.getElementById('price-modal-title').textContent = 'Edit: ' + code;
-  document.getElementById('pm_code').value = code;
-  document.getElementById('pm_code').disabled = true;
-  document.getElementById('pm_pkt').value = p.pkt_ctn ?? 10;
-  document.getElementById('pm_ctn').value = p.ctn_box ?? 50;
-  document.getElementById('pm_below').value = p.rm_below_sub ?? '';
-  document.getElementById('pm_ma3045').value = p.rm_ma_3045 ?? '';
-  document.getElementById('pm_ma').value = p.rm_ma ?? '';
-  document.getElementById('pm_unified').checked = p.unified || false;
-  document.getElementById('pm_comm').value = p.comm_rate ?? 0;
-  document.getElementById('price-modal').style.display = 'flex';
-}
-
-function closePriceModal() {
-  document.getElementById('price-modal').style.display = 'none';
-  priceEditCode = null;
-}
-
-function savePriceItem() {
-  const code = document.getElementById('pm_code').value.trim().toUpperCase();
-  if (!code) { alert('Item code required'); return; }
-
-  if (!PRICE_REF.items) PRICE_REF.items = {};
-  if (!priceEditCode && PRICE_REF.items[code]) {
-    if (!confirm(code + ' already exists. Overwrite?')) return;
-  }
-
-  const entry = {
-    pkt_ctn:      parseFloat(document.getElementById('pm_pkt').value) || 10,
-    ctn_box:      parseFloat(document.getElementById('pm_ctn').value) || 50,
-    rm_below_sub: parseFloat(document.getElementById('pm_below').value) || null,
-    rm_ma_3045:   parseFloat(document.getElementById('pm_ma3045').value) || null,
-    rm_ma:        parseFloat(document.getElementById('pm_ma').value) || null,
-    unified:      document.getElementById('pm_unified').checked,
-  };
-  const comm = parseFloat(document.getElementById('pm_comm').value);
-  if (comm > 0) entry.comm_rate = comm;
-
-  PRICE_REF.items[code] = entry;
-  PRICE_REF._last_updated = new Date().toISOString().split('T')[0];
-
-  closePriceModal();
-  renderPriceTable();
-  renderPriceStats();
-  showToast('✅ ' + code + (priceEditCode ? ' updated' : ' added'));
-}
-
-function deletePriceItem(code) {
-  if (!confirm('Delete ' + code + '?')) return;
-  delete PRICE_REF.items[code];
-  renderPriceTable();
-  renderPriceStats();
-  showToast(code + ' deleted');
-}
-
-// ── Download price_ref.json ──────────────────────────────────────────────
-function downloadPriceRef() {
-  PRICE_REF._last_updated = new Date().toISOString().split('T')[0];
-  PRICE_REF._description = 'Price reference for MIRACLE & SS2 (GRP 2A).';
-  const blob = new Blob([JSON.stringify(PRICE_REF, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = 'price_ref.json'; a.click();
-  showToast('💾 price_ref.json downloaded');
-}
-
-// ── Export CSV ────────────────────────────────────────────────────────────
-function exportPriceCSV() {
-  const items = PRICE_REF.items || {};
-  const codes = Object.keys(items).sort();
-  let csv = 'Item Code,Pkt/CTN,CTN/Box,RM Below Sub,RM MA 3045,RM MA,Unified,Comm Rate\n';
-  for (const code of codes) {
-    const p = items[code];
-    csv += [code, p.pkt_ctn, p.ctn_box, p.rm_below_sub, p.rm_ma_3045, p.rm_ma,
-            p.unified ? 'Yes' : 'No', p.comm_rate || ''].join(',') + '\n';
-  }
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = 'price_ref_export.csv'; a.click();
-  showToast('📤 CSV exported');
-}
-
-// ── Import from Other Ref Excel ──────────────────────────────────────────
-function openPriceImportModal() {
-  document.getElementById('price-import-file').value = '';
-  document.getElementById('price-import-modal').style.display = 'flex';
-}
-function closePriceImportModal() {
-  document.getElementById('price-import-modal').style.display = 'none';
-}
-
-async function doPriceImport() {
-  const fileInput = document.getElementById('price-import-file');
-  if (!fileInput.files.length) { alert('Select a file'); return; }
-
-  showToast('⏳ Reading Excel...');
-
-  try {
-    // Load SheetJS if not already loaded
-    if (typeof XLSX === 'undefined') {
-      await new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-        s.onload = resolve; s.onerror = reject;
-        document.head.appendChild(s);
+      const r = await fetch(`https://api.github.com/gists/${gist_id}`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
       });
-    }
-
-    const file = fileInput.files[0];
-    const ab = await file.arrayBuffer();
-    const wb = XLSX.read(ab, { type: 'array' });
-    const sheetName = wb.SheetNames.find(s => s.toLowerCase().includes('other ref')) || wb.SheetNames[0];
-    const ws = wb.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
-
-    let imported = 0;
-    for (let i = 3; i < Math.min(data.length, 78); i++) {
-      const row = data[i];
-      if (!row) continue;
-      const itemCode = row[21];
-      if (!itemCode || String(itemCode).trim() === '') continue;
-      const code = String(itemCode).trim();
-      const existing = PRICE_REF.items[code] || {};
-
-      PRICE_REF.items[code] = {
-        pkt_ctn:      parseFloat(row[36]) || existing.pkt_ctn || 10,
-        ctn_box:      parseFloat(row[27]) || existing.ctn_box || 50,
-        rm_below_sub: parseFloat(row[30]) || null,
-        rm_ma_3045:   parseFloat(row[31]) || null,
-        rm_ma:        parseFloat(row[32]) || null,
-        unified:      String(row[33] || '').trim().toLowerCase() === 'yes',
-      };
-      if (existing.comm_rate) PRICE_REF.items[code].comm_rate = existing.comm_rate;
-      imported++;
-    }
-
-    // Miracle commission rates (col AA=26, AB=27)
-    let commImported = 0, currentRate = null;
-    for (let i = 79; i < Math.min(data.length, 120); i++) {
-      const row = data[i]; if (!row) continue;
-      const label = row[26], rate = row[27];
-      if (label === 'COMMISSION' && rate != null) { currentRate = parseFloat(rate); }
-      else if (label && currentRate && label !== 'SPECIAL MA RATE') {
-        const item = String(label).trim();
-        if (item && !item.startsWith('60 CTN') && !item.startsWith('80 CTN') && PRICE_REF.items[item]) {
-          PRICE_REF.items[item].comm_rate = currentRate; commImported++;
-        }
-      }
-    }
-
-    // MVP fallback commission (col M=12, N=13)
-    currentRate = null;
-    for (let i = 79; i < Math.min(data.length, 120); i++) {
-      const row = data[i]; if (!row) continue;
-      const label = row[12], rate = row[13];
-      if (label === 'COMMISSION' && rate != null) { currentRate = parseFloat(rate); }
-      else if (label && currentRate) {
-        const item = String(label).trim();
-        if (item && PRICE_REF.items[item] && !PRICE_REF.items[item].comm_rate) {
-          PRICE_REF.items[item].comm_rate = currentRate; commImported++;
-        }
-      }
-    }
-
-    PRICE_REF._last_updated = new Date().toISOString().split('T')[0];
-    closePriceImportModal();
-    renderPriceTable();
-    renderPriceStats();
-    showToast('✅ Imported ' + imported + ' items, ' + commImported + ' commission rates');
-  } catch(e) {
-    console.error(e);
-    alert('Import failed: ' + e.message);
+      if (!r.ok) return null;
+      const data = await r.json();
+      const result = {};
+      Object.entries(data.files || {}).forEach(([fname, f]) => {
+        try { result[fname.replace('.json','')] = JSON.parse(f.content || '{}'); }
+        catch { result[fname.replace('.json','')] = {}; }
+      });
+      // Cache locally
+      localStorage.setItem('md_gist_cache', JSON.stringify(result));
+      localStorage.setItem('md_gist_cache_ts', Date.now().toString());
+      return result;
+    } catch { return null; }
   }
-}
 
-// Load price ref on init
-loadPriceRef();
+  // ── Write a single file to Gist ─────────────────────────────────────────
+  async function push(filename, data) {
+    const { gist_id, token } = getConfig();
+    if (!gist_id || !token) return false;
+    try {
+      const r = await fetch(`https://api.github.com/gists/${gist_id}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          files: { [`${filename}.json`]: { content: JSON.stringify(data, null, 2) } }
+        })
+      });
+      return r.ok;
+    } catch { return false; }
+  }
+
+  // ── Get cached data (fast, no network) ──────────────────────────────────
+  function getCache() {
+    try { return JSON.parse(localStorage.getItem('md_gist_cache') || '{}'); }
+    catch { return {}; }
+  }
+
+  function getCacheAge() {
+    const ts = localStorage.getItem('md_gist_cache_ts');
+    return ts ? (Date.now() - parseInt(ts)) / 1000 : 9999;
+  }
+
+  // ── Campaign Claims ──────────────────────────────────────────────────────
+  async function saveClaim(month, agent, campId, debtorCode, claimData) {
+    const slug = month.replace(' ','');
+    const key  = `${agent}_${campId}_${debtorCode}`;
+
+    // 1. Save to localStorage immediately (instant)
+    const lsKey = `camp_claim_${slug}_${key}`;
+    localStorage.setItem(lsKey, JSON.stringify(claimData));
+
+    // 2. Push to Gist asynchronously (background, non-blocking)
+    if (isConfigured()) {
+      const cache   = getCache();
+      const fileKey = `claims_${slug}`;
+      if (!cache[fileKey]) cache[fileKey] = {};
+      cache[fileKey][key] = claimData;
+      localStorage.setItem('md_gist_cache', JSON.stringify(cache));
+      push(fileKey, cache[fileKey]).catch(() => {});  // fire and forget
+    }
+  }
+
+  async function removeClaim(month, agent, campId, debtorCode) {
+    const slug = month.replace(' ','');
+    const key  = `${agent}_${campId}_${debtorCode}`;
+
+    // Remove from localStorage
+    localStorage.removeItem(`camp_claim_${slug}_${key}`);
+
+    // Remove from Gist
+    if (isConfigured()) {
+      const cache   = getCache();
+      const fileKey = `claims_${slug}`;
+      if (cache[fileKey]) {
+        delete cache[fileKey][key];
+        localStorage.setItem('md_gist_cache', JSON.stringify(cache));
+        push(fileKey, cache[fileKey]).catch(() => {});
+      }
+    }
+  }
+
+  // ── Flags ────────────────────────────────────────────────────────────────
+  async function saveFlags(month, agent, flags) {
+    const slug    = month.replace(' ','');
+    const fileKey = `flags_${slug}`;
+
+    // localStorage
+    localStorage.setItem(`touro_debtor_flags_${agent}`, JSON.stringify(flags));
+
+    // Gist
+    if (isConfigured()) {
+      const cache = getCache();
+      if (!cache[fileKey]) cache[fileKey] = {};
+      cache[fileKey][agent] = flags;
+      localStorage.setItem('md_gist_cache', JSON.stringify(cache));
+      push(fileKey, cache[fileKey]).catch(() => {});
+    }
+  }
+
+  // ── KPI Scores ───────────────────────────────────────────────────────────
+  async function saveKPIScores(month, scores) {
+    const slug    = month.replace(' ','');
+    const fileKey = `kpi_scores`;
+
+    // localStorage
+    localStorage.setItem(`md_scores_${slug}`, JSON.stringify(scores));
+
+    // Gist
+    if (isConfigured()) {
+      const cache = getCache();
+      if (!cache[fileKey]) cache[fileKey] = {};
+      cache[fileKey][month] = scores;
+      localStorage.setItem('md_gist_cache', JSON.stringify(cache));
+      push(fileKey, cache[fileKey]).then(ok => {
+        if (ok) console.log(`[GistSync] KPI scores for ${month} saved to Gist ✓`);
+      }).catch(() => {});
+    }
+  }
+
+  // ── Sync from Gist to localStorage (on page load) ────────────────────────
+  async function syncToLocal(month) {
+    if (!isConfigured()) return;
+    const slug = month.replace(' ','');
+
+    // Pull if cache is older than 5 minutes
+    let data;
+    if (getCacheAge() > 300) {
+      data = await pull();
+    } else {
+      data = getCache();
+    }
+    if (!data) return;
+
+    // Claims → localStorage
+    const claims = data[`claims_${slug}`] || {};
+    Object.entries(claims).forEach(([key, val]) => {
+      localStorage.setItem(`camp_claim_${slug}_${key}`, JSON.stringify(val));
+    });
+
+    // Flags → localStorage
+    const flags = data[`flags_${slug}`] || {};
+    Object.entries(flags).forEach(([agent, agentFlags]) => {
+      localStorage.setItem(`touro_debtor_flags_${agent}`, JSON.stringify(agentFlags));
+    });
+
+    // KPI scores → localStorage
+    const kpi = data['kpi_scores'] || {};
+    if (kpi[month]) {
+      localStorage.setItem(`md_scores_${slug}`, JSON.stringify(kpi[month]));
+    }
+
+    console.log(`[GistSync] Synced ${Object.keys(claims).length} claims, ${Object.keys(flags).length} agents' flags for ${month}`);
+  }
+
+  // ── Setup (called from Admin to configure) ───────────────────────────────
+  async function setup(gistId, token) {
+    // Test the credentials
+    try {
+      const r = await fetch(`https://api.github.com/gists/${gistId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!r.ok) return { ok: false, error: `HTTP ${r.status} — check Gist ID and token` };
+      saveConfig({ gist_id: gistId, token });
+      return { ok: true };
+    } catch(e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  async function createGist(token, description = 'MIRACLE-奇迹 MD Dashboard Data') {
+    try {
+      const r = await fetch('https://api.github.com/gists', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          description,
+          public: false,
+          files: {
+            'claims_init.json': { content: '{}' },
+            'flags_init.json':  { content: '{}' },
+            'kpi_scores.json':  { content: '{}' },
+          }
+        })
+      });
+      if (!r.ok) return { ok: false, error: `HTTP ${r.status}` };
+      const data = await r.json();
+      saveConfig({ gist_id: data.id, token });
+      return { ok: true, gist_id: data.id, url: data.html_url };
+    } catch(e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  return {
+    isConfigured, getConfig, setup, createGist,
+    pull, push, getCache, syncToLocal,
+    saveClaim, removeClaim, saveFlags, saveKPIScores,
+  };
+
+})();
+
+// Export for use in other files
+if (typeof module !== 'undefined') module.exports = GistSync;
+
 </script>
 </body>
 </html>

@@ -322,6 +322,11 @@ async function loadData() {
     const r = await fetch('dashboard_data.json?v=' + Date.now());
     DATA = await r.json();
   } catch(e) { DATA = {}; }
+  // Sync KPI scores from Gist before rendering
+  if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+    const month = document.getElementById('month-select')?.value || 'Apr 26';
+    await GistSync.syncToLocal(month).catch(()=>{});
+  }
   loadScores();
   renderAll();
 }
@@ -362,7 +367,15 @@ function saveAll(sec) {
   });
   // Persist to localStorage
   const storKey = getStorageKey(month);
-  localStorage.setItem(storKey, JSON.stringify(SCORES[month] || {}));
+  const scores  = SCORES[month] || {};
+  localStorage.setItem(storKey, JSON.stringify(scores));
+  // Sync to Gist (cross-device persistence)
+  if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+    GistSync.saveKPIScores(month, scores)
+      .catch(()=>{});
+    showToast('✓ ' + (sec==='d'?'Section D':sec==='e'?'Section E':'Alt Sales') + ' scores saved + synced ☁️');
+    return;
+  }
   document.getElementById('unsaved-indicator').style.display = 'none';
   showToast('✓ ' + (sec==='d'?'Section D':sec==='e'?'Section E':'Alt Sales') + ' scores saved');
   renderAll();
@@ -517,6 +530,254 @@ document.addEventListener('DOMContentLoaded', () => {
     loadScores(); renderAll();
   });
 });
+
+// ── GistSync Module ─────────────────────────────────────────────────
+/**
+ * MIRACLE-奇迹 MD Dashboard — Gist Sync Module
+ * Stores all agent interactions in a GitHub Gist
+ * Cross-device, permanent, audit trail
+ * 
+ * Setup: Admin sets GIST_ID + GITHUB_PAT in admin.html once
+ * All pages load this module and use GistSync.* functions
+ */
+
+const GistSync = (() => {
+
+  const CONFIG_KEY = 'md_gist_config';
+
+  function getConfig() {
+    try { return JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}'); }
+    catch { return {}; }
+  }
+
+  function saveConfig(cfg) {
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
+  }
+
+  function isConfigured() {
+    const c = getConfig();
+    return !!(c.gist_id && c.token);
+  }
+
+  // ── Read all data from Gist ─────────────────────────────────────────────
+  async function pull() {
+    const { gist_id, token } = getConfig();
+    if (!gist_id || !token) return null;
+    try {
+      const r = await fetch(`https://api.github.com/gists/${gist_id}`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
+      });
+      if (!r.ok) return null;
+      const data = await r.json();
+      const result = {};
+      Object.entries(data.files || {}).forEach(([fname, f]) => {
+        try { result[fname.replace('.json','')] = JSON.parse(f.content || '{}'); }
+        catch { result[fname.replace('.json','')] = {}; }
+      });
+      // Cache locally
+      localStorage.setItem('md_gist_cache', JSON.stringify(result));
+      localStorage.setItem('md_gist_cache_ts', Date.now().toString());
+      return result;
+    } catch { return null; }
+  }
+
+  // ── Write a single file to Gist ─────────────────────────────────────────
+  async function push(filename, data) {
+    const { gist_id, token } = getConfig();
+    if (!gist_id || !token) return false;
+    try {
+      const r = await fetch(`https://api.github.com/gists/${gist_id}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          files: { [`${filename}.json`]: { content: JSON.stringify(data, null, 2) } }
+        })
+      });
+      return r.ok;
+    } catch { return false; }
+  }
+
+  // ── Get cached data (fast, no network) ──────────────────────────────────
+  function getCache() {
+    try { return JSON.parse(localStorage.getItem('md_gist_cache') || '{}'); }
+    catch { return {}; }
+  }
+
+  function getCacheAge() {
+    const ts = localStorage.getItem('md_gist_cache_ts');
+    return ts ? (Date.now() - parseInt(ts)) / 1000 : 9999;
+  }
+
+  // ── Campaign Claims ──────────────────────────────────────────────────────
+  async function saveClaim(month, agent, campId, debtorCode, claimData) {
+    const slug = month.replace(' ','');
+    const key  = `${agent}_${campId}_${debtorCode}`;
+
+    // 1. Save to localStorage immediately (instant)
+    const lsKey = `camp_claim_${slug}_${key}`;
+    localStorage.setItem(lsKey, JSON.stringify(claimData));
+
+    // 2. Push to Gist asynchronously (background, non-blocking)
+    if (isConfigured()) {
+      const cache   = getCache();
+      const fileKey = `claims_${slug}`;
+      if (!cache[fileKey]) cache[fileKey] = {};
+      cache[fileKey][key] = claimData;
+      localStorage.setItem('md_gist_cache', JSON.stringify(cache));
+      push(fileKey, cache[fileKey]).catch(() => {});  // fire and forget
+    }
+  }
+
+  async function removeClaim(month, agent, campId, debtorCode) {
+    const slug = month.replace(' ','');
+    const key  = `${agent}_${campId}_${debtorCode}`;
+
+    // Remove from localStorage
+    localStorage.removeItem(`camp_claim_${slug}_${key}`);
+
+    // Remove from Gist
+    if (isConfigured()) {
+      const cache   = getCache();
+      const fileKey = `claims_${slug}`;
+      if (cache[fileKey]) {
+        delete cache[fileKey][key];
+        localStorage.setItem('md_gist_cache', JSON.stringify(cache));
+        push(fileKey, cache[fileKey]).catch(() => {});
+      }
+    }
+  }
+
+  // ── Flags ────────────────────────────────────────────────────────────────
+  async function saveFlags(month, agent, flags) {
+    const slug    = month.replace(' ','');
+    const fileKey = `flags_${slug}`;
+
+    // localStorage
+    localStorage.setItem(`touro_debtor_flags_${agent}`, JSON.stringify(flags));
+
+    // Gist
+    if (isConfigured()) {
+      const cache = getCache();
+      if (!cache[fileKey]) cache[fileKey] = {};
+      cache[fileKey][agent] = flags;
+      localStorage.setItem('md_gist_cache', JSON.stringify(cache));
+      push(fileKey, cache[fileKey]).catch(() => {});
+    }
+  }
+
+  // ── KPI Scores ───────────────────────────────────────────────────────────
+  async function saveKPIScores(month, scores) {
+    const slug    = month.replace(' ','');
+    const fileKey = `kpi_scores`;
+
+    // localStorage
+    localStorage.setItem(`md_scores_${slug}`, JSON.stringify(scores));
+
+    // Gist
+    if (isConfigured()) {
+      const cache = getCache();
+      if (!cache[fileKey]) cache[fileKey] = {};
+      cache[fileKey][month] = scores;
+      localStorage.setItem('md_gist_cache', JSON.stringify(cache));
+      push(fileKey, cache[fileKey]).then(ok => {
+        if (ok) console.log(`[GistSync] KPI scores for ${month} saved to Gist ✓`);
+      }).catch(() => {});
+    }
+  }
+
+  // ── Sync from Gist to localStorage (on page load) ────────────────────────
+  async function syncToLocal(month) {
+    if (!isConfigured()) return;
+    const slug = month.replace(' ','');
+
+    // Pull if cache is older than 5 minutes
+    let data;
+    if (getCacheAge() > 300) {
+      data = await pull();
+    } else {
+      data = getCache();
+    }
+    if (!data) return;
+
+    // Claims → localStorage
+    const claims = data[`claims_${slug}`] || {};
+    Object.entries(claims).forEach(([key, val]) => {
+      localStorage.setItem(`camp_claim_${slug}_${key}`, JSON.stringify(val));
+    });
+
+    // Flags → localStorage
+    const flags = data[`flags_${slug}`] || {};
+    Object.entries(flags).forEach(([agent, agentFlags]) => {
+      localStorage.setItem(`touro_debtor_flags_${agent}`, JSON.stringify(agentFlags));
+    });
+
+    // KPI scores → localStorage
+    const kpi = data['kpi_scores'] || {};
+    if (kpi[month]) {
+      localStorage.setItem(`md_scores_${slug}`, JSON.stringify(kpi[month]));
+    }
+
+    console.log(`[GistSync] Synced ${Object.keys(claims).length} claims, ${Object.keys(flags).length} agents' flags for ${month}`);
+  }
+
+  // ── Setup (called from Admin to configure) ───────────────────────────────
+  async function setup(gistId, token) {
+    // Test the credentials
+    try {
+      const r = await fetch(`https://api.github.com/gists/${gistId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!r.ok) return { ok: false, error: `HTTP ${r.status} — check Gist ID and token` };
+      saveConfig({ gist_id: gistId, token });
+      return { ok: true };
+    } catch(e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  async function createGist(token, description = 'MIRACLE-奇迹 MD Dashboard Data') {
+    try {
+      const r = await fetch('https://api.github.com/gists', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          description,
+          public: false,
+          files: {
+            'claims_init.json': { content: '{}' },
+            'flags_init.json':  { content: '{}' },
+            'kpi_scores.json':  { content: '{}' },
+          }
+        })
+      });
+      if (!r.ok) return { ok: false, error: `HTTP ${r.status}` };
+      const data = await r.json();
+      saveConfig({ gist_id: data.id, token });
+      return { ok: true, gist_id: data.id, url: data.html_url };
+    } catch(e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  return {
+    isConfigured, getConfig, setup, createGist,
+    pull, push, getCache, syncToLocal,
+    saveClaim, removeClaim, saveFlags, saveKPIScores,
+  };
+
+})();
+
+// Export for use in other files
+if (typeof module !== 'undefined') module.exports = GistSync;
+
 </script>
 </body>
 </html>
