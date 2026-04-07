@@ -37,9 +37,6 @@ SALES_FILE      = BASE_DIR / "MD Sales Report.xlsx"
 DEBTOR_FILE     = BASE_DIR / "Debtor Maintenance.xlsx"
 TARGETS_FILE    = BASE_DIR / "targets.json"
 CAMPAIGNS_FILE  = BASE_DIR / "campaigns.json"
-PRICE_REF_FILE  = BASE_DIR / "price_ref.json"
-KPI_SCORES_FILE = BASE_DIR / "kpi_scores.json"
-ANNUAL_FILE     = BASE_DIR / "annual_targets.json"
 OUTPUT_FILE     = BASE_DIR / "dashboard_data.json"
 
 # Area scope — Phase 2 covers GRP 2A only
@@ -117,304 +114,6 @@ def load_targets():
         return json.load(f)
 
 
-def load_price_ref():
-    """Load price_ref.json; return empty structure if missing."""
-    if not PRICE_REF_FILE.exists():
-        log("⚠  price_ref.json not found — formula columns will not be calculated")
-        return {}
-    with open(PRICE_REF_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    items = data.get("items", {})
-    log(f"  Price ref loaded: {len(items)} items")
-    return items
-
-
-def load_kpi_scores():
-    """Load kpi_scores.json — manual scores from Accounts & Supervisor pages.
-    Structure: { "Mar 26": { "KW": { "d_key_accuracy": 4.5, ... }, ... }, ... }
-    """
-    if not KPI_SCORES_FILE.exists():
-        log("⚠  kpi_scores.json not found — Section D+E scores will be 0")
-        return {}
-    with open(KPI_SCORES_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    log(f"  KPI scores loaded: {len(data)} months")
-    return data
-
-
-def load_annual_targets():
-    """Load annual_targets.json — yearly group + per-agent targets for T1/GA/MA."""
-    if not ANNUAL_FILE.exists():
-        log("⚠  annual_targets.json not found — annual tracking disabled")
-        return {}
-    with open(ANNUAL_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    log(f"  Annual targets loaded: year {data.get('_year', '?')}, grand total {data.get('group_summary',{}).get('grand_total',{}).get('total',0):,.0f} CTN")
-    return data
-
-
-def calc_annual_progress(annual, all_month_data, cur_month):
-    """Calculate YTD progress against annual targets.
-
-    Args:
-        annual: annual_targets.json data
-        all_month_data: dict of month_label → team summary from each month's JSON
-        cur_month: current month label e.g. "Mar 26"
-
-    Returns dict with group + per-agent YTD vs annual targets.
-    """
-    if not annual:
-        return {}
-
-    MONTH_MAP = {
-        "Jan": "January", "Feb": "February", "Mar": "March", "Apr": "April",
-        "May": "May", "Jun": "June", "Jul": "July", "Aug": "August",
-        "Sep": "September", "Oct": "October", "Nov": "November", "Dec": "December",
-    }
-
-    group_summary = annual.get("group_summary", {})
-    t1_agents = annual.get("t1", {})
-    ga_agents = annual.get("ga", {})
-    ma_agents = annual.get("ma", {})
-
-    # Determine which months are completed (Jan through cur_month)
-    MONTH_ORDER = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-    cur_short = cur_month.split()[0] if cur_month else ""
-    cur_idx = MONTH_ORDER.index(cur_short) if cur_short in MONTH_ORDER else -1
-
-    completed_months = MONTH_ORDER[:cur_idx + 1] if cur_idx >= 0 else []
-
-    # Group-level YTD targets (sum of monthly targets for completed months)
-    def ytd_target(section_data, months_list):
-        total = 0
-        monthly = section_data.get("monthly", {})
-        for m_short in months_list:
-            m_full = MONTH_MAP.get(m_short, "")
-            total += monthly.get(m_full, 0)
-        return round(total, 2)
-
-    group_ytd = {
-        "t1_target_ytd": ytd_target(group_summary.get("t1", {}), completed_months),
-        "ga_target_ytd": ytd_target(group_summary.get("ga", {}), completed_months),
-        "ma_target_ytd": ytd_target(group_summary.get("ma", {}), completed_months),
-        "t1_target_annual": group_summary.get("t1", {}).get("total", 0),
-        "ga_target_annual": group_summary.get("ga", {}).get("total", 0),
-        "ma_target_annual": group_summary.get("ma", {}).get("total", 0),
-        "grand_total_annual": group_summary.get("grand_total", {}).get("total", 0),
-        "completed_months": completed_months,
-        "months_remaining": 12 - len(completed_months),
-    }
-
-    # Per-agent YTD targets
-    agent_ytd = {}
-    for agent in t1_agents:
-        agent_ytd[agent] = {
-            "t1_target_ytd": ytd_target(t1_agents.get(agent, {}), completed_months),
-            "ga_target_ytd": ytd_target(ga_agents.get(agent, {}), completed_months),
-            "ma_target_ytd": ytd_target(ma_agents.get(agent, {}), completed_months),
-            "t1_target_annual": t1_agents.get(agent, {}).get("total", 0),
-            "ga_target_annual": ga_agents.get(agent, {}).get("total", 0),
-            "ma_target_annual": ma_agents.get(agent, {}).get("total", 0),
-            "t1_pct": t1_agents.get(agent, {}).get("pct", 0),
-        }
-
-    # Now sum actual YTD from monthly JSON snapshots
-    group_actual = {"t1": 0, "ga": 0, "ma": 0}
-
-    for m_short in completed_months:
-        # Try to load monthly data file
-        year = cur_month.split()[1] if len(cur_month.split()) > 1 else "26"
-        month_label = f"{m_short} {year}"
-        month_slug = month_label.replace(" ", "").lower()
-        month_file = BASE_DIR / f"data_{month_slug}.json"
-
-        if month_file.exists():
-            try:
-                with open(month_file, "r", encoding="utf-8") as f:
-                    mdata = json.load(f)
-                team = mdata.get("team", {})
-                group_actual["t1"] += team.get("team_normal_ctn", 0)
-                group_actual["ga"] += team.get("team_ga_ctn", 0)
-                group_actual["ma"] += team.get("team_ma_ctn", 0)
-
-                # Per-agent actuals
-                for agent, adata in mdata.get("agents", {}).items():
-                    if agent not in agent_ytd:
-                        continue
-                    sp = adata.get("sales_progression", {})
-                    agent_ytd[agent]["t1_actual_ytd"] = agent_ytd[agent].get("t1_actual_ytd", 0) + sp.get("normal_ctn", 0)
-                    agent_ytd[agent]["ga_actual_ytd"] = agent_ytd[agent].get("ga_actual_ytd", 0) + sp.get("ga_ctn", 0)
-                    agent_ytd[agent]["ma_actual_ytd"] = agent_ytd[agent].get("ma_actual_ytd", 0) + sp.get("ma_ctn", 0)
-            except Exception as e:
-                log(f"  ⚠ Could not read {month_file.name}: {e}")
-
-    group_ytd["t1_actual_ytd"] = round(group_actual["t1"], 2)
-    group_ytd["ga_actual_ytd"] = round(group_actual["ga"], 2)
-    group_ytd["ma_actual_ytd"] = round(group_actual["ma"], 2)
-    group_ytd["grand_actual_ytd"] = round(sum(group_actual.values()), 2)
-    group_ytd["grand_target_ytd"] = round(group_ytd["t1_target_ytd"] + group_ytd["ga_target_ytd"] + group_ytd["ma_target_ytd"], 2)
-
-    # Pct calculations
-    for key in ["t1", "ga", "ma"]:
-        tgt = group_ytd.get(f"{key}_target_ytd", 0)
-        act = group_ytd.get(f"{key}_actual_ytd", 0)
-        group_ytd[f"{key}_pct_ytd"] = round(act / tgt * 100, 1) if tgt else 0
-        ann = group_ytd.get(f"{key}_target_annual", 0)
-        group_ytd[f"{key}_pct_annual"] = round(act / ann * 100, 1) if ann else 0
-
-    grand_tgt_ytd = group_ytd.get("grand_target_ytd", 0)
-    grand_act_ytd = group_ytd.get("grand_actual_ytd", 0)
-    group_ytd["grand_pct_ytd"] = round(grand_act_ytd / grand_tgt_ytd * 100, 1) if grand_tgt_ytd else 0
-
-    # Agent pct
-    for agent in agent_ytd:
-        for key in ["t1", "ga", "ma"]:
-            tgt = agent_ytd[agent].get(f"{key}_target_ytd", 0)
-            act = agent_ytd[agent].get(f"{key}_actual_ytd", 0)
-            agent_ytd[agent][f"{key}_pct_ytd"] = round(act / tgt * 100, 1) if tgt else 0
-
-    # Monthly breakdown for chart/table
-    monthly_breakdown = []
-    for m_short in MONTH_ORDER:
-        m_full = MONTH_MAP.get(m_short, "")
-        monthly_breakdown.append({
-            "month": m_short,
-            "t1_target": group_summary.get("t1", {}).get("monthly", {}).get(m_full, 0),
-            "ga_target": group_summary.get("ga", {}).get("monthly", {}).get(m_full, 0),
-            "ma_target": group_summary.get("ma", {}).get("monthly", {}).get(m_full, 0),
-            "completed": m_short in completed_months,
-        })
-
-    return {
-        "group": group_ytd,
-        "agents": agent_ytd,
-        "monthly_breakdown": monthly_breakdown,
-        "year": annual.get("_year", 2026),
-    }
-
-
-def calc_formula_columns(df, price_ref):
-    """Calculate formula columns R–Z from raw data + price_ref.json.
-
-    Adds/overwrites these columns on df:
-      uniq_code   (R) = debtor_code + "-" + item_code
-      rm_ctn      (S) = unit_price × pkt_ctn
-      rm_ctn_rebate (T) = same as S (rebate lookup not yet implemented)
-      sales_type  (U) = determined by comparing rm_ctn against price tier thresholds
-      comm_rate   (V) = commission rate from price_ref
-      qty_ctn     (W) = smallest_qty ÷ pkt_ctn
-      qty_mc      (X) = qty_ctn ÷ ctn_box  (master carton)
-      rm_mc       (Y) = rm_ctn × ctn_box
-      shop_price_comm (Z) = commission earned
-    """
-    if not price_ref:
-        log("  ⚠ No price_ref — skipping formula column calculation")
-        return df
-
-    log("Calculating formula columns R–Z...")
-
-    # Build lookup arrays for vectorised-ish operations
-    pkt_map     = {}  # item_code → pkt_per_ctn
-    ctn_box_map = {}  # item_code → ctn_per_box
-    threshold_map = {}  # item_code → (rm_below_sub, rm_ma_3045, rm_ma, unified)
-    comm_map    = {}  # item_code → commission rate
-
-    for code, ref in price_ref.items():
-        pkt = ref.get("pkt_ctn")
-        if pkt and pkt > 0:
-            pkt_map[code] = pkt
-        ctn = ref.get("ctn_box")
-        if ctn and ctn > 0:
-            ctn_box_map[code] = ctn
-        threshold_map[code] = (
-            ref.get("rm_below_sub") or 0,
-            ref.get("rm_ma_3045") or 0,
-            ref.get("rm_ma") or 0,
-            ref.get("unified", False),
-        )
-        cr = ref.get("comm_rate")
-        if cr:
-            comm_map[code] = cr
-
-    # ── R: UNIQ CODE ──
-    df["uniq_code"] = df["debtor_code"] + "-" + df["item_code"]
-
-    # ── Lookup pkt_ctn per row ──
-    df["_pkt_ctn"] = df["item_code"].map(pkt_map).fillna(0)
-    df["_ctn_box"] = df["item_code"].map(ctn_box_map).fillna(0)
-
-    # ── S: RM/CTN = unit_price × pkt_ctn ──
-    unit_price = pd.to_numeric(df["unit_price"], errors="coerce").fillna(0)
-    df["rm_ctn"] = (unit_price * df["_pkt_ctn"]).round(4)
-
-    # ── T: RM/CTN Rebate (same as S for now) ──
-    df["rm_ctn_rebate"] = df["rm_ctn"]
-
-    # ── W: QTY CTN = smallest_qty ÷ pkt_ctn ──
-    smallest_qty = pd.to_numeric(df["smallest_qty"], errors="coerce").fillna(0)
-    df["qty_ctn"] = (smallest_qty / df["_pkt_ctn"].replace(0, 1)).round(4)
-    # Where pkt_ctn is 0 (unknown item), qty_ctn = smallest_qty as fallback
-    df.loc[df["_pkt_ctn"] == 0, "qty_ctn"] = smallest_qty[df["_pkt_ctn"] == 0]
-
-    # ── U: Sales Type ──
-    def determine_sales_type(row):
-        code = row["item_code"]
-        rm = row["rm_ctn"]
-        area = row["area_code"]
-
-        if code not in threshold_map:
-            return "Target"  # unknown items default to Target
-
-        below_sub, ma3045, ma, unified = threshold_map[code]
-
-        # Only apply GRP 2A/3A/4A logic (Miracle side)
-        if area in ("GRP 2A", "GRP 3A", "GRP 4A"):
-            if rm >= below_sub and below_sub > 0:
-                return "Target"
-            elif rm >= ma3045 and ma3045 > 0:
-                return "Grey Area" if unified else "Master Agent 35/45/55"
-            elif rm >= ma and ma > 0:
-                return "Master Agent/Promo"
-            else:
-                return "Below Master Agent"
-        else:
-            # MVP/SBG/SS1 side — no unified/grey area distinction
-            if rm >= below_sub and below_sub > 0:
-                return "Target"
-            elif rm >= ma3045 and ma3045 > 0:
-                return "Master Agent 35/45/55"
-            elif rm >= ma and ma > 0:
-                return "Master Agent/Promo"
-            else:
-                return "Below Master Agent"
-
-    df["sales_type"] = df.apply(determine_sales_type, axis=1)
-
-    # ── V: Comm Rate ──
-    df["comm_rate"] = df["item_code"].map(comm_map).fillna(0)
-
-    # ── X: QTY MC = qty_ctn × pkt_ctn ÷ ctn_box  (convert to master carton) ──
-    df["qty_mc"] = (df["qty_ctn"] * df["_pkt_ctn"] / df["_ctn_box"].replace(0, 1)).round(4)
-    df.loc[df["_ctn_box"] == 0, "qty_mc"] = 0
-
-    # ── Y: RM/MC = rm_ctn × (ctn_box ÷ pkt_ctn) ──
-    df["rm_mc"] = (df["rm_ctn"] * (df["_ctn_box"] / df["_pkt_ctn"].replace(0, 1))).round(2)
-    df.loc[df["_pkt_ctn"] == 0, "rm_mc"] = 0
-
-    # ── Z: Shop Price Comm (simplified: comm_rate × qty_ctn if applicable) ──
-    # This is a rough calc — the exact formula may vary
-    df["shop_price_comm"] = 0  # placeholder — refine if needed
-
-    # Cleanup temp columns
-    df.drop(columns=["_pkt_ctn", "_ctn_box"], inplace=True)
-
-    known = df["item_code"].isin(price_ref.keys()).sum()
-    unknown = len(df) - known
-    log(f"  Formula columns calculated: {known:,} rows matched, {unknown:,} unknown items (defaulted)")
-
-    return df
-
-
 def get_monthly_targets(targets, cur_month):
     # Return agent targets for the given month, falling back to current targets
     monthly = targets.get("monthly_targets", {})
@@ -461,103 +160,64 @@ def color_code(pct_val):
 
 # ── Load MD Sales Report ──────────────────────────────────────────────────────
 
-def load_sales_report(price_ref=None):
+def load_sales_report():
     log(f"Loading MD Sales Report: {SALES_FILE}")
     if not SALES_FILE.exists():
         log(f"❌ File not found: {SALES_FILE}")
         sys.exit(1)
 
-    # First, detect how many columns the file has (raw A:Q = 17, massaged A:Z = 26)
-    probe = pd.read_excel(SALES_FILE, sheet_name=0, header=1, nrows=1, dtype=str, engine="openpyxl")
-    num_cols = len(probe.columns)
-    is_raw = num_cols < 20  # Raw AutoCount export has ~17 columns (A:Q)
-    log(f"  Detected {num_cols} columns → {'RAW (A:Q)' if is_raw else 'MASSAGED (A:Z)'}")
+    # Read columns A:Z (indices 0–25), skip row 1 (special ref row), use row 2 as header
+    df = pd.read_excel(
+        SALES_FILE,
+        sheet_name=0,        # Read first sheet regardless of name (works for MD, Sheet1, etc.)
+        header=1,        # row index 1 = Excel row 2 = actual headers
+        usecols="A:Z",
+        dtype=str,       # read all as string first, cast later
+        engine="openpyxl",
+    )
 
-    if is_raw:
-        # Read only A:Q (17 columns)
-        df = pd.read_excel(
-            SALES_FILE, sheet_name=0, header=1, usecols="A:Q",
-            dtype=str, engine="openpyxl",
-        )
-        col_map = {
-            df.columns[0]:  "tranx_mth",
-            df.columns[1]:  "doc_no",
-            df.columns[2]:  "date",
-            df.columns[3]:  "debtor_code",
-            df.columns[4]:  "company_name",
-            df.columns[5]:  "agent",
-            df.columns[6]:  "area_code",
-            df.columns[7]:  "item_group",
-            df.columns[8]:  "item_code",
-            df.columns[9]:  "item_desc",
-            df.columns[10]: "uom",
-            df.columns[11]: "smallest_qty",
-            df.columns[12]: "unit_price",
-            df.columns[13]: "discount",
-            df.columns[14]: "local_subtotal",
-            df.columns[15]: "rebate",
-            df.columns[16]: "paid_on",
-        }
-        df = df.rename(columns=col_map)
+    # Standardise column names to our internal keys
+    col_map = {
+        df.columns[0]:  "tranx_mth",
+        df.columns[1]:  "doc_no",
+        df.columns[2]:  "date",
+        df.columns[3]:  "debtor_code",
+        df.columns[4]:  "company_name",
+        df.columns[5]:  "agent",
+        df.columns[6]:  "area_code",
+        df.columns[7]:  "item_group",
+        df.columns[8]:  "item_code",
+        df.columns[9]:  "item_desc",
+        df.columns[10]: "uom",
+        df.columns[11]: "smallest_qty",
+        df.columns[12]: "unit_price",
+        df.columns[13]: "discount",
+        df.columns[14]: "local_subtotal",
+        df.columns[15]: "rebate",
+        df.columns[16]: "paid_on",
+        df.columns[17]: "uniq_code",
+        df.columns[18]: "rm_ctn",
+        df.columns[19]: "rm_ctn_rebate",
+        df.columns[20]: "sales_type",
+        df.columns[21]: "comm_rate",
+        df.columns[22]: "qty_ctn",
+        df.columns[23]: "qty_mc",
+        df.columns[24]: "rm_mc",
+        df.columns[25]: "shop_price_comm",
+    }
+    df = df.rename(columns=col_map)
 
-        # Cast numeric before formula calc
-        df["local_subtotal"] = pd.to_numeric(df["local_subtotal"], errors="coerce").fillna(0)
-
-        # Normalise string columns
-        for col in ["agent", "area_code", "item_group", "item_code",
-                    "paid_on", "debtor_code", "tranx_mth"]:
-            df[col] = df[col].fillna("").str.strip()
-
-        # Calculate formula columns R–Z from price_ref
-        df = calc_formula_columns(df, price_ref or {})
-
-    else:
-        # Read full A:Z (26 columns) — massaged file with formula values
-        df = pd.read_excel(
-            SALES_FILE, sheet_name=0, header=1, usecols="A:Z",
-            dtype=str, engine="openpyxl",
-        )
-        col_map = {
-            df.columns[0]:  "tranx_mth",
-            df.columns[1]:  "doc_no",
-            df.columns[2]:  "date",
-            df.columns[3]:  "debtor_code",
-            df.columns[4]:  "company_name",
-            df.columns[5]:  "agent",
-            df.columns[6]:  "area_code",
-            df.columns[7]:  "item_group",
-            df.columns[8]:  "item_code",
-            df.columns[9]:  "item_desc",
-            df.columns[10]: "uom",
-            df.columns[11]: "smallest_qty",
-            df.columns[12]: "unit_price",
-            df.columns[13]: "discount",
-            df.columns[14]: "local_subtotal",
-            df.columns[15]: "rebate",
-            df.columns[16]: "paid_on",
-            df.columns[17]: "uniq_code",
-            df.columns[18]: "rm_ctn",
-            df.columns[19]: "rm_ctn_rebate",
-            df.columns[20]: "sales_type",
-            df.columns[21]: "comm_rate",
-            df.columns[22]: "qty_ctn",
-            df.columns[23]: "qty_mc",
-            df.columns[24]: "rm_mc",
-            df.columns[25]: "shop_price_comm",
-        }
-        df = df.rename(columns=col_map)
-
-        # Normalise string columns
-        for col in ["agent", "area_code", "item_group", "item_code",
-                    "sales_type", "paid_on", "debtor_code", "tranx_mth"]:
-            df[col] = df[col].fillna("").str.strip()
-
-    # Cast numeric columns (applies to both paths)
+    # Cast numeric columns
     df["qty_ctn"]       = pd.to_numeric(df["qty_ctn"],       errors="coerce").fillna(0)
     df["rm_ctn"]        = pd.to_numeric(df["rm_ctn"],        errors="coerce").fillna(0)
     df["local_subtotal"]= pd.to_numeric(df["local_subtotal"],errors="coerce").fillna(0)
 
-    # Parse invoice date (col C)
+    # Normalise string columns — strip whitespace
+    for col in ["agent", "area_code", "item_group", "item_code",
+                "sales_type", "paid_on", "debtor_code"]:
+        df[col] = df[col].fillna("").str.strip()
+
+    # Parse invoice date (col C) — stored as Excel serial or string
     df["date_parsed"] = pd.to_datetime(df["date"], errors="coerce")
 
     log(f"  {len(df):,} total rows loaded")
@@ -1126,6 +786,25 @@ def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups):
     return camps
 
 
+
+def _parse_birth_date(val):
+    """Safely parse birth date — handles Excel serial numbers, strings, and datetime objects."""
+    if val is None: return None
+    try:
+        if pd.isnull(val): return None
+    except: pass
+    try:
+        # Handle Excel date serial number (e.g. 45808)
+        if isinstance(val, (int, float)) and 20000 < float(val) < 55000:
+            from datetime import datetime, timedelta
+            # Excel epoch is 1900-01-01, with leap year bug (+1 offset)
+            d = datetime(1899, 12, 30) + timedelta(days=int(val))
+            return pd.Timestamp(d)
+        # Handle string or datetime
+        return pd.to_datetime(val, format='mixed', dayfirst=True, errors='coerce')
+    except:
+        return None
+
 def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_groups=None):
     """
     Preserve existing Phase 1 debtor card logic:
@@ -1360,8 +1039,11 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             birth_month = None  # store raw birth month (1-12) for frontend to check per selected month
             if birth_date and pd.notnull(birth_date):
                 try:
-                    bd = pd.to_datetime(birth_date)
-                    birth_month = int(bd.month)  # always store this
+                    bd = _parse_birth_date(birth_date)
+                    if bd is None or pd.isnull(bd):
+                        birth_date = None
+                    else:
+                        birth_month = int(bd.month)  # always store this
                     today_d = date.today()
                     next_bday = bd.replace(year=today_d.year).date()
                     if next_bday < today_d:
@@ -1414,10 +1096,10 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 "vip":                info.get("vip", False),
                 "is_new":             is_new,
                 "birthday_this_month": birthday_this_month,
-                "birth_date_raw":     str(birth_date) if birth_date and pd.notnull(birth_date) else None,
+                "birth_date_raw":     str(_parse_birth_date(birth_date)) if birth_date and pd.notnull(birth_date) and _parse_birth_date(birth_date) is not None else None,
                 "days_to_birthday":   days_to_bday,
                 "birth_month":        birth_month,
-                "birth_day":          int(pd.to_datetime(info.get("birth_date")).day) if info.get("birth_date") and pd.notnull(info.get("birth_date")) else None,
+                "birth_day":          (_parse_birth_date(info.get("birth_date")) or pd.NaT).day if _parse_birth_date(info.get("birth_date")) is not None and not pd.isnull(_parse_birth_date(info.get("birth_date"))) else None,
                 "status":             status,
                 "last_purchase_date": last_date_str,
                 "ctn_cur":            ctn_cur,
@@ -1623,8 +1305,9 @@ def calc_birthday_campaign(debtor_cards, targets, cur_month=None):
             birthday_matches = False
             if birth_date:
                 try:
-                    bd = pd.to_datetime(birth_date)
-                    birthday_matches = (bd.month == bday_month)
+                    bd = _parse_birth_date(birth_date)
+                    if bd is not None and not pd.isnull(bd):
+                        birthday_matches = (bd.month == bday_month)
                 except:
                     pass
             # Fallback: use birth_month (1-12) if raw date unavailable
@@ -1767,8 +1450,9 @@ def save_penetration_snapshot(brand_comm, targets, cur_month):
             birthday_matches = False
             if birth_date:
                 try:
-                    bd = pd.to_datetime(birth_date)
-                    birthday_matches = (bd.month == bday_month)
+                    bd = _parse_birth_date(birth_date)
+                    if bd is not None and not pd.isnull(bd):
+                        birthday_matches = (bd.month == bday_month)
                 except:
                     pass
             # Fallback: use birth_month (1-12) if raw date unavailable
@@ -1999,61 +1683,22 @@ def calc_brand_campaigns(df, targets, agents, cur_month, prev_months, brand_conf
 # ── Team summary ──────────────────────────────────────────────────────────────
 
 
-def _month_short(label):
-    """Extract just the month name: 'Mar 26' → 'Mar', 'Mar' → 'Mar'."""
-    if not label: return ""
-    return str(label).split()[0]
-
-def _calc_prev_month_ctn(df, prev_months, cur_month=None):
-    """Sum CTN for prev month invoices that got paid THIS month.
-    i.e. tranx_mth == prev_month (short) AND paid_on == cur_month (full)
-    Scoped to GRP 2A only.
-    """
-    if df is None or not prev_months or not cur_month: return 0
+def _calc_prev_month_ctn(df, prev_months):
+    """Sum paid CTN for the immediate previous month."""
+    if df is None or not prev_months: return 0
     prev_m = prev_months[0] if prev_months else None
     if not prev_m: return 0
     try:
-        scoped = df[df["area_code"] == SCOPE_AREA]
-        canggih = scoped[scoped["item_group"] != EIGHTCOM_GROUP]
-        # tranx_mth may be "Feb" or "Feb 26" — match both formats
-        prev_short = _month_short(prev_m)
-        mask = (canggih["tranx_mth"].isin([prev_m, prev_short])) & (canggih["paid_on"] == cur_month)
-        return round(float(canggih[mask]["qty_ctn"].sum()), 2)
+        canggih = df[df["item_group"] != EIGHTCOM_GROUP]
+        return round(float(canggih[canggih["paid_on"] == prev_m]["qty_ctn"].sum()), 2)
     except: return 0
 
 def _calc_total_sales_ctn(df, cur_month):
-    """Total Current Month Sales = all Canggih CTN where tranx_mth == cur_month (paid + unpaid).
-    Scoped to GRP 2A."""
+    """Sum all (paid + unpaid) canggih CTN for current month."""
     if df is None: return 0
     try:
-        scoped = df[df["area_code"] == SCOPE_AREA]
-        canggih = scoped[scoped["item_group"] != EIGHTCOM_GROUP]
-        cur_short = _month_short(cur_month)
-        return round(float(canggih[canggih["tranx_mth"].isin([cur_month, cur_short])]["qty_ctn"].sum()), 2)
-    except: return 0
-
-
-def _calc_cur_month_paid_ctn(df, cur_month):
-    """Current Month Sales Paid this month = Canggih where tranx_mth == cur_month AND paid_on == cur_month.
-    Scoped to GRP 2A."""
-    if df is None: return 0
-    try:
-        scoped = df[df["area_code"] == SCOPE_AREA]
-        canggih = scoped[scoped["item_group"] != EIGHTCOM_GROUP]
-        cur_short = _month_short(cur_month)
-        mask = (canggih["tranx_mth"].isin([cur_month, cur_short])) & (canggih["paid_on"] == cur_month)
-        return round(float(canggih[mask]["qty_ctn"].sum()), 2)
-    except: return 0
-
-
-def _calc_pending_payment_ctn(df):
-    """All Month Sales Pending Payment = all Canggih where paid_on is empty.
-    Scoped to GRP 2A."""
-    if df is None: return 0
-    try:
-        scoped = df[df["area_code"] == SCOPE_AREA]
-        canggih = scoped[scoped["item_group"] != EIGHTCOM_GROUP]
-        return round(float(canggih[canggih["paid_on"] == ""]["qty_ctn"].sum()), 2)
+        canggih = df[df["item_group"] != EIGHTCOM_GROUP]
+        return round(float(canggih[canggih["invoice_month"] == cur_month]["qty_ctn"].sum()), 2)             if "invoice_month" in df.columns             else round(float(canggih[canggih["paid_on"] == cur_month]["qty_ctn"].sum()), 2)
     except: return 0
 
 def calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month, df=None, prev_months=None):
@@ -2160,9 +1805,7 @@ def calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month, df=Non
         "t1_color":          color_code(pct(team_normal_ctn, t1_total)),
         "brand_summary":     brand_summary,
         "leaderboard":       leaderboard,
-        "prev_month_ctn":    _calc_prev_month_ctn(df, prev_months, cur_month),
-        "cur_month_paid_ctn": _calc_cur_month_paid_ctn(df, cur_month),
-        "pending_payment_ctn": _calc_pending_payment_ctn(df),
+        "prev_month_ctn":    _calc_prev_month_ctn(df, prev_months),
         "total_sales_ctn":   _calc_total_sales_ctn(df, cur_month),
     }
 
@@ -2259,12 +1902,12 @@ DEFAULT_KPI_WEIGHTS = {
     },
 }
 
-def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_camp=None, cur_month=None, kpi_scores=None):
+def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_camp=None, cur_month=None):
     """
     Calculate KPI scores for all Sections A-E.
     Sections A/B/C = auto-calculated from sales data.
-    Section D = manual scores by accounts dept (from kpi_scores.json).
-    Section E = manual scores by management (from kpi_scores.json).
+    Section D = manual scores by accounts dept.
+    Section E = manual scores by management.
     Weights loaded from targets.json kpi_weights per month.
     """
     log("Calculating KPI scores...")
@@ -2294,9 +1937,6 @@ def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_cam
         if not target or target == 0: return 0.0
         return round(min(float(actual or 0) / float(target), 1.0) * weight * 100, 3)
 
-    # KPI scores from kpi_scores.json (Section D+E + manual B items)
-    ext_scores = (kpi_scores or {}).get(cur_month, {}) if kpi_scores else {}
-
     result = {}
 
     for agent in agents:
@@ -2305,8 +1945,7 @@ def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_cam
         # Also check current agents for manual scores (kpi_manual is not stored monthly)
         ag_cfg_current = targets.get("agents", {}).get(agent, {})
         kpi_tgts = ag_cfg.get("kpi_targets", {})
-        # Merge manual scores: targets.json kpi_manual + kpi_scores.json (ext takes priority)
-        manual   = {**ag_cfg_current.get("kpi_manual", {}), **ext_scores.get(agent, {})}
+        manual   = ag_cfg_current.get("kpi_manual", {})
         kpi_config["_birthday_camp"] = birthday_camp or {}
 
         # ── Pull actuals ──────────────────────────────────────────────────────
@@ -2562,10 +2201,7 @@ def main():
 
     # ── Load data ──────────────────────────────────────────────────
     targets   = load_targets()
-    price_ref  = load_price_ref()
-    kpi_scores = load_kpi_scores()
-    annual     = load_annual_targets()
-    df_raw    = load_sales_report(price_ref)
+    df_raw    = load_sales_report()
     debtor_df = load_debtors()
 
     # ── Auto-detect current month from sales data ──────────────────
@@ -2705,7 +2341,7 @@ def main():
     targets      = save_debtor_snapshot(debtor_cards, targets, cur_month)
     group_brands = calc_group_brand_targets(df, targets, cur_month, group_brand_config)
     birthday_camp = calc_birthday_campaign(debtor_cards, targets, cur_month)
-    kpi          = calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_camp, cur_month, kpi_scores)
+    kpi          = calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_camp, cur_month)
     team         = calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month, df_raw, prev_months)
     working_days = calc_working_days(targets, cur_month)
     brand_camps  = calc_brand_campaigns(df, targets, agents, cur_month, prev_months, brand_config)
@@ -2729,11 +2365,6 @@ def main():
                     }
                     break
 
-    # ── Annual progress ────────────────────────────────────────────
-    annual_progress = calc_annual_progress(annual, {}, cur_month)
-    if annual_progress:
-        log(f"Annual tracking: {annual_progress['group'].get('grand_actual_ytd',0):,.0f} / {annual_progress['group'].get('grand_target_annual',0):,.0f} CTN ({annual_progress['group'].get('grand_pct_ytd',0):.1f}% YTD vs target)")
-
     # ── Assemble output ─────────────────────────────────────────────
     output = {
         "generated_at":   datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -2742,7 +2373,6 @@ def main():
         "group_brand_targets": group_brands,
         "birthday_campaign":   birthday_camp,
         "brand_campaigns":     brand_camps,
-        "annual":              annual_progress,
         "agents":         {},
         "team":           team,
         "config": {
