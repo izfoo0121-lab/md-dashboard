@@ -1270,7 +1270,7 @@ function renderDebtors() {
         const giftSent = localStorage.getItem(bdayKey) === '1';
         const BDAY_MTHS = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         const bdayLabel = d.birth_day ? `${String(d.birth_day).padStart(2,'0')} ${BDAY_MTHS[d.birth_month]||''}` : '';
-        return `<span class="status-inline" style="background:${giftSent?'rgba(61,220,132,.2)':'rgba(167,139,250,.15)'};color:${giftSent?'var(--green)':'var(--purple)'};cursor:pointer;" onclick="toggleBdayGift('${d.debtor_code}','${(d.company_name||'').replace(/'/g,'')}',event)">🎂 ${giftSent?'✓ Sent':bdayLabel||'Gift?'}</span>`;
+        return `<span class="status-inline" style="background:${giftSent?'rgba(61,220,132,.25)':'rgba(167,139,250,.25)'};color:${giftSent?'#3ddc84':'#c4a0ff'};cursor:pointer;border:1px solid ${giftSent?'rgba(61,220,132,.5)':'rgba(167,139,250,.6)'};padding:4px 10px;font-size:11px;font-weight:700;" onclick="toggleBdayGift('${d.debtor_code}','${(d.company_name||'').replace(/'/g,'')}',event)">🎂 ${giftSent?'✓ Gift Sent':'🎁 Send Gift'+(bdayLabel?' '+bdayLabel:'')}</span>`;
       })(),
       d.volume_drop_pct ? `<span class="status-inline" style="background:rgba(255,95,95,.15);color:var(--red)">📉 -${d.volume_drop_pct}%</span>` : '',
     ].filter(Boolean).join('');
@@ -2670,7 +2670,7 @@ function renderCamps() {
               const vs    = d.visit_status;
               const claimData  = getCampClaims(currentAgent, c.id, d.debtor_code);
               const isClaimed  = !!claimData;
-              const isFOCt     = c.type==='foc_sample'||c.type==='free_sample'||c.type==='festive_gift';
+              const isFOCt     = c.type==='foc_sample'||c.type==='free_sample'||c.type==='festive_gift'||c.type==='birthday_gift';
               const isBday     = c.type==='birthday_gift';
               const claimLbl   = isClaimed
                 ? (isBday?'✔ Sent':isFOCt?'✔ Delivered':'✔ Claimed')
@@ -2790,7 +2790,7 @@ function toggleCampClaim(event, debtorCode, campId, debtorName, promoText, campT
 
   const emoji  = isFOC ? '🎁' : '📢';
   const action = isFOC ? 'Mark Delivered' : 'Mark Claimed';
-  const accentColor = isFOC ? 'var(--gold)' : 'var(--green)';
+  const accentColor = isFOC ? '#f0c040' : '#3ddc84';  // explicit hex — works in all contexts
 
   if (existing) {
     // Already claimed — show undo option
@@ -3069,7 +3069,7 @@ const GistSync = (() => {
 
   // ── Hardcoded fallback — set by admin, works for ALL devices automatically ──
   // Token scope: gist only (cannot touch code repo — safe to embed)
-  const HARDCODED_GIST_ID = 'c0d507b6d645bda40b9884b184e5414b';
+  const HARDCODED_GIST_ID = 'ceb4064c9e2a6d37c6e52c3b02f04a1d';
   const HARDCODED_TOKEN   = '%%GITHUB_TOKEN%%';  // Admin replaces this via admin.html
 
   function getConfig() {
