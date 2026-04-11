@@ -113,6 +113,50 @@
 </head>
 <body>
 
+<!-- Login Gate -->
+<div id="login-gate" style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px 28px;width:90%;max-width:380px;text-align:center;">
+    <div style="font-family:var(--display);font-size:32px;letter-spacing:.06em;margin-bottom:4px;">AUDIT</div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:24px;">Management Access Only</div>
+    <input type="password" id="audit-pw" placeholder="Enter password"
+      style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--mono);font-size:14px;padding:13px;box-sizing:border-box;margin-bottom:10px;text-align:center;"
+      onkeydown="if(event.key==='Enter')auditLogin()">
+    <div id="audit-pw-err" style="font-family:var(--mono);font-size:10px;color:var(--red);margin-bottom:10px;display:none;">Incorrect password</div>
+    <button onclick="auditLogin()"
+      style="width:100%;background:var(--accent);border:none;color:#fff;font-family:var(--display);font-size:18px;letter-spacing:.06em;padding:14px;border-radius:10px;cursor:pointer;">
+      ENTER
+    </button>
+  </div>
+</div>
+
+<script>
+// Audit page passwords
+const AUDIT_PASSWORDS = ['touro2026', 'accounts2026'];  // admin or accounts dept
+
+function auditLogin() {
+  const pw = document.getElementById('audit-pw').value;
+  if (AUDIT_PASSWORDS.includes(pw)) {
+    document.getElementById('login-gate').style.display = 'none';
+    sessionStorage.setItem('audit_auth', '1');
+    loadAuditData();
+  } else {
+    document.getElementById('audit-pw-err').style.display = 'block';
+    document.getElementById('audit-pw').value = '';
+    document.getElementById('audit-pw').focus();
+  }
+}
+
+// Auto-bypass if already authenticated this session
+window.addEventListener('DOMContentLoaded', () => {
+  if (sessionStorage.getItem('audit_auth') === '1') {
+    document.getElementById('login-gate').style.display = 'none';
+    loadAuditData();
+  } else {
+    setTimeout(() => document.getElementById('audit-pw')?.focus(), 100);
+  }
+});
+</script>
+
 <div class="hdr">
   <div class="hdr-top">
     <div>
@@ -642,18 +686,24 @@ function showToast(msg) {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
   // Populate agent dropdown
   const sel = document.getElementById('agent-select');
   AGENTS.forEach(a => sel.add(new Option(a,a)));
-  // Pull latest data from Gist before loading
+  // loadAuditData() is called by auditLogin() after password check
+  // (or auto-called if already authenticated this session)
+});
+
+// loadAuditData with Gist sync (called after login)
+const _origLoadAuditData = loadAuditData;
+async function loadAuditData() {
   if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
     const month = document.getElementById('month-select')?.value || 'Apr 26';
     await GistSync.pull().catch(()=>{});
     await GistSync.syncToLocal(month).catch(()=>{});
   }
-  loadAuditData();
-});
+  _origLoadAuditData();
+}
 
 // ── GistSync Module ─────────────────────────────────────────────────
 /**
@@ -671,7 +721,7 @@ const GistSync = (() => {
 
   // ── Hardcoded fallback — set by admin, works for ALL devices automatically ──
   // Token scope: gist only (cannot touch code repo — safe to embed)
-  const HARDCODED_GIST_ID = 'c0d507b6d645bda40b9884b184e5414b';
+  const HARDCODED_GIST_ID = 'ceb4064c9e2a6d37c6e52c3b02f04a1d';
   const HARDCODED_TOKEN   = '%%GITHUB_TOKEN%%';  // Admin replaces this via admin.html
 
   function getConfig() {

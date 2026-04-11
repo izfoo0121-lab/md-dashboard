@@ -320,6 +320,162 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 </div>
 
 <!-- ── View 1: Debtors ── -->
+<!-- ── Agent PIN Login ─────────────────────────────────────────────── -->
+<div id="pin-gate" style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;">
+  <div style="width:100%;max-width:360px;">
+    <!-- Logo -->
+    <div style="text-align:center;margin-bottom:32px;">
+      <div style="font-family:var(--display);font-size:48px;letter-spacing:.06em;color:var(--accent);">MIRACLE</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-top:2px;">奇迹 · GRP 2A · Sales Dashboard</div>
+    </div>
+
+    <!-- PIN display -->
+    <div id="pin-display" style="display:flex;justify-content:center;gap:12px;margin-bottom:28px;">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+
+    <div id="pin-name-hint" style="text-align:center;font-family:var(--display);font-size:22px;letter-spacing:.06em;color:var(--green);height:28px;margin-bottom:16px;"></div>
+    <div id="pin-err" style="text-align:center;font-family:var(--mono);font-size:10px;color:var(--red);height:16px;margin-bottom:8px;"></div>
+
+    <!-- Numpad -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+      ${[1,2,3,4,5,6,7,8,9,'','0','⌫'].map(k =>
+        k === '' ? '<div></div>' :
+        `<button class="pin-btn" onclick="pinPress('${k}')">${k}</button>`
+      ).join('')}
+    </div>
+  </div>
+</div>
+
+<style>
+.pin-dot{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.25);transition:all .15s;}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent);transform:scale(1.1);}
+.pin-dot.ok{background:var(--green);border-color:var(--green);}
+.pin-dot.err{background:var(--red);border-color:var(--red);}
+.pin-btn{background:var(--card);border:1px solid var(--border);color:var(--text);font-family:var(--display);font-size:26px;letter-spacing:.04em;padding:18px;border-radius:14px;cursor:pointer;transition:background .1s;-webkit-tap-highlight-color:transparent;}
+.pin-btn:active{background:var(--surface);}
+</style>
+
+<script>
+// ── Agent PINs — set via Admin ─────────────────────────────────────────
+// Format: { AGENT_NAME: '4-digit-pin' }
+// Admin manages these in targets.json under 'agent_pins'
+const AGENT_PINS = (()=>{
+  try {
+    const pins = DATA_PINS || {};  // injected after data loads
+    return pins;
+  } catch { return {}; }
+})();
+
+// Fallback default PINs (overridden by targets.json)
+const DEFAULT_PINS = {
+  'BEN':'1001','CJ':'1002','JACKY':'1003','JAMES':'1004',
+  'JW':'1005','KEAN':'1006','KEE':'1007','KF':'1008',
+  'KI-MI':'1009','KW':'1010','LEON':'1011','NMK':'1012',
+  'YI':'1013','SAM':'1014',
+  // Admin bypass
+  'GT138888':'0000'
+};
+
+let _pin = '';
+let _pinLocked = false;
+
+function pinPress(k) {
+  if (_pinLocked) return;
+  if (k === '⌫') {
+    _pin = _pin.slice(0,-1);
+  } else if (_pin.length < 4) {
+    _pin += k;
+  }
+  updatePinDisplay();
+  if (_pin.length === 4) checkPin();
+}
+
+function updatePinDisplay() {
+  for (let i=0;i<4;i++) {
+    const d = document.getElementById('pd'+i);
+    d.className = 'pin-dot' + (_pin.length > i ? ' filled' : '');
+  }
+  // Show matching agent name as hint
+  const hint = document.getElementById('pin-name-hint');
+  const err  = document.getElementById('pin-err');
+  err.textContent = '';
+  const allPins = Object.assign({}, DEFAULT_PINS);
+  const match = Object.entries(allPins).find(([,p])=>p===_pin);
+  hint.textContent = match && _pin.length===4 ? '' : '';
+}
+
+function checkPin() {
+  _pinLocked = true;
+  const allPins = Object.assign({}, DEFAULT_PINS);
+
+  // Try to load from targets.json if available
+  try {
+    const fromTargets = (typeof DATA !== 'undefined' && DATA.config?.agent_pins) || {};
+    Object.assign(allPins, fromTargets);
+  } catch {}
+
+  const match = Object.entries(allPins).find(([,p])=>p===_pin);
+
+  if (match) {
+    const agentName = match[0];
+    // Flash green
+    for (let i=0;i<4;i++) {
+      const d = document.getElementById('pd'+i);
+      d.className='pin-dot ok';
+    }
+    document.getElementById('pin-name-hint').textContent = agentName === 'GT138888' ? 'ADMIN' : agentName;
+    setTimeout(()=>{
+      document.getElementById('pin-gate').style.display = 'none';
+      // Lock to agent if not admin
+      if (agentName !== 'GT138888') {
+        lockToAgent(agentName);
+      }
+      sessionStorage.setItem('md_agent', agentName);
+      sessionStorage.setItem('md_auth', '1');
+    }, 600);
+  } else {
+    // Wrong PIN
+    for (let i=0;i<4;i++) {
+      const d = document.getElementById('pd'+i);
+      d.className='pin-dot err';
+    }
+    document.getElementById('pin-err').textContent = 'Wrong PIN — try again';
+    setTimeout(()=>{
+      _pin=''; _pinLocked=false; updatePinDisplay();
+    }, 1000);
+  }
+}
+
+function lockToAgent(agentName) {
+  // Auto-select agent and hide the dropdown for non-admins
+  const sel = document.getElementById('agent-select');
+  if (sel) {
+    sel.value = agentName;
+    // Hide dropdown so agent can't switch to others
+    sel.closest('.agent-select')?.style && (sel.style.pointerEvents='none');
+    sel.style.opacity = '0.7';
+  }
+  // Also trigger agent selection
+  selectAgent(agentName);
+}
+
+// Skip login if already authenticated this session
+window.addEventListener('DOMContentLoaded', ()=>{
+  if (sessionStorage.getItem('md_auth') === '1') {
+    const agent = sessionStorage.getItem('md_agent');
+    document.getElementById('pin-gate').style.display = 'none';
+    if (agent && agent !== 'GT138888') {
+      // Will lock after data loads
+      window._pendingAgent = agent;
+    }
+  }
+});
+</script>
+
 <div id="view-debtors" class="view active">
   <div class="summary-strip" id="summary-strip">
     <div class="summary-box">
@@ -740,6 +896,11 @@ function init() {
   // Sync claims/flags from Gist on page load
   if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
     GistSync.syncToLocal(DATA.current_month || '').catch(()=>{});
+  }
+
+  // Apply agent lock after data loads (session restore)
+  if (window._pendingAgent) {
+    setTimeout(()=>{ lockToAgent(window._pendingAgent); window._pendingAgent=null; }, 300);
   }
 
   // Last update

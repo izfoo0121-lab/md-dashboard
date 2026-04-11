@@ -176,6 +176,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
     <button class="tab-btn" onclick="switchTab('brand_camps',this)">🔥 Brand Promo</button>
     <button class="tab-btn" onclick="switchTab('campaigns',this)">📢 Campaigns</button>
     <button class="tab-btn" onclick="switchTab('kpi_weights',this)">⚖️ KPI Weights</button>
+    <button class="tab-btn" onclick="switchTab('pins',this)">🔑 Agent PINs</button>
     <button class="tab-btn" onclick="switchTab('sync',this)">☁️ Cloud Sync</button>
     <button class="tab-btn" onclick="switchTab('export',this)">Export / Import</button>
   </div>
@@ -249,6 +250,32 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
     </div>
   </div>
 
+
+  <!-- ── Agent PINs Tab ── -->
+  <div id="tab-pins" class="tab-content">
+    <div class="page-body">
+      <div class="sec-header">🔑 Agent PINs</div>
+      <div class="sec-sub">Each agent uses their 4-digit PIN to login to the sales dashboard. Admin PIN 0000 gives full access. PINs are saved in targets.json.</div>
+
+      <div class="admin-card">
+        <div class="sec-divider">Default PINs (edit to change)</div>
+        <div id="pin-management-form"></div>
+        <button class="save-btn" onclick="savePins()" style="margin-top:14px;">SAVE ALL PINS → DOWNLOAD TARGETS.JSON</button>
+        <div class="save-toast" id="save-toast-pins">✓ Saved — remember to download targets.json and run bat</div>
+      </div>
+
+      <div class="admin-card" style="margin-top:12px;">
+        <div class="sec-divider">How it works</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);line-height:1.7;">
+          • Agent opens sales_dashboard.html on their phone → enters 4-digit PIN<br>
+          • Dashboard auto-selects their name and locks to it (can't see other agents)<br>
+          • Admin PIN 0000 → full access, can switch between all agents<br>
+          • Session persists until browser is closed (no re-login on refresh)<br>
+          • PINs are stored in targets.json → deployed via bat run
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ── Cloud Sync Tab ── -->
   <div id="tab-sync" class="tab-content">
@@ -905,6 +932,52 @@ async function connectExistingGist() {
   }
 }
 
+// ── PIN Management ─────────────────────────────────────────────────────────
+const DEFAULT_AGENT_PINS = {
+  'BEN':'1001','CJ':'1002','JACKY':'1003','JAMES':'1004',
+  'JW':'1005','KEAN':'1006','KEE':'1007','KF':'1008',
+  'KI-MI':'1009','KW':'1010','LEON':'1011','NMK':'1012',
+  'YI':'1013','SAM':'1014',
+  'GT138888':'0000'
+};
+
+function renderPinForm() {
+  const container = document.getElementById('pin-management-form');
+  if (!container) return;
+  const saved = CONFIG.agent_pins || DEFAULT_AGENT_PINS;
+  const agents = Object.keys(CONFIG.agents || {});
+  // Include admin
+  const allAgents = [...agents, 'GT138888'];
+
+  container.innerHTML = allAgents.map(agent => {
+    const pin = saved[agent] || DEFAULT_AGENT_PINS[agent] || '';
+    const isAdmin = agent === 'GT138888';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+      <div>
+        <div style="font-family:var(--mono);font-size:13px;font-weight:600;color:${isAdmin?'var(--accent)':'var(--ink)'};">${isAdmin?'👑 ADMIN (GT138888)':agent}</div>
+        ${isAdmin?'<div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">Full access — can switch all agents</div>':''}
+      </div>
+      <input type="text" id="pin_${agent}" value="${pin}" maxlength="4" pattern="[0-9]{4}"
+        placeholder="4 digits"
+        style="width:80px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--ink);font-family:var(--mono);font-size:16px;font-weight:700;padding:8px;text-align:center;letter-spacing:.2em;"
+        oninput="this.value=this.value.replace(/[^0-9]/g,'').substring(0,4)">
+    </div>`;
+  }).join('');
+}
+
+function savePins() {
+  const agents = [...Object.keys(CONFIG.agents || {}), 'GT138888'];
+  const pins = {};
+  agents.forEach(agent => {
+    const el = document.getElementById('pin_' + agent);
+    if (el && el.value.length === 4) pins[agent] = el.value;
+  });
+  CONFIG.agent_pins = pins;
+  saveAll();
+  const toast = document.getElementById('save-toast-pins');
+  if (toast) { toast.style.display='block'; setTimeout(()=>toast.style.display='none',2500); }
+}
+
 function showDeployInstructions() {
   const cfg = GistSync.getConfig();
   if (!GistSync.isConfigured()) {
@@ -1056,6 +1129,13 @@ function switchTab(tab, el) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   el.classList.add('active');
+  if (tab === 'pins') renderPinForm();
+  if (tab === 'sync') {
+    const cfg = typeof GistSync !== 'undefined' ? GistSync.getConfig() : {};
+    if (cfg.token) document.getElementById('gist-token-input').value = cfg.token;
+    if (cfg.gist_id) document.getElementById('gist-id-input').value = cfg.gist_id;
+    renderSyncStatus();
+  }
 }
 
 // ── Agent Forms ────────────────────────────────────────────────────────────
@@ -2751,7 +2831,7 @@ const GistSync = (() => {
 
   // ── Hardcoded fallback — set by admin, works for ALL devices automatically ──
   // Token scope: gist only (cannot touch code repo — safe to embed)
-  const HARDCODED_GIST_ID = 'c0d507b6d645bda40b9884b184e5414b';
+  const HARDCODED_GIST_ID = 'ceb4064c9e2a6d37c6e52c3b02f04a1d';
   const HARDCODED_TOKEN   = '%%GITHUB_TOKEN%%';  // Admin replaces this via admin.html
 
   function getConfig() {
