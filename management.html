@@ -222,6 +222,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
         <button onclick="switchToAnalytics()" style="background:rgba(255,255,255,.12);border:none;color:#fff;font-family:var(--mono);font-size:9px;padding:5px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;">📊 Analytics</button>
+        <button onclick="switchToYearly()" style="background:rgba(77,166,255,.15);border:1px solid rgba(77,166,255,.3);color:#4da6ff;font-family:var(--mono);font-size:9px;padding:5px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;">📅 Yearly</button>
         <button onclick="doMgmtLogout()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.5);font-family:var(--mono);font-size:9px;padding:5px 10px;border-radius:8px;cursor:pointer;">Logout</button>
       </div>
     </div>
@@ -428,6 +429,71 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
         </div>
         <div class="heat-scroll"><div id="an-detail-table"></div></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ YEARLY OVERVIEW ══ -->
+<div id="yearly-view" class="view">
+  <div class="mgmt-header">
+    <div class="header-row">
+      <div>
+        <div class="header-title">YEARLY OVERVIEW</div>
+        <div class="header-sub">Jan–Dec · <span id="yr-year">2026</span></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select id="yr-year-sel" onchange="renderYearly()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;font-family:var(--mono);font-size:9px;padding:4px 8px;border-radius:8px;cursor:pointer;">
+          <option value="25">2025</option>
+          <option value="26" selected>2026</option>
+          <option value="27">2027</option>
+        </select>
+        <select id="yr-metric" onchange="renderYearly()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;font-family:var(--mono);font-size:9px;padding:4px 8px;border-radius:8px;cursor:pointer;">
+          <option value="t1">Normal T1 CTN</option>
+          <option value="t2">Normal T2 CTN</option>
+          <option value="ga">GA CTN</option>
+          <option value="ma">MA CTN</option>
+        </select>
+        <button onclick="switchToOverview()" style="background:rgba(255,255,255,.1);border:none;color:#fff;font-family:var(--mono);font-size:9px;padding:5px 10px;border-radius:8px;cursor:pointer;">← Overview</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="page">
+    <!-- Loading state -->
+    <div id="yr-loading" style="text-align:center;padding:40px 20px;">
+      <div style="font-family:var(--mono);font-size:11px;color:var(--ink3);">Loading monthly data...</div>
+    </div>
+
+    <!-- Content -->
+    <div id="yr-content" style="display:none;">
+
+      <!-- Agent selector for chart -->
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;">Chart Agent:</div>
+        <select id="yr-chart-agent" onchange="renderYearlyChart()" style="background:var(--surface);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:10px;padding:4px 8px;border-radius:8px;cursor:pointer;">
+          <option value="all">All Agents (Team Total)</option>
+        </select>
+      </div>
+
+      <!-- Line Chart -->
+      <div class="sec-lbl no-border">📈 CTN Progression — <span id="yr-chart-title">Team Total</span></div>
+      <div class="card card-pad" style="padding:16px 12px;">
+        <div id="yr-chart" style="position:relative;"></div>
+      </div>
+
+      <!-- Table -->
+      <div class="sec-lbl">📋 Agent × Month Achievement Table</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-bottom:8px;padding:0 4px;">
+        Each cell: <b>Actual CTN</b> / <b>Target</b> &nbsp;·&nbsp; Colour = achievement %
+        &nbsp;·&nbsp; <span style="color:#2a7a4b;">■</span> ≥100% &nbsp;<span style="color:#f0c040;">■</span> ≥80% &nbsp;<span style="color:#c8381a;">■</span> &lt;80% &nbsp;<span style="color:var(--ink3);">■</span> No target
+      </div>
+      <div style="overflow-x:auto;">
+        <div id="yr-table"></div>
+      </div>
+
+      <!-- YTD Summary -->
+      <div class="sec-lbl">🏆 YTD Summary</div>
+      <div class="card"><div id="yr-ytd"></div></div>
     </div>
   </div>
 </div>
@@ -1431,14 +1497,24 @@ let HISTORY = null;
 function switchToAnalytics() {
   document.getElementById('overview-view').classList.remove('active');
   document.getElementById('drill-view').classList.remove('active');
+  document.getElementById('yearly-view').classList.remove('active');
   document.getElementById('analytics-view').classList.add('active');
   window.scrollTo(0,0);
 }
 function switchToOverview() {
   document.getElementById('analytics-view').classList.remove('active');
   document.getElementById('drill-view').classList.remove('active');
+  document.getElementById('yearly-view').classList.remove('active');
   document.getElementById('overview-view').classList.add('active');
   window.scrollTo(0,0);
+}
+function switchToYearly() {
+  document.getElementById('overview-view').classList.remove('active');
+  document.getElementById('analytics-view').classList.remove('active');
+  document.getElementById('drill-view').classList.remove('active');
+  document.getElementById('yearly-view').classList.add('active');
+  window.scrollTo(0,0);
+  loadYearlyData();
 }
 function loadHistoryFile() {
   document.getElementById('history-file-input').click();
@@ -1624,6 +1700,345 @@ function exportYearExcel() {
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(HISTORY),'Full History');
   const year=document.getElementById('an-year').textContent;
   XLSX.writeFile(wb,`MD_Annual_Report_${year}.xlsx`);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// YEARLY OVERVIEW
+// ══════════════════════════════════════════════════════════════════
+const YR_MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+let YR_DATA = {}; // { "Jan-26": dashboardDataObject, ... }
+let YR_LOADING = false;
+
+function yrMonthLabel(mon, yr) { return `${mon}-${yr}`; } // e.g. "Jan-26"
+
+async function loadYearlyData() {
+  if (YR_LOADING) return;
+  YR_LOADING = true;
+  const yr  = document.getElementById('yr-year-sel')?.value || '26';
+  document.getElementById('yr-year').textContent = '20' + yr;
+  document.getElementById('yr-loading').style.display = 'block';
+  document.getElementById('yr-content').style.display  = 'none';
+
+  // Load months_index.json to know which months have data
+  let available = [];
+  try {
+    const r = await fetch('months_index.json?v=' + Date.now());
+    if (r.ok) {
+      const idx = await r.json();
+      available = (idx.months || []).filter(m => m.endsWith(yr));
+    }
+  } catch(e) {}
+
+  // Also check current dashboard_data.json
+  const curMonth = (DATA?.current_month || '').replace(' ','-');
+  if (curMonth && curMonth.endsWith(yr) && !available.includes(curMonth.replace(' ','-'))) {
+    available.push(curMonth);
+  }
+
+  // Fetch each available month's JSON
+  YR_DATA = {};
+  // Always include current DATA
+  if (DATA?.current_month) {
+    const cm = DATA.current_month.replace(' ','-');
+    if (cm.endsWith(yr)) YR_DATA[cm] = DATA;
+  }
+
+  const fetches = available
+    .filter(m => !YR_DATA[m])
+    .map(async m => {
+      const slug = m.replace('-','').toLowerCase(); // "jan26"
+      try {
+        const r = await fetch(`data_${slug}.json?v=` + Date.now());
+        if (r.ok) YR_DATA[m] = await r.json();
+      } catch(e) {}
+    });
+  await Promise.all(fetches);
+
+  YR_LOADING = false;
+  document.getElementById('yr-loading').style.display = 'none';
+  document.getElementById('yr-content').style.display  = 'block';
+  renderYearly();
+}
+
+function renderYearly() {
+  const yr = document.getElementById('yr-year-sel')?.value || '26';
+  document.getElementById('yr-year').textContent = '20' + yr;
+  renderYearlyChart();
+  renderYearlyTable();
+  renderYearlyYTD();
+}
+
+function yrGetActualTarget(monthData, agent, metric) {
+  if (!monthData) return { actual: null, target: null };
+  const sp = monthData.agents?.[agent]?.sales_progression || {};
+  const tiers = sp.tiers || {};
+
+  const metricMap = {
+    t1: { actualKey: 'normal_ctn', tierKey: 'normal_t1' },
+    t2: { actualKey: null,         tierKey: 'normal_t2' },
+    ga: { actualKey: 'ga_ctn',     tierKey: 'ga' },
+    ma: { actualKey: 'ma_ctn',     tierKey: 'ma' },
+  };
+  const m = metricMap[metric] || metricMap.t1;
+
+  let actual = m.actualKey ? (sp[m.actualKey] ?? null) : null;
+  // For T2, use normal_ctn as actual (same base, different target)
+  if (metric === 't2') actual = sp.normal_ctn ?? null;
+
+  const tier   = tiers[m.tierKey] || {};
+  const target = tier.target ?? null;
+  return { actual, target };
+}
+
+function yrAllAgents() {
+  const agents = new Set();
+  Object.values(YR_DATA).forEach(d => {
+    Object.keys(d?.agents || {}).forEach(a => {
+      if (!d.agents[a]?.archived) agents.add(a);
+    });
+  });
+  return [...agents].sort();
+}
+
+function renderYearlyChart() {
+  const yr      = document.getElementById('yr-year-sel')?.value || '26';
+  const metric  = document.getElementById('yr-metric')?.value || 't1';
+  const agentSel = document.getElementById('yr-chart-agent');
+  const agents  = yrAllAgents();
+
+  // Rebuild agent selector
+  const prevVal = agentSel?.value || 'all';
+  if (agentSel) {
+    agentSel.innerHTML = '<option value="all">All Agents (Team Total)</option>';
+    agents.forEach(a => {
+      const o = document.createElement('option'); o.value = a; o.textContent = a; agentSel.appendChild(o);
+    });
+    agentSel.value = agents.includes(prevVal) ? prevVal : 'all';
+  }
+  const selectedAgent = agentSel?.value || 'all';
+  document.getElementById('yr-chart-title').textContent =
+    selectedAgent === 'all' ? 'Team Total' : selectedAgent;
+
+  const months = YR_MONTHS_SHORT.map(m => yrMonthLabel(m, yr));
+  const CHART_H = 160;
+  const metricLabels = { t1:'Normal T1', t2:'Normal T2', ga:'GA', ma:'MA' };
+
+  const points = months.map(m => {
+    const d = YR_DATA[m];
+    if (!d) return { month: m, actual: null, target: null };
+    if (selectedAgent === 'all') {
+      let actual = 0, target = 0, hasTarget = false;
+      agents.forEach(a => {
+        const at = yrGetActualTarget(d, a, metric);
+        if (at.actual !== null) actual += at.actual;
+        if (at.target !== null) { target += at.target; hasTarget = true; }
+      });
+      return { month: m, actual, target: hasTarget ? target : null };
+    } else {
+      return { month: m, ...yrGetActualTarget(d, selectedAgent, metric) };
+    }
+  });
+
+  const maxV = Math.max(...points.map(p => Math.max(p.actual||0, p.target||0)), 1);
+
+  // SVG line chart
+  const W = 320, H = CHART_H, PAD = { t:20, r:10, b:30, l:40 };
+  const CW = W - PAD.l - PAD.r;
+  const CH = H - PAD.t - PAD.b;
+  const xStep = CW / (months.length - 1);
+
+  function xPos(i) { return PAD.l + i * xStep; }
+  function yPos(v) { return PAD.t + CH - (v / maxV) * CH; }
+
+  // Grid lines
+  const gridVals = [0, 0.25, 0.5, 0.75, 1.0].map(f => Math.round(f * maxV));
+  const gridLines = gridVals.map(v =>
+    `<line x1="${PAD.l}" y1="${yPos(v)}" x2="${W-PAD.r}" y2="${yPos(v)}"
+      stroke="rgba(255,255,255,.07)" stroke-width="1"/>
+     <text x="${PAD.l - 4}" y="${yPos(v)+3}" text-anchor="end"
+      font-family="monospace" font-size="7" fill="rgba(255,255,255,.3)">${v}</text>`
+  ).join('');
+
+  // Target line
+  const tgtPts = points.filter(p => p.target !== null);
+  const tgtPath = tgtPts.length >= 2
+    ? 'M' + tgtPts.map(p => `${xPos(months.indexOf(p.month))},${yPos(p.target)}`).join(' L')
+    : '';
+
+  // Actual line (only connected months with data)
+  const actPts = points.filter(p => p.actual !== null);
+  const actPath = actPts.length >= 2
+    ? 'M' + actPts.map(p => `${xPos(months.indexOf(p.month))},${yPos(p.actual)}`).join(' L')
+    : '';
+
+  // Dots + labels
+  const actDots = actPts.map(p => {
+    const x = xPos(months.indexOf(p.month));
+    const y = yPos(p.actual);
+    const tgt = p.target;
+    const col = tgt ? (p.actual >= tgt ? '#2a7a4b' : p.actual >= tgt*0.8 ? '#f0c040' : '#c8381a') : '#4da6ff';
+    return `<circle cx="${x}" cy="${y}" r="3" fill="${col}"/>
+            <text x="${x}" y="${y-6}" text-anchor="middle" font-family="monospace" font-size="7" fill="${col}">${Math.round(p.actual)}</text>`;
+  }).join('');
+
+  // X labels
+  const xLabels = months.map((m, i) =>
+    `<text x="${xPos(i)}" y="${H - PAD.b + 12}" text-anchor="middle"
+      font-family="monospace" font-size="7" fill="rgba(255,255,255,.4)">${m.slice(0,3)}</text>`
+  ).join('');
+
+  document.getElementById('yr-chart').innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;">
+      ${gridLines}
+      ${tgtPath ? `<path d="${tgtPath}" fill="none" stroke="#f0c040" stroke-width="1.5" stroke-dasharray="4,3" opacity=".7"/>` : ''}
+      ${actPath ? `<path d="${actPath}" fill="none" stroke="#4da6ff" stroke-width="2"/>` : ''}
+      ${actDots}
+      ${xLabels}
+    </svg>
+    <div style="display:flex;gap:14px;font-family:monospace;font-size:9px;color:rgba(255,255,255,.45);margin-top:4px;justify-content:center;">
+      <span>— <span style="color:#4da6ff">Actual</span></span>
+      <span>- - <span style="color:#f0c040">Target</span></span>
+      <span><span style="color:#2a7a4b">●</span> Hit &nbsp;<span style="color:#f0c040">●</span> ≥80% &nbsp;<span style="color:#c8381a">●</span> Below</span>
+    </div>`;
+}
+
+function renderYearlyTable() {
+  const yr     = document.getElementById('yr-year-sel')?.value || '26';
+  const metric = document.getElementById('yr-metric')?.value || 't1';
+  const agents = yrAllAgents();
+  const months = YR_MONTHS_SHORT.map(m => yrMonthLabel(m, yr));
+
+  const COL_W  = '52px';
+  const NAME_W = '56px';
+
+  // Header row
+  const hdrCells = months.map(m =>
+    `<div style="font-family:var(--mono);font-size:7px;text-transform:uppercase;
+      letter-spacing:.04em;color:var(--ink3);padding:5px 2px;text-align:center;
+      border-right:1px solid var(--border);min-width:${COL_W};">${m.slice(0,3)}</div>`
+  ).join('');
+
+  const hdrRow = `
+    <div style="display:grid;grid-template-columns:${NAME_W} repeat(${months.length},${COL_W});
+      border-bottom:2px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:2;">
+      <div style="font-family:var(--mono);font-size:7px;color:var(--ink3);padding:5px 4px;
+        border-right:1px solid var(--border);">AGENT</div>
+      ${hdrCells}
+    </div>`;
+
+  // Agent rows
+  const agentRows = agents.map((agent, ri) => {
+    const cells = months.map(m => {
+      const d = YR_DATA[m];
+      if (!d) return `<div style="min-width:${COL_W};border-right:1px solid var(--border);
+        padding:4px 2px;text-align:center;"></div>`;
+      const { actual, target } = yrGetActualTarget(d, agent, metric);
+      if (actual === null) return `<div style="min-width:${COL_W};border-right:1px solid var(--border);
+        padding:4px 2px;text-align:center;font-family:var(--mono);font-size:8px;color:var(--ink3);">—</div>`;
+
+      const pct     = target ? Math.round(actual / target * 100) : null;
+      const bgColor = !target ? 'transparent'
+        : pct >= 100 ? 'rgba(42,122,75,.25)'
+        : pct >= 80  ? 'rgba(240,192,64,.2)'
+        : 'rgba(200,56,26,.2)';
+      const textCol = !target ? 'var(--ink)'
+        : pct >= 100 ? '#2a7a4b'
+        : pct >= 80  ? '#f0c040'
+        : '#c8381a';
+
+      return `<div style="min-width:${COL_W};border-right:1px solid var(--border);
+        padding:4px 2px;text-align:center;background:${bgColor};">
+        <div style="font-family:var(--mono);font-size:9px;font-weight:600;color:${textCol};">${Math.round(actual)}</div>
+        ${target ? `<div style="font-family:var(--mono);font-size:7px;color:rgba(255,255,255,.3);">/${target}</div>
+          <div style="font-family:var(--mono);font-size:7px;color:${textCol};">${pct}%</div>` : ''}
+      </div>`;
+    }).join('');
+
+    const rowBg = ri % 2 === 0 ? 'var(--surface)' : 'transparent';
+    return `<div style="display:grid;grid-template-columns:${NAME_W} repeat(${months.length},${COL_W});
+      background:${rowBg};border-bottom:1px solid var(--border);">
+      <div style="font-family:var(--mono);font-size:9px;font-weight:600;padding:4px;
+        border-right:1px solid var(--border);white-space:nowrap;overflow:hidden;
+        text-overflow:ellipsis;display:flex;align-items:center;">${agent}</div>
+      ${cells}
+    </div>`;
+  }).join('');
+
+  // Team total row
+  const teamCells = months.map(m => {
+    const d = YR_DATA[m];
+    if (!d) return `<div style="min-width:${COL_W};border-right:1px solid var(--border);padding:5px 2px;text-align:center;"></div>`;
+    let totalActual = 0, totalTarget = 0, hasTarget = false;
+    agents.forEach(a => {
+      const at = yrGetActualTarget(d, a, metric);
+      if (at.actual !== null) totalActual += at.actual;
+      if (at.target !== null) { totalTarget += at.target; hasTarget = true; }
+    });
+    const pct = hasTarget ? Math.round(totalActual / totalTarget * 100) : null;
+    const col = !hasTarget ? '#fff'
+      : pct >= 100 ? '#2a7a4b' : pct >= 80 ? '#f0c040' : '#c8381a';
+    return `<div style="min-width:${COL_W};border-right:1px solid var(--border);padding:5px 2px;text-align:center;">
+      <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:${col};">${Math.round(totalActual)}</div>
+      ${hasTarget ? `<div style="font-family:var(--mono);font-size:7px;color:rgba(255,255,255,.3);">/${totalTarget}</div>
+        <div style="font-family:var(--mono);font-size:7px;color:${col};">${pct}%</div>` : ''}
+    </div>`;
+  }).join('');
+
+  const teamRow = `
+    <div style="display:grid;grid-template-columns:${NAME_W} repeat(${months.length},${COL_W});
+      background:rgba(77,166,255,.08);border-top:2px solid rgba(77,166,255,.3);position:sticky;bottom:0;">
+      <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:#4da6ff;
+        padding:5px 4px;border-right:1px solid var(--border);display:flex;align-items:center;">TEAM</div>
+      ${teamCells}
+    </div>`;
+
+  document.getElementById('yr-table').innerHTML = hdrRow + agentRows + teamRow;
+}
+
+function renderYearlyYTD() {
+  const yr     = document.getElementById('yr-year-sel')?.value || '26';
+  const metric = document.getElementById('yr-metric')?.value || 't1';
+  const agents = yrAllAgents();
+  const months = YR_MONTHS_SHORT.map(m => yrMonthLabel(m, yr));
+
+  const ytdData = agents.map(agent => {
+    let ytdActual = 0, ytdTarget = 0, hasTarget = false, monthsHit = 0, monthsTotal = 0;
+    months.forEach(m => {
+      const d = YR_DATA[m];
+      if (!d) return;
+      const { actual, target } = yrGetActualTarget(d, agent, metric);
+      if (actual !== null) {
+        ytdActual += actual; monthsTotal++;
+        if (target !== null) { ytdTarget += target; hasTarget = true; if (actual >= target) monthsHit++; }
+      }
+    });
+    const pct = hasTarget && ytdTarget > 0 ? Math.round(ytdActual / ytdTarget * 100) : null;
+    return { agent, ytdActual, ytdTarget, pct, monthsHit, monthsTotal, hasTarget };
+  }).sort((a,b) => b.ytdActual - a.ytdActual);
+
+  const maxActual = Math.max(...ytdData.map(d => d.ytdActual), 1);
+
+  document.getElementById('yr-ytd').innerHTML = ytdData.map((d, i) => {
+    const barW  = Math.round(d.ytdActual / maxActual * 100);
+    const tgtW  = d.hasTarget ? Math.min(Math.round(d.ytdTarget / maxActual * 100), 100) : 0;
+    const col   = !d.pct ? '#4da6ff'
+      : d.pct >= 100 ? '#2a7a4b' : d.pct >= 80 ? '#f0c040' : '#c8381a';
+    return `<div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;">
+      <div style="font-family:var(--mono);font-size:10px;width:20px;color:var(--ink3);text-align:right;">${i+1}</div>
+      <div style="font-family:var(--mono);font-size:11px;font-weight:600;width:60px;flex-shrink:0;">${d.agent}</div>
+      <div style="flex:1;">
+        <div style="position:relative;height:8px;background:var(--border);border-radius:4px;overflow:visible;">
+          <div style="position:absolute;left:0;top:0;height:100%;width:${barW}%;background:${col};border-radius:4px;opacity:.85;"></div>
+          ${tgtW ? `<div style="position:absolute;top:-3px;bottom:-3px;left:${tgtW}%;width:2px;background:#f0c040;border-radius:2px;z-index:2;"></div>` : ''}
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:${col};">${Math.round(d.ytdActual)}</div>
+        ${d.hasTarget ? `<div style="font-family:var(--mono);font-size:8px;color:var(--ink3);">/${Math.round(d.ytdTarget)} · ${d.pct}%</div>` : ''}
+        <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);">${d.monthsHit}/${d.monthsTotal} months hit</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 </script>
 </body>

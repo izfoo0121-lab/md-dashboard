@@ -168,6 +168,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
 
   <div class="tab-bar">
     <button class="tab-btn active" onclick="switchTab('agents',this)">Agent Targets</button>
+    <button class="tab-btn" onclick="switchTab('monthly_targets',this)">📅 Monthly Targets</button>
     <button class="tab-btn" onclick="switchTab('newbie',this)">Newbie Scheme</button>
     <button class="tab-btn" onclick="switchTab('group',this)">Group Brands</button>
     <button class="tab-btn" onclick="switchTab('sku',this)">SKU Config</button>
@@ -205,6 +206,43 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
       <div id="agent-forms"></div>
       <button class="save-btn" onclick="saveAll()">SAVE ALL TARGETS</button>
       <div class="save-toast" id="save-toast">✓ Saved to targets.json</div>
+    </div>
+  </div>
+
+  <!-- ── Tab: Monthly Targets ── -->
+  <div id="tab-monthly_targets" class="tab-content">
+    <div class="page-body">
+      <div class="sec-header">📅 Monthly Targets</div>
+      <div class="sec-sub">Set per-agent targets for each month. Overrides the default targets in Agent Targets tab for that specific month.</div>
+
+      <!-- Month Selector + Actions -->
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">MONTH</div>
+          <select id="mt-month-sel" onchange="renderMonthlyTargets()"
+            style="font-family:var(--mono);font-size:12px;padding:7px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);cursor:pointer;">
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-end;">
+          <button onclick="mtCopyFromPrev()"
+            style="background:rgba(77,166,255,.15);border:1px solid rgba(77,166,255,.3);color:#4da6ff;font-family:var(--mono);font-size:10px;padding:7px 14px;border-radius:8px;cursor:pointer;">
+            ⎘ Copy from Previous Month
+          </button>
+          <button onclick="mtCopyFromDefault()"
+            style="background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.3);color:var(--gold);font-family:var(--mono);font-size:10px;padding:7px 14px;border-radius:8px;cursor:pointer;">
+            ↙ Fill from Default Targets
+          </button>
+          <button onclick="saveAll()"
+            style="background:var(--green);border:none;color:#fff;font-family:var(--mono);font-size:10px;padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:700;">
+            💾 Save
+          </button>
+        </div>
+      </div>
+
+      <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-bottom:12px;" id="mt-status"></div>
+
+      <!-- Per-agent forms for selected month -->
+      <div id="mt-agent-forms"></div>
     </div>
   </div>
 
@@ -1130,6 +1168,7 @@ function switchTab(tab, el) {
   document.getElementById('tab-' + tab).classList.add('active');
   el.classList.add('active');
   if (tab === 'pins') renderPinForm();
+  if (tab === 'monthly_targets') initMonthlyTargetsTab();
   if (tab === 'sync') {
     const cfg = typeof GistSync !== 'undefined' ? GistSync.getConfig() : {};
     if (cfg.token) document.getElementById('gist-token-input').value = cfg.token;
@@ -1252,11 +1291,6 @@ function renderAgentForms() {
           <button onclick="removeAgent('${agent}')"
             style="background:none;border:1px solid rgba(200,56,26,.4);color:var(--accent);font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;">
             ✕ Remove
-          </button>
-          <button onclick="openArchiveModal('${agent}')"
-            style="background:none;border:1px solid rgba(255,200,0,.4);color:#ffc800;font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;"
-            title="Archive this agent and assign a successor">
-            📦 Archive & Replace
           </button>
         </div>
       </div>
@@ -3080,134 +3114,181 @@ const GistSync = (() => {
 // Export for use in other files
 if (typeof module !== 'undefined') module.exports = GistSync;
 
-</script>
-<!-- ── Archive & Replace Modal ─────────────────────────────────── -->
-<div id="archive-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;">
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;width:min(420px,92vw);font-family:var(--mono);">
-    <div style="font-size:15px;font-weight:700;color:#ffc800;margin-bottom:6px;">📦 Archive & Replace Agent</div>
-    <div id="archive-agent-label" style="font-size:11px;color:var(--ink3);margin-bottom:20px;"></div>
+// ══════════════════════════════════════════════════════════════════
+// MONTHLY TARGETS TAB
+// ══════════════════════════════════════════════════════════════════
+const MT_MONTHS = [
+  'Jan-25','Feb-25','Mar-25','Apr-25','May-25','Jun-25',
+  'Jul-25','Aug-25','Sep-25','Oct-25','Nov-25','Dec-25',
+  'Jan-26','Feb-26','Mar-26','Apr-26','May-26','Jun-26',
+  'Jul-26','Aug-26','Sep-26','Oct-26','Nov-26','Dec-26',
+];
 
-    <div style="font-size:10px;color:var(--ink3);margin-bottom:6px;">SUCCESSOR AGENT (who takes over)</div>
-    <select id="archive-successor" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:8px;border-radius:8px;margin-bottom:14px;">
-      <option value="">— Select agent —</option>
-    </select>
-
-    <div style="font-size:10px;color:var(--ink3);margin-bottom:6px;">OR CREATE NEW AGENT</div>
-    <input id="archive-new-agent" placeholder="Type new agent name..."
-      style="width:100%;box-sizing:border-box;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:8px;border-radius:8px;margin-bottom:14px;">
-
-    <div style="font-size:10px;color:var(--ink3);margin-bottom:6px;">EFFECTIVE FROM MONTH (e.g. Apr-25)</div>
-    <input id="archive-from-month" placeholder="Apr-25"
-      style="width:100%;box-sizing:border-box;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:8px;border-radius:8px;margin-bottom:6px;">
-    <div style="font-size:9px;color:var(--ink3);margin-bottom:20px;">
-      From this month onwards, successor's dashboard will include archived agent's sales.<br>
-      Both names may appear in AutoCount during takeover month — combined under successor.
-    </div>
-
-    <div style="background:rgba(255,200,0,.08);border:1px solid rgba(255,200,0,.2);border-radius:8px;padding:10px;font-size:9px;color:#ffc800;margin-bottom:20px;">
-      ⚠️ <b>Archived agent</b> will be hidden from current dashboard but preserved in history.<br>
-      Successor will show <b>(inc. ARCHIVED_NAME)</b> note on their agent page.
-    </div>
-
-    <div style="display:flex;gap:10px;">
-      <button onclick="confirmArchive()"
-        style="flex:1;background:#ffc800;color:#000;border:none;font-family:var(--mono);font-size:12px;font-weight:700;padding:12px;border-radius:8px;cursor:pointer;">
-        Confirm Archive & Replace
-      </button>
-      <button onclick="closeArchiveModal()"
-        style="flex:1;background:var(--surface);border:1px solid var(--border);color:var(--ink3);font-family:var(--mono);font-size:12px;padding:12px;border-radius:8px;cursor:pointer;">
-        Cancel
-      </button>
-    </div>
-  </div>
-</div>
-
-<script>
-// ── Archive & Replace Logic ────────────────────────────────────────
-let _archiveTarget = null;
-
-function openArchiveModal(agent) {
-  _archiveTarget = agent;
-  document.getElementById('archive-agent-label').textContent =
-    `Archiving: ${agent} — their sales history will be inherited by the successor.`;
-  document.getElementById('archive-new-agent').value = '';
-  document.getElementById('archive-from-month').value = '';
-
-  // Populate successor dropdown with all OTHER active agents
-  const sel = document.getElementById('archive-successor');
-  sel.innerHTML = '<option value="">— Select existing agent —</option>';
-  Object.entries(CONFIG.agents || {}).forEach(([name, cfg]) => {
-    if (name === agent) return;
-    if (cfg.archived) return;
-    const opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = name;
-    sel.appendChild(opt);
-  });
-
-  const modal = document.getElementById('archive-modal');
-  modal.style.display = 'flex';
+function initMonthlyTargetsTab() {
+  const sel = document.getElementById('mt-month-sel');
+  if (!sel.options.length) {
+    MT_MONTHS.forEach(m => {
+      const o = document.createElement('option'); o.value = m; o.textContent = m; sel.appendChild(o);
+    });
+    // Default to current month
+    const now = new Date();
+    const label = now.toLocaleString('en',{month:'short'}) + '-' + String(now.getFullYear()).slice(-2);
+    if (MT_MONTHS.includes(label)) sel.value = label;
+  }
+  renderMonthlyTargets();
 }
 
-function closeArchiveModal() {
-  document.getElementById('archive-modal').style.display = 'none';
-  _archiveTarget = null;
+function renderMonthlyTargets() {
+  const month  = document.getElementById('mt-month-sel')?.value;
+  if (!month) return;
+  const agents = Object.keys(CONFIG.agents || {}).filter(a => CONFIG.agents[a].active !== false && !CONFIG.agents[a].archived);
+  const mt     = CONFIG.monthly_targets || {};
+  const mData  = mt[month] || {};
+  const status = document.getElementById('mt-status');
+  const hasData = Object.keys(mData).length > 0;
+  status.textContent = hasData
+    ? `✓ ${month} has saved targets for ${Object.keys(mData).length} agent(s)`
+    : `${month} — no overrides saved yet. Using default targets from Agent Targets tab.`;
+  status.style.color = hasData ? 'var(--green)' : 'var(--ink3)';
+
+  document.getElementById('mt-agent-forms').innerHTML = agents.map(agent => {
+    const d  = mData[agent] || {};
+    const sp = d.sales_progression || {};
+    const bc = d.brand_commission  || {};
+    // Fallback to default targets for placeholder
+    const def    = CONFIG.agents[agent] || {};
+    const defSp  = def.sales_progression || {};
+    const defBc  = def.brand_commission  || {};
+
+    const brandRows = BRANDS.map(b => {
+      const bval    = bc[b] || {};
+      const defBval = defBc[b] || {};
+      return `<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--blue);width:80px;">${b}</div>
+        <div class="field-wrap" style="flex:1;">
+          <div class="field-lbl">Penetration</div>
+          <input type="number" min="0" placeholder="${defBval.penetration_target ?? 0}"
+            value="${bval.penetration_target ?? ''}"
+            onchange="mtSet('${month}','${agent}','bc','${b}','penetration_target',this.value)">
+        </div>
+        <div class="field-wrap" style="flex:1;">
+          <div class="field-lbl">CTN target</div>
+          <input type="number" min="0" placeholder="${defBval.ctn_target ?? 0}"
+            value="${bval.ctn_target ?? ''}"
+            onchange="mtSet('${month}','${agent}','bc','${b}','ctn_target',this.value)">
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="admin-card" style="margin-bottom:12px;">
+      <div style="font-family:var(--display);font-size:16px;letter-spacing:.05em;margin-bottom:12px;color:var(--accent);">${agent}</div>
+
+      <div class="sec-divider" style="margin-top:0;">Sales Progression (CTN)</div>
+      <div class="input-row" style="margin-bottom:10px;">
+        <div class="field-wrap">
+          <div class="field-lbl">Normal T1</div>
+          <input type="number" min="0" placeholder="${defSp.normal_t1 ?? ''}"
+            value="${sp.normal_t1 ?? ''}"
+            onchange="mtSet('${month}','${agent}','sp',null,'normal_t1',this.value)">
+        </div>
+        <div class="field-wrap">
+          <div class="field-lbl">Normal T2</div>
+          <input type="number" min="0" placeholder="${defSp.normal_t2 ?? ''}"
+            value="${sp.normal_t2 ?? ''}"
+            onchange="mtSet('${month}','${agent}','sp',null,'normal_t2',this.value)">
+        </div>
+        <div class="field-wrap">
+          <div class="field-lbl">GA CTN</div>
+          <input type="number" min="0" placeholder="${defSp.ga ?? ''}"
+            value="${sp.ga ?? ''}"
+            onchange="mtSet('${month}','${agent}','sp',null,'ga',this.value)">
+        </div>
+        <div class="field-wrap">
+          <div class="field-lbl">MA CTN</div>
+          <input type="number" min="0" placeholder="${defSp.ma ?? ''}"
+            value="${sp.ma ?? ''}"
+            onchange="mtSet('${month}','${agent}','sp',null,'ma',this.value)">
+        </div>
+      </div>
+
+      <div class="sec-divider">Brand Penetration & CTN Targets</div>
+      ${brandRows}
+    </div>`;
+  }).join('');
 }
 
-function confirmArchive() {
-  if (!_archiveTarget) return;
+function mtSet(month, agent, type, brand, field, val) {
+  if (!CONFIG.monthly_targets) CONFIG.monthly_targets = {};
+  if (!CONFIG.monthly_targets[month]) CONFIG.monthly_targets[month] = {};
+  if (!CONFIG.monthly_targets[month][agent]) CONFIG.monthly_targets[month][agent] = {};
+  const ag = CONFIG.monthly_targets[month][agent];
+  const v  = val === '' ? undefined : Number(val);
 
-  const existingSuccessor = document.getElementById('archive-successor').value.trim();
-  const newSuccessor      = document.getElementById('archive-new-agent').value.trim();
-  const fromMonth         = document.getElementById('archive-from-month').value.trim();
-
-  const successor = newSuccessor || existingSuccessor;
-
-  if (!successor) {
-    alert('Please select or enter a successor agent name.'); return;
+  if (type === 'sp') {
+    if (!ag.sales_progression) ag.sales_progression = {};
+    if (v === undefined) delete ag.sales_progression[field];
+    else ag.sales_progression[field] = v;
+  } else if (type === 'bc') {
+    if (!ag.brand_commission) ag.brand_commission = {};
+    if (!ag.brand_commission[brand]) ag.brand_commission[brand] = {};
+    if (v === undefined) delete ag.brand_commission[brand][field];
+    else ag.brand_commission[brand][field] = v;
   }
-  if (!fromMonth || !/^[A-Za-z]{3}-\d{2}$/.test(fromMonth)) {
-    alert('Please enter a valid effective month (e.g. Apr-25)'); return;
+  // Clean up empty objects
+  if (ag.sales_progression && !Object.keys(ag.sales_progression).length) delete ag.sales_progression;
+  if (ag.brand_commission) {
+    BRANDS.forEach(b => { if (ag.brand_commission[b] && !Object.keys(ag.brand_commission[b]).length) delete ag.brand_commission[b]; });
+    if (!Object.keys(ag.brand_commission).length) delete ag.brand_commission;
   }
-
-  // 1. Archive the old agent
-  if (!CONFIG.agents[_archiveTarget]) CONFIG.agents[_archiveTarget] = {};
-  CONFIG.agents[_archiveTarget].active   = false;
-  CONFIG.agents[_archiveTarget].archived = true;
-  CONFIG.agents[_archiveTarget].archived_from_month = fromMonth;
-
-  // 2. Set up successor (create if new)
-  if (!CONFIG.agents[successor]) {
-    // New agent — copy targets structure from archived agent as starting point
-    const old = CONFIG.agents[_archiveTarget] || {};
-    CONFIG.agents[successor] = {
-      active: true,
-      archived: false,
-      is_newbie: false,
-      sales_progression: JSON.parse(JSON.stringify(old.sales_progression || {})),
-      brand_commission:  JSON.parse(JSON.stringify(old.brand_commission  || {})),
-      kpi_targets:       JSON.parse(JSON.stringify(old.kpi_targets       || {})),
-      kpi_overrides:     {},
-    };
-  } else {
-    CONFIG.agents[successor].active   = true;
-    CONFIG.agents[successor].archived = false;
-  }
-  CONFIG.agents[successor].inherits_from     = _archiveTarget;
-  CONFIG.agents[successor].inherit_from_month = fromMonth;
-
-  closeArchiveModal();
-  renderAgentForms();
+  if (!Object.keys(ag).length) delete CONFIG.monthly_targets[month][agent];
   updateRawJSON();
-
-  // Toast
-  const t = document.createElement('div');
-  t.textContent = `✅ ${_archiveTarget} archived → ${successor} will inherit from ${fromMonth}`;
-  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#ffc800;color:#000;font-family:var(--mono);font-size:11px;padding:10px 20px;border-radius:20px;z-index:99999;font-weight:700;';
-  document.body.appendChild(t);
-  setTimeout(()=>t.remove(), 4000);
 }
-</script>
 
+function mtCopyFromPrev() {
+  const month = document.getElementById('mt-month-sel')?.value;
+  if (!month) return;
+  const idx   = MT_MONTHS.indexOf(month);
+  if (idx <= 0) { alert('No previous month available.'); return; }
+  const prev  = MT_MONTHS[idx - 1];
+  const mt    = CONFIG.monthly_targets || {};
+  const src   = mt[prev];
+  if (!src || !Object.keys(src).length) {
+    if (!confirm(`${prev} has no monthly overrides. Copy default targets instead?`)) return;
+    mtCopyFromDefault(); return;
+  }
+  if (!CONFIG.monthly_targets) CONFIG.monthly_targets = {};
+  CONFIG.monthly_targets[month] = JSON.parse(JSON.stringify(src));
+  updateRawJSON();
+  renderMonthlyTargets();
+  showToast(`⎘ Copied from ${prev} → ${month}`);
+}
+
+function mtCopyFromDefault() {
+  const month  = document.getElementById('mt-month-sel')?.value;
+  if (!month) return;
+  const agents = Object.keys(CONFIG.agents || {}).filter(a => CONFIG.agents[a].active !== false && !CONFIG.agents[a].archived);
+  if (!CONFIG.monthly_targets) CONFIG.monthly_targets = {};
+  if (!CONFIG.monthly_targets[month]) CONFIG.monthly_targets[month] = {};
+  agents.forEach(agent => {
+    const def = CONFIG.agents[agent] || {};
+    CONFIG.monthly_targets[month][agent] = {
+      sales_progression: JSON.parse(JSON.stringify(def.sales_progression || {})),
+      brand_commission:  JSON.parse(JSON.stringify(def.brand_commission  || {})),
+    };
+  });
+  updateRawJSON();
+  renderMonthlyTargets();
+  showToast(`↙ Default targets copied to ${month}`);
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;font-family:var(--mono);font-size:11px;padding:10px 20px;border-radius:20px;z-index:99999;font-weight:700;white-space:nowrap;';
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+</script>
 </body>
 </html>
