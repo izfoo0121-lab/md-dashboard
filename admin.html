@@ -3155,10 +3155,12 @@ function renderMonthlyTargets() {
     const d  = mData[agent] || {};
     const sp = d.sales_progression || {};
     const bc = d.brand_commission  || {};
+    const kpi = d.kpi_targets || {};
     // Fallback to default targets for placeholder
     const def    = CONFIG.agents[agent] || {};
     const defSp  = def.sales_progression || {};
     const defBc  = def.brand_commission  || {};
+    const defKpi = def.kpi_targets || {};
 
     const brandRows = BRANDS.map(b => {
       const bval    = bc[b] || {};
@@ -3213,6 +3215,54 @@ function renderMonthlyTargets() {
 
       <div class="sec-divider">Brand Penetration & CTN Targets</div>
       ${brandRows}
+
+      <div class="sec-divider">KPI Targets & Actuals</div>
+      <div class="input-row" style="margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+        <div class="field-wrap">
+          <div class="field-lbl">新增户口 Target</div>
+          <input type="number" min="0" placeholder="${defKpi.new_accounts ?? ''}"
+            value="${kpi.new_accounts ?? ''}"
+            onchange="mtSet('${month}','${agent}','kpi',null,'new_accounts',this.value)">
+        </div>
+        <div class="field-wrap">
+          <div class="field-lbl" style="color:#2dd4bf;">新增户口 Actual</div>
+          <input type="number" min="0" placeholder="0"
+            value="${kpi.new_accounts_actual ?? ''}"
+            onchange="mtSet('${month}','${agent}','kpi',null,'new_accounts_actual',this.value)">
+        </div>
+        <div class="field-wrap">
+          <div class="field-lbl">新增VIP Target</div>
+          <input type="number" min="0" placeholder="${defKpi.vip_count ?? ''}"
+            value="${kpi.vip_count ?? ''}"
+            onchange="mtSet('${month}','${agent}','kpi',null,'vip_count',this.value)">
+        </div>
+        <div class="field-wrap">
+          <div class="field-lbl" style="color:var(--gold);">新增VIP Actual</div>
+          <input type="number" min="0" placeholder="0"
+            value="${kpi.vip_count_actual ?? ''}"
+            onchange="mtSet('${month}','${agent}','kpi',null,'vip_count_actual',this.value)">
+        </div>
+      </div>
+      <div class="input-row" style="margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+        <div class="field-wrap">
+          <div class="field-lbl">新增SKU Target</div>
+          <input type="number" min="0" placeholder="${defKpi.new_sku ?? 17}"
+            value="${kpi.new_sku ?? ''}"
+            onchange="mtSet('${month}','${agent}','kpi',null,'new_sku',this.value)">
+        </div>
+        <div class="field-wrap">
+          <div class="field-lbl">Event Target</div>
+          <input type="number" min="0" placeholder="${defKpi.event ?? ''}"
+            value="${kpi.event ?? ''}"
+            onchange="mtSet('${month}','${agent}','kpi',null,'event',this.value)">
+        </div>
+        <div class="field-wrap">
+          <div class="field-lbl" style="color:var(--purple);">Event Actual</div>
+          <input type="number" min="0" placeholder="0"
+            value="${kpi.event_actual ?? ''}"
+            onchange="mtSet('${month}','${agent}','kpi',null,'event_actual',this.value)">
+        </div>
+      </div>
     </div>`;
   }).join('');
 }
@@ -3233,6 +3283,10 @@ function mtSet(month, agent, type, brand, field, val) {
     if (!ag.brand_commission[brand]) ag.brand_commission[brand] = {};
     if (v === undefined) delete ag.brand_commission[brand][field];
     else ag.brand_commission[brand][field] = v;
+  } else if (type === 'kpi') {
+    if (!ag.kpi_targets) ag.kpi_targets = {};
+    if (v === undefined) delete ag.kpi_targets[field];
+    else ag.kpi_targets[field] = v;
   }
   // Clean up empty objects
   if (ag.sales_progression && !Object.keys(ag.sales_progression).length) delete ag.sales_progression;
@@ -3240,6 +3294,7 @@ function mtSet(month, agent, type, brand, field, val) {
     BRANDS.forEach(b => { if (ag.brand_commission[b] && !Object.keys(ag.brand_commission[b]).length) delete ag.brand_commission[b]; });
     if (!Object.keys(ag.brand_commission).length) delete ag.brand_commission;
   }
+  if (ag.kpi_targets && !Object.keys(ag.kpi_targets).length) delete ag.kpi_targets;
   if (!Object.keys(ag).length) delete CONFIG.monthly_targets[month][agent];
   updateRawJSON();
 }
@@ -3274,6 +3329,7 @@ function mtCopyFromDefault() {
     CONFIG.monthly_targets[month][agent] = {
       sales_progression: JSON.parse(JSON.stringify(def.sales_progression || {})),
       brand_commission:  JSON.parse(JSON.stringify(def.brand_commission  || {})),
+      kpi_targets:       JSON.parse(JSON.stringify(def.kpi_targets       || {})),
     };
   });
   updateRawJSON();

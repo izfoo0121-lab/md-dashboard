@@ -314,14 +314,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
     </div>
 
     <!-- 5. Debtor Summary -->
-    <div class="sec-lbl">👥 Debtor Summary</div>
-    <div class="card">
-      <div class="card-pad" style="padding-bottom:6px;">
-        <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;margin-bottom:3px;">Per Agent Overview</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">Total · 光顾率 · 已激活 · 待激活 · 新增SKU · Tap to drill down</div>
-      </div>
-      <div class="heat-scroll"><div id="debtor-summary"></div></div>
-    </div>
+    <!-- Debtor summary hidden — merged into monthly summary table below -->
+    <div id="debtor-summary" style="display:none;"></div>
 
     <!-- 5b. Brand SKU Penetration Status -->
     <div class="sec-lbl">🏷️ Brand Penetration — Non-buyers vs Target</div>
@@ -341,15 +335,17 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
       <div id="newbie-cards"></div>
     </div>
 
-    <!-- Monthly Summary Table -->
-    <div class="sec-lbl">📊 Monthly Summary — All Agents</div>
+    <!-- Merged Agent Overview Table -->
+    <div class="sec-lbl">📊 Agent Overview — All Metrics</div>
     <div class="card">
       <div class="card-pad" style="padding-bottom:6px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;">Team Performance Overview</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;">Team Performance Overview</div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:3px;" id="monthly-month-label"></div>
+          </div>
           <button onclick="exportMonthlyExcel()" style="background:var(--green);border:none;color:#fff;font-family:var(--mono);font-size:9px;padding:6px 12px;border-radius:8px;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;">⬇ Export Excel</button>
         </div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:3px;" id="monthly-month-label"></div>
       </div>
       <div class="heat-scroll"><div id="monthly-summary-table"></div></div>
     </div>
@@ -842,64 +838,128 @@ function renderAnnualProgress() {
 }
 function renderMonthlySummary() {
   const D = CURRENT_DATA || DATA;
-  const agents = Object.keys(D.agents||{});
+  const agents = Object.keys(D.agents||{}).filter(a => !D.agents[a]?.debtor_cards?.archived);
   const el = document.getElementById('monthly-summary-table');
   document.getElementById('monthly-month-label').textContent =
     `${D.current_month || ''} · Day ${D.working_days?.elapsed_working_days||'?'} of ${D.working_days?.total_working_days||'?'}`;
 
-  const cols = '70px 55px 55px 55px 55px 55px 55px 50px 45px 50px 50px 55px 55px 55px';
-  const hdrs = ['Agent','Tgt Normal','Act Normal','Tgt MA','Act MA','开新户口','VIP','激活户口','加SKU','光顾率','交易次数','工作日','平均交易','KPI A+B'];
+  // Column groups: Sales | Debtor Health | KPI Metrics | Performance
+  const cols = '66px 100px 50px 90px 50px 90px 50px 70px 55px 55px 60px 60px 60px 55px 55px';
+  const hdrs = [
+    'AGENT',
+    'T1 ACT/TGT','T1%',
+    'GA ACT/TGT','GA%',
+    'MA ACT/TGT','MA%',
+    '光顾率/TGT',
+    '激活/TGT','待激活',
+    '新增户口','新增VIP','新增SKU',
+    '交易','KPI'
+  ];
+  const hdrColors = ['',
+    'var(--accent)','var(--accent)',
+    '#4da6ff','#4da6ff',
+    'var(--purple)','var(--purple)',
+    'var(--blue)',
+    'var(--green)','var(--orange)',
+    '#2dd4bf','var(--gold)','var(--purple)',
+    'var(--ink3)','var(--gold)'
+  ];
 
-  let html = `<div style="min-width:700px;">
-    <div style="display:grid;grid-template-columns:${cols};gap:0;border-bottom:2px solid var(--border);">
-      ${hdrs.map((h,i) => `<div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);padding:6px 6px;text-align:${i===0?'left':'center'};border-right:1px solid var(--border);">${h}</div>`).join('')}
+  let html = `<div style="min-width:800px;">
+    <div style="display:grid;grid-template-columns:${cols};border-bottom:2px solid var(--border);">
+      ${hdrs.map((h,i) => `<div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.04em;color:${hdrColors[i]||'var(--ink3)'};padding:6px 5px;text-align:${i===0?'left':'center'};border-right:1px solid var(--border);">${h}</div>`).join('')}
     </div>`;
+
+  // Helper: actual/target cell
+  const atCell = (actual, target, col, fmt=v=>fi(v)) => {
+    if (!target) return `<div style="font-family:var(--mono);font-size:10px;padding:7px 5px;text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);color:${col};">${fmt(actual)}</div>`;
+    const hit = actual >= target;
+    return `<div style="font-family:var(--mono);font-size:10px;padding:7px 5px;text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);">
+      <span style="color:${hit?'var(--green)':col};font-weight:600;">${fmt(actual)}</span><span style="color:rgba(255,255,255,.25);font-size:8px;">/${fmt(target)}</span>
+    </div>`;
+  };
+  const pctCell = (p) => `<div style="font-family:var(--mono);font-size:10px;padding:7px 5px;text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);color:${pc(p)};font-weight:600;">${p.toFixed(1)}%</div>`;
+  const cell = (val, color='var(--ink)') => `<div style="font-family:var(--mono);font-size:10px;padding:7px 5px;text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);color:${color};">${val}</div>`;
+
+  let teamT1Act=0,teamT1Tgt=0,teamMAct=0,teamMTgt=0,teamAct=0,teamPend=0,teamNewAcc=0,teamNewVip=0,teamNewSku=0,teamTxn=0;
 
   agents.forEach((agent,idx) => {
     const sp  = D.agents[agent]?.sales_progression || {};
     const dc  = D.agents[agent]?.debtor_cards || {};
     const kpi = D.agents[agent]?.kpi || {};
-    const bg  = idx%2===0 ? '' : 'background:#faf8f5;';
+    const kt  = dc.kpi_targets || {};
+    const bg  = idx%2===0 ? '' : 'background:rgba(255,255,255,.02);';
 
-    const t1tgt = sp.tiers?.normal_t1?.target || 0;
-    const matgt = sp.tiers?.ma?.target || 0;
-    const newAcc = dc.debtors?.filter(d=>d.is_new).length || 0;
-    const vip    = dc.debtors?.filter(d=>d.vip).length || 0;
-    const react  = dc.reactivation_count || 0;
-    const newSku = dc.total_new_sku || 0;
-    const rate   = dc.activation_rate || 0;
-    const txn    = sp.txn_count || 0;
-    const wdays  = sp.elapsed_working_days || DATA.working_days?.elapsed_working_days || 0;
-    const avgTxn = sp.avg_txn_per_day || 0;
+    const t1Act = sp.normal_ctn || 0;
+    const t1Tgt = sp.tiers?.normal_t1?.target || 0;
+    const t1Pct = sp.tiers?.normal_t1?.pct || 0;
+    const gaAct = sp.ga_ctn || 0;
+    const gaTgt = sp.tiers?.ga?.target || 0;
+    const gaPct = sp.tiers?.ga?.pct || 0;
+    const maAct = sp.ma_ctn || 0;
+    const maTgt = sp.tiers?.ma?.target || 0;
+    const maPct = sp.tiers?.ma?.pct || 0;
+    const rate     = dc.activation_rate || 0;
+    const rateTgt  = kt.activation_rate || 80;
+    const actv     = dc.active_count || 0;
+    const actvTgt  = kt.reactivation || null;
+    const pend     = dc.reactivation_count || 0;
+    const newAcc   = dc.new_accounts_count || 0;
+    const newVip   = dc.new_vip_count || 0;
+    const newSku   = dc.total_new_sku || 0;
+    const txn      = sp.txn_count || 0;
     const kpiScore = kpi.total_abc || 0;
 
-    const normalPct = sp.tiers?.normal_t1?.pct || 0;
-    const maPct     = sp.tiers?.ma?.pct || 0;
+    teamT1Act+=t1Act; teamT1Tgt+=t1Tgt; teamMAct+=maAct; teamMTgt+=maTgt;
+    teamAct+=actv; teamPend+=pend; teamNewAcc+=newAcc; teamNewVip+=newVip; teamNewSku+=newSku; teamTxn+=txn;
 
-    const cell = (val, color='') => `<div style="font-family:var(--mono);font-size:10px;padding:7px 6px;text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);${color}">${val}</div>`;
-    const pctCell = (p, val) => cell(val, `color:${pc(p)};`);
-
-    html += `<div style="display:grid;grid-template-columns:${cols};gap:0;${bg}" onclick="openDrill('${agent}')" style="cursor:pointer;">
+    html += `<div style="display:grid;grid-template-columns:${cols};${bg}" onclick="openDrill('${agent}')" style="cursor:pointer;">
       <div style="font-family:var(--mono);font-size:11px;font-weight:600;padding:7px 8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);color:var(--blue);cursor:pointer;">${agent}</div>
-      ${cell(fi(t1tgt))}
-      ${pctCell(normalPct, fi(sp.normal_ctn))}
-      ${cell(fi(matgt))}
-      ${pctCell(maPct, fi(sp.ma_ctn))}
-      ${cell(newAcc)}
-      ${cell(vip)}
-      ${cell(react)}
-      ${cell(newSku)}
-      ${cell(rate+'%', `color:${pc(rate)};`)}
+      ${atCell(t1Act, t1Tgt, 'var(--accent)')}
+      ${pctCell(t1Pct)}
+      ${gaTgt ? atCell(gaAct, gaTgt, '#4da6ff') : cell(fi(gaAct),'#4da6ff')}
+      ${gaTgt ? pctCell(gaPct) : cell('—')}
+      ${atCell(maAct, maTgt, 'var(--purple)')}
+      ${pctCell(maPct)}
+      <div style="font-family:var(--mono);font-size:10px;padding:7px 5px;text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);">
+        <span style="color:${pc(rate)};font-weight:600;">${rate}%</span><span style="color:rgba(255,255,255,.25);font-size:8px;">/${rateTgt}%</span>
+        <div style="height:3px;background:var(--border);border-radius:2px;margin-top:3px;"><div style="height:100%;width:${Math.min(rate,100)}%;background:${bc(rate)};border-radius:2px;"></div></div>
+      </div>
+      ${atCell(actv, actvTgt, 'var(--green)')}
+      ${cell(pend, 'var(--orange)')}
+      ${atCell(newAcc, kt.new_accounts, '#2dd4bf')}
+      ${atCell(newVip, kt.vip_count, 'var(--gold)')}
+      ${atCell(newSku, kt.new_sku||17, 'var(--purple)')}
       ${cell(txn)}
-      ${cell(wdays)}
-      ${cell(avgTxn.toFixed(1))}
-      ${cell(kpiScore.toFixed(1), `color:${pc(kpiScore/61*100)};`)}
+      ${cell(kpiScore.toFixed(1), `color:${pc(kpiScore/61*100)}`)}
     </div>`;
   });
+
+  // Team totals row
+  const teamT1Pct = teamT1Tgt ? teamT1Act/teamT1Tgt*100 : 0;
+  const teamMPct  = teamMTgt  ? teamMAct/teamMTgt*100   : 0;
+  html += `<div style="display:grid;grid-template-columns:${cols};background:rgba(77,166,255,.08);border-top:2px solid rgba(77,166,255,.3);">
+    <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:7px 8px;border-right:1px solid var(--border);color:#4da6ff;">TEAM</div>
+    ${atCell(teamT1Act, teamT1Tgt, 'var(--accent)')}
+    ${pctCell(teamT1Pct)}
+    ${cell(fi(teamMAct), '#4da6ff')}
+    ${cell('—')}
+    ${atCell(teamMAct, teamMTgt, 'var(--purple)')}
+    ${pctCell(teamMPct)}
+    ${cell('—')}
+    ${cell(teamAct, 'var(--green)')}
+    ${cell(teamPend, 'var(--orange)')}
+    ${cell(teamNewAcc, '#2dd4bf')}
+    ${cell(teamNewVip, 'var(--gold)')}
+    ${cell(teamNewSku, 'var(--purple)')}
+    ${cell(teamTxn)}
+    ${cell('—')}
+  </div>`;
 
   html += `</div>`;
   el.innerHTML = html;
 }
+
 
 // ── Excel Export ───────────────────────────────────────────────────────────
 function exportMonthlyExcel() {
@@ -1264,25 +1324,35 @@ function renderBrandSkuStatus() {
 function renderDebtorSummary(){
   const DATA = CURRENT_DATA || window.__DATA__;
   const agents=Object.keys(DATA.agents||{});
-  const cols='65px 70px 45px 50px 50px 55px';
+  const cols='65px 70px 45px 50px 50px 50px 50px 55px';
   let html=`<div class="dt-wrap"><div class="dt-hdr" style="grid-template-columns:${cols}">
     <div class="dt-hdr-c" style="text-align:left;">Agent</div>
     <div class="dt-hdr-c" style="color:var(--blue)">光顾率</div>
     <div class="dt-hdr-c">Total</div>
     <div class="dt-hdr-c" style="color:var(--green)">激活</div>
     <div class="dt-hdr-c" style="color:var(--orange)">待激活</div>
+    <div class="dt-hdr-c" style="color:var(--teal,#2dd4bf)">新增户口</div>
+    <div class="dt-hdr-c" style="color:var(--gold)">新增VIP</div>
     <div class="dt-hdr-c" style="color:var(--purple)">新增SKU</div>
   </div>`;
   agents.forEach(agent=>{
     const dc=DATA.agents[agent]?.debtor_cards||{};
     const rate=dc.activation_rate??0;
+    const newAcc=dc.new_accounts_count||0;
+    const newVip=dc.new_vip_count||0;
+    const kt=dc.kpi_targets||{};
+    const newSku=dc.total_new_sku||0;
+    // actual/target display helper
+    const at=(actual,target,col)=>target?`<span style="color:${actual>=target?'var(--green)':col};font-weight:600">${actual}</span><span style="color:rgba(255,255,255,.3);font-size:9px;">/${target}</span>`:`<span style="font-weight:600">${actual}</span>`;
     html+=`<div class="dt-row" style="grid-template-columns:${cols}" onclick="openDrill('${agent}')">
       <div class="dt-c dt-agent">${agent}</div>
       <div class="dt-c"><span style="font-family:var(--mono);font-size:11px;font-weight:500;color:${pc(rate)}">${rate}%</span><div class="dt-bar"><div class="dt-bar-fill" style="width:${Math.min(rate,100)}%;background:${bc(rate)}"></div></div></div>
       <div class="dt-c">${dc.total_debtors||0}</div>
       <div class="dt-c" style="color:var(--green)">${dc.active_count||0}</div>
       <div class="dt-c" style="color:var(--orange)">${dc.reactivation_count||0}</div>
-      <div class="dt-c" style="color:var(--purple)">${dc.total_new_sku||0}</div>
+      <div class="dt-c" style="color:#2dd4bf">${at(newAcc,kt.new_accounts,'#2dd4bf')}</div>
+      <div class="dt-c" style="color:var(--gold)">${at(newVip,kt.vip_count,'var(--gold)')}</div>
+      <div class="dt-c" style="color:var(--purple)">${at(newSku,kt.new_sku,'var(--purple)')}</div>
     </div>`;
   });
   html+=`</div>`;
