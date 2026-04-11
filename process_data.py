@@ -872,8 +872,9 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
         OPEN_COL  = next((c for c in cols if 'Open Acct' in c or 'Open' in c), None)
         BIRTH_COL = next((c for c in cols if 'Birth' in c), None)
         AGENT_COL = next((c for c in cols if c.strip() == 'Agent'), None)
+        ACTIVE_COL = next((c for c in cols if c.strip() == 'Active'), None)
 
-        log(f"  Mapped → code:{CODE_COL} name:{NAME_COL} phone:{PHONE_COL} type:{TYPE_COL} vip:{ATT_COL} agent:{AGENT_COL}")
+        log(f"  Mapped → code:{CODE_COL} name:{NAME_COL} phone:{PHONE_COL} type:{TYPE_COL} vip:{ATT_COL} agent:{AGENT_COL} active:{ACTIVE_COL}")
 
         for _, row in debtor_df.iterrows():
             code = str(row.get(CODE_COL, '') if CODE_COL else '').strip()
@@ -889,6 +890,9 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             agent_raw = str(row.get(AGENT_COL, '') if AGENT_COL else '').strip()
             agent_raw = '' if agent_raw.lower() in ('nan', 'none') else agent_raw
 
+            active_raw = str(row.get(ACTIVE_COL, 'Checked') if ACTIVE_COL else 'Checked').strip()
+            is_dm_active = active_raw.lower() != 'unchecked'
+
             debtor_info[code] = {
                 "name":       str(row.get(NAME_COL, code) if NAME_COL else code).strip(),
                 "phone":      phone_raw,
@@ -897,6 +901,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 "open_date":  row.get(OPEN_COL, None)  if OPEN_COL  else None,
                 "type":       type_raw,
                 "agent":      agent_raw,
+                "dm_active":  is_dm_active,
             }
 
     # SKU groups
@@ -927,18 +932,27 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
         ag_data = canggih_paid[canggih_paid["agent"] == agent]
 
         # ── Base debtor list from Debtor Maintenance (official assigned list) ──
-        # Use debtors assigned to this agent in debtor_info
+        # Only include Active (Checked) debtors from DM
         dm_debtor_codes = [
             code for code, info in debtor_info.items()
             if info.get("agent", "").strip().upper() == agent.upper()
+            and info.get("dm_active", True)  # exclude Unchecked debtors
         ]
 
         # Also include any debtors found in transaction data (fallback)
         tx_debtor_codes = list(ag_data["debtor_code"].unique())
 
-        # Merge: DM list is primary, tx adds any missing
+        # Build set of inactive debtor codes from DM to exclude from TX too
+        dm_inactive_codes = {
+            code for code, info in debtor_info.items()
+            if info.get("agent", "").strip().upper() == agent.upper()
+            and not info.get("dm_active", True)
+        }
+
+        # Merge: DM active list is primary, tx adds any missing (excluding known inactive)
         all_debtor_codes = list(dict.fromkeys(dm_debtor_codes + [
-            c for c in tx_debtor_codes if c not in dm_debtor_codes
+            c for c in tx_debtor_codes
+            if c not in dm_debtor_codes and c not in dm_inactive_codes
         ]))
 
         if not all_debtor_codes:
@@ -1173,13 +1187,18 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             and not d.get("is_new", False)
         )
 
-        # 持续光顾率 = active (excl. Personal) ÷ total (excl. Personal)
-        # Exclude P-Personal debtor type from this calculation
+        # 持续光顾率 = debtors who bought this month ÷ total DM active debtors
+        # Only count DM-sourced debtors (not TX-only) as the base
+        # Excludes Personal type
         PERSONAL_TYPES = {"P-Personal", "P-PERSONAL", "personal", "Personal", "PERSONAL"}
-        non_personal   = [d for d in debtor_cards if d.get("type","") not in PERSONAL_TYPES
-                          and d.get("debtor_type","") not in PERSONAL_TYPES]
-        np_total       = len(non_personal)
-        np_active      = sum(1 for d in non_personal if d["status"] == "active")
+        dm_active_debtors = [
+            d for d in debtor_cards
+            if d.get("type", "") not in PERSONAL_TYPES
+            and d.get("debtor_type", "") not in PERSONAL_TYPES
+            and debtor_info.get(d.get("debtor_code", ""), {}).get("dm_active", False)
+        ]
+        np_total  = len(dm_active_debtors)
+        np_active = sum(1 for d in dm_active_debtors if (d.get("ctn_cur", 0) or 0) > 0)
         activation_rate = round(np_active / np_total * 100, 1) if np_total > 0 else 0
 
         # Agent total 新增SKU this month
