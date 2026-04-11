@@ -166,11 +166,11 @@ def load_sales_report():
         log(f"❌ File not found: {SALES_FILE}")
         sys.exit(1)
 
-    # Read columns A:Z (indices 0–25), skip row 1 (special ref row), use row 2 as header
+    # Read columns A:Z — row 0 is the real header (Tranx Mth, Doc. No., etc.)
     df = pd.read_excel(
         SALES_FILE,
         sheet_name=0,        # Read first sheet regardless of name (works for MD, Sheet1, etc.)
-        header=1,        # row index 1 = Excel row 2 = actual headers
+        header=0,        # row 0 = actual headers
         usecols="A:Z",
         dtype=str,       # read all as string first, cast later
         engine="openpyxl",
@@ -241,9 +241,11 @@ def load_debtors():
 # ── Filter: Scope to GRP 2A ───────────────────────────────────────────────────
 
 def filter_scope(df):
-    """Keep only GRP 2A rows."""
-    scoped = df[df["area_code"] == SCOPE_AREA].copy()
-    log(f"  Scope filter (GRP 2A): {len(scoped):,} rows retained")
+    """Keep only GRP 2A and GRP 2 rows (strip whitespace first)."""
+    df["area_code"] = df["area_code"].str.strip()
+    ben_raw = df[df["agent"] == "BEN"]
+    scoped = df[df["area_code"].isin(["GRP 2A", "GRP 2"])].copy()
+    log(f"  Scope filter (GRP 2A + GRP 2): {len(scoped):,} rows retained")
     return scoped
 
 
@@ -262,6 +264,8 @@ def calc_sales_progression(df, targets, agents, cur_month):
     # Split Canggih vs 8COM
     canggih_paid  = paid[paid["item_group"] != EIGHTCOM_GROUP]
     eightcom_paid = paid[paid["item_group"] == EIGHTCOM_GROUP]
+
+    ben_canggih = canggih_paid[canggih_paid["agent"] == "BEN"]
 
     # All rows for unpaid calc
     eightcom_all = df[df["item_group"] == EIGHTCOM_GROUP]
@@ -393,6 +397,9 @@ def calc_sales_progression(df, targets, agents, cur_month):
                 } if ma else None,
             }
         }
+
+        if agent == "BEN":
+            unmapped = ag_canggih[~ag_canggih['sales_type'].isin(SALES_TYPE_MAP.keys())]
 
     return result
 
@@ -2210,7 +2217,7 @@ def calc_working_days(targets=None, cur_month=None):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def main():
+def main(override_month=None, fast=False):
     log("=" * 60)
     log("MD Sales Dashboard — process_data.py (Phase 2)")
     log("=" * 60)
@@ -2218,6 +2225,22 @@ def main():
     today      = date.today()
     cur_month  = current_month_label(today)
     prev_months = prev_month_labels(3, today)
+
+    # ── Month override (e.g. py process_data.py --month "Mar 26") ──
+    if override_month:
+        cur_month = override_month.strip()
+        log(f"⚠  Month override: {cur_month}")
+        # Recalculate prev_months based on override
+        MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+        try:
+            parts = cur_month.split()
+            mon_idx = MONTH_ORDER.index(parts[0])
+            yr = int('20' + parts[1])
+            from datetime import date as _date
+            override_date = _date(yr, mon_idx + 1, 1)
+            prev_months = prev_month_labels(3, override_date)
+        except Exception as e:
+            log(f"  ⚠ Could not parse override month for prev_months: {e}")
 
     # ── Load data ──────────────────────────────────────────────────
     targets   = load_targets()
@@ -2333,6 +2356,9 @@ def main():
     # ── Scope filter ───────────────────────────────────────────────
     df = filter_scope(df_raw)
 
+    ben_all = df[df["agent"] == "BEN"]
+    ben_mar = ben_all[ben_all["paid_on"] == "Mar 26"]
+
     # ── Brand config (from targets.json or default) ─────────────────
     brand_config = targets.get("brand_config", DEFAULT_BRAND_CONFIG)
     group_brand_config = targets.get("group_brand_config", DEFAULT_GROUP_BRAND_CONFIG)
@@ -2413,7 +2439,24 @@ def main():
     targets = save_penetration_snapshot(brand_comm, targets, cur_month)
     newbie      = calc_newbie_scheme(df, targets, agents, cur_month)
     aging       = calc_aging(df, agents, cur_month)
-    debtor_cards = calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map, area_groups)
+
+    # ── Debtor cards — skip if --fast and cached JSON exists ────────
+    month_slug   = cur_month.replace(" ", "").lower()
+    monthly_file = BASE_DIR / f"data_{month_slug}.json"
+
+    if fast and monthly_file.exists():
+        log(f"⚡ --fast mode: loading debtor cards from {monthly_file.name}")
+        with open(monthly_file, encoding="utf-8") as f:
+            cached = json.load(f)
+        debtor_cards = {
+            agent: cached["agents"].get(agent, {}).get("debtor_cards", {})
+            for agent in agents
+        }
+        log(f"   Loaded debtor cards for {len(debtor_cards)} agents from cache")
+    else:
+        if fast:
+            log(f"⚡ --fast mode requested but no cached JSON found — running full debtor calc")
+        debtor_cards = calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map, area_groups)
 
     # ── Save month-start snapshot + auto-calc KPI targets ───────────────────
     targets      = save_debtor_snapshot(debtor_cards, targets, cur_month)
@@ -2511,4 +2554,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description="MD Sales Dashboard data processor")
+    parser.add_argument("--month", type=str, default=None,
+        help="Override current month, e.g. --month 'Mar 26'")
+    parser.add_argument("--fast", action="store_true",
+        help="Skip debtor card recalculation — reuse cached debtor data from existing JSON")
+    args = parser.parse_args()
+    main(override_month=args.month, fast=args.fast)
