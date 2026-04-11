@@ -421,8 +421,35 @@ def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_con
     # Paid this month (for CTN target and commission calc)
     paid_cur = canggih[canggih["paid_on"] == cur_month]
 
-    # Previous 3 months data (for penetration lookback)
+    # Previous 3 months data (for penetration lookback) — paid basis
     prev_paid = canggih[canggih["paid_on"].isin(prev_months)]
+
+    # Tranx month basis (for penetration — agent has 2 months to collect)
+    # tranx_mth col has short month name e.g. "Mar"; paid_on has "Mar 26"
+    # Cross-reference: row is in cur_month if tranx_mth matches AND paid_on is cur or future
+    # Simpler: use paid_on for prev lookback, tranx_mth+year derived from date_parsed for cur
+    MONTH_ORDER_BC = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    try:
+        _parts = cur_month.split()
+        _mon   = _parts[0]  # "Mar"
+        _yr    = int('20' + _parts[1])  # 2026
+        tranx_cur  = canggih[
+            (canggih["tranx_mth"] == _mon) &
+            (canggih["date_parsed"].dt.year == _yr)
+        ]
+        _prev_filters = []
+        for pm in prev_months:
+            _pp = pm.split()
+            _prev_filters.append(
+                (canggih["tranx_mth"] == _pp[0]) &
+                (canggih["date_parsed"].dt.year == int('20' + _pp[1]))
+            )
+        import functools, operator
+        tranx_prev = canggih[functools.reduce(operator.or_, _prev_filters)] if _prev_filters else canggih.iloc[0:0]
+    except Exception as _e:
+        log(f"  ⚠ tranx_mth filter error: {_e} — falling back to paid_on for penetration")
+        tranx_cur  = paid_cur
+        tranx_prev = prev_paid
 
     result = {}
 
@@ -433,6 +460,8 @@ def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_con
 
         ag_paid_cur  = paid_cur[paid_cur["agent"] == agent]
         ag_prev_paid = prev_paid[prev_paid["agent"] == agent]
+        ag_tranx_cur  = tranx_cur[tranx_cur["agent"] == agent]
+        ag_tranx_prev = tranx_prev[tranx_prev["agent"] == agent]
 
         result[agent] = {}
 
@@ -441,23 +470,30 @@ def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_con
 
             # ── Filter rows for this brand ──────────────────────────
             if brand == "EVO":
-                # Current month paid: item_code = EVO AND rm_ctn >= 36
+                # CTN target: paid this month, rm_ctn >= 36
                 cur_rows = ag_paid_cur[
                     (ag_paid_cur["item_code"].isin(codes)) &
                     (ag_paid_cur["rm_ctn"] >= EVO_MIN_RM_CTN)
                 ]
-                # Prev months: item_code = EVO (any price — just for penetration lookback)
-                prev_rows = ag_prev_paid[ag_prev_paid["item_code"].isin(codes)]
+                # Penetration: ordered this month (tranx_mth), rm_ctn >= 36
+                pen_cur_rows  = ag_tranx_cur[
+                    (ag_tranx_cur["item_code"].isin(codes)) &
+                    (ag_tranx_cur["rm_ctn"] >= EVO_MIN_RM_CTN)
+                ]
+                pen_prev_rows = ag_tranx_prev[ag_tranx_prev["item_code"].isin(codes)]
             else:
-                cur_rows  = ag_paid_cur[ag_paid_cur["item_code"].isin(codes)]
-                prev_rows = ag_prev_paid[ag_prev_paid["item_code"].isin(codes)]
+                # CTN target: paid this month
+                cur_rows = ag_paid_cur[ag_paid_cur["item_code"].isin(codes)]
+                # Penetration: ordered this month (tranx_mth) — 2-month collection window
+                pen_cur_rows  = ag_tranx_cur[ag_tranx_cur["item_code"].isin(codes)]
+                pen_prev_rows = ag_tranx_prev[ag_tranx_prev["item_code"].isin(codes)]
 
-            # ── Criteria 1: Penetration ─────────────────────────────
-            # Debtors who bought this brand in prev 3 months
-            prev_buyers = set(prev_rows["debtor_code"].unique())
+            # ── Criteria 1: Penetration (ordered basis) ─────────────
+            # Debtors who ordered this brand in prev 3 months
+            prev_buyers = set(pen_prev_rows["debtor_code"].unique())
 
-            # Debtors who bought this brand this month
-            cur_buyers = set(cur_rows["debtor_code"].unique())
+            # Debtors who ordered this brand this month
+            cur_buyers = set(pen_cur_rows["debtor_code"].unique())
 
             # Penetration = debtors in cur_buyers who were NOT in prev_buyers
             new_penetrations = cur_buyers - prev_buyers
@@ -465,14 +501,20 @@ def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_con
             penetration_target = brand_tgt.get("penetration_target", 0)
             penetration_hit    = penetration_count >= penetration_target if penetration_target else False
 
-            # ── Criteria 2: CTN Target ──────────────────────────────
-            ctn_sold   = round(float(cur_rows["qty_ctn"].sum()), 2)
+            # ── Criteria 2: CTN Target (ordered basis — 2 month collection window) ──
+            # Use tranx_mth rows for CTN count (includes unpaid)
+            if brand == "EVO":
+                ctn_rows = pen_cur_rows  # already filtered by rm_ctn >= 36
+            else:
+                ctn_rows = pen_cur_rows
+            ctn_sold   = round(float(ctn_rows["qty_ctn"].sum()), 2)
             ctn_target = brand_tgt.get("ctn_target", 0)
             ctn_hit    = ctn_sold >= ctn_target if ctn_target else False
 
-            # ── Commission ──────────────────────────────────────────
+            # Commission paid on PAID CTN only (not ordered)
+            paid_ctn_sold = round(float(cur_rows["qty_ctn"].sum()), 2)
             both_hit   = penetration_hit and ctn_hit
-            comm_earned = round(ctn_sold * 1.80, 2) if both_hit else 0.0
+            comm_earned = round(paid_ctn_sold * 1.80, 2) if both_hit else 0.0
 
             # Status label
             if both_hit:
@@ -819,7 +861,7 @@ def _parse_birth_date(val):
     except:
         return None
 
-def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_groups=None):
+def calc_debtor_cards(df, debtor_df, agents, cur_month, targets=None, campaign_map=None, area_groups=None):
     """
     Preserve existing Phase 1 debtor card logic:
     - Activation status per debtor (Active / Pending / Need Reactivation)
@@ -1166,15 +1208,22 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
         order = {"active": 0, "pending": 1, "need_reactivation": 2}
         debtor_cards.sort(key=lambda x: order.get(x["status"], 3))
 
-        # Summary counts
-        active_count   = sum(1 for d in debtor_cards if d["status"] == "active")
-        pending_count  = sum(1 for d in debtor_cards if d["status"] == "pending")
-        # 待激活 = bought prev-prev month (e.g. Feb) but missed prev month (e.g. Mar) → need reactivation visit
+        # Summary counts — exclude personal debtors from all counts
+        PERSONAL_TYPES_CTR = {"P-Personal", "P-PERSONAL", "personal", "Personal", "PERSONAL"}
+        def _is_countable(d):
+            return (d.get("type", "") not in PERSONAL_TYPES_CTR
+                    and d.get("debtor_type", "") not in PERSONAL_TYPES_CTR
+                    and debtor_info.get(d.get("debtor_code", ""), {}).get("dm_active", False))
+
+        active_count   = sum(1 for d in debtor_cards if d["status"] == "active" and _is_countable(d))
+        pending_count  = sum(1 for d in debtor_cards if d["status"] == "pending" and _is_countable(d))
+        # 待激活 = bought prev-prev month but missed prev month → need reactivation visit
         inactive_count = sum(
             1 for d in debtor_cards
             if (d.get("ctn_prev2", 0) or 0) > 0
             and (d.get("ctn_prev1", 0) or 0) == 0
             and (d.get("ctn_cur",   0) or 0) == 0
+            and _is_countable(d)
         )
         total          = len(debtor_cards)
 
@@ -1207,6 +1256,38 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
         # Agent total 新增SKU this month
         total_new_sku = sum(d["new_sku_count"] for d in debtor_cards)
 
+        # 新增户口 — new accounts opened this month (excl. Personal)
+        new_accounts_count = sum(
+            1 for d in debtor_cards
+            if d.get("is_new", False)
+            and d.get("type", "") not in PERSONAL_TYPES
+            and d.get("debtor_type", "") not in PERSONAL_TYPES
+        )
+
+        # 新增VIP — new VIP accounts opened this month
+        new_vip_count = sum(
+            1 for d in debtor_cards
+            if d.get("is_new", False)
+            and d.get("vip", False)
+            and d.get("type", "") not in PERSONAL_TYPES
+        )
+
+        # Read KPI targets and manual actuals from monthly_targets
+        mt_agent = get_monthly_targets(targets or {}, cur_month).get(agent, {})
+        mt_kpi   = mt_agent.get("kpi_targets", {})
+        def_kpi  = targets.get("agents", {}).get(agent, {}).get("kpi_targets", {})
+
+        kpi_targets_out = {
+            "new_accounts":        mt_kpi.get("new_accounts",        def_kpi.get("new_accounts", None)),
+            "vip_count":           mt_kpi.get("vip_count",           def_kpi.get("vip_count", None)),
+            "new_sku":             mt_kpi.get("new_sku",             def_kpi.get("new_sku", 17)),
+            "event":               mt_kpi.get("event",               def_kpi.get("event", None)),
+            # Manual actuals (entered via Admin → Monthly Targets)
+            "new_accounts_actual": mt_kpi.get("new_accounts_actual", None),
+            "vip_count_actual":    mt_kpi.get("vip_count_actual",    None),
+            "event_actual":        mt_kpi.get("event_actual",        None),
+        }
+
         result[agent] = {
             "debtors":            debtor_cards,
             "total_debtors":      display_total,
@@ -1219,6 +1300,9 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             "activation_active":  np_active,
             "pending_activation": inactive_count,
             "total_new_sku":      total_new_sku,
+            "new_accounts_count": new_accounts_count,
+            "new_vip_count":      new_vip_count,
+            "kpi_targets":        kpi_targets_out,
         }
 
     return result
@@ -2478,7 +2562,7 @@ def main(override_month=None, fast=False):
     else:
         if fast:
             log(f"⚡ --fast mode requested but no cached JSON found — running full debtor calc")
-        debtor_cards = calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map, area_groups)
+        debtor_cards = calc_debtor_cards(df, debtor_df, agents, cur_month, targets, campaign_map, area_groups)
 
     # ── Save month-start snapshot + auto-calc KPI targets ───────────────────
     targets      = save_debtor_snapshot(debtor_cards, targets, cur_month)
