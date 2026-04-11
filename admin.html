@@ -1253,6 +1253,11 @@ function renderAgentForms() {
             style="background:none;border:1px solid rgba(200,56,26,.4);color:var(--accent);font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;">
             ✕ Remove
           </button>
+          <button onclick="openArchiveModal('${agent}')"
+            style="background:none;border:1px solid rgba(255,200,0,.4);color:#ffc800;font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;"
+            title="Archive this agent and assign a successor">
+            📦 Archive & Replace
+          </button>
         </div>
       </div>
 
@@ -3076,5 +3081,133 @@ const GistSync = (() => {
 if (typeof module !== 'undefined') module.exports = GistSync;
 
 </script>
+<!-- ── Archive & Replace Modal ─────────────────────────────────── -->
+<div id="archive-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;width:min(420px,92vw);font-family:var(--mono);">
+    <div style="font-size:15px;font-weight:700;color:#ffc800;margin-bottom:6px;">📦 Archive & Replace Agent</div>
+    <div id="archive-agent-label" style="font-size:11px;color:var(--ink3);margin-bottom:20px;"></div>
+
+    <div style="font-size:10px;color:var(--ink3);margin-bottom:6px;">SUCCESSOR AGENT (who takes over)</div>
+    <select id="archive-successor" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:8px;border-radius:8px;margin-bottom:14px;">
+      <option value="">— Select agent —</option>
+    </select>
+
+    <div style="font-size:10px;color:var(--ink3);margin-bottom:6px;">OR CREATE NEW AGENT</div>
+    <input id="archive-new-agent" placeholder="Type new agent name..."
+      style="width:100%;box-sizing:border-box;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:8px;border-radius:8px;margin-bottom:14px;">
+
+    <div style="font-size:10px;color:var(--ink3);margin-bottom:6px;">EFFECTIVE FROM MONTH (e.g. Apr-25)</div>
+    <input id="archive-from-month" placeholder="Apr-25"
+      style="width:100%;box-sizing:border-box;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:8px;border-radius:8px;margin-bottom:6px;">
+    <div style="font-size:9px;color:var(--ink3);margin-bottom:20px;">
+      From this month onwards, successor's dashboard will include archived agent's sales.<br>
+      Both names may appear in AutoCount during takeover month — combined under successor.
+    </div>
+
+    <div style="background:rgba(255,200,0,.08);border:1px solid rgba(255,200,0,.2);border-radius:8px;padding:10px;font-size:9px;color:#ffc800;margin-bottom:20px;">
+      ⚠️ <b>Archived agent</b> will be hidden from current dashboard but preserved in history.<br>
+      Successor will show <b>(inc. ARCHIVED_NAME)</b> note on their agent page.
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button onclick="confirmArchive()"
+        style="flex:1;background:#ffc800;color:#000;border:none;font-family:var(--mono);font-size:12px;font-weight:700;padding:12px;border-radius:8px;cursor:pointer;">
+        Confirm Archive & Replace
+      </button>
+      <button onclick="closeArchiveModal()"
+        style="flex:1;background:var(--surface);border:1px solid var(--border);color:var(--ink3);font-family:var(--mono);font-size:12px;padding:12px;border-radius:8px;cursor:pointer;">
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Archive & Replace Logic ────────────────────────────────────────
+let _archiveTarget = null;
+
+function openArchiveModal(agent) {
+  _archiveTarget = agent;
+  document.getElementById('archive-agent-label').textContent =
+    `Archiving: ${agent} — their sales history will be inherited by the successor.`;
+  document.getElementById('archive-new-agent').value = '';
+  document.getElementById('archive-from-month').value = '';
+
+  // Populate successor dropdown with all OTHER active agents
+  const sel = document.getElementById('archive-successor');
+  sel.innerHTML = '<option value="">— Select existing agent —</option>';
+  Object.entries(CONFIG.agents || {}).forEach(([name, cfg]) => {
+    if (name === agent) return;
+    if (cfg.archived) return;
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+
+  const modal = document.getElementById('archive-modal');
+  modal.style.display = 'flex';
+}
+
+function closeArchiveModal() {
+  document.getElementById('archive-modal').style.display = 'none';
+  _archiveTarget = null;
+}
+
+function confirmArchive() {
+  if (!_archiveTarget) return;
+
+  const existingSuccessor = document.getElementById('archive-successor').value.trim();
+  const newSuccessor      = document.getElementById('archive-new-agent').value.trim();
+  const fromMonth         = document.getElementById('archive-from-month').value.trim();
+
+  const successor = newSuccessor || existingSuccessor;
+
+  if (!successor) {
+    alert('Please select or enter a successor agent name.'); return;
+  }
+  if (!fromMonth || !/^[A-Za-z]{3}-\d{2}$/.test(fromMonth)) {
+    alert('Please enter a valid effective month (e.g. Apr-25)'); return;
+  }
+
+  // 1. Archive the old agent
+  if (!CONFIG.agents[_archiveTarget]) CONFIG.agents[_archiveTarget] = {};
+  CONFIG.agents[_archiveTarget].active   = false;
+  CONFIG.agents[_archiveTarget].archived = true;
+  CONFIG.agents[_archiveTarget].archived_from_month = fromMonth;
+
+  // 2. Set up successor (create if new)
+  if (!CONFIG.agents[successor]) {
+    // New agent — copy targets structure from archived agent as starting point
+    const old = CONFIG.agents[_archiveTarget] || {};
+    CONFIG.agents[successor] = {
+      active: true,
+      archived: false,
+      is_newbie: false,
+      sales_progression: JSON.parse(JSON.stringify(old.sales_progression || {})),
+      brand_commission:  JSON.parse(JSON.stringify(old.brand_commission  || {})),
+      kpi_targets:       JSON.parse(JSON.stringify(old.kpi_targets       || {})),
+      kpi_overrides:     {},
+    };
+  } else {
+    CONFIG.agents[successor].active   = true;
+    CONFIG.agents[successor].archived = false;
+  }
+  CONFIG.agents[successor].inherits_from     = _archiveTarget;
+  CONFIG.agents[successor].inherit_from_month = fromMonth;
+
+  closeArchiveModal();
+  renderAgentForms();
+  updateRawJSON();
+
+  // Toast
+  const t = document.createElement('div');
+  t.textContent = `✅ ${_archiveTarget} archived → ${successor} will inherit from ${fromMonth}`;
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#ffc800;color:#000;font-family:var(--mono);font-size:11px;padding:10px 20px;border-radius:20px;z-index:99999;font-weight:700;';
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 4000);
+}
+</script>
+
 </body>
 </html>

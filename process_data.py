@@ -2344,8 +2344,66 @@ def main():
     agents = agents_from_targets if agents_from_targets else agents_from_data
     agents = [a for a in agents if a]  # remove blanks
     # Filter out inactive agents (active=False in targets.json)
+    # Archived agents (archived=True) are also excluded from current view
     agents = [a for a in agents if targets.get("agents", {}).get(a, {}).get("active", True) != False]
+    agents = [a for a in agents if not targets.get("agents", {}).get(a, {}).get("archived", False)]
     log(f"Agents: {agents}")
+
+    # ── Agent Inheritance — merge archived predecessor's sales into successor ──
+    # For each active agent with inherits_from, inject predecessor rows into df
+    # so all calculations treat them as one combined agent.
+    # Rule: Split mode — A's invoices stay as A in AutoCount, B's as B.
+    #       We rename A's rows → B for months >= inherit_from_month.
+    agents_cfg = targets.get("agents", {})
+    inherit_map = {}  # predecessor → successor
+    for agent, cfg in agents_cfg.items():
+        pred = cfg.get("inherits_from")
+        from_month = cfg.get("inherit_from_month")
+        if pred and from_month:
+            inherit_map[pred] = {"successor": agent, "from_month": from_month}
+            log(f"  Inheritance: {pred} → {agent} from {from_month}")
+
+    if inherit_map:
+        # Build month sort key for comparison
+        MONTH_ORDER = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+        def month_key(m):
+            # e.g. "Mar-25" or "Mar 25"
+            parts = m.replace("-"," ").split()
+            if len(parts) == 2:
+                mon, yr = parts
+                try: return int(yr)*100 + MONTH_ORDER.index(mon[:3].capitalize())
+                except: return 0
+            return 0
+
+        rows_to_add = []
+        for pred, info in inherit_map.items():
+            successor   = info["successor"]
+            from_month  = info["from_month"]
+            from_key    = month_key(from_month)
+            # Find all rows belonging to predecessor from inherit_from_month onwards
+            pred_rows = df[df["agent"] == pred].copy()
+            # Determine each row's month from invoice_date or paid_on
+            for idx, row in pred_rows.iterrows():
+                row_month = str(row.get("inv_month", "") or row.get("cur_month", "") or "").strip()
+                if not row_month:
+                    # fallback: derive from invoice date
+                    inv_date = str(row.get("inv_date","")).strip()
+                    if inv_date and inv_date not in ("","nan"):
+                        try:
+                            from datetime import datetime as _dt
+                            d = _dt.strptime(inv_date[:10], "%Y-%m-%d")
+                            row_month = d.strftime("%b-%y")
+                        except: pass
+                if month_key(row_month) >= from_key:
+                    new_row = row.copy()
+                    new_row["agent"] = successor
+                    rows_to_add.append(new_row)
+
+        if rows_to_add:
+            import pandas as _pd
+            extra = _pd.DataFrame(rows_to_add)
+            df = _pd.concat([df, extra], ignore_index=True)
+            log(f"  Inheritance: added {len(rows_to_add)} rows to successors")
 
     # ── Run modules ─────────────────────────────────────────────────
     sales_prog  = calc_sales_progression(df, targets, agents, cur_month)
@@ -2405,6 +2463,7 @@ def main():
     }
 
     for agent in agents:
+        ag_cfg = targets.get("agents", {}).get(agent, {})
         output["agents"][agent] = {
             "sales_progression":  sales_prog.get(agent, {}),
             "brand_commission":   brand_comm.get(agent, {}),
@@ -2412,6 +2471,8 @@ def main():
             "aging":              aging.get(agent, {}),
             "debtor_cards":       debtor_cards.get(agent, {}),
             "kpi":                kpi.get(agent, {}),
+            "inherited_from":     ag_cfg.get("inherits_from", None),
+            "inherit_from_month": ag_cfg.get("inherit_from_month", None),
         }
 
     # ── Write JSON ──────────────────────────────────────────────────
