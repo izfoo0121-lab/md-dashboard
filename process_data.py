@@ -1057,13 +1057,14 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             # Debtor info
             info = debtor_info.get(dcode, {})
 
-            # New debtor (open date within 90 days)
+            # New debtor — opened in cur_month (e.g. "Mar 26")
             is_new = False
             open_date = info.get("open_date")
             if open_date and pd.notnull(open_date):
                 try:
                     od = pd.to_datetime(open_date)
-                    is_new = (datetime.now() - od).days <= 90
+                    od_label = od.strftime("%b %y")
+                    is_new = (od_label == cur_month)
                 except Exception:
                     pass
 
@@ -1187,26 +1188,28 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             and not d.get("is_new", False)
         )
 
-        # 持续光顾率 = debtors who bought this month ÷ total DM active debtors
+        # 持续光顾率 = debtors who bought this month ÷ total DM active debtors (excl. new this month)
         # Only count DM-sourced debtors (not TX-only) as the base
-        # Excludes Personal type
+        # Excludes Personal type and new accounts opened this month
         PERSONAL_TYPES = {"P-Personal", "P-PERSONAL", "personal", "Personal", "PERSONAL"}
         dm_active_debtors = [
             d for d in debtor_cards
             if d.get("type", "") not in PERSONAL_TYPES
             and d.get("debtor_type", "") not in PERSONAL_TYPES
             and debtor_info.get(d.get("debtor_code", ""), {}).get("dm_active", False)
+            and not d.get("is_new", False)  # exclude new accounts opened this month
         ]
         np_total  = len(dm_active_debtors)
         np_active = sum(1 for d in dm_active_debtors if (d.get("ctn_cur", 0) or 0) > 0)
         activation_rate = round(np_active / np_total * 100, 1) if np_total > 0 else 0
+        display_total = np_total  # DM active non-personal — matches Excel base
 
         # Agent total 新增SKU this month
         total_new_sku = sum(d["new_sku_count"] for d in debtor_cards)
 
         result[agent] = {
             "debtors":            debtor_cards,
-            "total_debtors":      total,
+            "total_debtors":      display_total,
             "active_count":       active_count,
             "pending_count":      pending_count,
             "reactivation_count": reactiv_count,
