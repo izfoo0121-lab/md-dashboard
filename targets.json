@@ -305,7 +305,7 @@
       }
     },
     "JW": {
-      "is_newbie": true,
+      "is_newbie": false,
       "sales_progression": {
         "normal_t1": 778,
         "normal_t2": 1028,
@@ -2992,12 +2992,7 @@
         },
         "kpi_targets": {
           "vip_count": 12,
-          "reactivation": 19,
-          "new_accounts": 5,
-          "new_accounts_actual": 1,
-          "vip_count_actual": 0,
-          "event": 70,
-          "event_actual": 4
+          "reactivation": 19
         },
         "kpi_overrides": {
           "vip_count": 12,
@@ -3041,12 +3036,7 @@
         },
         "kpi_targets": {
           "vip_count": 5,
-          "reactivation": 6,
-          "new_accounts": 4,
-          "new_accounts_actual": 3,
-          "vip_count_actual": 4,
-          "event": 70,
-          "event_actual": 71
+          "reactivation": 6
         },
         "kpi_overrides": {
           "vip_count": 5,
@@ -3090,12 +3080,7 @@
         },
         "kpi_targets": {
           "vip_count": 12,
-          "reactivation": 20,
-          "new_accounts": 3,
-          "new_accounts_actual": 5,
-          "vip_count_actual": 5,
-          "event": 70,
-          "event_actual": 70
+          "reactivation": 20
         },
         "kpi_overrides": {
           "vip_count": 12,
@@ -3139,12 +3124,7 @@
         },
         "kpi_targets": {
           "vip_count": 3,
-          "reactivation": 5,
-          "new_accounts": 3,
-          "new_accounts_actual": 3,
-          "vip_count_actual": 2,
-          "event": 70,
-          "event_actual": 94
+          "reactivation": 5
         },
         "kpi_overrides": {
           "vip_count": 3,
@@ -3186,14 +3166,7 @@
             "ctn_target": 18
           }
         },
-        "kpi_targets": {
-          "new_accounts": 3,
-          "new_accounts_actual": 6,
-          "vip_count": 3,
-          "vip_count_actual": 2,
-          "event": 70,
-          "event_actual": 74
-        },
+        "kpi_targets": {},
         "kpi_overrides": {},
         "is_newbie": false,
         "active": true
@@ -3233,12 +3206,7 @@
         },
         "kpi_targets": {
           "vip_count": 7,
-          "reactivation": 10,
-          "new_accounts": 4,
-          "new_accounts_actual": 3,
-          "vip_count_actual": 1,
-          "event": 70,
-          "event_actual": 71
+          "reactivation": 10
         },
         "kpi_overrides": {
           "vip_count": 7,
@@ -3282,12 +3250,7 @@
         },
         "kpi_targets": {
           "vip_count": 6,
-          "reactivation": 16,
-          "new_accounts": 4,
-          "new_accounts_actual": 5,
-          "vip_count_actual": 5,
-          "event": 70,
-          "event_actual": 70
+          "reactivation": 16
         },
         "kpi_overrides": {
           "vip_count": 6,
@@ -3331,12 +3294,7 @@
         },
         "kpi_targets": {
           "vip_count": 9,
-          "reactivation": 16,
-          "new_accounts": 3,
-          "new_accounts_actual": 6,
-          "vip_count_actual": 2,
-          "event": 70,
-          "event_actual": 73
+          "reactivation": 16
         },
         "kpi_overrides": {
           "vip_count": 9,
@@ -3380,12 +3338,7 @@
         },
         "kpi_targets": {
           "vip_count": 14,
-          "reactivation": 24,
-          "new_accounts": 2,
-          "new_accounts_actual": 3,
-          "vip_count_actual": 3,
-          "event": 70,
-          "event_actual": 70
+          "reactivation": 24
         },
         "kpi_overrides": {
           "vip_count": 14,
@@ -3429,12 +3382,7 @@
         },
         "kpi_targets": {
           "vip_count": 11,
-          "reactivation": 16,
-          "new_accounts": 3,
-          "new_accounts_actual": 1,
-          "vip_count_actual": 1,
-          "event": 70,
-          "event_actual": 70
+          "reactivation": 16
         },
         "kpi_overrides": {
           "vip_count": 11,
@@ -3478,12 +3426,7 @@
         },
         "kpi_targets": {
           "vip_count": 2,
-          "reactivation": 2,
-          "new_accounts": 4,
-          "new_accounts_actual": 3,
-          "vip_count_actual": 3,
-          "event": 70,
-          "event_actual": 79
+          "reactivation": 2
         },
         "kpi_overrides": {
           "vip_count": 2,
@@ -3527,12 +3470,7 @@
         },
         "kpi_targets": {
           "vip_count": 8,
-          "reactivation": 13,
-          "new_accounts": 2,
-          "new_accounts_actual": 3,
-          "vip_count_actual": 2,
-          "event": 70,
-          "event_actual": 27
+          "reactivation": 13
         },
         "kpi_overrides": {
           "vip_count": 8,
@@ -3576,12 +3514,7 @@
         },
         "kpi_targets": {
           "vip_count": 21,
-          "reactivation": 28,
-          "new_accounts": 2,
-          "new_accounts_actual": 0,
-          "vip_count_actual": 0,
-          "event": 70,
-          "event_actual": 72
+          "reactivation": 28
         },
         "kpi_overrides": {
           "vip_count": 21,
