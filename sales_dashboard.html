@@ -342,10 +342,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 
     <!-- Numpad -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
-      ${[1,2,3,4,5,6,7,8,9,'','0','⌫'].map(k =>
-        k === '' ? '<div></div>' :
-        `<button class="pin-btn" onclick="pinPress('${k}')">${k}</button>`
-      ).join('')}
+      <button class="pin-btn" onclick="pinPress('1')">1</button>
+      <button class="pin-btn" onclick="pinPress('2')">2</button>
+      <button class="pin-btn" onclick="pinPress('3')">3</button>
+      <button class="pin-btn" onclick="pinPress('4')">4</button>
+      <button class="pin-btn" onclick="pinPress('5')">5</button>
+      <button class="pin-btn" onclick="pinPress('6')">6</button>
+      <button class="pin-btn" onclick="pinPress('7')">7</button>
+      <button class="pin-btn" onclick="pinPress('8')">8</button>
+      <button class="pin-btn" onclick="pinPress('9')">9</button>
+      <div></div>
+      <button class="pin-btn" onclick="pinPress('0')">0</button>
+      <button class="pin-btn" onclick="pinPress('⌫')">⌫</button>
     </div>
   </div>
 </div>
