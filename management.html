@@ -843,26 +843,28 @@ function renderMonthlySummary() {
   document.getElementById('monthly-month-label').textContent =
     `${D.current_month || ''} · Day ${D.working_days?.elapsed_working_days||'?'} of ${D.working_days?.total_working_days||'?'}`;
 
-  // Column groups: Sales | Debtor Health | KPI Metrics | Performance
-  const cols = '66px 100px 50px 90px 50px 90px 50px 70px 55px 55px 60px 60px 60px 55px 55px';
+  // Columns: Sales | Debtor | KPI
+  const cols = '62px 100px 48px 90px 90px 72px 60px 50px 58px 58px 58px 58px 60px 52px';
   const hdrs = [
     'AGENT',
     'T1 ACT/TGT','T1%',
-    'GA ACT/TGT','GA%',
-    'MA ACT/TGT','MA%',
+    'GA ACT/TGT',
+    'MA ACT/TGT',
     '光顾率/TGT',
     '激活/TGT','待激活',
     '新增户口','新增VIP','新增SKU',
-    '交易','KPI'
+    '生日礼物','Event',
+    'KPI'
   ];
   const hdrColors = ['',
     'var(--accent)','var(--accent)',
-    '#4da6ff','#4da6ff',
-    'var(--purple)','var(--purple)',
+    '#4da6ff',
+    'var(--purple)',
     'var(--blue)',
     'var(--green)','var(--orange)',
     '#2dd4bf','var(--gold)','var(--purple)',
-    'var(--ink3)','var(--gold)'
+    'var(--pink,#f472b6)','var(--purple)',
+    'var(--gold)'
   ];
 
   let html = `<div style="min-width:800px;">
@@ -890,37 +892,36 @@ function renderMonthlySummary() {
     const kt  = dc.kpi_targets || {};
     const bg  = idx%2===0 ? '' : 'background:rgba(255,255,255,.02);';
 
-    const t1Act = sp.normal_ctn || 0;
-    const t1Tgt = sp.tiers?.normal_t1?.target || 0;
-    const t1Pct = sp.tiers?.normal_t1?.pct || 0;
-    const gaAct = sp.ga_ctn || 0;
-    const gaTgt = sp.tiers?.ga?.target || 0;
-    const gaPct = sp.tiers?.ga?.pct || 0;
-    const maAct = sp.ma_ctn || 0;
-    const maTgt = sp.tiers?.ma?.target || 0;
-    const maPct = sp.tiers?.ma?.pct || 0;
-    const rate     = dc.activation_rate || 0;
-    const rateTgt  = kt.activation_rate || 80;
-    const actv     = dc.active_count || 0;
-    const actvTgt  = kt.reactivation || null;
-    const pend     = dc.reactivation_count || 0;
-    const newAcc   = dc.new_accounts_count || 0;
-    const newVip   = dc.new_vip_count || 0;
-    const newSku   = dc.total_new_sku || 0;
-    const txn      = sp.txn_count || 0;
+    const t1Act  = sp.normal_ctn || 0;
+    const t1Tgt  = sp.tiers?.normal_t1?.target || 0;
+    const t1Pct  = sp.tiers?.normal_t1?.pct || 0;
+    const gaAct  = sp.ga_ctn || 0;
+    const gaTgt  = sp.tiers?.ga?.target || 0;
+    const maAct  = sp.ma_ctn || 0;
+    const maTgt  = sp.tiers?.ma?.target || 0;
+    const rate    = dc.activation_rate || 0;
+    const rateTgt = kt.activation_rate || 80;
+    const actv    = dc.active_count || 0;
+    const actvTgt = kt.reactivation || null;
+    const pend    = dc.reactivation_count || 0;
+    const newAcc  = dc.new_accounts_count || 0;
+    const newVip  = dc.new_vip_count || 0;
+    const newSku  = dc.total_new_sku || 0;
+    const bdayTgt = D.birthday_campaign?.by_agent?.[agent] || 0;
+    const bdayAct = kpi.components?.birthday_campaign?.actual || 0;
+    const eventTgt = kt.event || 0;
+    const eventAct = kt.event_actual ?? null;
     const kpiScore = kpi.total_abc || 0;
 
     teamT1Act+=t1Act; teamT1Tgt+=t1Tgt; teamMAct+=maAct; teamMTgt+=maTgt;
-    teamAct+=actv; teamPend+=pend; teamNewAcc+=newAcc; teamNewVip+=newVip; teamNewSku+=newSku; teamTxn+=txn;
+    teamAct+=actv; teamPend+=pend; teamNewAcc+=newAcc; teamNewVip+=newVip; teamNewSku+=newSku;
 
     html += `<div style="display:grid;grid-template-columns:${cols};${bg}" onclick="openDrill('${agent}')" style="cursor:pointer;">
       <div style="font-family:var(--mono);font-size:11px;font-weight:600;padding:7px 8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);color:var(--blue);cursor:pointer;">${agent}</div>
       ${atCell(t1Act, t1Tgt, 'var(--accent)')}
       ${pctCell(t1Pct)}
-      ${gaTgt ? atCell(gaAct, gaTgt, '#4da6ff') : cell(fi(gaAct),'#4da6ff')}
-      ${gaTgt ? pctCell(gaPct) : cell('—')}
+      ${atCell(gaAct, gaTgt, '#4da6ff')}
       ${atCell(maAct, maTgt, 'var(--purple)')}
-      ${pctCell(maPct)}
       <div style="font-family:var(--mono);font-size:10px;padding:7px 5px;text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);">
         <span style="color:${pc(rate)};font-weight:600;">${rate}%</span><span style="color:rgba(255,255,255,.25);font-size:8px;">/${rateTgt}%</span>
         <div style="height:3px;background:var(--border);border-radius:2px;margin-top:3px;"><div style="height:100%;width:${Math.min(rate,100)}%;background:${bc(rate)};border-radius:2px;"></div></div>
@@ -930,7 +931,8 @@ function renderMonthlySummary() {
       ${atCell(newAcc, kt.new_accounts, '#2dd4bf')}
       ${atCell(newVip, kt.vip_count, 'var(--gold)')}
       ${atCell(newSku, kt.new_sku||17, 'var(--purple)')}
-      ${cell(txn)}
+      ${bdayTgt ? atCell(bdayAct, bdayTgt, '#f472b6') : cell(bdayAct||'—', '#f472b6')}
+      ${eventTgt ? atCell(eventAct??0, eventTgt, 'var(--purple)') : cell(eventAct!==null?eventAct:'—')}
       ${cell(kpiScore.toFixed(1), `color:${pc(kpiScore/61*100)}`)}
     </div>`;
   });
@@ -943,16 +945,15 @@ function renderMonthlySummary() {
     ${atCell(teamT1Act, teamT1Tgt, 'var(--accent)')}
     ${pctCell(teamT1Pct)}
     ${cell(fi(teamMAct), '#4da6ff')}
-    ${cell('—')}
     ${atCell(teamMAct, teamMTgt, 'var(--purple)')}
-    ${pctCell(teamMPct)}
     ${cell('—')}
     ${cell(teamAct, 'var(--green)')}
     ${cell(teamPend, 'var(--orange)')}
     ${cell(teamNewAcc, '#2dd4bf')}
     ${cell(teamNewVip, 'var(--gold)')}
     ${cell(teamNewSku, 'var(--purple)')}
-    ${cell(teamTxn)}
+    ${cell('—')}
+    ${cell('—')}
     ${cell('—')}
   </div>`;
 
