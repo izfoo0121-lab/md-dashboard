@@ -240,9 +240,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
       <div id="pending-actions-list"></div>
     </div>
 
-    <!-- 0b. Birthday Gift Audit -->
+    <!-- 0b. Birthday Gift Summary -->
     <div id="bday-audit-section" style="display:none;">
-      <div class="sec-lbl no-border" style="color:var(--purple);">🎂 Birthday Gift — Audit Required</div>
+      <div class="sec-lbl no-border" style="color:#f472b6;">🎂 Birthday Gifts — This Month</div>
       <div id="bday-audit-list"></div>
     </div>
 
@@ -1059,60 +1059,120 @@ function saveFlags(f) {
   try { localStorage.setItem(FLAGS_KEY, JSON.stringify(f)); } catch(e) {}
 }
 function renderBdayAudit() {
-  const el = document.getElementById('bday-audit-list');
+  const el  = document.getElementById('bday-audit-list');
   const sec = document.getElementById('bday-audit-section');
   if (!el || !CURRENT_DATA) return;
 
-  const bdayCamp = CURRENT_DATA.birthday_campaign || {};
+  const D        = CURRENT_DATA;
+  const bdayCamp = D.birthday_campaign || {};
+  const debtors  = bdayCamp.debtors || [];
   const byAgent  = bdayCamp.by_agent || {};
-  const agents   = CURRENT_DATA.agents || {};
+  const agents   = D.agents || {};
 
-  // Find agents who have birthday targets this month
-  const rows = Object.entries(byAgent).filter(([,cnt]) => cnt > 0);
-
-  if (!rows.length) { sec.style.display = 'none'; return; }
+  if (!debtors.length) { sec.style.display = 'none'; return; }
   sec.style.display = 'block';
 
-  el.innerHTML = rows.map(([agent, target]) => {
-    const kpi    = agents[agent]?.kpi?.items?.birthday_campaign || {};
-    const actual = kpi.actual ?? null;
-    const done   = actual !== null;
-    const pct    = target > 0 && actual !== null ? Math.min(actual/target*100, 100) : 0;
-    const col    = pct >= 100 ? '#2a7a4b' : pct >= 60 ? '#c8860a' : '#c8381a';
+  // Load claims from GistSync/localStorage
+  const month = D.current_month || '';
+  const slug  = month.replace(' ','').toLowerCase();
+  let claims  = {};
+  try {
+    const raw = localStorage.getItem('claims_' + slug);
+    claims = raw ? JSON.parse(raw) : {};
+  } catch(e) {}
 
-    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;border-left:4px solid ${done?col:'rgba(255,255,255,.15)'};">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <div>
-          <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;">${agent}</div>
-          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">
-            Target: ${target} debtors &nbsp;·&nbsp;
-            ${done
-              ? `Self-reported: <span style="color:${col};font-weight:600;">${actual}</span>`
-              : `<span style="color:#c8381a;">Not yet reported</span>`}
+  // Group debtors by agent
+  const grouped = {};
+  debtors.forEach(d => {
+    if (!grouped[d.agent]) grouped[d.agent] = [];
+    grouped[d.agent].push(d);
+  });
+
+  // Team totals
+  const total     = debtors.length;
+  const totalClaimed = debtors.filter(d => {
+    const claimKey = `birthday_gift_${d.agent}_${d.code}`;
+    const claim = claims[claimKey];
+    return claim && claim.status && claim.status !== 'pending_remove';
+  }).length;
+
+  el.innerHTML = `
+    <!-- Team summary bar -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <div>
+        <div style="font-family:var(--display);font-size:20px;letter-spacing:.05em;">Team Total: ${total} Gifts</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:2px;">${month} · ${totalClaimed} claimed · ${total - totalClaimed} pending</div>
+      </div>
+      <div style="display:flex;gap:16px;">
+        <div style="text-align:center;">
+          <div style="font-family:var(--display);font-size:24px;color:var(--green);">${totalClaimed}</div>
+          <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);text-transform:uppercase;">Claimed</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:var(--display);font-size:24px;color:var(--orange);">${total - totalClaimed}</div>
+          <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);text-transform:uppercase;">Pending</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Per agent breakdown -->
+    ${Object.entries(grouped).map(([agent, dList]) => {
+      const agentClaimed = dList.filter(d => {
+        const ck = \`birthday_gift_\${agent}_\${d.code}\`;
+        const c = claims[ck];
+        return c && c.status && c.status !== 'pending_remove';
+      }).length;
+      const pct = Math.round(agentClaimed / dList.length * 100);
+      const col = pct === 100 ? 'var(--green)' : pct >= 50 ? 'var(--orange)' : 'var(--accent)';
+
+      return \`<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;overflow:hidden;">
+        <!-- Agent header -->
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;"
+          onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="font-family:var(--display);font-size:16px;letter-spacing:.05em;color:var(--blue);">\${agent}</div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">\${dList.length} gifts · \${agentClaimed} claimed</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:\${col};">\${agentClaimed}/\${dList.length}</div>
+            <div style="width:60px;height:4px;background:var(--border);border-radius:2px;">
+              <div style="height:100%;width:\${pct}%;background:\${col};border-radius:2px;"></div>
+            </div>
+            <span style="font-family:var(--mono);font-size:9px;color:var(--ink3);">▼</span>
           </div>
         </div>
-        <div style="text-align:right;">
-          ${done
-            ? `<div style="font-family:var(--display);font-size:22px;color:${col}">${pct.toFixed(0)}%</div>`
-            : `<span style="font-family:var(--mono);font-size:9px;color:#c8381a;">Pending</span>`}
+        <!-- Debtor list (collapsed by default) -->
+        <div style="display:none;padding:8px 14px;">
+          <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px;">
+            <tr style="color:var(--ink3);border-bottom:1px solid var(--border);">
+              <th style="text-align:left;padding:4px 6px;">Debtor</th>
+              <th style="text-align:left;padding:4px 6px;">Phone</th>
+              <th style="text-align:center;padding:4px 6px;">Status</th>
+              <th style="text-align:left;padding:4px 6px;">Note</th>
+            </tr>
+            \${dList.map(d => {
+              const ck = \`birthday_gift_\${agent}_\${d.code}\`;
+              const claim = claims[ck];
+              const sent  = claim && claim.status && claim.status !== 'pending_remove';
+              const note  = claim?.note || '—';
+              return \`<tr style="border-bottom:1px solid rgba(255,255,255,.05);">
+                <td style="padding:5px 6px;color:var(--ink);">\${d.name || d.code}</td>
+                <td style="padding:5px 6px;color:var(--ink3);">\${d.phone||'—'}</td>
+                <td style="padding:5px 6px;text-align:center;">
+                  <span style="font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:4px;
+                    background:\${sent?'rgba(42,122,75,.2)':'rgba(200,56,26,.1)'};
+                    color:\${sent?'var(--green)':'var(--accent)'};">
+                    \${sent ? '✓ Claimed' : 'Pending'}
+                  </span>
+                </td>
+                <td style="padding:5px 6px;color:var(--ink3);">\${note}</td>
+              </tr>\`;
+            }).join('')}
+          </table>
         </div>
-      </div>
-      ${done ? `
-      <div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;margin-bottom:8px;">
-        <div style="height:100%;width:${pct}%;background:${col};border-radius:2px;"></div>
-      </div>` : ''}
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button onclick="auditBday('${agent}','approve')"
-          style="background:rgba(42,122,75,.2);border:1px solid rgba(42,122,75,.4);color:#2a7a4b;font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;">
-          ✓ Approve
-        </button>
-        <button onclick="auditBday('${agent}','adjust')"
-          style="background:rgba(200,134,10,.15);border:1px solid rgba(200,134,10,.4);color:#c8860a;font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;">
-          ✏ Adjust
-        </button>
-      </div>
-    </div>`;
-  }).join('');
+      </div>\`;
+    }).join('')}
+  `;
 }
 
 function auditBday(agent, action) {
