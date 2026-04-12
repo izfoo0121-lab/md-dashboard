@@ -3242,6 +3242,8 @@ function renderMonthlyTargets() {
     const def    = CONFIG.agents[agent] || {};
     const defSp  = def.sales_progression || {};
     const defBc  = def.brand_commission  || {};
+    const defKpi = def.kpi_targets || {};
+    const kpi    = d.kpi_targets || {};
 
     const brandRows = BRANDS.map(b => {
       const bval    = bc[b] || {};
