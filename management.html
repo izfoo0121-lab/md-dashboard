@@ -750,6 +750,7 @@ function renderOverview() {
   renderNewbieProgress();
   renderAgingOverview();
   renderMonthlySummary();
+  renderCampaignsMgmt();
 }
 
 // ── Annual YTD Progress ────────────────────────────────────────────────────
@@ -1511,6 +1512,153 @@ function renderNewbieProgress(){
       </div>
     </div>`;
   }).join('');}
+
+// ── Campaign Progress ──────────────────────────────────────────────────────
+function renderCampaignsMgmt() {
+  const D = CURRENT_DATA || DATA;
+  const sec = document.getElementById('campaigns-mgmt-section');
+  const el  = document.getElementById('campaigns-mgmt-list');
+  if (!sec || !el || !D) return;
+
+  const month = D.current_month || '';
+  const slug  = month.replace(' ','').toLowerCase();
+  const agents = Object.keys(D.agents || {});
+
+  // Build campaign summary from debtor cards
+  const campSummary = {};
+  agents.forEach(function(agent) {
+    const debtors = D.agents[agent]?.debtor_cards?.debtors || [];
+    debtors.forEach(function(d) {
+      (d.campaigns || []).forEach(function(c) {
+        if (!campSummary[c.id]) campSummary[c.id] = { name: c.name, type: c.type, agents: {} };
+        if (!campSummary[c.id].agents[agent]) campSummary[c.id].agents[agent] = { total: 0, claimed: 0 };
+        campSummary[c.id].agents[agent].total++;
+      });
+    });
+  });
+
+  // Add birthday_gift as a campaign
+  const bdayCamp = D.birthday_campaign || {};
+  const bdayByAgent = bdayCamp.by_agent || {};
+  if (Object.keys(bdayByAgent).length) {
+    campSummary['birthday_gift'] = { name: '🎂 Birthday Gift', type: 'birthday_gift', agents: {} };
+    Object.entries(bdayByAgent).forEach(function(e) {
+      campSummary['birthday_gift'].agents[e[0]] = { total: e[1], claimed: 0 };
+    });
+  }
+
+  // Load claims from localStorage
+  const allClaims = {};
+  try {
+    // GistSync format: claims_{slug} object
+    const raw = localStorage.getItem('claims_' + slug);
+    if (raw) {
+      const claims = JSON.parse(raw);
+      Object.entries(claims).forEach(function(e) {
+        const key = e[0]; const val = e[1];
+        if (!val || !val.status || val.status === 'pending_remove') return;
+        // key: {campType}_{agent}_{debtorCode} or camp_claim_{slug}_{agent}_{campId}_{debtorCode}
+        allClaims[key] = val;
+      });
+    }
+    // Also check localStorage camp_claim_ keys
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k && k.startsWith('camp_claim_' + slug + '_')) {
+        var v = JSON.parse(localStorage.getItem(k) || '{}');
+        if (v && v.status && v.status !== 'pending_remove') {
+          allClaims[k] = v;
+        }
+      }
+    }
+  } catch(e) {}
+
+  // Count claims per campaign per agent
+  Object.entries(allClaims).forEach(function(e) {
+    const key = e[0];
+    // Match birthday_gift claims
+    if (key.startsWith('birthday_gift_')) {
+      const parts = key.split('_');
+      const agent = parts[2];
+      if (campSummary['birthday_gift'] && campSummary['birthday_gift'].agents[agent]) {
+        campSummary['birthday_gift'].agents[agent].claimed++;
+      }
+      return;
+    }
+    // Match camp_claim_{slug}_{agent}_{campId}_{debtorCode}
+    const prefix = 'camp_claim_' + slug + '_';
+    if (key.startsWith(prefix)) {
+      const rest = key.slice(prefix.length);
+      const agentEnd = rest.indexOf('_');
+      if (agentEnd < 0) return;
+      const agent = rest.slice(0, agentEnd);
+      const campDebt = rest.slice(agentEnd + 1);
+      // campDebt = {campId}_{debtorCode}, find matching camp
+      Object.keys(campSummary).forEach(function(campId) {
+        if (campDebt.startsWith(campId + '_') && campSummary[campId].agents[agent]) {
+          campSummary[campId].agents[agent].claimed++;
+        }
+      });
+    }
+  });
+
+  const camps = Object.entries(campSummary);
+  if (!camps.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+
+  const CAMP_COLORS = { foc_sample: '#4da6ff', free_sample: '#2dd4bf', promotion: '#f59e0b', birthday_gift: '#f472b6', festive_gift: '#a78bfa', other: '#94a3b8' };
+  const CAMP_LABELS = { foc_sample: 'FOC Sample', free_sample: 'Free Sample', promotion: 'Promotion', birthday_gift: 'Birthday Gift', festive_gift: 'Festive Gift', other: 'Other' };
+
+  var html = '';
+  camps.forEach(function(entry) {
+    var campId = entry[0]; var camp = entry[1];
+    var col = CAMP_COLORS[camp.type] || '#94a3b8';
+    var label = CAMP_LABELS[camp.type] || camp.type;
+    var teamTotal = 0; var teamClaimed = 0;
+    Object.values(camp.agents).forEach(function(a) { teamTotal += a.total; teamClaimed += a.claimed; });
+    var teamPct = teamTotal > 0 ? Math.round(teamClaimed / teamTotal * 100) : 0;
+
+    html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;">';
+    // Campaign header
+    html += '<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">';
+    html += '<div><div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;">' + camp.name + '</div>';
+    html += '<div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:2px;">' + label + ' · ' + month + '</div></div>';
+    html += '<div style="text-align:right;"><div style="font-family:var(--display);font-size:22px;color:' + (teamPct>=80?'var(--green)':teamPct>=50?'var(--orange)':'var(--accent)') + ';">' + teamClaimed + '/' + teamTotal + '</div>';
+    html += '<div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">' + teamPct + '% claimed</div></div></div>';
+
+    // Per agent table
+    html += '<div style="padding:8px 16px;">';
+    html += '<div style="display:grid;grid-template-columns:80px repeat(' + agents.length + ',1fr);gap:0;border-bottom:1px solid var(--border);margin-bottom:4px;">';
+    html += '<div style="font-family:var(--mono);font-size:8px;color:var(--ink3);padding:4px 0;"></div>';
+    agents.forEach(function(agent) {
+      html += '<div style="font-family:var(--mono);font-size:8px;color:var(--blue);text-align:center;padding:4px 2px;">' + agent + '</div>';
+    });
+    html += '</div>';
+    // Claimed row
+    html += '<div style="display:grid;grid-template-columns:80px repeat(' + agents.length + ',1fr);gap:0;margin-bottom:2px;">';
+    html += '<div style="font-family:var(--mono);font-size:8px;color:var(--ink3);padding:3px 0;">Claimed</div>';
+    agents.forEach(function(agent) {
+      var a = camp.agents[agent] || {total:0, claimed:0};
+      var pct = a.total > 0 ? a.claimed/a.total*100 : 0;
+      var c = pct>=100?'var(--green)':pct>=50?'var(--orange)':'var(--accent)';
+      html += '<div style="font-family:var(--mono);font-size:9px;text-align:center;color:' + (a.total?c:'var(--ink3)') + ';font-weight:600;">' + (a.total ? a.claimed+'/'+a.total : '—') + '</div>';
+    });
+    html += '</div>';
+    // Progress bars
+    html += '<div style="display:grid;grid-template-columns:80px repeat(' + agents.length + ',1fr);gap:0;">';
+    html += '<div></div>';
+    agents.forEach(function(agent) {
+      var a = camp.agents[agent] || {total:0, claimed:0};
+      var pct = a.total > 0 ? Math.min(a.claimed/a.total*100, 100) : 0;
+      var c = pct>=100?'var(--green)':pct>=50?'var(--orange)':'var(--accent)';
+      html += '<div style="padding:0 4px;"><div style="height:3px;background:var(--border);border-radius:2px;"><div style="height:100%;width:' + pct + '%;background:' + c + ';border-radius:2px;"></div></div></div>';
+    });
+    html += '</div></div></div>';
+  });
+
+  el.innerHTML = html;
+}
+
 
 // ── Aging Overview ──
 function renderAgingOverview(){
