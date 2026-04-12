@@ -1133,6 +1133,7 @@ function renderBdayAudit() {
 
   const D        = CURRENT_DATA;
   const bdayCamp = D.birthday_campaign || {};
+  // debtors may be stripped from slim monthly JSON - fall back to empty
   const debtors  = bdayCamp.debtors || [];
   const byAgent  = bdayCamp.by_agent || {};
 
