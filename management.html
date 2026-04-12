@@ -1118,14 +1118,14 @@ function renderBdayAudit() {
     <!-- Per agent breakdown -->
     ${Object.entries(grouped).map(([agent, dList]) => {
       const agentClaimed = dList.filter(d => {
-        const ck = \`birthday_gift_\${agent}_\${d.code}\`;
+        const ck = `birthday_gift_\${agent}_\${d.code}`;
         const c = claims[ck];
         return c && c.status && c.status !== 'pending_remove';
       }).length;
       const pct = Math.round(agentClaimed / dList.length * 100);
       const col = pct === 100 ? 'var(--green)' : pct >= 50 ? 'var(--orange)' : 'var(--accent)';
 
-      return \`<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;overflow:hidden;">
+      return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;overflow:hidden;">
         <!-- Agent header -->
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;"
           onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
@@ -1151,11 +1151,11 @@ function renderBdayAudit() {
               <th style="text-align:left;padding:4px 6px;">Note</th>
             </tr>
             \${dList.map(d => {
-              const ck = \`birthday_gift_\${agent}_\${d.code}\`;
+              const ck = `birthday_gift_\${agent}_\${d.code}`;
               const claim = claims[ck];
               const sent  = claim && claim.status && claim.status !== 'pending_remove';
               const note  = claim?.note || '—';
-              return \`<tr style="border-bottom:1px solid rgba(255,255,255,.05);">
+              return `<tr style="border-bottom:1px solid rgba(255,255,255,.05);">
                 <td style="padding:5px 6px;color:var(--ink);">\${d.name || d.code}</td>
                 <td style="padding:5px 6px;color:var(--ink3);">\${d.phone||'—'}</td>
                 <td style="padding:5px 6px;text-align:center;">
@@ -1166,11 +1166,11 @@ function renderBdayAudit() {
                   </span>
                 </td>
                 <td style="padding:5px 6px;color:var(--ink3);">\${note}</td>
-              </tr>\`;
+              </tr>`;
             }).join('')}
           </table>
         </div>
-      </div>\`;
+      </div>`;
     }).join('')}
   `;
 }
