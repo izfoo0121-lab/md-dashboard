@@ -3309,6 +3309,25 @@ function renderMonthlyTargets() {
           <input type="number" min="0" placeholder="0" value="${kpi.event_actual??''}"
             onchange="mtSet('${month}','${agent}','kpi',null,'event_actual',this.value)"></div>
       </div>
+
+      ${CONFIG.agents[agent]?.is_newbie ? (() => {
+        const defTiers = CONFIG.agents[agent]?.newbie_tiers || [{threshold:1000,reward:1200},{threshold:1342,reward:1800},{threshold:1592,reward:2400}];
+        const mtTiers = kpi.newbie_tiers || [];
+        const tileHtml = [0,1,2].map(ti => {
+          const dT = defTiers[ti]||{}; const mT = mtTiers[ti]||{};
+          return `<div style="background:var(--bg);border-radius:8px;padding:8px;">
+            <div style="font-family:var(--mono);font-size:8px;color:#c8381a;margin-bottom:4px;">Tier ${ti+1}</div>
+            <div class="field-wrap"><div class="field-lbl">CTN (def:${dT.threshold||0})</div>
+              <input type="number" min="0" placeholder="${dT.threshold||''}" value="${mT.threshold??''}"
+                onchange="mtSetNBTier('${month}','${agent}',${ti},'threshold',this.value)"></div>
+            <div class="field-wrap" style="margin-top:4px;"><div class="field-lbl">RM (def:${dT.reward||0})</div>
+              <input type="number" min="0" placeholder="${dT.reward||''}" value="${mT.reward??''}"
+                onchange="mtSetNBTier('${month}','${agent}',${ti},'reward',this.value)"></div>
+          </div>`;
+        }).join('');
+        return `<div style="font-family:var(--mono);font-size:8px;color:#c8381a;text-transform:uppercase;padding:6px 0 4px;border-top:1px solid var(--border);margin-top:8px;">🎓 Newbie Tiers Override</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px;">${tileHtml}</div>`;
+      })() : ''}
     </div>`;
   }).join('');
 }
