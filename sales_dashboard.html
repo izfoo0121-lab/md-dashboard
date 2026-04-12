@@ -3438,6 +3438,22 @@ const GistSync = (() => {
     const claims = data[`claims_${slug}`] || {};
     Object.entries(claims).forEach(([key, val]) => {
       localStorage.setItem(`camp_claim_${slug}_${key}`, JSON.stringify(val));
+      // Also sync birthday_gift claims to bday_gift_ key so debtor card updates
+      if (key.startsWith('birthday_gift_') && val && val.status && val.status !== 'pending_remove') {
+        // key format: birthday_gift_{agent}_{debtorCode}
+        const parts = key.split('_');
+        // parts: ['birthday','gift',agent,...debtorCode parts]
+        const agent = parts[2];
+        const debtorCode = parts.slice(3).join('_');
+        const bdayKey = `bday_gift_${agent}_${debtorCode}_${slug}`;
+        localStorage.setItem(bdayKey, '1');
+      } else if (key.startsWith('birthday_gift_') && val && val.status === 'pending_remove') {
+        const parts = key.split('_');
+        const agent = parts[2];
+        const debtorCode = parts.slice(3).join('_');
+        const bdayKey = `bday_gift_${agent}_${debtorCode}_${slug}`;
+        localStorage.removeItem(bdayKey);
+      }
     });
 
     // Flags → localStorage
