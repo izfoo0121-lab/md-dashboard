@@ -558,7 +558,7 @@ def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_con
 
 # ── Module 3: Newbie Scheme ───────────────────────────────────────────────────
 
-def calc_newbie_scheme(df, targets, agents, cur_month):
+def calc_newbie_scheme(df, targets, agents, cur_month, debtor_df=None):
     """
     For agents flagged as newbie:
       - CTN tiers: per-agent thresholds and rewards (from agent.newbie_tiers)
@@ -593,8 +593,10 @@ def calc_newbie_scheme(df, targets, agents, cur_month):
         if not ag_info.get("is_newbie", False):
             continue  # Skip non-newbie agents
 
-        # Per-agent CTN tiers (falls back to global default if not set)
-        ctn_tiers = ag_info.get("newbie_tiers", DEFAULT_CTN_TIERS)
+        # Per-agent CTN tiers — check monthly override first, then agent default
+        mt_agent_nb = get_monthly_targets(targets, cur_month).get(agent, {})
+        mt_nb_tiers = mt_agent_nb.get("kpi_targets", {}).get("newbie_tiers", None)
+        ctn_tiers = mt_nb_tiers or ag_info.get("newbie_tiers", DEFAULT_CTN_TIERS)
         if not ctn_tiers:
             ctn_tiers = DEFAULT_CTN_TIERS
 
@@ -612,13 +614,24 @@ def calc_newbie_scheme(df, targets, agents, cur_month):
                 ctn_tier_hit = tier["threshold"]
                 ctn_reward   = tier["reward"]
 
-        # New accounts this month vs all previous
-        cur_debtors  = set(df[
-            (df["agent"] == agent) & (df["paid_on"] == cur_month)
-        ]["debtor_code"].unique())
-        prev_debtors = set(all_prev[all_prev["agent"] == agent]["debtor_code"].unique())
-        new_accounts = cur_debtors - prev_debtors
-        new_acc_count = len(new_accounts)
+        # New accounts = debtors with Open Acct Date in cur_month
+        new_acc_count = 0
+        if debtor_df is not None and not debtor_df.empty:
+            cols = list(debtor_df.columns)
+            CODE_COL2 = next((c for c in cols if c.strip() in ('Code','Debtor Code')), cols[0])
+            OPEN_COL2 = next((c for c in cols if 'Open Acct' in c or c == 'Open'), None)
+            AGENT_COL2 = next((c for c in cols if c.strip() == 'Agent'), None)
+            if OPEN_COL2 and AGENT_COL2:
+                ag_dm = debtor_df[debtor_df[AGENT_COL2].fillna('').str.strip().str.upper() == agent.upper()]
+                for _, row in ag_dm.iterrows():
+                    open_date = row.get(OPEN_COL2)
+                    if open_date and pd.notnull(open_date):
+                        try:
+                            od = pd.to_datetime(open_date)
+                            if od.strftime("%b %y") == cur_month:
+                                new_acc_count += 1
+                        except Exception:
+                            pass
 
         # Account bonus tier (global)
         acc_tier_hit = None
@@ -1286,6 +1299,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, targets=None, campaign_m
             "new_accounts_actual": mt_kpi.get("new_accounts_actual", None),
             "vip_count_actual":    mt_kpi.get("vip_count_actual",    None),
             "event_actual":        mt_kpi.get("event_actual",        None),
+            "birthday_actual":     mt_kpi.get("birthday_actual",     None),
         }
 
         result[agent] = {
@@ -2543,7 +2557,7 @@ def main(override_month=None, fast=False):
 
     # ── Auto-calculate penetration targets from non-buyer counts ─────────────
     targets = save_penetration_snapshot(brand_comm, targets, cur_month)
-    newbie      = calc_newbie_scheme(df, targets, agents, cur_month)
+    newbie      = calc_newbie_scheme(df, targets, agents, cur_month, debtor_df)
     aging       = calc_aging(df, agents, cur_month)
 
     # ── Debtor cards — skip if --fast and cached JSON exists ────────
