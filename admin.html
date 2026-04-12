@@ -1391,20 +1391,19 @@ function renderAgentForms() {
         </div>
         ${(overrides.vip_count||overrides.reactivation||overrides.new_sku)?
           `<button onclick="clearKPIOverrides('${agent}')" style="background:none;border:1px solid var(--border);color:var(--ink3);font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;margin-top:4px;">↺ Reset to auto-calculate</button>`:''}
-      `;
-
       ${a.is_newbie ? `
-      <div class='sec-divider' style='color:#c8381a;'>🎓 Newbie CTN Tiers (Default)</div>
-      <div style='display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;'>
-        ${(a.newbie_tiers || [{threshold:1000,reward:1200},{threshold:1342,reward:1800},{threshold:1592,reward:2400}]).slice(0,3).map((t,i) => `
-        <div style='background:var(--bg);border-radius:8px;padding:10px;'>
-          <div style='font-family:var(--mono);font-size:8px;color:#c8381a;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;'>Tier ${i+1}</div>
-          <div class='field-wrap'><div class='field-lbl'>CTN Target</div>
-            <input type='number' min='0' value='${t.threshold||''}' onchange='setAgentNBTier("${agent}",${i},"threshold",this.value)'></div>
-          <div class='field-wrap' style='margin-top:4px;'><div class='field-lbl'>Reward (RM)</div>
-            <input type='number' min='0' value='${t.reward||''}' onchange='setAgentNBTier("${agent}",${i},"reward",this.value)'></div>
+      <div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.06em;color:#c8381a;padding:6px 0 4px;border-top:1px solid var(--border);margin-top:8px;">🎓 Newbie CTN Tiers (Default)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px;">
+      ${(a.newbie_tiers||[{threshold:1000,reward:1200},{threshold:1342,reward:1800},{threshold:1592,reward:2400}]).slice(0,3).map((t,ti) =>
+        `<div style="background:var(--bg);border-radius:8px;padding:8px;">
+          <div style="font-family:var(--mono);font-size:8px;color:#c8381a;margin-bottom:4px;">Tier ${ti+1}</div>
+          <div class="field-wrap"><div class="field-lbl">CTN</div>
+            <input type="number" min="0" value="${t.threshold||''}" onchange="setAgentNBTier('${agent}',${ti},'threshold',this.value)"></div>
+          <div class="field-wrap" style="margin-top:4px;"><div class="field-lbl">RM</div>
+            <input type="number" min="0" value="${t.reward||''}" onchange="setAgentNBTier('${agent}',${ti},'reward',this.value)"></div>
         </div>`).join('')}
       </div>` : ''}
+      `;
       })()}
     </div>`;
   }).join('');
@@ -3281,23 +3280,25 @@ function renderMonthlyTargets() {
             onchange="mtSet('${month}','${agent}','kpi',null,'event_actual',this.value)">
         </div>
 
-      ${CONFIG.agents[agent]?.is_newbie ? `
-      <div class='sec-divider' style='color:#c8381a;'>🎓 Newbie CTN Tiers (Monthly Override)</div>
-      <div style='display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;'>
-        ${[0,1,2].map(i => {
-          const defT=(CONFIG.agents[agent]?.newbie_tiers||[{threshold:1000,reward:1200},{threshold:1342,reward:1800},{threshold:1592,reward:2400}])[i]||{};
-          const mt_t=(kpi.newbie_tiers||[])[i]||{};
-          return `<div style='background:var(--bg);border-radius:8px;padding:10px;'>
-            <div style='font-family:var(--mono);font-size:8px;color:#c8381a;text-transform:uppercase;margin-bottom:6px;'>Tier ${i+1}</div>
-            <div class='field-wrap'><div class='field-lbl'>CTN Target</div>
-              <input type='number' min='0' placeholder='${defT.threshold||0}' value='${mt_t.threshold??''}'
-                onchange='mtSetNBTier("${month}","${agent}",${i},"threshold",this.value)'></div>
-            <div class='field-wrap' style='margin-top:4px;'><div class='field-lbl'>Reward (RM)</div>
-              <input type='number' min='0' placeholder='${defT.reward||0}' value='${mt_t.reward??''}'
-                onchange='mtSetNBTier("${month}","${agent}",${i},"reward",this.value)'></div>
+      ${CONFIG.agents[agent]?.is_newbie ? (() => {
+        const defTiers = CONFIG.agents[agent]?.newbie_tiers || [{threshold:1000,reward:1200},{threshold:1342,reward:1800},{threshold:1592,reward:2400}];
+        const mtTiers = kpi.newbie_tiers || [];
+        return `<div style="font-family:var(--mono);font-size:8px;color:#c8381a;text-transform:uppercase;padding:6px 0 4px;border-top:1px solid var(--border);margin-top:8px;">🎓 Newbie CTN Tiers (Monthly Override)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px;">
+        ${[0,1,2].map(ti => {
+          const dT = defTiers[ti]||{}; const mT = mtTiers[ti]||{};
+          return `<div style="background:var(--bg);border-radius:8px;padding:8px;">
+            <div style="font-family:var(--mono);font-size:8px;color:#c8381a;margin-bottom:4px;">Tier ${ti+1}</div>
+            <div class="field-wrap"><div class="field-lbl">CTN</div>
+              <input type="number" min="0" placeholder="${dT.threshold||''}" value="${mT.threshold??''}"
+                onchange="mtSetNBTier('${month}','${agent}',${ti},'threshold',this.value)"></div>
+            <div class="field-wrap" style="margin-top:4px;"><div class="field-lbl">RM</div>
+              <input type="number" min="0" placeholder="${dT.reward||''}" value="${mT.reward??''}"
+                onchange="mtSetNBTier('${month}','${agent}',${ti},'reward',this.value)"></div>
           </div>`;
         }).join('')}
-      </div>` : ''}
+        </div>`;
+      })() : ''}
       </div>
     </div>`;
   }).join('');
@@ -3402,3 +3403,4 @@ function showToast(msg) {
 </script>
 </body>
 </html>
+ 
