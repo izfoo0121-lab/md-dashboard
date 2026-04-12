@@ -342,18 +342,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 
     <!-- Numpad -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
-      <button class="pin-btn" onclick="pinPress('1')">1</button>
-      <button class="pin-btn" onclick="pinPress('2')">2</button>
-      <button class="pin-btn" onclick="pinPress('3')">3</button>
-      <button class="pin-btn" onclick="pinPress('4')">4</button>
-      <button class="pin-btn" onclick="pinPress('5')">5</button>
-      <button class="pin-btn" onclick="pinPress('6')">6</button>
-      <button class="pin-btn" onclick="pinPress('7')">7</button>
-      <button class="pin-btn" onclick="pinPress('8')">8</button>
-      <button class="pin-btn" onclick="pinPress('9')">9</button>
-      <div></div>
-      <button class="pin-btn" onclick="pinPress('0')">0</button>
-      <button class="pin-btn" onclick="pinPress('⌫')">⌫</button>
+      ${[1,2,3,4,5,6,7,8,9,'','0','⌫'].map(k =>
+        k === '' ? '<div></div>' :
+        `<button class="pin-btn" onclick="pinPress('${k}')">${k}</button>`
+      ).join('')}
     </div>
   </div>
 </div>
@@ -820,8 +812,6 @@ async function switchMonth(slug) {
     if (agSel) {
       agSel.innerHTML = '<option value="">— Select Agent —</option>';
       Object.keys(DATA.agents || {}).sort().forEach(a => {
-        const agInfo = DATA.agents[a] || {};
-        if (agInfo.archived) return; // hide archived agents
         const opt = document.createElement('option');
         opt.value = a; opt.textContent = a;
         agSel.appendChild(opt);
@@ -921,11 +911,9 @@ function init() {
       `Updated: ${pad(dt.getDate())}/${pad(dt.getMonth()+1)} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
   }
 
-  // Agent dropdown — exclude archived agents
+  // Agent dropdown
   const sel = document.getElementById('agent-select');
   Object.keys(DATA.agents || {}).sort().forEach(a => {
-    const agInfo = DATA.agents[a] || {};
-    if (agInfo.archived) return; // hide archived agents
     const opt = document.createElement('option');
     opt.value = a; opt.textContent = a;
     sel.appendChild(opt);
@@ -1623,36 +1611,12 @@ function toggleCard(key) {
 // ── View 2: Sales Progression ──────────────────────────────────────────────
 function renderSalesProgression() {
   if (!currentAgent || !DATA) return;
-  const sp  = DATA.agents[currentAgent]?.sales_progression || {};
+  const sp = DATA.agents[currentAgent]?.sales_progression || {};
   const tiers = sp.tiers || {};
 
   const t1 = tiers.normal_t1 || {};
   document.getElementById('prog-main-pct').innerHTML = `${fmtPct(t1.pct)}<sup style="font-family:var(--mono);font-size:14px;color:var(--muted)"></sup>`;
-
-  // ── Inheritance note ────────────────────────────────────────────
-  const agData       = DATA.agents[currentAgent] || {};
-  const inheritedFrom = agData.inherited_from || agData.inherits_from || null;
-  const inheritMonth  = agData.inherit_from_month || '';
-  let metaSuffix = '';
-  if (inheritedFrom) {
-    metaSuffix = ` · (inc. ${inheritedFrom}${inheritMonth ? ' from ' + inheritMonth : ''})`;
-    // Show a badge below agent selector if not already there
-    let badge = document.getElementById('inherit-badge');
-    if (!badge) {
-      badge = document.createElement('div');
-      badge.id = 'inherit-badge';
-      badge.style.cssText = 'font-family:var(--mono);font-size:9px;color:#ffc800;background:rgba(255,200,0,.1);border:1px solid rgba(255,200,0,.25);border-radius:10px;padding:2px 10px;margin-top:4px;display:inline-block;';
-      const sel = document.getElementById('agent-select');
-      if (sel && sel.parentNode) sel.parentNode.insertBefore(badge, sel.nextSibling);
-    }
-    badge.textContent = `📦 Includes ${inheritedFrom}'s records from ${inheritMonth}`;
-    badge.style.display = 'inline-block';
-  } else {
-    const badge = document.getElementById('inherit-badge');
-    if (badge) badge.style.display = 'none';
-  }
-
-  document.getElementById('prog-meta').textContent = `${fmtNum(t1.actual)} of ${fmtNum(t1.target)} CTN (Normal T1)${metaSuffix}`;
+  document.getElementById('prog-meta').textContent = `${fmtNum(t1.actual)} of ${fmtNum(t1.target)} CTN (Normal T1)`;
   // Smart gap display — show correct message based on achievement
   const gapEl = document.getElementById('prog-gap');
   const t2    = tiers.normal_t2 || {};
@@ -2356,6 +2320,11 @@ function loadFlags() {
 }
 function saveFlags(flags) {
   try { localStorage.setItem(FLAGS_KEY, JSON.stringify(flags)); } catch(e) {}
+  // Sync to Gist so management can see flags
+  if (typeof GistSync !== 'undefined' && GistSync.isConfigured() && currentAgent) {
+    const agentFlags = flags[currentAgent] || {};
+    GistSync.saveFlags(DATA?.current_month||'', currentAgent, agentFlags).catch(()=>{});
+  }
 }
 function getFlag(agent, debtorCode) {
   const flags = loadFlags();
@@ -2619,6 +2588,15 @@ function setCampStatus(campId, debtorCode, status) {
   const remark = all[key]?.remark || '';   // preserve existing remark
   all[key] = { status, remark, ts: new Date().toISOString(), agent: currentAgent };
   try { localStorage.setItem(CAMP_STATUS_KEY(), JSON.stringify(all)); } catch(e) {}
+  // Sync status update to Gist
+  if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+    const claimData = { status, remark, ts: Date.now(), agent: currentAgent };
+    if (status === 'not_in') {
+      GistSync.removeClaim(DATA?.current_month||'', currentAgent, campId, debtorCode).catch(()=>{});
+    } else {
+      GistSync.saveClaim(DATA?.current_month||'', currentAgent, campId, debtorCode, claimData).catch(()=>{});
+    }
+  }
   renderDebtors();
 }
 
@@ -2631,6 +2609,12 @@ function saveCampRemark(campId, debtorCode) {
   all[key].remark = inp.value.trim();
   all[key].ts     = new Date().toISOString();
   try { localStorage.setItem(CAMP_STATUS_KEY(), JSON.stringify(all)); } catch(e) {}
+  // Sync remark update to Gist if claim exists
+  if (typeof GistSync !== 'undefined' && GistSync.isConfigured() && all[key].status !== 'not_in') {
+    GistSync.saveClaim(DATA?.current_month||'', currentAgent, campId, debtorCode, {
+      ...all[key], ts: Date.now()
+    }).catch(()=>{});
+  }
   // Visual feedback
   inp.style.borderColor = 'var(--green)';
   setTimeout(() => { inp.style.borderColor = ''; }, 1000);
@@ -3128,9 +3112,24 @@ function saveBdayGift(debtorCode, month, sent, btn) {
   if (sent) {
     localStorage.setItem(key, '1');
     localStorage.setItem(noteKey, note);
+    // Sync to GistSync so management can audit
+    if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+      const claimData = {
+        status: 'pending',
+        note: note,
+        ts: Date.now(),
+        agent: currentAgent,
+        debtor: debtorCode,
+      };
+      GistSync.saveClaim(DATA?.current_month||'', currentAgent, 'birthday_gift', debtorCode, claimData).catch(()=>{});
+    }
   } else {
     localStorage.removeItem(key);
     localStorage.removeItem(noteKey);
+    // Remove from GistSync
+    if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+      GistSync.removeClaim(DATA?.current_month||'', currentAgent, 'birthday_gift', debtorCode).catch(()=>{});
+    }
   }
   btn.closest('div[style*=fixed]').remove();
   renderDebtors();
