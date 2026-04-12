@@ -572,7 +572,7 @@ function onMonthChange(val) {
   const spinner = document.createElement('div');
   spinner.id = 'month-loading';
   spinner.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.7);color:#fff;font-family:monospace;font-size:13px;padding:16px 28px;border-radius:12px;z-index:9999;';
-  spinner.textContent = '⏳ Loading ' + val.replace(/([a-z]{3})(\d{2})/i, (_, m, y) => m.charAt(0).toUpperCase()+m.slice(1)+' 20'+y) + '...';
+  spinner.textContent = '⏳ Loading ' + val.replace(/([a-z]{3})(\d{2})/i, (_, m, y) => m.charAt(0).toUpperCase()+m.slice(1)+' '+y) + '...';
   document.body.appendChild(spinner);
 
   // ── Fetch and cache ──
