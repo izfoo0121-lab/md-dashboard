@@ -1086,13 +1086,12 @@ function mdBdayAction(agent, debtorCode, month, action) {
   const ck = 'birthday_gift_' + agent + '_' + debtorCode;
 
   if (action === 'mark') {
-    // MD marks on behalf of agent
-    claims[ck] = { status:'claimed', claimed_by_md:true, ts:Date.now(), agent:agent, debtor:debtorCode, note:'Marked by MD' };
-  } else if (action === 'verify') {
-    // MD verifies agent submission
-    if (!claims[ck]) claims[ck] = { status:'claimed', agent:agent };
-    claims[ck].verified = true;
-    claims[ck].verified_ts = Date.now();
+    claims[ck] = { status:'claimed', claimed_by_md:true, ts:Date.now(), agent:agent, debtor:debtorCode };
+  } else if (action === 'undo') {
+    delete claims[ck];
+    // Also remove from localStorage bday key
+    var bdayKey = 'bday_gift_' + agent + '_' + debtorCode + '_' + slug;
+    localStorage.removeItem(bdayKey);
   }
 
   try { localStorage.setItem('claims_' + slug, JSON.stringify(claims)); } catch(e) {}
@@ -1172,22 +1171,20 @@ function renderBdayAudit() {
       var claim = claims[ck];
       var sent = claim && claim.status && claim.status !== 'pending_remove';
       var note = (claim && claim.note) ? claim.note : '—';
-      var claimedByMd = claim && claim.claimed_by_md;
-      var verifiedByMd = claim && claim.verified;
       var statusBg = sent ? 'rgba(42,122,75,.2)' : 'rgba(200,56,26,.1)';
       var statusColor = sent ? 'var(--green)' : 'var(--accent)';
-      var statusLabel = sent ? (claimedByMd ? '✓ MD Marked' : (verifiedByMd ? '✓ Verified' : '✓ Claimed')) : 'Pending';
-      var mdAction = sent ? 'verify' : 'mark';
-      var mdBtnLabel = sent ? '✓ Verify' : '+ Mark';
-      var mdBtnBg = sent ? 'rgba(42,122,75,.15)' : 'rgba(77,166,255,.15)';
-      var mdBtnBorder = sent ? 'rgba(42,122,75,.4)' : 'rgba(77,166,255,.4)';
-      var mdBtnColor = sent ? 'var(--green)' : 'var(--blue)';
+      var statusLabel = sent ? (claim && claim.claimed_by_md ? '✓ MD Marked' : '✓ Claimed') : 'Pending';
+      var mdBtnLabel = sent ? '↩ Undo' : '+ Mark';
+      var mdBtnBg = sent ? 'rgba(200,56,26,.15)' : 'rgba(77,166,255,.15)';
+      var mdBtnBorder = sent ? 'rgba(200,56,26,.4)' : 'rgba(77,166,255,.4)';
+      var mdBtnColor = sent ? 'var(--accent)' : 'var(--blue)';
+      var mdAction = sent ? 'undo' : 'mark';
       rows += '<tr style="border-bottom:1px solid rgba(255,255,255,.05);">'
         + '<td style="padding:5px 6px;color:var(--ink);">' + (d.name || d.code) + '</td>'
         + '<td style="padding:5px 6px;color:var(--ink3);">' + (d.phone || '—') + '</td>'
         + '<td style="padding:5px 6px;text-align:center;">'
         + '<span style="font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:4px;background:' + statusBg + ';color:' + statusColor + ';">' + statusLabel + '</span>'
-        + (verifiedByMd ? '' : ' <button onclick="mdBdayAction(\'' + agent + '\',\'' + d.code + '\',\'' + month + '\',\'' + mdAction + '\')" style="background:' + mdBtnBg + ';border:1px solid ' + mdBtnBorder + ';color:' + mdBtnColor + ';font-family:var(--mono);font-size:8px;padding:2px 7px;border-radius:4px;cursor:pointer;">' + mdBtnLabel + '</button>')
+        + ' <button onclick="mdBdayAction(\'' + agent + '\',\'' + d.code + '\',\'' + month + '\',\'' + mdAction + '\')" style="background:' + mdBtnBg + ';border:1px solid ' + mdBtnBorder + ';color:' + mdBtnColor + ';font-family:var(--mono);font-size:8px;padding:2px 7px;border-radius:4px;cursor:pointer;">' + mdBtnLabel + '</button>'
         + '</td>'
         + '<td style="padding:5px 6px;color:var(--ink3);">' + note + '</td>'
         + '</tr>';
