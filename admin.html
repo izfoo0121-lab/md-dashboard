@@ -3220,8 +3220,10 @@ function initMonthlyTargetsTab() {
 }
 
 function renderMonthlyTargets() {
-  const month  = document.getElementById('mt-month-sel')?.value;
-  if (!month) return;
+  const monthSel  = document.getElementById('mt-month-sel')?.value;
+  if (!monthSel) return;
+  // Convert "Mar-26" → "Mar 26" for CONFIG.monthly_targets lookup
+  const month = monthSel.replace('-', ' ');
   const agents = Object.keys(CONFIG.agents || {}).filter(a => CONFIG.agents[a].active !== false && !CONFIG.agents[a].archived);
   const mt     = CONFIG.monthly_targets || {};
   const mData  = mt[month] || {};
@@ -3371,7 +3373,7 @@ function mtSetNBTier(month, agent, tierIdx, field, val) {
 }
 
 function mtCopyFromPrev() {
-  const month = document.getElementById('mt-month-sel')?.value;
+  const month = document.getElementById('mt-month-sel')?.value?.replace('-', ' ');
   if (!month) return;
   const idx   = MT_MONTHS.indexOf(month);
   if (idx <= 0) { alert('No previous month available.'); return; }
@@ -3390,7 +3392,7 @@ function mtCopyFromPrev() {
 }
 
 function mtCopyFromDefault() {
-  const month  = document.getElementById('mt-month-sel')?.value;
+  const month  = document.getElementById('mt-month-sel')?.value?.replace('-', ' ');
   if (!month) return;
   const agents = Object.keys(CONFIG.agents || {}).filter(a => CONFIG.agents[a].active !== false && !CONFIG.agents[a].archived);
   if (!CONFIG.monthly_targets) CONFIG.monthly_targets = {};
