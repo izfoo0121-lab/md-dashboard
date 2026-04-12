@@ -928,7 +928,12 @@ function renderMonthlySummary() {
     const newVip  = dc.new_vip_count || 0;
     const newSku  = dc.total_new_sku || 0;
     const bdayTgt = D.birthday_campaign?.by_agent?.[agent] || 0;
-    const bdayAct = kt.birthday_actual ?? kpi.components?.birthday_campaign?.actual ?? 0;
+    // Count claimed from localStorage (GistSync claims)
+    const _bdaySlug = (D.current_month||'').replace(' ','').toLowerCase();
+    const _bdayClaims = (() => { try { return JSON.parse(localStorage.getItem('claims_'+_bdaySlug)||'{}'); } catch(e){return{};} })();
+    const _bdayPrefix = 'birthday_gift_' + agent + '_';
+    const bdayActLive = Object.entries(_bdayClaims).filter(([k,v]) => k.startsWith(_bdayPrefix) && v && v.status && v.status !== 'pending_remove').length;
+    const bdayAct = bdayActLive || kt.birthday_actual || kpi.components?.birthday_campaign?.actual || 0;
     const eventTgt = kt.event || 0;
     const eventAct = kt.event_actual ?? null;
     const kpiScore = kpi.total_abc || 0;
