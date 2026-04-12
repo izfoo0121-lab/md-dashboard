@@ -1394,6 +1394,15 @@ function renderAgentForms() {
               onchange="setKPI('${agent}','event',this.value)">
           </div>
         </div>
+        <div class="input-row" style="margin-bottom:8px;">
+          <div class="field-wrap">
+            <div class="field-lbl" style="color:#f472b6;">生日礼物 Target <span style="color:var(--ink3);font-size:8px;">⚡ Auto from VIP birthdays</span></div>
+            <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-bottom:3px;">Auto-calculated from VIP debtors with birthdays this month. Override here if needed.</div>
+            <input type="number" min="0" placeholder="auto"
+              value="${a.kpi_targets?.birthday ?? ''}"
+              onchange="setKPI('${agent}','birthday',this.value)">
+          </div>
+        </div>
         ${(overrides.vip_count||overrides.reactivation||overrides.new_sku)?
           `<button onclick="clearKPIOverrides('${agent}')" style="background:none;border:1px solid var(--border);color:var(--ink3);font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;margin-top:4px;">↺ Reset to auto-calculate</button>`:''}
       `;
