@@ -621,9 +621,16 @@ def calc_newbie_scheme(df, targets, agents, cur_month, debtor_df=None):
             CODE_COL2 = next((c for c in cols if c.strip() in ('Code','Debtor Code')), cols[0])
             OPEN_COL2 = next((c for c in cols if 'Open Acct' in c or c == 'Open'), None)
             AGENT_COL2 = next((c for c in cols if c.strip() == 'Agent'), None)
+            PERSONAL_TYPES_NB = {"P-Personal","P-PERSONAL","personal","Personal","PERSONAL"}
+            TYPE_COL2 = next((c for c in cols if c.strip() in ('Debtor Type','Type')), None)
             if OPEN_COL2 and AGENT_COL2:
                 ag_dm = debtor_df[debtor_df[AGENT_COL2].fillna('').str.strip().str.upper() == agent.upper()]
                 for _, row in ag_dm.iterrows():
+                    # Skip personal types
+                    if TYPE_COL2:
+                        dtype = str(row.get(TYPE_COL2, '') or '').strip()
+                        if dtype in PERSONAL_TYPES_NB:
+                            continue
                     open_date = row.get(OPEN_COL2)
                     if open_date and pd.notnull(open_date):
                         try:
@@ -2642,12 +2649,18 @@ def main(override_month=None, fast=False):
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, indent=2, default=str)
 
-    # Also save monthly snapshot e.g. data_mar26.json
+    # Also save monthly snapshot e.g. data_mar26.json (slim - no full debtor lists)
     month_slug = cur_month.replace(" ", "").lower()  # "mar26"
     monthly_file = BASE_DIR / f"data_{month_slug}.json"
+    import copy
+    slim_output = copy.deepcopy(output)
+    for agent_data in slim_output.get("agents", {}).values():
+        dc = agent_data.get("debtor_cards", {})
+        if "debtors" in dc:
+            del dc["debtors"]  # Strip full debtor list (~80% of file size)
     with open(monthly_file, "w", encoding="utf-8") as f:
-        json.dump(output, f, ensure_ascii=False, indent=2, default=str)
-    log(f"   Monthly snapshot saved: data_{month_slug}.json")
+        json.dump(slim_output, f, ensure_ascii=False, indent=2, default=str)
+    log(f"   Monthly snapshot saved: data_{month_slug}.json (slim)")
 
     # Update months_index.json — list of available months
     index_file = BASE_DIR / "months_index.json"
