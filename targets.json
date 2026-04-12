@@ -2997,7 +2997,21 @@
           "new_accounts_actual": 1,
           "vip_count_actual": 0,
           "event": 70,
-          "event_actual": 4
+          "event_actual": 4,
+          "newbie_tiers": [
+            {
+              "threshold": 800,
+              "reward": 1200
+            },
+            {
+              "threshold": 921,
+              "reward": 1800
+            },
+            {
+              "threshold": 1171,
+              "reward": 2400
+            }
+          ]
         },
         "kpi_overrides": {
           "vip_count": 12,
@@ -3532,7 +3546,21 @@
           "new_accounts_actual": 3,
           "vip_count_actual": 2,
           "event": 70,
-          "event_actual": 27
+          "event_actual": 27,
+          "newbie_tiers": [
+            {
+              "threshold": 3900,
+              "reward": 1200
+            },
+            {
+              "threshold": 4400,
+              "reward": 1800
+            },
+            {
+              "threshold": 4526,
+              "reward": 2400
+            }
+          ]
         },
         "kpi_overrides": {
           "vip_count": 8,
@@ -3581,7 +3609,21 @@
           "new_accounts_actual": 0,
           "vip_count_actual": 0,
           "event": 70,
-          "event_actual": 72
+          "event_actual": 72,
+          "newbie_tiers": [
+            {
+              "threshold": 2950,
+              "reward": 1200
+            },
+            {
+              "threshold": 3061,
+              "reward": 1800
+            },
+            {
+              "threshold": 3411,
+              "reward": 2400
+            }
+          ]
         },
         "kpi_overrides": {
           "vip_count": 21,
