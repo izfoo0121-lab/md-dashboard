@@ -1118,7 +1118,7 @@ function renderBdayAudit() {
     <!-- Per agent breakdown -->
     ${Object.entries(grouped).map(([agent, dList]) => {
       const agentClaimed = dList.filter(d => {
-        const ck = `birthday_gift_\${agent}_\${d.code}`;
+        const ck = `birthday_gift_${agent}_${d.code}`;
         const c = claims[ck];
         return c && c.status && c.status !== 'pending_remove';
       }).length;
@@ -1130,13 +1130,13 @@ function renderBdayAudit() {
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;"
           onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
           <div style="display:flex;align-items:center;gap:10px;">
-            <div style="font-family:var(--display);font-size:16px;letter-spacing:.05em;color:var(--blue);">\${agent}</div>
-            <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">\${dList.length} gifts · \${agentClaimed} claimed</div>
+            <div style="font-family:var(--display);font-size:16px;letter-spacing:.05em;color:var(--blue);">${agent}</div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">${dList.length} gifts · ${agentClaimed} claimed</div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
-            <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:\${col};">\${agentClaimed}/\${dList.length}</div>
+            <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:${col};">${agentClaimed}/${dList.length}</div>
             <div style="width:60px;height:4px;background:var(--border);border-radius:2px;">
-              <div style="height:100%;width:\${pct}%;background:\${col};border-radius:2px;"></div>
+              <div style="height:100%;width:${pct}%;background:${col};border-radius:2px;"></div>
             </div>
             <span style="font-family:var(--mono);font-size:9px;color:var(--ink3);">▼</span>
           </div>
@@ -1150,22 +1150,22 @@ function renderBdayAudit() {
               <th style="text-align:center;padding:4px 6px;">Status</th>
               <th style="text-align:left;padding:4px 6px;">Note</th>
             </tr>
-            \${dList.map(d => {
-              const ck = `birthday_gift_\${agent}_\${d.code}`;
+            ${dList.map(d => {
+              const ck = `birthday_gift_${agent}_${d.code}`;
               const claim = claims[ck];
               const sent  = claim && claim.status && claim.status !== 'pending_remove';
               const note  = claim?.note || '—';
               return `<tr style="border-bottom:1px solid rgba(255,255,255,.05);">
-                <td style="padding:5px 6px;color:var(--ink);">\${d.name || d.code}</td>
-                <td style="padding:5px 6px;color:var(--ink3);">\${d.phone||'—'}</td>
+                <td style="padding:5px 6px;color:var(--ink);">${d.name || d.code}</td>
+                <td style="padding:5px 6px;color:var(--ink3);">${d.phone||'—'}</td>
                 <td style="padding:5px 6px;text-align:center;">
                   <span style="font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:4px;
-                    background:\${sent?'rgba(42,122,75,.2)':'rgba(200,56,26,.1)'};
-                    color:\${sent?'var(--green)':'var(--accent)'};">
-                    \${sent ? '✓ Claimed' : 'Pending'}
+                    background:${sent?'rgba(42,122,75,.2)':'rgba(200,56,26,.1)'};
+                    color:${sent?'var(--green)':'var(--accent)'};">
+                    ${sent ? '✓ Claimed' : 'Pending'}
                   </span>
                 </td>
-                <td style="padding:5px 6px;color:var(--ink3);">\${note}</td>
+                <td style="padding:5px 6px;color:var(--ink3);">${note}</td>
               </tr>`;
             }).join('')}
           </table>
