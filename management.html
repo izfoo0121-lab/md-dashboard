@@ -1058,6 +1058,11 @@ function loadFlags() {
 function saveFlags(f) {
   try { localStorage.setItem(FLAGS_KEY, JSON.stringify(f)); } catch(e) {}
 }
+function toggleBdayCard(el) {
+  var ns = el.nextElementSibling;
+  ns.style.display = ns.style.display === 'none' ? 'block' : 'none';
+}
+
 function renderBdayAudit() {
   const el  = document.getElementById('bday-audit-list');
   const sec = document.getElementById('bday-audit-section');
@@ -1128,7 +1133,7 @@ function renderBdayAudit() {
     });
 
     html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;overflow:hidden;">'
-      + '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="toggleBdayCard(this)">'
       + '<div style="display:flex;align-items:center;gap:10px;">'
       + '<div style="font-family:var(--display);font-size:16px;letter-spacing:.05em;color:var(--blue);">' + agent + '</div>'
       + '<div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">' + dList.length + ' gifts · ' + agentClaimed + ' claimed</div>'
