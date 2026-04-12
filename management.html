@@ -1098,11 +1098,22 @@ function mdBdayAction(agent, debtorCode, month, action) {
 
   // Sync to GistSync
   if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
-    GistSync.saveClaim(month, agent, 'birthday_gift', debtorCode, claims[ck]).catch(()=>{});
+    if (action === 'undo') {
+      GistSync.removeClaim(month, agent, 'birthday_gift', debtorCode).catch(()=>{});
+    } else {
+      GistSync.saveClaim(month, agent, 'birthday_gift', debtorCode, claims[ck]).catch(()=>{});
+    }
   }
 
-  // Re-render
+  // Re-render — remember expanded cards
+  var expanded = [];
+  document.querySelectorAll('#bday-audit-list .bday-card-body').forEach(function(el, i) {
+    if (el.style.display !== 'none') expanded.push(i);
+  });
   renderBdayAudit();
+  // Re-expand previously open cards
+  var bodies = document.querySelectorAll('#bday-audit-list .bday-card-body');
+  expanded.forEach(function(i) { if (bodies[i]) bodies[i].style.display = 'block'; });
 }
 
 function toggleBdayCard(el) {
@@ -1201,7 +1212,7 @@ function renderBdayAudit() {
       + '<div style="width:60px;height:4px;background:var(--border);border-radius:2px;"><div style="height:100%;width:' + pct + '%;background:' + col + ';border-radius:2px;"></div></div>'
       + '<span style="font-family:var(--mono);font-size:9px;color:var(--ink3);">▼</span>'
       + '</div></div>'
-      + '<div style="display:none;padding:8px 14px;">'
+      + '<div class="bday-card-body" style="display:none;padding:8px 14px;">'
       + '<table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px;">'
       + '<tr style="color:var(--ink3);border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 6px;">Debtor</th><th style="text-align:left;padding:4px 6px;">Phone</th><th style="text-align:center;padding:4px 6px;">Status</th><th style="text-align:left;padding:4px 6px;">Note</th></tr>'
       + rows
