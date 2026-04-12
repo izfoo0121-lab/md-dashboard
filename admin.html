@@ -206,6 +206,9 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
       <div id="newbie-inline-section" style="display:none;">
         <div style="font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#c8381a;padding:8px 0 4px;border-top:2px solid rgba(200,56,26,.3);margin-top:12px;">🎓 Newbie CTN Tiers (Default)</div>
         <div id="newbie-inline-form"></div>
+        <div style="font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#c8381a;padding:8px 0 4px;border-top:1px solid rgba(200,56,26,.2);margin-top:10px;">🎁 New Account Bonus Tiers (Global — applies to all newbie agents)</div>
+        <div class="sec-sub" style="margin-bottom:8px;">Same thresholds and rewards for all newbie agents</div>
+        <div id="acc-tiers-form-inline"></div>
       </div>
       <button class="save-btn" onclick="saveAll()">SAVE ALL TARGETS</button>
       <div class="save-toast" id="save-toast">✓ Saved to targets.json</div>
@@ -1418,6 +1421,18 @@ function renderInlineNewbie() {
   if (!section || !form) return;
   if (!newbieAgents.length) { section.style.display = 'none'; return; }
   section.style.display = 'block';
+  // Also render account tiers in inline section
+  const accForm = document.getElementById('acc-tiers-form-inline');
+  if (accForm) {
+    const accTiers = CONFIG.newbie_scheme?.account_tiers || [];
+    accForm.innerHTML = accTiers.map((t,i) => `
+      <div class="input-row" style="margin-bottom:8px;">
+        <div class="field-wrap"><div class="field-lbl">Accounts needed</div>
+          <input type="number" min="0" value="${t.count}" onchange="setNBAcc(${i},'count',this.value)"></div>
+        <div class="field-wrap"><div class="field-lbl">Bonus (RM)</div>
+          <input type="number" min="0" value="${t.reward}" onchange="setNBAcc(${i},'reward',this.value)"></div>
+      </div>`).join('');
+  }
   form.innerHTML = newbieAgents.map(([agent, a]) => {
     const tiers = a.newbie_tiers || [{threshold:1000,reward:1200},{threshold:1342,reward:1800},{threshold:1592,reward:2400}];
     while (tiers.length < 3) tiers.push({threshold:0, reward:0});
