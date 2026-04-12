@@ -877,7 +877,7 @@ function renderMonthlySummary() {
     if (!target) return `<div style="font-family:var(--mono);font-size:10px;padding:7px 5px;text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);color:${col};">${fmt(actual)}</div>`;
     const hit = actual >= target;
     return `<div style="font-family:var(--mono);font-size:10px;padding:7px 5px;text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);">
-      <span style="color:${hit?'var(--green)':col};font-weight:600;">${fmt(actual)}</span><span style="color:rgba(255,255,255,.25);font-size:8px;">/${fmt(target)}</span>
+      <span style="color:${hit?'var(--green)':col};font-weight:600;">${fmt(actual)}</span><span style="color:var(--ink3,#999);font-size:8px;">/${fmt(target)}</span>
     </div>`;
   };
   const pctCell = (p) => `<div style="font-family:var(--mono);font-size:10px;padding:7px 5px;text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);color:${pc(p)};font-weight:600;">${p.toFixed(1)}%</div>`;
