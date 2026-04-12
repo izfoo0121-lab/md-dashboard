@@ -203,6 +203,10 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
       </div>
 
       <div id="agent-forms"></div>
+      <div id="newbie-inline-section" style="display:none;">
+        <div style="font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#c8381a;padding:8px 0 4px;border-top:2px solid rgba(200,56,26,.3);margin-top:12px;">🎓 Newbie CTN Tiers (Default)</div>
+        <div id="newbie-inline-form"></div>
+      </div>
       <button class="save-btn" onclick="saveAll()">SAVE ALL TARGETS</button>
       <div class="save-toast" id="save-toast">✓ Saved to targets.json</div>
     </div>
@@ -1391,22 +1395,88 @@ function renderAgentForms() {
         </div>
         ${(overrides.vip_count||overrides.reactivation||overrides.new_sku)?
           `<button onclick="clearKPIOverrides('${agent}')" style="background:none;border:1px solid var(--border);color:var(--ink3);font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;margin-top:4px;">↺ Reset to auto-calculate</button>`:''}
-      ${a.is_newbie ? `
-      <div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.06em;color:#c8381a;padding:6px 0 4px;border-top:1px solid var(--border);margin-top:8px;">🎓 Newbie CTN Tiers (Default)</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px;">
-      ${(a.newbie_tiers||[{threshold:1000,reward:1200},{threshold:1342,reward:1800},{threshold:1592,reward:2400}]).slice(0,3).map((t,ti) =>
-        `<div style="background:var(--bg);border-radius:8px;padding:8px;">
-          <div style="font-family:var(--mono);font-size:8px;color:#c8381a;margin-bottom:4px;">Tier ${ti+1}</div>
-          <div class="field-wrap"><div class="field-lbl">CTN</div>
-            <input type="number" min="0" value="${t.threshold||''}" onchange="setAgentNBTier('${agent}',${ti},'threshold',this.value)"></div>
-          <div class="field-wrap" style="margin-top:4px;"><div class="field-lbl">RM</div>
-            <input type="number" min="0" value="${t.reward||''}" onchange="setAgentNBTier('${agent}',${ti},'reward',this.value)"></div>
-        </div>`).join('')}
-      </div>` : ''}
       `;
       })()}
     </div>`;
   }).join('');
+}
+
+function renderInlineNewbie() {
+  const newbieAgents = Object.entries(CONFIG.agents||{}).filter(([,a]) => a.is_newbie && a.active !== false);
+  const section = document.getElementById('newbie-inline-section');
+  const form = document.getElementById('newbie-inline-form');
+  if (!section || !form) return;
+  if (!newbieAgents.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  form.innerHTML = newbieAgents.map(([agent, a]) => {
+    const tiers = a.newbie_tiers || [{threshold:1000,reward:1200},{threshold:1342,reward:1800},{threshold:1592,reward:2400}];
+    while (tiers.length < 3) tiers.push({threshold:0, reward:0});
+    return `<div class="admin-card" style="margin-bottom:12px;border-left:4px solid #c8381a;">
+      <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;margin-bottom:10px;">${agent}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        ${tiers.slice(0,3).map((t,i) => `
+        <div style="background:var(--bg);border-radius:8px;padding:10px;">
+          <div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.08em;color:#c8381a;margin-bottom:6px;">Tier ${i+1}</div>
+          <div class="field-wrap">
+            <div class="field-lbl">CTN Target</div>
+            <input type="number" min="0" value="${t.threshold||''}"
+              onchange="setAgentNBTier('${agent}',${i},'threshold',this.value)">
+          </div>
+          <div class="field-wrap" style="margin-top:6px;">
+            <div class="field-lbl">Reward (RM)</div>
+            <input type="number" min="0" value="${t.reward||''}"
+              onchange="setAgentNBTier('${agent}',${i},'reward',this.value)">
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+  renderInlineNewbie();
+}
+
+function renderInlineNewbie() {
+  const newbieAgents = Object.entries(CONFIG.agents||{}).filter(([,a]) => a.is_newbie && a.active !== false);
+  const section = document.getElementById('newbie-inline-section');
+  const form = document.getElementById('newbie-inline-form');
+  if (!section || !form) return;
+  if (!newbieAgents.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  form.innerHTML = newbieAgents.map(([agent, a]) => {
+    const tiers = a.newbie_tiers || [{threshold:1000,reward:1200},{threshold:1342,reward:1800},{threshold:1592,reward:2400}];
+    while (tiers.length < 3) tiers.push({threshold:0, reward:0});
+    return `<div class="admin-card" style="margin-bottom:10px;border-left:3px solid #c8381a;">
+      <div style="font-family:var(--display);font-size:16px;margin-bottom:8px;">${agent}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        ${tiers.slice(0,3).map((t,i) => `
+        <div style="background:var(--bg);border-radius:8px;padding:8px;">
+          <div style="font-family:var(--mono);font-size:8px;color:#c8381a;margin-bottom:4px;">Tier ${i+1}</div>
+          <div class="field-wrap"><div class="field-lbl">CTN Target</div>
+            <input type="number" min="0" value="${t.threshold||''}"
+              onchange="setAgentNBTier('${agent}',${i},'threshold',this.value)"></div>
+          <div class="field-wrap" style="margin-top:4px;"><div class="field-lbl">Reward (RM)</div>
+            <input type="number" min="0" value="${t.reward||''}"
+              onchange="setAgentNBTier('${agent}',${i},'reward',this.value)"></div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function mtSetNBTier(month, agent, tierIdx, field, val) {
+  if (!CONFIG.monthly_targets) CONFIG.monthly_targets = {};
+  if (!CONFIG.monthly_targets[month]) CONFIG.monthly_targets[month] = {};
+  if (!CONFIG.monthly_targets[month][agent]) CONFIG.monthly_targets[month][agent] = {};
+  const ag = CONFIG.monthly_targets[month][agent];
+  if (!ag.kpi_targets) ag.kpi_targets = {};
+  if (!ag.kpi_targets.newbie_tiers) {
+    const def = CONFIG.agents[agent]?.newbie_tiers || [
+      {threshold:1000,reward:1200},{threshold:1342,reward:1800},{threshold:1592,reward:2400}
+    ];
+    ag.kpi_targets.newbie_tiers = JSON.parse(JSON.stringify(def));
+  }
+  while (ag.kpi_targets.newbie_tiers.length <= tierIdx) ag.kpi_targets.newbie_tiers.push({threshold:0,reward:0});
+  ag.kpi_targets.newbie_tiers[tierIdx][field] = val === '' ? null : parseFloat(val);
+  updateRawJSON();
 }
 
 function setSP(agent, field, val) {
@@ -3166,12 +3236,10 @@ function renderMonthlyTargets() {
     const d  = mData[agent] || {};
     const sp = d.sales_progression || {};
     const bc = d.brand_commission  || {};
-    const kpi = d.kpi_targets || {};
     // Fallback to default targets for placeholder
     const def    = CONFIG.agents[agent] || {};
     const defSp  = def.sales_progression || {};
     const defBc  = def.brand_commission  || {};
-    const defKpi = def.kpi_targets || {};
 
     const brandRows = BRANDS.map(b => {
       const bval    = bc[b] || {};
@@ -3229,76 +3297,30 @@ function renderMonthlyTargets() {
 
       <div class="sec-divider">KPI Targets & Actuals</div>
       <div class="input-row" style="margin-bottom:8px;flex-wrap:wrap;gap:8px;">
-        <div class="field-wrap">
-          <div class="field-lbl">新增户口 Target</div>
-          <input type="number" min="0" placeholder="${defKpi.new_accounts ?? ''}"
-            value="${kpi.new_accounts ?? ''}"
-            onchange="mtSet('${month}','${agent}','kpi',null,'new_accounts',this.value)">
-        </div>
-        <div class="field-wrap">
-          <div class="field-lbl" style="color:#2dd4bf;">新增户口 Actual</div>
-          <input type="number" min="0" placeholder="0"
-            value="${kpi.new_accounts_actual ?? ''}"
-            onchange="mtSet('${month}','${agent}','kpi',null,'new_accounts_actual',this.value)">
-        </div>
-        <div class="field-wrap">
-          <div class="field-lbl">新增VIP Target</div>
-          <input type="number" min="0" placeholder="${defKpi.vip_count ?? ''}"
-            value="${kpi.vip_count ?? ''}"
-            onchange="mtSet('${month}','${agent}','kpi',null,'vip_count',this.value)">
-        </div>
-        <div class="field-wrap">
-          <div class="field-lbl" style="color:var(--gold);">新增VIP Actual</div>
-          <input type="number" min="0" placeholder="0"
-            value="${kpi.vip_count_actual ?? ''}"
-            onchange="mtSet('${month}','${agent}','kpi',null,'vip_count_actual',this.value)">
-        </div>
-      </div>
-      <div class="input-row" style="margin-bottom:8px;flex-wrap:wrap;gap:8px;">
-        <div class="field-wrap">
-          <div class="field-lbl">新增SKU Target</div>
-          <input type="number" min="0" placeholder="${defKpi.new_sku ?? 17}"
-            value="${kpi.new_sku ?? ''}"
-            onchange="mtSet('${month}','${agent}','kpi',null,'new_sku',this.value)">
-        </div>
-        <div class="field-wrap">
-          <div class="field-lbl" style="color:#f472b6;">生日礼物 Actual</div>
-          <input type="number" min="0" placeholder="0"
-            value="${kpi.birthday_actual ?? ''}"
-            onchange="mtSet('${month}','${agent}','kpi',null,'birthday_actual',this.value)">
-        </div>
-        <div class="field-wrap">
-          <div class="field-lbl">Event Target</div>
-          <input type="number" min="0" placeholder="${defKpi.event ?? ''}"
-            value="${kpi.event ?? ''}"
-            onchange="mtSet('${month}','${agent}','kpi',null,'event',this.value)">
-        </div>
-        <div class="field-wrap">
-          <div class="field-lbl" style="color:var(--purple);">Event Actual</div>
-          <input type="number" min="0" placeholder="0"
-            value="${kpi.event_actual ?? ''}"
-            onchange="mtSet('${month}','${agent}','kpi',null,'event_actual',this.value)">
-        </div>
-
-      ${CONFIG.agents[agent]?.is_newbie ? (() => {
-        const defTiers = CONFIG.agents[agent]?.newbie_tiers || [{threshold:1000,reward:1200},{threshold:1342,reward:1800},{threshold:1592,reward:2400}];
-        const mtTiers = kpi.newbie_tiers || [];
-        return `<div style="font-family:var(--mono);font-size:8px;color:#c8381a;text-transform:uppercase;padding:6px 0 4px;border-top:1px solid var(--border);margin-top:8px;">🎓 Newbie CTN Tiers (Monthly Override)</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px;">
-        ${[0,1,2].map(ti => {
-          const dT = defTiers[ti]||{}; const mT = mtTiers[ti]||{};
-          return `<div style="background:var(--bg);border-radius:8px;padding:8px;">
-            <div style="font-family:var(--mono);font-size:8px;color:#c8381a;margin-bottom:4px;">Tier ${ti+1}</div>
-            <div class="field-wrap"><div class="field-lbl">CTN</div>
-              <input type="number" min="0" placeholder="${dT.threshold||''}" value="${mT.threshold??''}"
-                onchange="mtSetNBTier('${month}','${agent}',${ti},'threshold',this.value)"></div>
-            <div class="field-wrap" style="margin-top:4px;"><div class="field-lbl">RM</div>
-              <input type="number" min="0" placeholder="${dT.reward||''}" value="${mT.reward??''}"
-                onchange="mtSetNBTier('${month}','${agent}',${ti},'reward',this.value)"></div>
-          </div>`;
-        }).join('')}
-        </div>`;
-      })() : ''}
+        <div class="field-wrap"><div class="field-lbl">新增户口 Target</div>
+          <input type="number" min="0" placeholder="${defKpi.new_accounts??''}" value="${kpi.new_accounts??''}"
+            onchange="mtSet('${month}','${agent}','kpi',null,'new_accounts',this.value)"></div>
+        <div class="field-wrap"><div class="field-lbl" style="color:#2dd4bf;">新增户口 Actual</div>
+          <input type="number" min="0" placeholder="0" value="${kpi.new_accounts_actual??''}"
+            onchange="mtSet('${month}','${agent}','kpi',null,'new_accounts_actual',this.value)"></div>
+        <div class="field-wrap"><div class="field-lbl">新增VIP Target</div>
+          <input type="number" min="0" placeholder="${defKpi.vip_count??''}" value="${kpi.vip_count??''}"
+            onchange="mtSet('${month}','${agent}','kpi',null,'vip_count',this.value)"></div>
+        <div class="field-wrap"><div class="field-lbl" style="color:var(--gold);">新增VIP Actual</div>
+          <input type="number" min="0" placeholder="0" value="${kpi.vip_count_actual??''}"
+            onchange="mtSet('${month}','${agent}','kpi',null,'vip_count_actual',this.value)"></div>
+        <div class="field-wrap"><div class="field-lbl">新增SKU Target</div>
+          <input type="number" min="0" placeholder="${defKpi.new_sku??17}" value="${kpi.new_sku??''}"
+            onchange="mtSet('${month}','${agent}','kpi',null,'new_sku',this.value)"></div>
+        <div class="field-wrap"><div class="field-lbl" style="color:#f472b6;">生日礼物 Actual</div>
+          <input type="number" min="0" placeholder="0" value="${kpi.birthday_actual??''}"
+            onchange="mtSet('${month}','${agent}','kpi',null,'birthday_actual',this.value)"></div>
+        <div class="field-wrap"><div class="field-lbl">Event Target</div>
+          <input type="number" min="0" placeholder="${defKpi.event??''}" value="${kpi.event??''}"
+            onchange="mtSet('${month}','${agent}','kpi',null,'event',this.value)"></div>
+        <div class="field-wrap"><div class="field-lbl" style="color:var(--purple);">Event Actual</div>
+          <input type="number" min="0" placeholder="0" value="${kpi.event_actual??''}"
+            onchange="mtSet('${month}','${agent}','kpi',null,'event_actual',this.value)"></div>
       </div>
     </div>`;
   }).join('');
@@ -3320,10 +3342,6 @@ function mtSet(month, agent, type, brand, field, val) {
     if (!ag.brand_commission[brand]) ag.brand_commission[brand] = {};
     if (v === undefined) delete ag.brand_commission[brand][field];
     else ag.brand_commission[brand][field] = v;
-  } else if (type === 'kpi') {
-    if (!ag.kpi_targets) ag.kpi_targets = {};
-    if (v === undefined) delete ag.kpi_targets[field];
-    else ag.kpi_targets[field] = v;
   }
   // Clean up empty objects
   if (ag.sales_progression && !Object.keys(ag.sales_progression).length) delete ag.sales_progression;
@@ -3331,7 +3349,6 @@ function mtSet(month, agent, type, brand, field, val) {
     BRANDS.forEach(b => { if (ag.brand_commission[b] && !Object.keys(ag.brand_commission[b]).length) delete ag.brand_commission[b]; });
     if (!Object.keys(ag.brand_commission).length) delete ag.brand_commission;
   }
-  if (ag.kpi_targets && !Object.keys(ag.kpi_targets).length) delete ag.kpi_targets;
   if (!Object.keys(ag).length) delete CONFIG.monthly_targets[month][agent];
   updateRawJSON();
 }
@@ -3343,7 +3360,6 @@ function mtSetNBTier(month, agent, tierIdx, field, val) {
   const ag = CONFIG.monthly_targets[month][agent];
   if (!ag.kpi_targets) ag.kpi_targets = {};
   if (!ag.kpi_targets.newbie_tiers) {
-    // Copy from default
     const def = CONFIG.agents[agent]?.newbie_tiers || [
       {threshold:1000,reward:1200},{threshold:1342,reward:1800},{threshold:1592,reward:2400}
     ];
@@ -3384,7 +3400,6 @@ function mtCopyFromDefault() {
     CONFIG.monthly_targets[month][agent] = {
       sales_progression: JSON.parse(JSON.stringify(def.sales_progression || {})),
       brand_commission:  JSON.parse(JSON.stringify(def.brand_commission  || {})),
-      kpi_targets:       JSON.parse(JSON.stringify(def.kpi_targets       || {})),
     };
   });
   updateRawJSON();
@@ -3403,4 +3418,3 @@ function showToast(msg) {
 </script>
 </body>
 </html>
- 
