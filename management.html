@@ -1078,6 +1078,34 @@ function loadFlags() {
 function saveFlags(f) {
   try { localStorage.setItem(FLAGS_KEY, JSON.stringify(f)); } catch(e) {}
 }
+function mdBdayAction(agent, debtorCode, month, action) {
+  const slug = month.replace(' ','').toLowerCase();
+  let claims = {};
+  try { claims = JSON.parse(localStorage.getItem('claims_' + slug) || '{}'); } catch(e) {}
+
+  const ck = 'birthday_gift_' + agent + '_' + debtorCode;
+
+  if (action === 'mark') {
+    // MD marks on behalf of agent
+    claims[ck] = { status:'claimed', claimed_by_md:true, ts:Date.now(), agent:agent, debtor:debtorCode, note:'Marked by MD' };
+  } else if (action === 'verify') {
+    // MD verifies agent submission
+    if (!claims[ck]) claims[ck] = { status:'claimed', agent:agent };
+    claims[ck].verified = true;
+    claims[ck].verified_ts = Date.now();
+  }
+
+  try { localStorage.setItem('claims_' + slug, JSON.stringify(claims)); } catch(e) {}
+
+  // Sync to GistSync
+  if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+    GistSync.saveClaim(month, agent, 'birthday_gift', debtorCode, claims[ck]).catch(()=>{});
+  }
+
+  // Re-render
+  renderBdayAudit();
+}
+
 function toggleBdayCard(el) {
   var ns = el.nextElementSibling;
   ns.style.display = ns.style.display === 'none' ? 'block' : 'none';
@@ -1144,10 +1172,23 @@ function renderBdayAudit() {
       var claim = claims[ck];
       var sent = claim && claim.status && claim.status !== 'pending_remove';
       var note = (claim && claim.note) ? claim.note : '—';
+      var claimedByMd = claim && claim.claimed_by_md;
+      var verifiedByMd = claim && claim.verified;
+      var statusBg = sent ? 'rgba(42,122,75,.2)' : 'rgba(200,56,26,.1)';
+      var statusColor = sent ? 'var(--green)' : 'var(--accent)';
+      var statusLabel = sent ? (claimedByMd ? '✓ MD Marked' : (verifiedByMd ? '✓ Verified' : '✓ Claimed')) : 'Pending';
+      var mdAction = sent ? 'verify' : 'mark';
+      var mdBtnLabel = sent ? '✓ Verify' : '+ Mark';
+      var mdBtnBg = sent ? 'rgba(42,122,75,.15)' : 'rgba(77,166,255,.15)';
+      var mdBtnBorder = sent ? 'rgba(42,122,75,.4)' : 'rgba(77,166,255,.4)';
+      var mdBtnColor = sent ? 'var(--green)' : 'var(--blue)';
       rows += '<tr style="border-bottom:1px solid rgba(255,255,255,.05);">'
         + '<td style="padding:5px 6px;color:var(--ink);">' + (d.name || d.code) + '</td>'
         + '<td style="padding:5px 6px;color:var(--ink3);">' + (d.phone || '—') + '</td>'
-        + '<td style="padding:5px 6px;text-align:center;"><span style="font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:4px;background:' + (sent?'rgba(42,122,75,.2)':'rgba(200,56,26,.1)') + ';color:' + (sent?'var(--green)':'var(--accent)') + ';">' + (sent ? '✓ Claimed' : 'Pending') + '</span></td>'
+        + '<td style="padding:5px 6px;text-align:center;">'
+        + '<span style="font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:4px;background:' + statusBg + ';color:' + statusColor + ';">' + statusLabel + '</span>'
+        + (verifiedByMd ? '' : ' <button onclick="mdBdayAction(\'' + agent + '\',\'' + d.code + '\',\'' + month + '\',\'' + mdAction + '\')" style="background:' + mdBtnBg + ';border:1px solid ' + mdBtnBorder + ';color:' + mdBtnColor + ';font-family:var(--mono);font-size:8px;padding:2px 7px;border-radius:4px;cursor:pointer;">' + mdBtnLabel + '</button>')
+        + '</td>'
         + '<td style="padding:5px 6px;color:var(--ink3);">' + note + '</td>'
         + '</tr>';
     });
