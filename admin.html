@@ -1170,6 +1170,7 @@ function switchTab(tab, el) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   el.classList.add('active');
+  if (tab === 'agents') renderAgentForms();
   if (tab === 'pins') renderPinForm();
   if (tab === 'monthly_targets') initMonthlyTargetsTab();
   if (tab === 'sync') {
