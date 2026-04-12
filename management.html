@@ -883,7 +883,7 @@ function renderMonthlySummary() {
   const pctCell = (p) => `<div style="font-family:var(--mono);font-size:10px;padding:7px 5px;text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);color:${pc(p)};font-weight:600;">${p.toFixed(1)}%</div>`;
   const cell = (val, color='var(--ink)') => `<div style="font-family:var(--mono);font-size:10px;padding:7px 5px;text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);color:${color};">${val}</div>`;
 
-  let teamT1Act=0,teamT1Tgt=0,teamMAct=0,teamMTgt=0,teamAct=0,teamPend=0,teamNewAcc=0,teamNewVip=0,teamNewSku=0,teamTxn=0;
+  let teamT1Act=0,teamT1Tgt=0,teamMAct=0,teamMTgt=0,teamAct=0,teamPend=0,teamNewAcc=0,teamNewVip=0,teamNewSku=0,teamTxn=0,teamEventAct=0,teamEventTgt=0,teamBdayAct=0,teamBdayTgt=0;
 
   agents.forEach((agent,idx) => {
     const sp  = D.agents[agent]?.sales_progression || {};
@@ -915,6 +915,7 @@ function renderMonthlySummary() {
 
     teamT1Act+=t1Act; teamT1Tgt+=t1Tgt; teamMAct+=maAct; teamMTgt+=maTgt;
     teamAct+=actv; teamPend+=pend; teamNewAcc+=newAcc; teamNewVip+=newVip; teamNewSku+=newSku;
+    teamEventAct+=eventAct??0; teamEventTgt+=eventTgt; teamBdayAct+=bdayAct; teamBdayTgt+=bdayTgt;
 
     html += `<div style="display:grid;grid-template-columns:${cols};${bg}" onclick="openDrill('${agent}')" style="cursor:pointer;">
       <div style="font-family:var(--mono);font-size:11px;font-weight:600;padding:7px 8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);color:var(--blue);cursor:pointer;">${agent}</div>
@@ -952,8 +953,8 @@ function renderMonthlySummary() {
     ${cell(teamNewAcc, '#2dd4bf')}
     ${cell(teamNewVip, 'var(--gold)')}
     ${cell(teamNewSku, 'var(--purple)')}
-    ${cell('—')}
-    ${cell('—')}
+    ${teamBdayTgt ? atCell(teamBdayAct, teamBdayTgt, '#f472b6') : cell(teamBdayAct||'—', '#f472b6')}
+    ${teamEventTgt ? atCell(teamEventAct, teamEventTgt, 'var(--purple)') : cell('—')}
     ${cell('—')}
   </div>`;
 
