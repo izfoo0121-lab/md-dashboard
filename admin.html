@@ -3310,7 +3310,7 @@ function renderMonthlyTargets() {
             onchange="mtSet('${month}','${agent}','kpi',null,'event_actual',this.value)"></div>
       </div>
 
-      ${CONFIG.agents[agent]?.is_newbie ? (() => {
+      ${(CONFIG.agents[agent]?.is_newbie || (kpi.newbie_tiers && kpi.newbie_tiers.length > 0)) ? (() => {
         const defTiers = CONFIG.agents[agent]?.newbie_tiers || [{threshold:1000,reward:1200},{threshold:1342,reward:1800},{threshold:1592,reward:2400}];
         const mtTiers = kpi.newbie_tiers || [];
         const tileHtml = [0,1,2].map(ti => {
