@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-14 12:37:16",
+  "generated_at": "2026-04-14 12:47:50",
   "current_month": "Apr 26",
   "working_days": {
     "date": "2026-04-14",
@@ -25182,7 +25182,8 @@
       "LWM"
     ],
     "scope": "GRP 2A",
-    "group_incentive": null
+    "group_incentive": null,
+    "agent_pins": {}
   },
   "campaign_summary": {
     "camp_lam_lwm_mar26": {
