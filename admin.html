@@ -2923,6 +2923,8 @@ function bulkMarkPreview() {
   const popup = document.createElement('div');
   popup.id = 'bulk-confirm-popup';
   popup.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  // Store data on popup element to avoid quote issues in onclick
+  popup._bulkData = { campId, month, agent, codes, remark };
   popup.innerHTML = `<div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:400px;width:100%;">
     <div style="font-family:var(--display);font-size:18px;margin-bottom:4px;">Confirm Bulk Mark</div>
     <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-bottom:16px;">Review before submitting</div>
@@ -2934,7 +2936,7 @@ function bulkMarkPreview() {
       <div style="color:var(--ink3);margin-top:8px;max-height:80px;overflow-y:auto;">${codes.slice(0,10).join(', ')}${codes.length>10?' ...and '+(codes.length-10)+' more':''}</div>
     </div>
     <div style="display:flex;gap:8px;">
-      <button onclick="bulkMarkDelivered('${campId}','${month}','${agent}',${JSON.stringify(codes)},${JSON.stringify(remark)});document.getElementById('bulk-confirm-popup').remove();"
+      <button onclick="var d=document.getElementById('bulk-confirm-popup')._bulkData;bulkMarkDelivered(d.campId,d.month,d.agent,d.codes,d.remark);document.getElementById('bulk-confirm-popup').remove();"
         style="flex:1;background:#1e5c35;border:1px solid #3ddc84;color:#3ddc84;font-family:var(--mono);font-size:11px;font-weight:700;padding:10px;border-radius:8px;cursor:pointer;">
         ✓ Confirm Mark
       </button>
