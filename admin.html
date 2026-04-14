@@ -2577,6 +2577,7 @@ async function loadCampaignsData() {
       CAMPAIGNS_DATA = { ...fromFile, campaigns: [...(fromFile.campaigns||[]), ...lsOnly] };
       localStorage.setItem('touro_campaigns', JSON.stringify(CAMPAIGNS_DATA));
       renderCampaignsList();
+      populateBulkCampSelect();
       return;
     }
   } catch(e) { /* fallback */ }
@@ -2586,6 +2587,7 @@ async function loadCampaignsData() {
 function saveCampaignsData() {
   localStorage.setItem('touro_campaigns', JSON.stringify(CAMPAIGNS_DATA));
   renderCampaignsList();
+  populateBulkCampSelect();
 }
 
 function renderCatRules(cats) {
