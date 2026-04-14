@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-14 13:19:45",
+  "generated_at": "2026-04-14 13:30:46",
   "current_month": "Apr 26",
   "working_days": {
     "date": "2026-04-14",
@@ -25568,6 +25568,25 @@
         "NMK": 113,
         "YI": 168,
         "SAM": 42
+      }
+    },
+    "camp_1776144457161": {
+      "name": "EVO APRIL FOC",
+      "type": "free_sample",
+      "agents": {
+        "BEN": 66,
+        "CJ": 60,
+        "JACKY": 66,
+        "JAMES": 51,
+        "KEAN": 68,
+        "KEE": 61,
+        "KF": 37,
+        "KI-MI": 112,
+        "KW": 41,
+        "LEON": 43,
+        "NMK": 31,
+        "YI": 89,
+        "SAM": 19
       }
     },
     "camp_1775396958014": {
