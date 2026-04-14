@@ -879,7 +879,16 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
 const ADMIN_PW = 'touro2026'; // Change this password
 
 function doLogin() {
-  // Password check temporarily disabled for review
+  const pw = document.getElementById('pw-input').value.trim();
+  const VALID = ['touro2026', 'accounts2026', 'super2026'];
+  if (!VALID.includes(pw)) {
+    const inp = document.getElementById('pw-input');
+    inp.style.borderColor = 'var(--accent)';
+    inp.placeholder = 'Wrong password — try again';
+    inp.value = '';
+    setTimeout(() => { inp.style.borderColor = ''; inp.placeholder = 'Password'; }, 1500);
+    return;
+  }
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('main-app').style.display = 'block';
   initAdmin();

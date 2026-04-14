@@ -345,10 +345,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 
     <!-- Numpad -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
-      ${[1,2,3,4,5,6,7,8,9,'','0','⌫'].map(k =>
-        k === '' ? '<div></div>' :
-        `<button class="pin-btn" onclick="pinPress('${k}')">${k}</button>`
-      ).join('')}
+      <button class="pin-btn" onclick="pinPress('1')">1</button>
+      <button class="pin-btn" onclick="pinPress('2')">2</button>
+      <button class="pin-btn" onclick="pinPress('3')">3</button>
+      <button class="pin-btn" onclick="pinPress('4')">4</button>
+      <button class="pin-btn" onclick="pinPress('5')">5</button>
+      <button class="pin-btn" onclick="pinPress('6')">6</button>
+      <button class="pin-btn" onclick="pinPress('7')">7</button>
+      <button class="pin-btn" onclick="pinPress('8')">8</button>
+      <button class="pin-btn" onclick="pinPress('9')">9</button>
+      <div></div>
+      <button class="pin-btn" onclick="pinPress('0')">0</button>
+      <button class="pin-btn" onclick="pinPress('⌫')">⌫</button>
     </div>
   </div>
 </div>
@@ -659,15 +667,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
 
 <!-- ── Campaigns View ── -->
 <div id="view-camps" class="view">
-  <!-- Campaign type filter -->
-  <div id="camps-filter-bar" style="display:none;padding:10px 14px 4px;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;white-space:nowrap;">
-    <span style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-right:8px;">Filter:</span>
-    <button onclick="setCampFilter('all',this)" class="filter-chip active">ALL</button>
-    <button onclick="setCampFilter('promotion',this)" class="filter-chip">📢 PROMO</button>
-    <button onclick="setCampFilter('foc_sample',this)" class="filter-chip">🎁 FOC</button>
-    <button onclick="setCampFilter('festive_gift',this)" class="filter-chip">🧧 FESTIVE</button>
-    <button onclick="setCampFilter('birthday_gift',this)" class="filter-chip">🎂 BIRTHDAY</button>
-  </div>
+  <!-- Campaign type filter removed - redundant with per-camp sections -->
   <div id="camps-content">
     <div style="text-align:center;padding:30px;font-family:var(--mono);font-size:11px;color:var(--muted);">Select an agent to view campaigns</div>
   </div>
@@ -2596,7 +2596,35 @@ function getCampStatuses() {
 }
 
 function getCampStatus(campId, debtorCode) {
-  return getCampStatuses()[`${campId}_${debtorCode}`] || null;
+  // Check camp_status_ (legacy) first
+  const fromStatus = getCampStatuses()[`${campId}_${debtorCode}`];
+  if (fromStatus) return fromStatus;
+  // Also check camp_claim_ keys (GistSync format)
+  const month = DATA?.current_month || '';
+  const slug  = month.replace(' ','').toLowerCase();
+  const claimKey = `camp_claim_${slug}_${currentAgent}_${campId}_${debtorCode}`;
+  const raw = localStorage.getItem(claimKey);
+  if (raw) {
+    try {
+      const v = JSON.parse(raw);
+      if (v && v.status && v.status !== 'pending_remove') {
+        return { status: 'delivered', remark: v.remark || '', ts: v.ts };
+      }
+    } catch(e) {}
+  }
+  // Check GistSync claims object
+  const claimsRaw = localStorage.getItem('claims_' + slug);
+  if (claimsRaw) {
+    try {
+      const claims = JSON.parse(claimsRaw);
+      const gk = `${campId}_${currentAgent}_${debtorCode}`;
+      const gc = claims[gk];
+      if (gc && gc.status && gc.status !== 'pending_remove') {
+        return { status: 'delivered', remark: gc.remark || '', ts: gc.ts };
+      }
+    } catch(e) {}
+  }
+  return null;
 }
 
 function setCampStatus(campId, debtorCode, status) {
@@ -2736,9 +2764,7 @@ function renderCamps() {
   const el = document.getElementById('camps-content');
   if (!el || !currentAgent || !DATA) return;
 
-  // Show filter bar
-  const fb = document.getElementById('camps-filter-bar');
-  if (fb) fb.style.display = 'block';
+
 
   const debtors  = DATA.agents[currentAgent]?.debtor_cards?.debtors || [];
   const statuses = getCampStatuses();
@@ -2783,6 +2809,8 @@ function renderCamps() {
           description: 'VIP debtors with birthday this month',
           deadline: '',
         };
+        const bdaySlug = (DATA.current_month||'').replace(' ','').toLowerCase();
+        const bdayClaims = (() => { try { return JSON.parse(localStorage.getItem('claims_'+bdaySlug)||'{}'); } catch(e){return{};} })();
         agentBdayDebtors.forEach(bd => {
           const fullDebtor = debtors.find(d => d.debtor_code === bd.code) || {
             debtor_code: bd.code,
@@ -2790,7 +2818,14 @@ function renderCamps() {
             phone: bd.phone,
             debtor_type: bd.type,
           };
-          const vs = statuses[`${bdayId}_${bd.code}`];
+          // Check GistSync claims AND localStorage bday key
+          const claimKey = `birthday_gift_${currentAgent}_${bd.code}`;
+          const gistClaim = bdayClaims[claimKey];
+          const localKey  = `bday_gift_${currentAgent}_${bd.code}_${bdaySlug}`;
+          const localSent = localStorage.getItem(localKey) === '1';
+          const sent = (gistClaim && gistClaim.status && gistClaim.status !== 'pending_remove') || localSent;
+          const vs = sent ? { status: 'delivered', remark: gistClaim?.note || 'Gift sent' } 
+                          : (statuses[`${bdayId}_${bd.code}`] || null);
           campMap[bdayId].debtors.push({ ...fullDebtor, visit_status: vs });
         });
       }
