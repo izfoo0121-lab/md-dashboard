@@ -406,7 +406,7 @@ def calc_sales_progression(df, targets, agents, cur_month):
 
 # ── Module 2: Brand Commission ────────────────────────────────────────────────
 
-def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_config):
+def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_config, debtor_df=None):
     """
     Per agent per brand:
       Criteria 1 — Penetration: debtors with 0 purchases in prev 3 months, buys this month
@@ -530,6 +530,19 @@ def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_con
             non_buyers = all_agent_debtors - prev_buyers
             non_buyer_count = len(non_buyers)
 
+            # Build buyers list for drill-down (new penetrations this month)
+            buyers_list = []
+            for dcode in sorted(new_penetrations):
+                buyer_rows = ctn_rows[ctn_rows["debtor_code"] == dcode]
+                buyer_ctn = round(float(buyer_rows["qty_ctn"].sum()), 2)
+                # Get debtor name from debtor_df
+                dname = dcode
+                if debtor_df is not None and not debtor_df.empty:
+                    match = debtor_df[debtor_df.iloc[:,0].astype(str).str.strip() == str(dcode).strip()]
+                    if not match.empty and len(match.columns) > 1:
+                        dname = str(match.iloc[0,1]) if pd.notnull(match.iloc[0,1]) else dcode
+                buyers_list.append({"code": dcode, "name": dname, "ctn": buyer_ctn})
+
             result[agent][brand] = {
                 "penetration": {
                     "count":    penetration_count,
@@ -551,6 +564,7 @@ def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_con
                 "non_buyers":     non_buyer_count,
                 "cur_buyers":     len(cur_buyers),
                 "new_penetrations": penetration_count,
+                "buyers":         buyers_list,
             }
 
     return result
@@ -2560,7 +2574,7 @@ def main(override_month=None, fast=False):
 
     # ── Run modules ─────────────────────────────────────────────────
     sales_prog  = calc_sales_progression(df, targets, agents, cur_month)
-    brand_comm  = calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_config)
+    brand_comm  = calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_config, debtor_df)
 
     # ── Auto-calculate penetration targets from non-buyer counts ─────────────
     targets = save_penetration_snapshot(brand_comm, targets, cur_month)
@@ -2629,6 +2643,7 @@ def main(override_month=None, fast=False):
             "inhouse_codes":      targets.get("inhouse_codes", DEFAULT_INHOUSE_CODES),
             "scope":              SCOPE_AREA,
             "group_incentive":    targets.get("team", {}).get("incentive", None),
+            "agent_pins":         targets.get("agent_pins", {}),
         }
     }
 
@@ -2645,7 +2660,21 @@ def main(override_month=None, fast=False):
             "inherit_from_month": ag_cfg.get("inherit_from_month", None),
         }
 
-    # ── Write JSON ──────────────────────────────────────────────────
+    # ── Build campaign summary per agent (before stripping debtors) ──
+    camp_summary = {}
+    for agent, ag_data in output["agents"].items():
+        debtors = ag_data.get("debtor_cards", {}).get("debtors", [])
+        for d in debtors:
+            for c in d.get("campaigns", []):
+                cid = c["id"]
+                if cid not in camp_summary:
+                    camp_summary[cid] = {"name": c["name"], "type": c.get("type","other"), "agents": {}}
+                if agent not in camp_summary[cid]["agents"]:
+                    camp_summary[cid]["agents"][agent] = 0
+                camp_summary[cid]["agents"][agent] += 1
+    output["campaign_summary"] = camp_summary
+
+    # ── Write JSON (full — dashboard_data.json keeps full debtor lists for agent dashboard) ──
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, indent=2, default=str)
 
