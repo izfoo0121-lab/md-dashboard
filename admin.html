@@ -661,9 +661,13 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
             style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--ink);font-family:var(--body);font-size:12px;padding:9px 10px;box-sizing:border-box;">
         </div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-          <button onclick="bulkMarkDelivered()"
+          <button onclick="bulkMarkPreview()"
             style="background:#1e5c35;border:1px solid #3ddc84;color:#3ddc84;font-family:var(--mono);font-size:11px;font-weight:700;padding:10px 20px;border-radius:8px;cursor:pointer;">
             ✓ BULK MARK DELIVERED
+          </button>
+          <button onclick="bulkUndo()"
+            style="background:rgba(200,56,26,.15);border:1px solid rgba(200,56,26,.4);color:#c8381a;font-family:var(--mono);font-size:11px;font-weight:700;padding:10px 20px;border-radius:8px;cursor:pointer;">
+            ↩ BULK UNDO
           </button>
           <div id="bulk-result" style="font-family:var(--mono);font-size:10px;color:var(--ink3);"></div>
         </div>
@@ -2884,7 +2888,7 @@ function populateBulkCampSelect() {
   });
 }
 
-function bulkMarkDelivered() {
+function bulkMarkPreview() {
   const campId   = document.getElementById('bulk-camp-select')?.value;
   const month    = document.getElementById('bulk-month-select')?.value;
   const agent    = document.getElementById('bulk-agent-select')?.value;
@@ -2892,27 +2896,58 @@ function bulkMarkDelivered() {
   const remark   = document.getElementById('bulk-remark')?.value || 'Bulk import';
   const resultEl = document.getElementById('bulk-result');
 
-  if (!campId) { resultEl.textContent = '⚠ Select a campaign first'; resultEl.style.color = 'var(--red)'; return; }
-  if (!month)  { resultEl.textContent = '⚠ Select a month'; resultEl.style.color = 'var(--red)'; return; }
-  if (!raw.trim()) { resultEl.textContent = '⚠ Paste debtor codes first'; resultEl.style.color = 'var(--red)'; return; }
+  if (!campId) { resultEl.textContent = '⚠ Select a campaign first'; resultEl.style.color = 'var(--accent)'; return; }
+  if (!month)  { resultEl.textContent = '⚠ Select a month'; resultEl.style.color = 'var(--accent)'; return; }
+  if (!raw.trim()) { resultEl.textContent = '⚠ Paste debtor codes first'; resultEl.style.color = 'var(--accent)'; return; }
 
-  // Parse codes — split by newline, comma, semicolon
-  const codes = raw.split(/[\n,;]+/).map(c => c.trim()).filter(Boolean);
+  const codes = raw.split(/[
+,;]+/).map(c => c.trim()).filter(Boolean);
   if (!codes.length) { resultEl.textContent = '⚠ No valid codes found'; return; }
 
+  const campName = CAMPAIGNS_DATA.campaigns.find(c=>c.id===campId)?.name || campId;
+  const AGENTS   = agent ? [agent] : ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','YI'];
+
+  // Show confirmation popup
+  const popup = document.createElement('div');
+  popup.id = 'bulk-confirm-popup';
+  popup.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  popup.innerHTML = `<div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:400px;width:100%;">
+    <div style="font-family:var(--display);font-size:18px;margin-bottom:4px;">Confirm Bulk Mark</div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-bottom:16px;">Review before submitting</div>
+    <div style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:16px;font-family:var(--mono);font-size:10px;">
+      <div style="margin-bottom:6px;">📢 <b style="color:var(--blue);">${campName}</b></div>
+      <div style="margin-bottom:4px;">📅 Month: <b>${month}</b></div>
+      <div style="margin-bottom:4px;">👤 Agent: <b>${agent || 'All agents'}</b></div>
+      <div style="margin-bottom:4px;">📦 Codes: <b style="color:var(--green);">${codes.length} debtors</b></div>
+      <div style="color:var(--ink3);margin-top:8px;max-height:80px;overflow-y:auto;">${codes.slice(0,10).join(', ')}${codes.length>10?' ...and '+(codes.length-10)+' more':''}</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="bulkMarkDelivered('${campId}','${month}','${agent}',${JSON.stringify(codes)},${JSON.stringify(remark)});document.getElementById('bulk-confirm-popup').remove();"
+        style="flex:1;background:#1e5c35;border:1px solid #3ddc84;color:#3ddc84;font-family:var(--mono);font-size:11px;font-weight:700;padding:10px;border-radius:8px;cursor:pointer;">
+        ✓ Confirm Mark
+      </button>
+      <button onclick="document.getElementById('bulk-confirm-popup').remove();"
+        style="flex:1;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--ink3);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;cursor:pointer;">
+        Cancel
+      </button>
+    </div>
+  </div>`;
+  document.body.appendChild(popup);
+}
+
+function bulkMarkDelivered(campId, month, agent, codes, remark) {
+  const resultEl = document.getElementById('bulk-result');
   const now = new Date();
   const ts  = now.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) + ' ' + now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
   const monthSlug = month.replace(' ', '');
-
-  let count = 0;
   const AGENTS = agent ? [agent] : ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','YI'];
 
+  let count = 0;
   codes.forEach(code => {
     AGENTS.forEach(ag => {
       const key = `camp_claim_${monthSlug}_${ag}_${campId}_${code}`;
-      // Only set if not already claimed
       if (!localStorage.getItem(key)) {
-        localStorage.setItem(key, JSON.stringify({ ts, remark, count: 1, bulk: true }));
+        localStorage.setItem(key, JSON.stringify({ ts, remark, count: 1, bulk: true, status: 'delivered' }));
         count++;
       }
     });
@@ -2920,9 +2955,40 @@ function bulkMarkDelivered() {
 
   resultEl.style.color = '#3ddc84';
   resultEl.textContent = `✓ Marked ${count} entries delivered (${codes.length} codes × ${AGENTS.length} agent${AGENTS.length>1?'s':''})`;
-
-  // Clear textarea
   document.getElementById('bulk-debtor-codes').value = '';
+}
+
+function bulkUndo() {
+  const campId   = document.getElementById('bulk-camp-select')?.value;
+  const month    = document.getElementById('bulk-month-select')?.value;
+  const agent    = document.getElementById('bulk-agent-select')?.value;
+  const raw      = document.getElementById('bulk-debtor-codes')?.value || '';
+  const resultEl = document.getElementById('bulk-result');
+
+  if (!campId) { resultEl.textContent = '⚠ Select a campaign first'; resultEl.style.color = 'var(--accent)'; return; }
+  if (!month)  { resultEl.textContent = '⚠ Select a month'; resultEl.style.color = 'var(--accent)'; return; }
+  if (!raw.trim()) { resultEl.textContent = '⚠ Paste debtor codes first'; resultEl.style.color = 'var(--accent)'; return; }
+
+  const codes = raw.split(/[
+,;]+/).map(c => c.trim()).filter(Boolean);
+  const monthSlug = month.replace(' ', '');
+  const AGENTS = agent ? [agent] : ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','YI'];
+
+  let removed = 0;
+  codes.forEach(code => {
+    AGENTS.forEach(ag => {
+      const key = `camp_claim_${monthSlug}_${ag}_${campId}_${code}`;
+      if (localStorage.getItem(key)) {
+        localStorage.removeItem(key);
+        removed++;
+      }
+    });
+  });
+
+  resultEl.style.color = removed ? 'var(--orange)' : 'var(--ink3)';
+  resultEl.textContent = removed
+    ? `↩ Removed ${removed} entries for ${codes.length} codes`
+    : '⚠ No matching entries found to undo';
 }
 
 function saveCampaignsJSON() {
