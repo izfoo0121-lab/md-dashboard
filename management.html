@@ -246,6 +246,12 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
       <div id="bday-audit-list"></div>
     </div>
 
+    <!-- 0c. MD Approvals -->
+    <div id="md-approvals-section" style="display:none;">
+      <div class="sec-lbl no-border" style="color:var(--orange);">✅ Pending MD Approval</div>
+      <div id="md-approvals-list"></div>
+    </div>
+
     <!-- 1. Team Sales -->
     <div class="sec-lbl no-border">📊 Team Sales Progress</div>
     <div class="overall-card">
@@ -741,6 +747,7 @@ function renderOverview() {
 
   renderPendingActions();
   renderBdayAudit();
+  renderMdApprovals();
   renderAnnualProgress();
   renderLeaderboard();
   renderGroupBrands();
@@ -1120,6 +1127,44 @@ function mdBdayAction(agent, debtorCode, month, action) {
   // Re-expand previously open cards
   var bodies = document.querySelectorAll('#bday-audit-list .bday-card-body');
   expanded.forEach(function(i) { if (bodies[i]) bodies[i].style.display = 'block'; });
+
+  // Auto-sync birthday counts to KPI scores via GistSync
+  syncBirthdayKPI(month, slug, claims);
+}
+
+function syncBirthdayKPI(month, slug, claims) {
+  if (typeof GistSync === 'undefined' || !GistSync.isConfigured()) return;
+  const D = CURRENT_DATA || DATA;
+  if (!D) return;
+
+  // Count claimed per agent
+  const countPerAgent = {};
+  Object.entries(claims).forEach(function(e) {
+    const key = e[0]; const val = e[1];
+    if (!key.startsWith('birthday_gift_')) return;
+    if (!val || !val.status || val.status === 'pending_remove') return;
+    const parts = key.split('_');
+    const ag = parts[2];
+    countPerAgent[ag] = (countPerAgent[ag] || 0) + 1;
+  });
+
+  // Load existing KPI scores and update birthday_campaign
+  var existing = {};
+  try {
+    const raw = localStorage.getItem('md_scores_' + slug);
+    if (raw) existing = JSON.parse(raw);
+  } catch(e) {}
+
+  if (!existing[month]) existing[month] = {};
+  Object.entries(countPerAgent).forEach(function(e) {
+    const ag = e[0]; const cnt = e[1];
+    if (!existing[month][ag]) existing[month][ag] = {};
+    existing[month][ag].birthday_campaign = cnt;
+  });
+
+  // Save to localStorage and GistSync
+  try { localStorage.setItem('md_scores_' + slug, JSON.stringify(existing[month])); } catch(e) {}
+  GistSync.saveKPIScores(month, existing[month]).catch(function(){});
 }
 
 function toggleBdayCard(el) {
@@ -1408,32 +1453,95 @@ function renderBrandSkuStatus() {
     </thead>
     <tbody>`;
 
+  // Totals accumulators
+  const totals = {};
+  BRANDS.forEach(b => { totals[b] = { nonBuyers: 0, target: 0, actual: 0 }; });
+
   agents.forEach((agent, ri) => {
     const bc  = D.agents[agent]?.brand_commission || {};
     const bg  = ri % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.02)';
     html += `<tr style="background:${bg};border-bottom:1px solid rgba(255,255,255,.05);">
-      <td style="padding:8px 12px;font-weight:600;white-space:nowrap;">${agent}</td>
+      <td style="padding:8px 12px;font-weight:600;white-space:nowrap;color:var(--blue);cursor:pointer;" onclick="openDrill('${agent}')">${agent}</td>
       ${BRANDS.map(brand => {
         const bdata      = bc[brand] || {};
-        const nonBuyers  = bdata.non_buyers ?? '—';
+        const nonBuyers  = bdata.non_buyers ?? 0;
         const target     = bdata.penetration?.target ?? '—';
         const actual     = bdata.penetration?.count ?? 0;
         const hit        = bdata.penetration?.hit;
         const pctVal     = target !== '—' && target > 0 ? Math.min(actual/target*100,100) : 0;
         const col        = hit ? '#2a7a4b' : pctVal >= 60 ? '#c8860a' : '#c8381a';
         const isAuto     = AUTO_B.has(brand);
+        // Accumulate totals
+        if (typeof nonBuyers === 'number') totals[brand].nonBuyers += nonBuyers;
+        if (target !== '—') totals[brand].target += (target || 0);
+        totals[brand].actual += actual;
 
         return `<td style="padding:6px 8px;text-align:center;border-left:1px solid rgba(255,255,255,.06);color:#c8381a;">${nonBuyers}</td>
           <td style="padding:6px 8px;text-align:center;${isAuto?'color:var(--blue)':'color:var(--ink3);'};">${target}</td>
-          <td style="padding:6px 8px;text-align:center;font-weight:600;color:${col};">
+          <td style="padding:6px 8px;text-align:center;font-weight:600;color:${col};cursor:pointer;"
+            onclick="showBrandBuyersDrill('${agent}','${brand}',event)">
             ${actual}${hit?'✓':''}
           </td>`;
       }).join('')}
     </tr>`;
   });
 
+  // TOTAL row
+  html += `<tr style="background:rgba(77,166,255,.08);border-top:2px solid rgba(77,166,255,.3);">
+    <td style="padding:8px 12px;font-weight:700;font-family:var(--mono);font-size:10px;color:#4da6ff;">TOTAL</td>
+    ${BRANDS.map(brand => {
+      const t = totals[brand];
+      const col = t.target > 0 && t.actual >= t.target ? '#2a7a4b' : 'var(--ink)';
+      return `<td style="padding:6px 8px;text-align:center;border-left:1px solid rgba(255,255,255,.06);color:#c8381a;font-weight:700;">${t.nonBuyers}</td>
+        <td style="padding:6px 8px;text-align:center;color:var(--blue);font-weight:700;">${t.target}</td>
+        <td style="padding:6px 8px;text-align:center;font-weight:700;color:${col};">${t.actual}</td>`;
+    }).join('')}
+  </tr>`;
+
   html += `</tbody></table>`;
   el.innerHTML = html;
+}
+
+// ── Brand Buyers Drill-down ───────────────────────────────────────────────
+function showBrandBuyersDrill(agent, brand, evt) {
+  if (evt) evt.stopPropagation();
+  const D = CURRENT_DATA || DATA;
+  const bc = D.agents[agent]?.brand_commission?.[brand] || {};
+  const buyers = bc.buyers || [];
+
+  // Remove existing popup
+  var old = document.getElementById('brand-drill-popup');
+  if (old) old.remove();
+
+  if (!buyers.length) {
+    alert(agent + ' — ' + brand + ': No buyers this month');
+    return;
+  }
+
+  var popup = document.createElement('div');
+  popup.id = 'brand-drill-popup';
+  popup.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  popup.innerHTML = '<div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:420px;width:100%;max-height:80vh;overflow-y:auto;">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">'
+    + '<div><div style="font-family:var(--display);font-size:18px;color:var(--blue);">' + agent + ' — ' + brand + '</div>'
+    + '<div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">' + buyers.length + ' buyers this month</div></div>'
+    + '<button onclick="document.getElementById('brand-drill-popup').remove()" style="background:none;border:none;color:var(--ink3);font-size:18px;cursor:pointer;">✕</button>'
+    + '</div>'
+    + '<table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px;">'
+    + '<tr style="color:var(--ink3);border-bottom:1px solid var(--border);">'
+    + '<th style="text-align:left;padding:4px 6px;">Debtor</th>'
+    + '<th style="text-align:right;padding:4px 6px;">CTN</th>'
+    + '</tr>'
+    + buyers.map(function(b) {
+        return '<tr style="border-bottom:1px solid rgba(255,255,255,.05);">'
+          + '<td style="padding:5px 6px;color:var(--ink);">' + (b.name || b.code || b) + '</td>'
+          + '<td style="padding:5px 6px;text-align:right;color:var(--green);">' + (b.ctn || '—') + '</td>'
+          + '</tr>';
+      }).join('')
+    + '</table></div>';
+
+  document.body.appendChild(popup);
+  popup.addEventListener('click', function(e) { if (e.target === popup) popup.remove(); });
 }
 
 // ── Debtor Summary ──
@@ -1513,6 +1621,160 @@ function renderNewbieProgress(){
     </div>`;
   }).join('');}
 
+// ── MD Approvals ───────────────────────────────────────────────────────────
+function renderMdApprovals() {
+  const D = CURRENT_DATA || DATA;
+  const sec = document.getElementById('md-approvals-section');
+  const el  = document.getElementById('md-approvals-list');
+  if (!sec || !el || !D) return;
+
+  const month = D.current_month || '';
+  const slug  = month.replace(' ','').toLowerCase();
+
+  // Load all claims from localStorage
+  var claims = {};
+  try { claims = JSON.parse(localStorage.getItem('claims_' + slug) || '{}'); } catch(e) {}
+
+  // Find pending verifications (event submissions + campaign totals needing approval)
+  var pending = [];
+
+  // 1. Event submissions pending verification
+  Object.entries(claims).forEach(function(e) {
+    var key = e[0]; var val = e[1];
+    if (key.startsWith('kpi_event_') && val && val.status === 'pending_verification') {
+      pending.push({
+        type: 'event',
+        agent: val.agent,
+        count: val.count,
+        ts: val.ts,
+        key: key,
+        label: 'Event / PSR Count',
+        color: 'var(--purple)',
+        icon: '📊'
+      });
+    }
+  });
+
+  // 2. Campaign claims needing MD approval (count per agent per campaign)
+  var campCounts = {};
+  for (var i = 0; i < localStorage.length; i++) {
+    var k = localStorage.key(i);
+    if (!k || !k.startsWith('camp_claim_' + slug + '_')) continue;
+    var v = {}; try { v = JSON.parse(localStorage.getItem(k)||'{}'); } catch(e) {}
+    if (!v.status || v.status === 'pending_remove') continue;
+    // key: camp_claim_{slug}_{agent}_{campId}_{debtorCode}
+    var rest = k.slice(('camp_claim_' + slug + '_').length);
+    var agentEnd = rest.indexOf('_');
+    if (agentEnd < 0) continue;
+    var agent = rest.slice(0, agentEnd);
+    var campRest = rest.slice(agentEnd + 1);
+    // find campId
+    var campId = campRest.split('_')[0] + '_' + campRest.split('_')[1];
+    var campKey = agent + '_' + campId;
+    if (!campCounts[campKey]) campCounts[campKey] = { agent: agent, campId: campId, count: 0, approved: false };
+    campCounts[campKey].count++;
+    if (v.md_approved) campCounts[campKey].approved = true;
+  }
+
+  Object.values(campCounts).forEach(function(c) {
+    if (!c.approved) {
+      // Get campaign name from DATA
+      var campName = c.campId;
+      Object.values(D.agents||{}).forEach(function(agData) {
+        (agData.debtor_cards?.debtors||[]).forEach(function(d) {
+          (d.campaigns||[]).forEach(function(camp) {
+            if (camp.id === c.campId) campName = camp.name;
+          });
+        });
+      });
+      pending.push({
+        type: 'campaign',
+        agent: c.agent,
+        count: c.count,
+        campId: c.campId,
+        campName: campName,
+        label: campName,
+        color: 'var(--blue)',
+        icon: '📦',
+        key: c.agent + '_' + c.campId
+      });
+    }
+  });
+
+  if (!pending.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+
+  var html = '<div style="display:flex;flex-direction:column;gap:8px;">';
+  pending.forEach(function(p) {
+    var inputId = 'approval_input_' + p.key.replace(/[^a-z0-9]/gi,'_');
+    var dataStr = JSON.stringify(p).replace(/'/g, '&#39;');
+    html += '<div style="background:var(--card);border:1px solid var(--border);border-left:4px solid ' + p.color + ';border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">';
+    html += '<span style="font-size:16px;">' + p.icon + '</span>';
+    html += '<div style="flex:1;min-width:120px;">';
+    html += '<div style="font-family:var(--display);font-size:14px;letter-spacing:.05em;color:var(--blue);">' + p.agent + '</div>';
+    html += '<div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">' + p.label + '</div>';
+    html += '</div>';
+    html += '<div style="font-family:var(--display);font-size:20px;color:' + p.color + ';">' + p.count + '</div>';
+    html += '<div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">submitted</div>';
+    html += '<input id="' + inputId + '" type="number" min="0" placeholder="' + p.count + '" style="width:60px;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:12px;padding:4px 8px;border-radius:6px;text-align:center;">';
+    html += '<button onclick="mdApprove('' + p.type + '','' + p.agent + '','' + (p.campId||'') + '','' + month + '','' + slug + '',document.getElementById('' + inputId + '').value||' + p.count + ',' + p.count + ')" style="background:rgba(42,122,75,.2);border:1px solid rgba(42,122,75,.4);color:var(--green);font-family:var(--mono);font-size:9px;padding:4px 12px;border-radius:6px;cursor:pointer;">✓ Approve</button>';
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function mdApprove(type, agent, campId, month, slug, finalCount, agentCount) {
+  finalCount = parseInt(finalCount) || parseInt(agentCount) || 0;
+  var claims = {};
+  try { claims = JSON.parse(localStorage.getItem('claims_' + slug) || '{}'); } catch(e) {}
+
+  if (type === 'event') {
+    // Mark event as approved and save to KPI scores
+    var eventKey = 'kpi_event_' + agent;
+    if (claims[eventKey]) {
+      claims[eventKey].status = 'approved';
+      claims[eventKey].md_count = finalCount;
+      claims[eventKey].approved_ts = Date.now();
+    }
+    // Save to KPI scores
+    var kpiScores = {};
+    try { kpiScores = JSON.parse(localStorage.getItem('md_scores_' + slug) || '{}'); } catch(e) {}
+    if (!kpiScores[agent]) kpiScores[agent] = {};
+    kpiScores[agent].event = finalCount;
+    localStorage.setItem('md_scores_' + slug, JSON.stringify(kpiScores));
+    if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+      GistSync.saveKPIScores(month, kpiScores).catch(()=>{});
+      GistSync.saveClaim(month, agent, 'kpi_event', agent, claims[eventKey]||{status:'approved',count:finalCount}).catch(()=>{});
+    }
+  } else if (type === 'campaign') {
+    // Mark all claims for this agent+campaign as approved
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (!k || !k.startsWith('camp_claim_' + slug + '_' + agent + '_' + campId)) continue;
+      var v = {}; try { v = JSON.parse(localStorage.getItem(k)||'{}'); } catch(e) {}
+      v.md_approved = true;
+      v.md_approved_ts = Date.now();
+      v.md_count = finalCount;
+      localStorage.setItem(k, JSON.stringify(v));
+    }
+    // Save campaign count to KPI scores
+    var kpiScores2 = {};
+    try { kpiScores2 = JSON.parse(localStorage.getItem('md_scores_' + slug) || '{}'); } catch(e) {}
+    if (!kpiScores2[agent]) kpiScores2[agent] = {};
+    kpiScores2[agent]['campaign_' + campId] = finalCount;
+    localStorage.setItem('md_scores_' + slug, JSON.stringify(kpiScores2));
+    if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+      GistSync.saveKPIScores(month, kpiScores2).catch(()=>{});
+    }
+  }
+
+  try { localStorage.setItem('claims_' + slug, JSON.stringify(claims)); } catch(e) {}
+  renderMdApprovals();
+  renderMonthlySummary();
+}
+
+
 // ── Campaign Progress ──────────────────────────────────────────────────────
 function renderCampaignsMgmt() {
   const D = CURRENT_DATA || DATA;
@@ -1524,16 +1786,14 @@ function renderCampaignsMgmt() {
   const slug  = month.replace(' ','').toLowerCase();
   const agents = Object.keys(D.agents || {});
 
-  // Build campaign summary from debtor cards
+  // Use pre-built campaign_summary from JSON (no need to iterate debtors)
   const campSummary = {};
-  agents.forEach(function(agent) {
-    const debtors = D.agents[agent]?.debtor_cards?.debtors || [];
-    debtors.forEach(function(d) {
-      (d.campaigns || []).forEach(function(c) {
-        if (!campSummary[c.id]) campSummary[c.id] = { name: c.name, type: c.type, agents: {} };
-        if (!campSummary[c.id].agents[agent]) campSummary[c.id].agents[agent] = { total: 0, claimed: 0 };
-        campSummary[c.id].agents[agent].total++;
-      });
+  const prebuilt = D.campaign_summary || {};
+  Object.entries(prebuilt).forEach(function(e) {
+    var cid = e[0]; var cv = e[1];
+    campSummary[cid] = { name: cv.name, type: cv.type, agents: {} };
+    Object.entries(cv.agents || {}).forEach(function(ae) {
+      campSummary[cid].agents[ae[0]] = { total: ae[1], claimed: 0 };
     });
   });
 
