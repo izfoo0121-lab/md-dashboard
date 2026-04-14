@@ -1,0 +1,796 @@
+{
+  "_description": "Annual targets 2026 — GRP 2A Miracle",
+  "_year": 2026,
+  "group_summary": {
+    "t1": {
+      "monthly": {
+        "January": 49600.0,
+        "February": 46000.0,
+        "March": 48700.0,
+        "April": 50600.0,
+        "May": 52600.0,
+        "June": 54600.0,
+        "July": 53600.0,
+        "August": 52600.0,
+        "September": 52100.0,
+        "October": 51600.0,
+        "November": 48200.0,
+        "December": 48200.0
+      },
+      "total": 612000.0
+    },
+    "ga": {
+      "monthly": {
+        "January": 2820.0,
+        "February": 2820.0,
+        "March": 2770.0,
+        "April": 2880.0,
+        "May": 2990.0,
+        "June": 3110.0,
+        "July": 3050.0,
+        "August": 2990.0,
+        "September": 2970.0,
+        "October": 2930.0,
+        "November": 2740.0,
+        "December": 2730.0
+      },
+      "total": 34800.0
+    },
+    "ma": {
+      "monthly": {
+        "January": 15350.0,
+        "February": 15350.0,
+        "March": 15050.0,
+        "April": 15650.0,
+        "May": 16260.0,
+        "June": 16880.0,
+        "July": 16570.0,
+        "August": 16260.0,
+        "September": 16120.0,
+        "October": 15940.0,
+        "November": 14890.0,
+        "December": 14880.0
+      },
+      "total": 189200.0
+    },
+    "grand_total": {
+      "monthly": {
+        "January": 67770.0,
+        "February": 64170.0,
+        "March": 66520.0,
+        "April": 69130.0,
+        "May": 71850.0,
+        "June": 74590.0,
+        "July": 73220.0,
+        "August": 71850.0,
+        "September": 71190.0,
+        "October": 70470.0,
+        "November": 65830.0,
+        "December": 65810.0
+      },
+      "total": 836000.0
+    }
+  },
+  "working_days": {
+    "January": 26,
+    "February": 19,
+    "March": 22,
+    "April": 26,
+    "May": 24,
+    "June": 26,
+    "July": 27,
+    "August": 25,
+    "September": 25,
+    "October": 27,
+    "November": 26,
+    "December": 26
+  },
+  "t1": {
+    "BEN": {
+      "pct": 1.98,
+      "monthly": {
+        "January": 983.34,
+        "February": 911.97,
+        "March": 911.97,
+        "April": 1003.17,
+        "May": 1042.82,
+        "June": 1082.47,
+        "July": 1062.65,
+        "August": 1042.82,
+        "September": 1032.91,
+        "October": 1022.99,
+        "November": 955.59,
+        "December": 955.59
+      },
+      "total": 12061.82
+    },
+    "CJ": {
+      "pct": 8.77,
+      "monthly": {
+        "January": 4350.61,
+        "February": 4034.84,
+        "March": 4034.84,
+        "April": 4438.33,
+        "May": 4613.75,
+        "June": 4789.18,
+        "July": 4701.47,
+        "August": 4613.75,
+        "September": 4569.9,
+        "October": 4526.04,
+        "November": 4227.81,
+        "December": 4227.81
+      },
+      "total": 53365.16
+    },
+    "JACKY": {
+      "pct": 9.32,
+      "monthly": {
+        "January": 4622.09,
+        "February": 4286.62,
+        "March": 4286.62,
+        "April": 4715.28,
+        "May": 4901.65,
+        "June": 5088.03,
+        "July": 4994.84,
+        "August": 4901.65,
+        "September": 4855.06,
+        "October": 4808.46,
+        "November": 4491.63,
+        "December": 4491.63
+      },
+      "total": 56695.15
+    },
+    "JAMES": {
+      "pct": 7.26,
+      "monthly": {
+        "January": 3602.17,
+        "February": 3340.72,
+        "March": 3340.72,
+        "April": 3674.79,
+        "May": 3820.04,
+        "June": 3965.29,
+        "July": 3892.67,
+        "August": 3820.04,
+        "September": 3783.73,
+        "October": 3747.42,
+        "November": 3500.49,
+        "December": 3500.49
+      },
+      "total": 44184.66
+    },
+    "JW": {
+      "pct": 1.85,
+      "monthly": {
+        "January": 916.95,
+        "February": 850.4,
+        "March": 850.4,
+        "April": 935.44,
+        "May": 972.41,
+        "June": 1009.39,
+        "July": 990.9,
+        "August": 972.41,
+        "September": 963.17,
+        "October": 953.93,
+        "November": 891.07,
+        "December": 891.07
+      },
+      "total": 11247.45
+    },
+    "KEAN": {
+      "pct": 7.7,
+      "monthly": {
+        "January": 3819.63,
+        "February": 3542.4,
+        "March": 3542.4,
+        "April": 3896.64,
+        "May": 4050.66,
+        "June": 4204.67,
+        "July": 4127.67,
+        "August": 4050.66,
+        "September": 4012.15,
+        "October": 3973.65,
+        "November": 3711.82,
+        "December": 3711.82
+      },
+      "total": 46852.09
+    },
+    "KEE": {
+      "pct": 10.09,
+      "monthly": {
+        "January": 5005.15,
+        "February": 4641.88,
+        "March": 4641.88,
+        "April": 5106.07,
+        "May": 5307.89,
+        "June": 5509.71,
+        "July": 5408.8,
+        "August": 5307.89,
+        "September": 5257.43,
+        "October": 5206.98,
+        "November": 4863.88,
+        "December": 4863.88
+      },
+      "total": 61393.88
+    },
+    "KF": {
+      "pct": 12.58,
+      "monthly": {
+        "January": 6241.29,
+        "February": 5788.29,
+        "March": 5788.29,
+        "April": 6367.12,
+        "May": 6618.78,
+        "June": 6870.45,
+        "July": 6744.62,
+        "August": 6618.78,
+        "September": 6555.87,
+        "October": 6492.95,
+        "November": 6065.12,
+        "December": 6065.12
+      },
+      "total": 76556.42
+    },
+    "KI-MI": {
+      "pct": 2.57,
+      "monthly": {
+        "January": 1275.97,
+        "February": 1183.36,
+        "March": 1183.36,
+        "April": 1301.69,
+        "May": 1353.14,
+        "June": 1404.59,
+        "July": 1378.87,
+        "August": 1353.14,
+        "September": 1340.28,
+        "October": 1327.42,
+        "November": 1239.95,
+        "December": 1239.95
+      },
+      "total": 15651.17
+    },
+    "KW": {
+      "pct": 13.81,
+      "monthly": {
+        "January": 6851.33,
+        "February": 6354.06,
+        "March": 6354.06,
+        "April": 6989.47,
+        "May": 7265.73,
+        "June": 7541.99,
+        "July": 7403.86,
+        "August": 7265.73,
+        "September": 7196.66,
+        "October": 7127.6,
+        "November": 6657.95,
+        "December": 6657.95
+      },
+      "total": 84039.36
+    },
+    "LEON": {
+      "pct": 8.45,
+      "monthly": {
+        "January": 4189.48,
+        "February": 3885.41,
+        "March": 3885.41,
+        "April": 4273.95,
+        "May": 4442.88,
+        "June": 4611.81,
+        "July": 4527.34,
+        "August": 4442.88,
+        "September": 4400.64,
+        "October": 4358.41,
+        "November": 4071.23,
+        "December": 4071.23
+      },
+      "total": 51388.71
+    },
+    "NMK": {
+      "pct": 9.27,
+      "monthly": {
+        "January": 4598.79,
+        "February": 4265.01,
+        "March": 4265.01,
+        "April": 4691.51,
+        "May": 4876.94,
+        "June": 5062.38,
+        "July": 4969.66,
+        "August": 4876.94,
+        "September": 4830.58,
+        "October": 4784.22,
+        "November": 4468.99,
+        "December": 4468.99
+      },
+      "total": 56409.35
+    },
+    "YI": {
+      "pct": 6.34,
+      "monthly": {
+        "January": 3143.19,
+        "February": 2915.06,
+        "March": 2915.06,
+        "April": 3206.56,
+        "May": 3333.3,
+        "June": 3460.05,
+        "July": 3396.67,
+        "August": 3333.3,
+        "September": 3301.62,
+        "October": 3269.93,
+        "November": 3054.47,
+        "December": 3054.47
+      },
+      "total": 38554.79
+    }
+  },
+  "ga": {
+    "BEN": {
+      "pct": 0.75,
+      "monthly": {
+        "January": 21.15,
+        "February": 21.15,
+        "March": 20.77,
+        "April": 21.6,
+        "May": 22.43,
+        "June": 23.32,
+        "July": 22.88,
+        "August": 22.43,
+        "September": 22.27,
+        "October": 21.97,
+        "November": 20.55,
+        "December": 20.47
+      },
+      "total": 261.0
+    },
+    "CJ": {
+      "pct": 12.06,
+      "monthly": {
+        "January": 340.06,
+        "February": 340.06,
+        "March": 334.03,
+        "April": 347.3,
+        "May": 360.56,
+        "June": 375.03,
+        "July": 367.8,
+        "August": 360.56,
+        "September": 358.15,
+        "October": 353.33,
+        "November": 330.41,
+        "December": 329.21
+      },
+      "total": 4196.49
+    },
+    "JACKY": {
+      "pct": 0,
+      "monthly": {
+        "January": 0,
+        "February": 0,
+        "March": 0,
+        "April": 0,
+        "May": 0,
+        "June": 0,
+        "July": 0,
+        "August": 0,
+        "September": 0,
+        "October": 0,
+        "November": 0,
+        "December": 0
+      },
+      "total": 0
+    },
+    "JAMES": {
+      "pct": 0,
+      "monthly": {
+        "January": 0,
+        "February": 0,
+        "March": 0,
+        "April": 0,
+        "May": 0,
+        "June": 0,
+        "July": 0,
+        "August": 0,
+        "September": 0,
+        "October": 0,
+        "November": 0,
+        "December": 0
+      },
+      "total": 0
+    },
+    "JW": {
+      "pct": 0,
+      "monthly": {
+        "January": 0,
+        "February": 0,
+        "March": 0,
+        "April": 0,
+        "May": 0,
+        "June": 0,
+        "July": 0,
+        "August": 0,
+        "September": 0,
+        "October": 0,
+        "November": 0,
+        "December": 0
+      },
+      "total": 0
+    },
+    "KEAN": {
+      "pct": 10.55,
+      "monthly": {
+        "January": 297.47,
+        "February": 297.47,
+        "March": 292.2,
+        "April": 303.8,
+        "May": 315.41,
+        "June": 328.06,
+        "July": 321.73,
+        "August": 315.41,
+        "September": 313.3,
+        "October": 309.08,
+        "November": 289.03,
+        "December": 287.98
+      },
+      "total": 3670.94
+    },
+    "KEE": {
+      "pct": 3.65,
+      "monthly": {
+        "January": 102.94,
+        "February": 102.94,
+        "March": 101.11,
+        "April": 105.13,
+        "May": 109.14,
+        "June": 113.52,
+        "July": 111.33,
+        "August": 109.14,
+        "September": 108.41,
+        "October": 106.95,
+        "November": 100.02,
+        "December": 99.65
+      },
+      "total": 1270.3
+    },
+    "KF": {
+      "pct": 7.29,
+      "monthly": {
+        "January": 205.45,
+        "February": 205.45,
+        "March": 201.81,
+        "April": 209.82,
+        "May": 217.83,
+        "June": 226.58,
+        "July": 222.21,
+        "August": 217.83,
+        "September": 216.38,
+        "October": 213.46,
+        "November": 199.62,
+        "December": 198.89
+      },
+      "total": 2535.33
+    },
+    "KI-MI": {
+      "pct": 0,
+      "monthly": {
+        "January": 0,
+        "February": 0,
+        "March": 0,
+        "April": 0,
+        "May": 0,
+        "June": 0,
+        "July": 0,
+        "August": 0,
+        "September": 0,
+        "October": 0,
+        "November": 0,
+        "December": 0
+      },
+      "total": 0
+    },
+    "KW": {
+      "pct": 20.15,
+      "monthly": {
+        "January": 568.19,
+        "February": 568.19,
+        "March": 558.12,
+        "April": 580.28,
+        "May": 602.45,
+        "June": 626.63,
+        "July": 614.54,
+        "August": 602.45,
+        "September": 598.42,
+        "October": 590.36,
+        "November": 552.08,
+        "December": 550.06
+      },
+      "total": 7011.76
+    },
+    "LEON": {
+      "pct": 44.11,
+      "monthly": {
+        "January": 1243.82,
+        "February": 1243.82,
+        "March": 1221.77,
+        "April": 1270.29,
+        "May": 1318.8,
+        "June": 1371.73,
+        "July": 1345.27,
+        "August": 1318.8,
+        "September": 1309.98,
+        "October": 1292.34,
+        "November": 1208.54,
+        "December": 1204.13
+      },
+      "total": 15349.29
+    },
+    "NMK": {
+      "pct": 1.22,
+      "monthly": {
+        "January": 34.4,
+        "February": 34.4,
+        "March": 33.79,
+        "April": 35.14,
+        "May": 36.48,
+        "June": 37.94,
+        "July": 37.21,
+        "August": 36.48,
+        "September": 36.23,
+        "October": 35.75,
+        "November": 33.43,
+        "December": 33.31
+      },
+      "total": 424.56
+    },
+    "YI": {
+      "pct": 0.23,
+      "monthly": {
+        "January": 6.42,
+        "February": 6.42,
+        "March": 6.31,
+        "April": 6.56,
+        "May": 6.81,
+        "June": 7.08,
+        "July": 6.94,
+        "August": 6.81,
+        "September": 6.76,
+        "October": 6.67,
+        "November": 6.24,
+        "December": 6.22
+      },
+      "total": 79.23
+    }
+  },
+  "ma": {
+    "BEN": {
+      "pct": 1.5,
+      "monthly": {
+        "January": 230.25,
+        "February": 230.25,
+        "March": 225.75,
+        "April": 234.75,
+        "May": 243.9,
+        "June": 253.2,
+        "July": 248.55,
+        "August": 243.9,
+        "September": 241.8,
+        "October": 239.1,
+        "November": 223.35,
+        "December": 223.2
+      },
+      "total": 2838.0
+    },
+    "CJ": {
+      "pct": 29.75,
+      "monthly": {
+        "January": 4566.62,
+        "February": 4566.62,
+        "March": 4477.38,
+        "April": 4655.88,
+        "May": 4837.35,
+        "June": 5021.8,
+        "July": 4929.57,
+        "August": 4837.35,
+        "September": 4795.7,
+        "October": 4742.15,
+        "November": 4429.77,
+        "December": 4426.8
+      },
+      "total": 56287.0
+    },
+    "JACKY": {
+      "pct": 2.5,
+      "monthly": {
+        "January": 383.75,
+        "February": 383.75,
+        "March": 376.25,
+        "April": 391.25,
+        "May": 406.5,
+        "June": 422.0,
+        "July": 414.25,
+        "August": 406.5,
+        "September": 403.0,
+        "October": 398.5,
+        "November": 372.25,
+        "December": 372.0
+      },
+      "total": 4730.0
+    },
+    "JAMES": {
+      "pct": 1.0,
+      "monthly": {
+        "January": 153.5,
+        "February": 153.5,
+        "March": 150.5,
+        "April": 156.5,
+        "May": 162.6,
+        "June": 168.8,
+        "July": 165.7,
+        "August": 162.6,
+        "September": 161.2,
+        "October": 159.4,
+        "November": 148.9,
+        "December": 148.8
+      },
+      "total": 1892.0
+    },
+    "JW": {
+      "pct": 1.0,
+      "monthly": {
+        "January": 153.5,
+        "February": 153.5,
+        "March": 150.5,
+        "April": 156.5,
+        "May": 162.6,
+        "June": 168.8,
+        "July": 165.7,
+        "August": 162.6,
+        "September": 161.2,
+        "October": 159.4,
+        "November": 148.9,
+        "December": 148.8
+      },
+      "total": 1892.0
+    },
+    "KEAN": {
+      "pct": 15.75,
+      "monthly": {
+        "January": 2417.62,
+        "February": 2417.62,
+        "March": 2370.38,
+        "April": 2464.88,
+        "May": 2560.95,
+        "June": 2658.6,
+        "July": 2609.78,
+        "August": 2560.95,
+        "September": 2538.9,
+        "October": 2510.55,
+        "November": 2345.18,
+        "December": 2343.6
+      },
+      "total": 29799.0
+    },
+    "KEE": {
+      "pct": 13.5,
+      "monthly": {
+        "January": 2072.25,
+        "February": 2072.25,
+        "March": 2031.75,
+        "April": 2112.75,
+        "May": 2195.1,
+        "June": 2278.8,
+        "July": 2236.95,
+        "August": 2195.1,
+        "September": 2176.2,
+        "October": 2151.9,
+        "November": 2010.15,
+        "December": 2008.8
+      },
+      "total": 25542.0
+    },
+    "KF": {
+      "pct": 1.0,
+      "monthly": {
+        "January": 153.5,
+        "February": 153.5,
+        "March": 150.5,
+        "April": 156.5,
+        "May": 162.6,
+        "June": 168.8,
+        "July": 165.7,
+        "August": 162.6,
+        "September": 161.2,
+        "October": 159.4,
+        "November": 148.9,
+        "December": 148.8
+      },
+      "total": 1892.0
+    },
+    "KI-MI": {
+      "pct": 4.75,
+      "monthly": {
+        "January": 729.12,
+        "February": 729.12,
+        "March": 714.88,
+        "April": 743.38,
+        "May": 772.35,
+        "June": 801.8,
+        "July": 787.08,
+        "August": 772.35,
+        "September": 765.7,
+        "October": 757.15,
+        "November": 707.27,
+        "December": 706.8
+      },
+      "total": 8987.0
+    },
+    "KW": {
+      "pct": 14.0,
+      "monthly": {
+        "January": 2149.0,
+        "February": 2149.0,
+        "March": 2107.0,
+        "April": 2191.0,
+        "May": 2276.4,
+        "June": 2363.2,
+        "July": 2319.8,
+        "August": 2276.4,
+        "September": 2256.8,
+        "October": 2231.6,
+        "November": 2084.6,
+        "December": 2083.2
+      },
+      "total": 26488.0
+    },
+    "LEON": {
+      "pct": 13.0,
+      "monthly": {
+        "January": 1995.5,
+        "February": 1995.5,
+        "March": 1956.5,
+        "April": 2034.5,
+        "May": 2113.8,
+        "June": 2194.4,
+        "July": 2154.1,
+        "August": 2113.8,
+        "September": 2095.6,
+        "October": 2072.2,
+        "November": 1935.7,
+        "December": 1934.4
+      },
+      "total": 24596.0
+    },
+    "NMK": {
+      "pct": 1.0,
+      "monthly": {
+        "January": 153.5,
+        "February": 153.5,
+        "March": 150.5,
+        "April": 156.5,
+        "May": 162.6,
+        "June": 168.8,
+        "July": 165.7,
+        "August": 162.6,
+        "September": 161.2,
+        "October": 159.4,
+        "November": 148.9,
+        "December": 148.8
+      },
+      "total": 1892.0
+    },
+    "YI": {
+      "pct": 1.25,
+      "monthly": {
+        "January": 191.88,
+        "February": 191.88,
+        "March": 188.12,
+        "April": 195.62,
+        "May": 203.25,
+        "June": 211.0,
+        "July": 207.12,
+        "August": 203.25,
+        "September": 201.5,
+        "October": 199.25,
+        "November": 186.12,
+        "December": 186.0
+      },
+      "total": 2365.0
+    }
+  }
+}
