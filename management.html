@@ -1726,7 +1726,7 @@ function renderMdApprovals() {
     html += '<div style="font-family:var(--display);font-size:20px;color:' + p.color + ';">' + p.count + '</div>';
     html += '<div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">submitted</div>';
     html += '<input id="' + inputId + '" type="number" min="0" placeholder="' + p.count + '" style="width:60px;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:12px;padding:4px 8px;border-radius:6px;text-align:center;">';
-    html += '<button onclick="mdApprove('' + p.type + '','' + p.agent + '','' + (p.campId||'') + '','' + month + '','' + slug + '',document.getElementById('' + inputId + '').value||' + p.count + ',' + p.count + ')" style="background:rgba(42,122,75,.2);border:1px solid rgba(42,122,75,.4);color:var(--green);font-family:var(--mono);font-size:9px;padding:4px 12px;border-radius:6px;cursor:pointer;">✓ Approve</button>';
+    html += '<button onclick="mdApprove(\'' + p.type + '\',\'' + p.agent + '\',\'' + (p.campId||'') + '\',\'' + month + '\',\'' + slug + '\',document.getElementById(\'' + inputId + '\').value||' + p.count + ',' + p.count + ')" style="background:rgba(42,122,75,.2);border:1px solid rgba(42,122,75,.4);color:var(--green);font-family:var(--mono);font-size:9px;padding:4px 12px;border-radius:6px;cursor:pointer;">✓ Approve</button>';
     html += '</div>';
   });
   html += '</div>';
@@ -2265,4 +2265,3 @@ function exportYearExcel() {
 </script>
 </body>
 </html>
- 

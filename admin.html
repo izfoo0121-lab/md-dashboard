@@ -2913,8 +2913,7 @@ function bulkMarkPreview() {
   if (!month)  { resultEl.textContent = '⚠ Select a month'; resultEl.style.color = 'var(--accent)'; return; }
   if (!raw.trim()) { resultEl.textContent = '⚠ Paste debtor codes first'; resultEl.style.color = 'var(--accent)'; return; }
 
-  const codes = raw.split(/[
-,;]+/).map(c => c.trim()).filter(Boolean);
+  const codes = raw.split(/[\r\n,;]+/).map(c => c.trim()).filter(Boolean);
   if (!codes.length) { resultEl.textContent = '⚠ No valid codes found'; return; }
 
   const campName = CAMPAIGNS_DATA.campaigns.find(c=>c.id===campId)?.name || campId;
@@ -2987,8 +2986,7 @@ function bulkUndo() {
   if (!month)  { resultEl.textContent = '⚠ Select a month'; resultEl.style.color = 'var(--accent)'; return; }
   if (!raw.trim()) { resultEl.textContent = '⚠ Paste debtor codes first'; resultEl.style.color = 'var(--accent)'; return; }
 
-  const codes = raw.split(/[
-,;]+/).map(c => c.trim()).filter(Boolean);
+  const codes = raw.split(/[\r\n,;]+/).map(c => c.trim()).filter(Boolean);
   const monthSlug = month.replace(' ', '');
   const AGENTS = agent ? [agent] : ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','YI'];
 
@@ -3529,4 +3527,3 @@ function showToast(msg) {
 </script>
 </body>
 </html>
- 
