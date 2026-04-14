@@ -2601,6 +2601,10 @@ function saveCampaignsData() {
   localStorage.setItem('touro_campaigns', JSON.stringify(CAMPAIGNS_DATA));
   renderCampaignsList();
   populateBulkCampSelect();
+  // Sync campaign list to GistSync so all devices see updated campaigns
+  if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+    GistSync.push('campaigns_config', CAMPAIGNS_DATA).catch(()=>{});
+  }
 }
 
 function renderCatRules(cats) {

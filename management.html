@@ -1090,6 +1090,15 @@ function loadFlags() {
 }
 function saveFlags(f) {
   try { localStorage.setItem(FLAGS_KEY, JSON.stringify(f)); } catch(e) {}
+  const D = CURRENT_DATA || DATA;
+  const month = D?.current_month || '';
+  if (typeof GistSync !== 'undefined' && GistSync.isConfigured() && month) {
+    const agents = Object.keys(D?.agents || {});
+    agents.forEach(function(ag) {
+      const agFlags = (f && f[ag]) ? f[ag] : {};
+      if (Object.keys(agFlags).length) GistSync.saveFlags(month, ag, agFlags).catch(()=>{});
+    });
+  }
 }
 function mdBdayAction(agent, debtorCode, month, action) {
   const slug = month.replace(' ','').toLowerCase();
@@ -1748,15 +1757,22 @@ function mdApprove(type, agent, campId, month, slug, finalCount, agentCount) {
       GistSync.saveClaim(month, agent, 'kpi_event', agent, claims[eventKey]||{status:'approved',count:finalCount}).catch(()=>{});
     }
   } else if (type === 'campaign') {
-    // Mark all claims for this agent+campaign as approved
+    // Mark all claims for this agent+campaign as approved + sync to GistSync
+    var approvalData = { md_approved: true, md_approved_ts: Date.now(), md_count: finalCount };
     for (var i = 0; i < localStorage.length; i++) {
       var k = localStorage.key(i);
       if (!k || !k.startsWith('camp_claim_' + slug + '_' + agent + '_' + campId)) continue;
       var v = {}; try { v = JSON.parse(localStorage.getItem(k)||'{}'); } catch(e) {}
-      v.md_approved = true;
-      v.md_approved_ts = Date.now();
-      v.md_count = finalCount;
+      Object.assign(v, approvalData);
       localStorage.setItem(k, JSON.stringify(v));
+      // Sync each approved claim to GistSync
+      if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+        var kparts = k.replace('camp_claim_' + slug + '_' + agent + '_', '');
+        var kpIdx = kparts.indexOf('_');
+        var cId = kparts.slice(0, kpIdx);
+        var dCode = kparts.slice(kpIdx + 1);
+        GistSync.saveClaim(month, agent, cId, dCode, v).catch(()=>{});
+      }
     }
     // Save campaign count to KPI scores
     var kpiScores2 = {};

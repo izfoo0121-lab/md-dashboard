@@ -291,7 +291,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
   <span style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;">Go to:</span>
   <a href="https://izfoo0121-lab.github.io/md-dashboard/management.html" style="font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;padding:3px 8px;border:1px solid rgba(77,166,255,.3);border-radius:6px;white-space:nowrap;">📊 Management</a>
   <a href="https://izfoo0121-lab.github.io/md-dashboard/admin.html" style="font-family:var(--mono);font-size:9px;color:var(--accent);text-decoration:none;padding:3px 8px;border:1px solid rgba(240,192,64,.3);border-radius:6px;white-space:nowrap;">⚙ Admin</a>
-  <a href="https://izfoo0121-lab.github.io/md-dashboard/campaigns.html" style="font-family:var(--mono);font-size:9px;color:var(--green);text-decoration:none;padding:3px 8px;border:1px solid rgba(61,220,132,.3);border-radius:6px;white-space:nowrap;">📢 Campaigns</a>
+  <button onclick="switchView('camps',document.querySelector('.nav-item[onclick*=camps]'))" style="font-family:var(--mono);font-size:9px;color:var(--green);background:none;text-decoration:none;padding:3px 8px;border:1px solid rgba(61,220,132,.3);border-radius:6px;white-space:nowrap;cursor:pointer;">📢 Campaigns</button>
   <a href="https://izfoo0121-lab.github.io/md-dashboard/campaign_audit.html" style="font-family:var(--mono);font-size:9px;color:#a78bfa;text-decoration:none;padding:3px 8px;border:1px solid rgba(167,139,250,.3);border-radius:6px;white-space:nowrap;">🔍 Audit</a>
   <a href="https://izfoo0121-lab.github.io/md-dashboard/accounts.html" style="font-family:var(--mono);font-size:9px;color:#ff8c5a;text-decoration:none;padding:3px 8px;border:1px solid rgba(200,90,26,.3);border-radius:6px;white-space:nowrap;">🏦 Accounts</a>
 </div>
@@ -667,7 +667,15 @@ window.addEventListener('DOMContentLoaded', ()=>{
 
 <!-- ── Campaigns View ── -->
 <div id="view-camps" class="view">
-  <!-- Campaign type filter removed - redundant with per-camp sections -->
+  <!-- Campaign type filter -->
+  <div id="camps-filter-bar" style="display:none;padding:10px 14px 4px;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;white-space:nowrap;">
+    <span style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-right:8px;">Filter:</span>
+    <button onclick="setCampFilter('all',this)" class="filter-chip active">ALL</button>
+    <button onclick="setCampFilter('promotion',this)" class="filter-chip">📢 PROMO</button>
+    <button onclick="setCampFilter('foc_sample',this)" class="filter-chip">🎁 FOC</button>
+    <button onclick="setCampFilter('festive_gift',this)" class="filter-chip">🧧 FESTIVE</button>
+    <button onclick="setCampFilter('birthday_gift',this)" class="filter-chip">🎂 BIRTHDAY</button>
+  </div>
   <div id="camps-content">
     <div style="text-align:center;padding:30px;font-family:var(--mono);font-size:11px;color:var(--muted);">Select an agent to view campaigns</div>
   </div>
@@ -2766,6 +2774,10 @@ function renderCamps() {
 
 
 
+  // Show filter bar
+  const fb = document.getElementById('camps-filter-bar');
+  if (fb) fb.style.display = 'block';
+
   const debtors  = DATA.agents[currentAgent]?.debtor_cards?.debtors || [];
   const statuses = getCampStatuses();
 
@@ -3234,14 +3246,23 @@ function closeBdaySheet(e) {
 
 function saveBdayActual() {
   const val = parseInt(document.getElementById('bday-actual-input').value) || 0;
-  // Save to Streamlit storage (same pattern as event)
-  const key = `kpi_birthday_${currentAgent}`;
+  const month = DATA?.current_month || '';
+  const slug  = month.replace(' ','').toLowerCase();
+  // Save locally
   try {
     const stored = JSON.parse(localStorage.getItem('kpi_manual') || '{}');
     if (!stored[currentAgent]) stored[currentAgent] = {};
     stored[currentAgent].birthday_campaign = val;
     localStorage.setItem('kpi_manual', JSON.stringify(stored));
   } catch(e) {}
+  // Sync to GistSync KPI scores
+  if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+    const kpiScores = (() => { try { return JSON.parse(localStorage.getItem('md_scores_'+slug)||'{}'); } catch(e){return{};} })();
+    if (!kpiScores[currentAgent]) kpiScores[currentAgent] = {};
+    kpiScores[currentAgent].birthday_campaign = val;
+    localStorage.setItem('md_scores_'+slug, JSON.stringify(kpiScores));
+    GistSync.saveKPIScores(month, kpiScores).catch(()=>{});
+  }
   // Update local display
   if (DATA.agents[currentAgent]?.kpi?.items?.birthday_campaign) {
     DATA.agents[currentAgent].kpi.items.birthday_campaign.actual = val;
