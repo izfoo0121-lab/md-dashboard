@@ -354,7 +354,8 @@
         "non_personal": 49,
         "prev_inactive": 16,
         "month": "Mar 26"
-      }
+      },
+      "active": false
     },
     "KEAN": {
       "is_newbie": false,
@@ -771,6 +772,42 @@
         "prev_inactive": 82,
         "month": "Mar 26"
       }
+    },
+    "SAM": {
+      "is_newbie": false,
+      "active": true,
+      "sales_progression": {
+        "normal_t1": 778,
+        "normal_t2": 1028
+      },
+      "brand_commission": {
+        "iFACE": {
+          "penetration_target": 3,
+          "ctn_target": 7
+        },
+        "SUKUN": {
+          "penetration_target": 2,
+          "ctn_target": 130
+        },
+        "EVO": {
+          "penetration_target": 5,
+          "ctn_target": 100
+        },
+        "BISON": {
+          "penetration_target": 3,
+          "ctn_target": 86
+        },
+        "TR20": {
+          "penetration_target": 4,
+          "ctn_target": 5
+        },
+        "LAM+LWM": {
+          "penetration_target": 4,
+          "ctn_target": 5
+        }
+      },
+      "kpi_targets": {},
+      "kpi_overrides": {}
     }
   },
   "group_brand_config": {

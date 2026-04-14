@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-14 12:57:12",
+  "generated_at": "2026-04-14 13:19:45",
   "current_month": "Apr 26",
   "working_days": {
     "date": "2026-04-14",
@@ -8092,1043 +8092,6 @@
         "grand_total": 28.269,
         "max_total": 100.0,
         "grand_pct": 28.3,
-        "kpi_month": "Apr 26"
-      },
-      "inherited_from": null,
-      "inherit_from_month": null
-    },
-    "JW": {
-      "sales_progression": {
-        "normal_ctn": 90.0,
-        "ga_ctn": 0.0,
-        "ma_ctn": 0.0,
-        "total_canggih_ctn": 90.0,
-        "eightcom_paid_ctn": 0.0,
-        "eightcom_unpaid_ctn": 1.0,
-        "txn_count": 3,
-        "avg_txn_per_day": 0.2,
-        "elapsed_working_days": 12,
-        "month_labels": [
-          "Jan 26",
-          "Feb 26",
-          "Mar 26",
-          "Apr 26"
-        ],
-        "sku_trend": {
-          "CM-002": {
-            "Jan 26": {
-              "debtors": 14,
-              "ctn": 131.0
-            },
-            "Feb 26": {
-              "debtors": 17,
-              "ctn": 156.0
-            },
-            "Mar 26": {
-              "debtors": 22,
-              "ctn": 437.0
-            },
-            "Apr 26": {
-              "debtors": 1,
-              "ctn": 15.0
-            }
-          },
-          "EVO": {
-            "Jan 26": {
-              "debtors": 5,
-              "ctn": 126.0
-            },
-            "Feb 26": {
-              "debtors": 7,
-              "ctn": 145.0
-            },
-            "Mar 26": {
-              "debtors": 11,
-              "ctn": 80.0
-            },
-            "Apr 26": {
-              "debtors": 2,
-              "ctn": 29.0
-            }
-          },
-          "IMP-001": {
-            "Jan 26": {
-              "debtors": 2,
-              "ctn": 3.0
-            },
-            "Feb 26": {
-              "debtors": 2,
-              "ctn": 5.0
-            },
-            "Mar 26": {
-              "debtors": 2,
-              "ctn": 5.0
-            },
-            "Apr 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            }
-          },
-          "LF-002": {
-            "Jan 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            },
-            "Feb 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            },
-            "Mar 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            },
-            "Apr 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            }
-          },
-          "TR-002": {
-            "Jan 26": {
-              "debtors": 8,
-              "ctn": 97.0
-            },
-            "Feb 26": {
-              "debtors": 9,
-              "ctn": 129.0
-            },
-            "Mar 26": {
-              "debtors": 13,
-              "ctn": 189.0
-            },
-            "Apr 26": {
-              "debtors": 2,
-              "ctn": 29.0
-            }
-          },
-          "TR20": {
-            "Jan 26": {
-              "debtors": 1,
-              "ctn": 1.0
-            },
-            "Feb 26": {
-              "debtors": 1,
-              "ctn": 2.0
-            },
-            "Mar 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            },
-            "Apr 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            }
-          },
-          "SKNR": {
-            "Jan 26": {
-              "debtors": 18,
-              "ctn": 118.0
-            },
-            "Feb 26": {
-              "debtors": 14,
-              "ctn": 170.0
-            },
-            "Mar 26": {
-              "debtors": 19,
-              "ctn": 165.0
-            },
-            "Apr 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            }
-          },
-          "SKNW": {
-            "Jan 26": {
-              "debtors": 6,
-              "ctn": 15.0
-            },
-            "Feb 26": {
-              "debtors": 10,
-              "ctn": 34.0
-            },
-            "Mar 26": {
-              "debtors": 11,
-              "ctn": 61.0
-            },
-            "Apr 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            }
-          },
-          "IFACE B": {
-            "Jan 26": {
-              "debtors": 1,
-              "ctn": 3.0
-            },
-            "Feb 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            },
-            "Mar 26": {
-              "debtors": 2,
-              "ctn": 3.0
-            },
-            "Apr 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            }
-          },
-          "IFACE M": {
-            "Jan 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            },
-            "Feb 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            },
-            "Mar 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            },
-            "Apr 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            }
-          },
-          "IFACE R": {
-            "Jan 26": {
-              "debtors": 2,
-              "ctn": 4.0
-            },
-            "Feb 26": {
-              "debtors": 1,
-              "ctn": 1.0
-            },
-            "Mar 26": {
-              "debtors": 1,
-              "ctn": 22.0
-            },
-            "Apr 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            }
-          },
-          "IFACE DB": {
-            "Jan 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            },
-            "Feb 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            },
-            "Mar 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            },
-            "Apr 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            }
-          },
-          "BISON-G": {
-            "Jan 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            },
-            "Feb 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            },
-            "Mar 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            },
-            "Apr 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            }
-          },
-          "BISON-M": {
-            "Jan 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            },
-            "Feb 26": {
-              "debtors": 1,
-              "ctn": 2.0
-            },
-            "Mar 26": {
-              "debtors": 2,
-              "ctn": 2.0
-            },
-            "Apr 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            }
-          },
-          "BISON-R": {
-            "Jan 26": {
-              "debtors": 5,
-              "ctn": 33.0
-            },
-            "Feb 26": {
-              "debtors": 10,
-              "ctn": 164.0
-            },
-            "Mar 26": {
-              "debtors": 8,
-              "ctn": 70.0
-            },
-            "Apr 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            }
-          },
-          "LAM": {
-            "Jan 26": {
-              "debtors": 1,
-              "ctn": 4.0
-            },
-            "Feb 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            },
-            "Mar 26": {
-              "debtors": 3,
-              "ctn": 4.0
-            },
-            "Apr 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            }
-          },
-          "LWM": {
-            "Jan 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            },
-            "Feb 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            },
-            "Mar 26": {
-              "debtors": 4,
-              "ctn": 6.0
-            },
-            "Apr 26": {
-              "debtors": 0,
-              "ctn": 0.0
-            }
-          }
-        },
-        "active_by_month": {
-          "Jan 26": {
-            "debtors": 32,
-            "ctn": 651.0
-          },
-          "Feb 26": {
-            "debtors": 38,
-            "ctn": 1009.0
-          },
-          "Mar 26": {
-            "debtors": 53,
-            "ctn": 1287.0
-          },
-          "Apr 26": {
-            "debtors": 2,
-            "ctn": 90.0
-          }
-        },
-        "total_debtors_all": 73,
-        "tiers": {
-          "normal_t1": {
-            "target": 778.0408,
-            "actual": 90.0,
-            "gap": -688.04,
-            "pct": 11.6,
-            "color": "red"
-          },
-          "normal_t2": {
-            "target": 1028.0408,
-            "actual": 90.0,
-            "gap": -938.04,
-            "pct": 8.8,
-            "color": "red"
-          },
-          "ga": null,
-          "ma": {
-            "target": 153.8467,
-            "actual": 0.0,
-            "gap": -153.85,
-            "pct": 0.0,
-            "color": "red"
-          }
-        }
-      },
-      "brand_commission": {
-        "iFACE": {
-          "penetration": {
-            "count": 0,
-            "target": 0,
-            "hit": false,
-            "pct": null
-          },
-          "ctn": {
-            "sold": 0.0,
-            "target": 7,
-            "hit": false,
-            "gap": -7.0,
-            "pct": 0.0
-          },
-          "status": "none_hit",
-          "comm_earned": 0.0,
-          "both_hit": false,
-          "prev_buyers": 6,
-          "non_buyers": 68,
-          "cur_buyers": 0,
-          "new_penetrations": 0,
-          "buyers": []
-        },
-        "SUKUN": {
-          "penetration": {
-            "count": 0,
-            "target": 0,
-            "hit": false,
-            "pct": null
-          },
-          "ctn": {
-            "sold": 0.0,
-            "target": 130,
-            "hit": false,
-            "gap": -130.0,
-            "pct": 0.0
-          },
-          "status": "none_hit",
-          "comm_earned": 0.0,
-          "both_hit": false,
-          "prev_buyers": 35,
-          "non_buyers": 39,
-          "cur_buyers": 0,
-          "new_penetrations": 0,
-          "buyers": []
-        },
-        "EVO": {
-          "penetration": {
-            "count": 0,
-            "target": 5,
-            "hit": false,
-            "pct": 0.0
-          },
-          "ctn": {
-            "sold": 0.0,
-            "target": 100,
-            "hit": false,
-            "gap": -100.0,
-            "pct": 0.0
-          },
-          "status": "none_hit",
-          "comm_earned": 0.0,
-          "both_hit": false,
-          "prev_buyers": 14,
-          "non_buyers": 60,
-          "cur_buyers": 0,
-          "new_penetrations": 0,
-          "buyers": []
-        },
-        "BISON": {
-          "penetration": {
-            "count": 0,
-            "target": 4,
-            "hit": false,
-            "pct": 0.0
-          },
-          "ctn": {
-            "sold": 0.0,
-            "target": 86,
-            "hit": false,
-            "gap": -86.0,
-            "pct": 0.0
-          },
-          "status": "none_hit",
-          "comm_earned": 0.0,
-          "both_hit": false,
-          "prev_buyers": 14,
-          "non_buyers": 60,
-          "cur_buyers": 0,
-          "new_penetrations": 0,
-          "buyers": []
-        },
-        "TR20": {
-          "penetration": {
-            "count": 0,
-            "target": 0,
-            "hit": false,
-            "pct": null
-          },
-          "ctn": {
-            "sold": 0.0,
-            "target": 5,
-            "hit": false,
-            "gap": -5.0,
-            "pct": 0.0
-          },
-          "status": "none_hit",
-          "comm_earned": 0.0,
-          "both_hit": false,
-          "prev_buyers": 2,
-          "non_buyers": 72,
-          "cur_buyers": 0,
-          "new_penetrations": 0,
-          "buyers": []
-        },
-        "LAM+LWM": {
-          "penetration": {
-            "count": 0,
-            "target": 0,
-            "hit": false,
-            "pct": null
-          },
-          "ctn": {
-            "sold": 0.0,
-            "target": 18,
-            "hit": false,
-            "gap": -18.0,
-            "pct": 0.0
-          },
-          "status": "none_hit",
-          "comm_earned": 0.0,
-          "both_hit": false,
-          "prev_buyers": 4,
-          "non_buyers": 70,
-          "cur_buyers": 0,
-          "new_penetrations": 0,
-          "buyers": []
-        }
-      },
-      "newbie_scheme": null,
-      "aging": {
-        "canggih_paid_ctn": 4344.0,
-        "canggih_unpaid_ctn": 120.0,
-        "eightcom_paid_ctn": 226.0,
-        "eightcom_unpaid_ctn": 1.0,
-        "overdue_count": 0,
-        "overdue_invoices": [],
-        "all_unpaid_invoices": [
-          {
-            "doc_no": "IV00540-JW-hV1N",
-            "debtor_code": "300-YY043",
-            "company_name": "AZMI",
-            "invoice_date": "31/03/2026",
-            "days_outstanding": 14,
-            "qty_ctn": 30.0,
-            "item_code": "CM-002",
-            "overdue": false
-          },
-          {
-            "doc_no": "IV00540-JW-hV1N",
-            "debtor_code": "300-YY043",
-            "company_name": "AZMI",
-            "invoice_date": "31/03/2026",
-            "days_outstanding": 14,
-            "qty_ctn": 10.0,
-            "item_code": "CMX",
-            "overdue": false
-          },
-          {
-            "doc_no": "IV00540-JW-hV1N",
-            "debtor_code": "300-YY043",
-            "company_name": "AZMI",
-            "invoice_date": "31/03/2026",
-            "days_outstanding": 14,
-            "qty_ctn": 80.0,
-            "item_code": "TR-002",
-            "overdue": false
-          }
-        ],
-        "debtor_outstanding": [
-          {
-            "debtor_code": "300-YY043",
-            "company_name": "AZMI",
-            "total_ctn": 120.0,
-            "overdue_ctn": 0,
-            "invoice_count": 3,
-            "overdue_count": 0,
-            "oldest_days": 14,
-            "invoices": [
-              {
-                "doc_no": "IV00540-JW-hV1N",
-                "debtor_code": "300-YY043",
-                "company_name": "AZMI",
-                "invoice_date": "31/03/2026",
-                "days_outstanding": 14,
-                "qty_ctn": 30.0,
-                "item_code": "CM-002",
-                "overdue": false
-              },
-              {
-                "doc_no": "IV00540-JW-hV1N",
-                "debtor_code": "300-YY043",
-                "company_name": "AZMI",
-                "invoice_date": "31/03/2026",
-                "days_outstanding": 14,
-                "qty_ctn": 10.0,
-                "item_code": "CMX",
-                "overdue": false
-              },
-              {
-                "doc_no": "IV00540-JW-hV1N",
-                "debtor_code": "300-YY043",
-                "company_name": "AZMI",
-                "invoice_date": "31/03/2026",
-                "days_outstanding": 14,
-                "qty_ctn": 80.0,
-                "item_code": "TR-002",
-                "overdue": false
-              }
-            ]
-          }
-        ],
-        "outstanding_debtors": 1
-      },
-      "debtor_cards": {
-        "total_debtors": 40,
-        "active_count": 2,
-        "pending_count": 31,
-        "reactivation_count": 0,
-        "inactive_count": 6,
-        "activation_rate": 5.0,
-        "activation_base": 40,
-        "activation_active": 2,
-        "pending_activation": 6,
-        "total_new_sku": 0,
-        "new_accounts_count": 0,
-        "new_vip_count": 0,
-        "kpi_targets": {
-          "new_accounts": null,
-          "vip_count": 10,
-          "new_sku": 17,
-          "event": null,
-          "new_accounts_actual": null,
-          "vip_count_actual": null,
-          "event_actual": null,
-          "birthday_actual": null
-        }
-      },
-      "kpi": {
-        "items": {
-          "sales_normal_pct": {
-            "label": "销售 Normal %",
-            "section": "A",
-            "weight": 0.37,
-            "actual": 11.6,
-            "target": 100.0,
-            "score": 4.292,
-            "max_score": 37.0,
-            "pct": 11.6,
-            "source": "auto",
-            "excluded": false
-          },
-          "alt_channel_contact": {
-            "label": "Alt Sales - Contact <2 days",
-            "section": "B",
-            "weight": 0.02,
-            "actual": 0.0,
-            "target": 2.0,
-            "score": 0.0,
-            "max_score": 2.0,
-            "pct": 0.0,
-            "source": "manual_mgmt",
-            "excluded": false
-          },
-          "alt_channel_deliver": {
-            "label": "Alt Sales - 送货 <7 days",
-            "section": "B",
-            "weight": 0.03,
-            "actual": 0.0,
-            "target": 3.0,
-            "score": 0.0,
-            "max_score": 3.0,
-            "pct": 0.0,
-            "source": "manual_mgmt",
-            "excluded": false
-          },
-          "event": {
-            "label": "做Event / PSR",
-            "section": "B",
-            "weight": 0.03,
-            "actual": 0,
-            "target": 16.0,
-            "score": 0.0,
-            "max_score": 3.0,
-            "pct": 0.0,
-            "source": "manual_agent",
-            "excluded": false
-          },
-          "new_accounts": {
-            "label": "开户口 (新户口)",
-            "section": "B",
-            "weight": 0.03,
-            "actual": 0,
-            "target": 5.0,
-            "score": 0.0,
-            "max_score": 3.0,
-            "pct": 0.0,
-            "source": "auto",
-            "excluded": false
-          },
-          "vip_count": {
-            "label": "VIP 招聘",
-            "section": "B",
-            "weight": 0.01,
-            "actual": 3,
-            "target": 3.0,
-            "score": 1.0,
-            "max_score": 1.0,
-            "pct": 100.0,
-            "source": "auto",
-            "excluded": false
-          },
-          "reactivation": {
-            "label": "激活户口",
-            "section": "B",
-            "weight": 0.03,
-            "actual": 0,
-            "target": 5.0,
-            "score": 0.0,
-            "max_score": 3.0,
-            "pct": 0.0,
-            "source": "auto",
-            "excluded": false
-          },
-          "new_sku": {
-            "label": "加SKU数量",
-            "section": "B",
-            "weight": 0.03,
-            "actual": 0,
-            "target": 17.0,
-            "score": 0.0,
-            "max_score": 3.0,
-            "pct": 0.0,
-            "source": "auto",
-            "excluded": false
-          },
-          "activation_rate": {
-            "label": "持续光顾率",
-            "section": "B",
-            "weight": 0.03,
-            "actual": 5.0,
-            "target": 80.0,
-            "score": 0.188,
-            "max_score": 3.0,
-            "pct": 6.2,
-            "source": "auto",
-            "excluded": false
-          },
-          "iface_pen": {
-            "label": "iFACE Penetration",
-            "section": "B",
-            "weight": 0.015,
-            "actual": 0,
-            "target": 1,
-            "score": 0.0,
-            "max_score": 1.5,
-            "pct": 0.0,
-            "source": "auto",
-            "excluded": false
-          },
-          "iface_target": {
-            "label": "iFACE CTN Target",
-            "section": "B",
-            "weight": 0.015,
-            "actual": 0,
-            "target": 7,
-            "score": 0.0,
-            "max_score": 1.5,
-            "pct": 0.0,
-            "source": "auto",
-            "excluded": false
-          },
-          "sukun_pen": {
-            "label": "SUKUN Penetration",
-            "section": "B",
-            "weight": 0.015,
-            "actual": 0,
-            "target": 1,
-            "score": 0.0,
-            "max_score": 1.5,
-            "pct": 0.0,
-            "source": "auto",
-            "excluded": false
-          },
-          "sukun_target": {
-            "label": "SUKUN CTN Target",
-            "section": "B",
-            "weight": 0.015,
-            "actual": 0,
-            "target": 130,
-            "score": 0.0,
-            "max_score": 1.5,
-            "pct": 0.0,
-            "source": "auto",
-            "excluded": false
-          },
-          "evo_pen": {
-            "label": "EVO Penetration",
-            "section": "B",
-            "weight": 0.015,
-            "actual": 0,
-            "target": 5,
-            "score": 0.0,
-            "max_score": 1.5,
-            "pct": 0.0,
-            "source": "auto",
-            "excluded": false
-          },
-          "evo_target": {
-            "label": "EVO CTN Target",
-            "section": "B",
-            "weight": 0.015,
-            "actual": 0,
-            "target": 100,
-            "score": 0.0,
-            "max_score": 1.5,
-            "pct": 0.0,
-            "source": "auto",
-            "excluded": false
-          },
-          "bison_pen": {
-            "label": "BISON Penetration",
-            "section": "B",
-            "weight": 0.015,
-            "actual": 0,
-            "target": 4,
-            "score": 0.0,
-            "max_score": 1.5,
-            "pct": 0.0,
-            "source": "auto",
-            "excluded": false
-          },
-          "bison_target": {
-            "label": "BISON CTN Target",
-            "section": "B",
-            "weight": 0.015,
-            "actual": 0,
-            "target": 86,
-            "score": 0.0,
-            "max_score": 1.5,
-            "pct": 0.0,
-            "source": "auto",
-            "excluded": false
-          },
-          "tr20_pen": {
-            "label": "TR20 Penetration",
-            "section": "B",
-            "weight": 0.015,
-            "actual": 0,
-            "target": 1,
-            "score": 0.0,
-            "max_score": 1.5,
-            "pct": 0.0,
-            "source": "auto",
-            "excluded": false
-          },
-          "tr20_target": {
-            "label": "TR20 CTN Target",
-            "section": "B",
-            "weight": 0.015,
-            "actual": 0,
-            "target": 5,
-            "score": 0.0,
-            "max_score": 1.5,
-            "pct": 0.0,
-            "source": "auto",
-            "excluded": false
-          },
-          "lam_lwm_pen": {
-            "label": "LAM+LWM Penetration",
-            "section": "B",
-            "weight": 0.015,
-            "actual": 0,
-            "target": 1,
-            "score": 0.0,
-            "max_score": 1.5,
-            "pct": 0.0,
-            "source": "auto",
-            "excluded": false
-          },
-          "lam_lwm_target": {
-            "label": "LAM+LWM CTN Target",
-            "section": "B",
-            "weight": 0.015,
-            "actual": 0,
-            "target": 18,
-            "score": 0.0,
-            "max_score": 1.5,
-            "pct": 0.0,
-            "source": "auto",
-            "excluded": false
-          },
-          "birthday_campaign": {
-            "label": "生日礼物 Campaign",
-            "section": "C",
-            "weight": 0.01,
-            "actual": 0,
-            "target": 0,
-            "score": 0,
-            "max_score": 1.0,
-            "pct": 0,
-            "source": "manual_agent",
-            "excluded": false,
-            "input_role": "agent",
-            "audit_role": "management"
-          },
-          "campaign_1": {
-            "label": "Campaign Related",
-            "section": "C",
-            "weight": 0.02,
-            "actual": 0.0,
-            "target": 2.0,
-            "score": 0.0,
-            "max_score": 2.0,
-            "pct": 0.0,
-            "source": "manual_agent",
-            "excluded": false
-          },
-          "d_key_accuracy": {
-            "label": "KEY 单精准度",
-            "section": "D",
-            "weight": 0.04,
-            "actual": 0.0,
-            "target": 4.0,
-            "score": 0.0,
-            "max_score": 4.0,
-            "pct": 0.0,
-            "source": "manual_accounts",
-            "excluded": false
-          },
-          "d_account_accuracy": {
-            "label": "帐目精准度",
-            "section": "D",
-            "weight": 0.04,
-            "actual": 0.0,
-            "target": 4.0,
-            "score": 0.0,
-            "max_score": 4.0,
-            "pct": 0.0,
-            "source": "manual_accounts",
-            "excluded": false
-          },
-          "d_outstanding": {
-            "label": "欠账",
-            "section": "D",
-            "weight": 0.04,
-            "actual": 0.0,
-            "target": 4.0,
-            "score": 0.0,
-            "max_score": 4.0,
-            "pct": 0.0,
-            "source": "manual_accounts",
-            "excluded": false
-          },
-          "d_followup": {
-            "label": "其它 Follow Up",
-            "section": "D",
-            "weight": 0.04,
-            "actual": 0.0,
-            "target": 4.0,
-            "score": 0.0,
-            "max_score": 4.0,
-            "pct": 0.0,
-            "source": "manual_accounts",
-            "excluded": false
-          },
-          "e_punctuality": {
-            "label": "准时 Punctuality",
-            "section": "E",
-            "weight": 0.01,
-            "actual": 0.0,
-            "target": 1.0,
-            "score": 0.0,
-            "max_score": 1.0,
-            "pct": 0.0,
-            "source": "manual_mgmt",
-            "excluded": false
-          },
-          "e_warehouse": {
-            "label": "货仓整洁度",
-            "section": "E",
-            "weight": 0.01,
-            "actual": 0.0,
-            "target": 1.0,
-            "score": 0.0,
-            "max_score": 1.0,
-            "pct": 0.0,
-            "source": "manual_mgmt",
-            "excluded": false
-          },
-          "e_efficiency": {
-            "label": "有效率和有担待",
-            "section": "E",
-            "weight": 0.01,
-            "actual": 0.0,
-            "target": 1.0,
-            "score": 0.0,
-            "max_score": 1.0,
-            "pct": 0.0,
-            "source": "manual_mgmt",
-            "excluded": false
-          },
-          "e_check_car": {
-            "label": "Check 车",
-            "section": "E",
-            "weight": 0.01,
-            "actual": 0.0,
-            "target": 1.0,
-            "score": 0.0,
-            "max_score": 1.0,
-            "pct": 0.0,
-            "source": "manual_mgmt",
-            "excluded": false
-          },
-          "e_check_stock": {
-            "label": "Check Stock",
-            "section": "E",
-            "weight": 0.01,
-            "actual": 0.0,
-            "target": 1.0,
-            "score": 0.0,
-            "max_score": 1.0,
-            "pct": 0.0,
-            "source": "manual_mgmt",
-            "excluded": false
-          }
-        },
-        "section_scores": {
-          "A": {
-            "score": 4.292,
-            "max_score": 37.0
-          },
-          "B": {
-            "score": 1.188,
-            "max_score": 39.0
-          },
-          "C": {
-            "score": 0.0,
-            "max_score": 3.0
-          },
-          "D": {
-            "score": 0.0,
-            "max_score": 16.0
-          },
-          "E": {
-            "score": 0.0,
-            "max_score": 5.0
-          }
-        },
-        "grand_total": 5.48,
-        "max_total": 100.0,
-        "grand_pct": 5.5,
         "kpi_month": "Apr 26"
       },
       "inherited_from": null,
@@ -24818,27 +23781,1410 @@
       },
       "inherited_from": null,
       "inherit_from_month": null
+    },
+    "SAM": {
+      "sales_progression": {
+        "normal_ctn": 312.0,
+        "ga_ctn": 0.0,
+        "ma_ctn": 0.0,
+        "total_canggih_ctn": 312.0,
+        "eightcom_paid_ctn": 66.0,
+        "eightcom_unpaid_ctn": 0.0,
+        "txn_count": 31,
+        "avg_txn_per_day": 2.6,
+        "elapsed_working_days": 12,
+        "month_labels": [
+          "Jan 26",
+          "Feb 26",
+          "Mar 26",
+          "Apr 26"
+        ],
+        "sku_trend": {
+          "CM-002": {
+            "Jan 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Feb 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Mar 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Apr 26": {
+              "debtors": 13,
+              "ctn": 74.0
+            }
+          },
+          "EVO": {
+            "Jan 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Feb 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Mar 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Apr 26": {
+              "debtors": 7,
+              "ctn": 28.0
+            }
+          },
+          "IMP-001": {
+            "Jan 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Feb 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Mar 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Apr 26": {
+              "debtors": 1,
+              "ctn": 1.0
+            }
+          },
+          "LF-002": {
+            "Jan 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Feb 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Mar 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Apr 26": {
+              "debtors": 1,
+              "ctn": 1.0
+            }
+          },
+          "TR-002": {
+            "Jan 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Feb 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Mar 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Apr 26": {
+              "debtors": 7,
+              "ctn": 40.0
+            }
+          },
+          "TR20": {
+            "Jan 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Feb 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Mar 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Apr 26": {
+              "debtors": 1,
+              "ctn": 1.0
+            }
+          },
+          "SKNR": {
+            "Jan 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Feb 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Mar 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Apr 26": {
+              "debtors": 11,
+              "ctn": 47.0
+            }
+          },
+          "SKNW": {
+            "Jan 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Feb 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Mar 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Apr 26": {
+              "debtors": 8,
+              "ctn": 23.0
+            }
+          },
+          "IFACE B": {
+            "Jan 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Feb 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Mar 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Apr 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            }
+          },
+          "IFACE M": {
+            "Jan 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Feb 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Mar 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Apr 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            }
+          },
+          "IFACE R": {
+            "Jan 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Feb 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Mar 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Apr 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            }
+          },
+          "IFACE DB": {
+            "Jan 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Feb 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Mar 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Apr 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            }
+          },
+          "BISON-G": {
+            "Jan 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Feb 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Mar 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Apr 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            }
+          },
+          "BISON-M": {
+            "Jan 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Feb 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Mar 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Apr 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            }
+          },
+          "BISON-R": {
+            "Jan 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Feb 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Mar 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Apr 26": {
+              "debtors": 4,
+              "ctn": 28.0
+            }
+          },
+          "LAM": {
+            "Jan 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Feb 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Mar 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Apr 26": {
+              "debtors": 2,
+              "ctn": 3.0
+            }
+          },
+          "LWM": {
+            "Jan 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Feb 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Mar 26": {
+              "debtors": 0,
+              "ctn": 0.0
+            },
+            "Apr 26": {
+              "debtors": 1,
+              "ctn": 1.0
+            }
+          }
+        },
+        "active_by_month": {
+          "Jan 26": {
+            "debtors": 0,
+            "ctn": 0.0
+          },
+          "Feb 26": {
+            "debtors": 0,
+            "ctn": 0.0
+          },
+          "Mar 26": {
+            "debtors": 0,
+            "ctn": 0.0
+          },
+          "Apr 26": {
+            "debtors": 26,
+            "ctn": 312.0
+          }
+        },
+        "total_debtors_all": 27,
+        "tiers": {
+          "normal_t1": {
+            "target": 778,
+            "actual": 312.0,
+            "gap": -466.0,
+            "pct": 40.1,
+            "color": "red"
+          },
+          "normal_t2": {
+            "target": 1028,
+            "actual": 312.0,
+            "gap": -716.0,
+            "pct": 30.4,
+            "color": "red"
+          },
+          "ga": null,
+          "ma": null
+        }
+      },
+      "brand_commission": {
+        "iFACE": {
+          "penetration": {
+            "count": 0,
+            "target": 3,
+            "hit": false,
+            "pct": 0.0
+          },
+          "ctn": {
+            "sold": 0.0,
+            "target": 7,
+            "hit": false,
+            "gap": -7.0,
+            "pct": 0.0
+          },
+          "status": "none_hit",
+          "comm_earned": 0.0,
+          "both_hit": false,
+          "prev_buyers": 0,
+          "non_buyers": 29,
+          "cur_buyers": 0,
+          "new_penetrations": 0,
+          "buyers": []
+        },
+        "SUKUN": {
+          "penetration": {
+            "count": 16,
+            "target": 2,
+            "hit": true,
+            "pct": 800.0
+          },
+          "ctn": {
+            "sold": 93.0,
+            "target": 130,
+            "hit": false,
+            "gap": -37.0,
+            "pct": 71.5
+          },
+          "status": "one_hit",
+          "comm_earned": 0.0,
+          "both_hit": false,
+          "prev_buyers": 0,
+          "non_buyers": 29,
+          "cur_buyers": 16,
+          "new_penetrations": 16,
+          "buyers": [
+            {
+              "code": "300-P0300",
+              "name": "ZALI",
+              "ctn": 5.0
+            },
+            {
+              "code": "300-P0307",
+              "name": "HAJI AHMAD ALI",
+              "ctn": 2.0
+            },
+            {
+              "code": "300-YY010",
+              "name": "UCOK",
+              "ctn": 37.0
+            },
+            {
+              "code": "300-YY035",
+              "name": "MILAH",
+              "ctn": 2.0
+            },
+            {
+              "code": "300-YY048",
+              "name": "MARLI",
+              "ctn": 1.0
+            },
+            {
+              "code": "300-YY057",
+              "name": "YES",
+              "ctn": 10.0
+            },
+            {
+              "code": "300-YY060",
+              "name": "SEKHE",
+              "ctn": 6.0
+            },
+            {
+              "code": "300-YY065",
+              "name": "HH",
+              "ctn": 3.0
+            },
+            {
+              "code": "300-YY072",
+              "name": "HENDRIX",
+              "ctn": 4.0
+            },
+            {
+              "code": "300-YY079",
+              "name": "RAZIB",
+              "ctn": 4.0
+            },
+            {
+              "code": "300-YY080",
+              "name": "KURMUT",
+              "ctn": 2.0
+            },
+            {
+              "code": "3EV-B0129",
+              "name": "SYAIKHONI",
+              "ctn": 2.0
+            },
+            {
+              "code": "3EV-B0183",
+              "name": "RADITIA",
+              "ctn": 9.0
+            },
+            {
+              "code": "3EV-Q0198",
+              "name": "RULL",
+              "ctn": 1.0
+            },
+            {
+              "code": "3EV-Q0451",
+              "name": "SEPUDIN",
+              "ctn": 2.0
+            },
+            {
+              "code": "3EV-R0043",
+              "name": "MALI MURDANI MK",
+              "ctn": 3.0
+            }
+          ]
+        },
+        "EVO": {
+          "penetration": {
+            "count": 8,
+            "target": 5,
+            "hit": true,
+            "pct": 160.0
+          },
+          "ctn": {
+            "sold": 33.0,
+            "target": 100,
+            "hit": false,
+            "gap": -67.0,
+            "pct": 33.0
+          },
+          "status": "one_hit",
+          "comm_earned": 0.0,
+          "both_hit": false,
+          "prev_buyers": 0,
+          "non_buyers": 29,
+          "cur_buyers": 8,
+          "new_penetrations": 8,
+          "buyers": [
+            {
+              "code": "300-C240",
+              "name": "ABY AZ-ZAHRA",
+              "ctn": 2.0
+            },
+            {
+              "code": "300-YY004",
+              "name": "ROSE",
+              "ctn": 1.0
+            },
+            {
+              "code": "300-YY010",
+              "name": "UCOK",
+              "ctn": 6.0
+            },
+            {
+              "code": "300-YY057",
+              "name": "YES",
+              "ctn": 10.0
+            },
+            {
+              "code": "300-YY060",
+              "name": "SEKHE",
+              "ctn": 5.0
+            },
+            {
+              "code": "300-YY069",
+              "name": "KEDAI MEK BATU 9",
+              "ctn": 3.0
+            },
+            {
+              "code": "300-YY077",
+              "name": "KEDAI RUNCIT PAK SU",
+              "ctn": 5.0
+            },
+            {
+              "code": "300-YY080",
+              "name": "KURMUT",
+              "ctn": 1.0
+            }
+          ]
+        },
+        "BISON": {
+          "penetration": {
+            "count": 6,
+            "target": 3,
+            "hit": true,
+            "pct": 200.0
+          },
+          "ctn": {
+            "sold": 83.0,
+            "target": 86,
+            "hit": false,
+            "gap": -3.0,
+            "pct": 96.5
+          },
+          "status": "one_hit",
+          "comm_earned": 0.0,
+          "both_hit": false,
+          "prev_buyers": 0,
+          "non_buyers": 29,
+          "cur_buyers": 6,
+          "new_penetrations": 6,
+          "buyers": [
+            {
+              "code": "300-YY010",
+              "name": "UCOK",
+              "ctn": 50.0
+            },
+            {
+              "code": "300-YY057",
+              "name": "YES",
+              "ctn": 20.0
+            },
+            {
+              "code": "300-YY060",
+              "name": "SEKHE",
+              "ctn": 5.0
+            },
+            {
+              "code": "300-YY065",
+              "name": "HH",
+              "ctn": 2.0
+            },
+            {
+              "code": "300-YY077",
+              "name": "KEDAI RUNCIT PAK SU",
+              "ctn": 5.0
+            },
+            {
+              "code": "3EV-B0183",
+              "name": "RADITIA",
+              "ctn": 1.0
+            }
+          ]
+        },
+        "TR20": {
+          "penetration": {
+            "count": 1,
+            "target": 4,
+            "hit": false,
+            "pct": 25.0
+          },
+          "ctn": {
+            "sold": 1.0,
+            "target": 5,
+            "hit": false,
+            "gap": -4.0,
+            "pct": 20.0
+          },
+          "status": "none_hit",
+          "comm_earned": 0.0,
+          "both_hit": false,
+          "prev_buyers": 0,
+          "non_buyers": 29,
+          "cur_buyers": 1,
+          "new_penetrations": 1,
+          "buyers": [
+            {
+              "code": "3EV-B0129",
+              "name": "SYAIKHONI",
+              "ctn": 1.0
+            }
+          ]
+        },
+        "LAM+LWM": {
+          "penetration": {
+            "count": 2,
+            "target": 4,
+            "hit": false,
+            "pct": 50.0
+          },
+          "ctn": {
+            "sold": 4.0,
+            "target": 5,
+            "hit": false,
+            "gap": -1.0,
+            "pct": 80.0
+          },
+          "status": "none_hit",
+          "comm_earned": 0.0,
+          "both_hit": false,
+          "prev_buyers": 0,
+          "non_buyers": 29,
+          "cur_buyers": 2,
+          "new_penetrations": 2,
+          "buyers": [
+            {
+              "code": "300-YY077",
+              "name": "KEDAI RUNCIT PAK SU",
+              "ctn": 2.0
+            },
+            {
+              "code": "3EV-B0176",
+              "name": "AHMAD FIRDAUS",
+              "ctn": 2.0
+            }
+          ]
+        }
+      },
+      "newbie_scheme": null,
+      "aging": {
+        "canggih_paid_ctn": 312.0,
+        "canggih_unpaid_ctn": 95.0,
+        "eightcom_paid_ctn": 66.0,
+        "eightcom_unpaid_ctn": 0.0,
+        "overdue_count": 0,
+        "overdue_invoices": [],
+        "all_unpaid_invoices": [
+          {
+            "doc_no": "IV00012-SAM-3QT7",
+            "debtor_code": "300-P0307",
+            "company_name": "HAJI AHMAD ALI",
+            "invoice_date": "03/04/2026",
+            "days_outstanding": 11,
+            "qty_ctn": 1.0,
+            "item_code": "CM-002",
+            "overdue": false
+          },
+          {
+            "doc_no": "IV00037-SAM-3QT7",
+            "debtor_code": "300-YY060",
+            "company_name": "SEKHE",
+            "invoice_date": "10/04/2026",
+            "days_outstanding": 4,
+            "qty_ctn": 5.0,
+            "item_code": "BISON-R",
+            "overdue": false
+          },
+          {
+            "doc_no": "IV00038-SAM-3QT7",
+            "debtor_code": "300-YY010",
+            "company_name": "UCOK",
+            "invoice_date": "10/04/2026",
+            "days_outstanding": 4,
+            "qty_ctn": 50.0,
+            "item_code": "BISON-R",
+            "overdue": false
+          },
+          {
+            "doc_no": "IV00037-SAM-3QT7",
+            "debtor_code": "300-YY060",
+            "company_name": "SEKHE",
+            "invoice_date": "10/04/2026",
+            "days_outstanding": 4,
+            "qty_ctn": 2.0,
+            "item_code": "CM-002",
+            "overdue": false
+          },
+          {
+            "doc_no": "IV00038-SAM-3QT7",
+            "debtor_code": "300-YY010",
+            "company_name": "UCOK",
+            "invoice_date": "10/04/2026",
+            "days_outstanding": 4,
+            "qty_ctn": 5.0,
+            "item_code": "CM-002",
+            "overdue": false
+          },
+          {
+            "doc_no": "IV00038-SAM-3QT7",
+            "debtor_code": "300-YY010",
+            "company_name": "UCOK",
+            "invoice_date": "10/04/2026",
+            "days_outstanding": 4,
+            "qty_ctn": 2.0,
+            "item_code": "DPM EVO",
+            "overdue": false
+          },
+          {
+            "doc_no": "IV00037-SAM-3QT7",
+            "debtor_code": "300-YY060",
+            "company_name": "SEKHE",
+            "invoice_date": "10/04/2026",
+            "days_outstanding": 4,
+            "qty_ctn": 3.0,
+            "item_code": "SKNR",
+            "overdue": false
+          },
+          {
+            "doc_no": "IV00038-SAM-3QT7",
+            "debtor_code": "300-YY010",
+            "company_name": "UCOK",
+            "invoice_date": "10/04/2026",
+            "days_outstanding": 4,
+            "qty_ctn": 17.0,
+            "item_code": "SKNR",
+            "overdue": false
+          },
+          {
+            "doc_no": "IV00037-SAM-3QT7",
+            "debtor_code": "300-YY060",
+            "company_name": "SEKHE",
+            "invoice_date": "10/04/2026",
+            "days_outstanding": 4,
+            "qty_ctn": 3.0,
+            "item_code": "SKNW",
+            "overdue": false
+          },
+          {
+            "doc_no": "IV00037-SAM-3QT7",
+            "debtor_code": "300-YY060",
+            "company_name": "SEKHE",
+            "invoice_date": "10/04/2026",
+            "days_outstanding": 4,
+            "qty_ctn": 2.0,
+            "item_code": "TR-002",
+            "overdue": false
+          },
+          {
+            "doc_no": "IV00037-SAM-3QT7",
+            "debtor_code": "300-YY060",
+            "company_name": "SEKHE",
+            "invoice_date": "10/04/2026",
+            "days_outstanding": 4,
+            "qty_ctn": 5.0,
+            "item_code": "EVO",
+            "overdue": false
+          }
+        ],
+        "debtor_outstanding": [
+          {
+            "debtor_code": "300-P0307",
+            "company_name": "HAJI AHMAD ALI",
+            "total_ctn": 1.0,
+            "overdue_ctn": 0,
+            "invoice_count": 1,
+            "overdue_count": 0,
+            "oldest_days": 11,
+            "invoices": [
+              {
+                "doc_no": "IV00012-SAM-3QT7",
+                "debtor_code": "300-P0307",
+                "company_name": "HAJI AHMAD ALI",
+                "invoice_date": "03/04/2026",
+                "days_outstanding": 11,
+                "qty_ctn": 1.0,
+                "item_code": "CM-002",
+                "overdue": false
+              }
+            ]
+          },
+          {
+            "debtor_code": "300-YY060",
+            "company_name": "SEKHE",
+            "total_ctn": 20.0,
+            "overdue_ctn": 0,
+            "invoice_count": 6,
+            "overdue_count": 0,
+            "oldest_days": 4,
+            "invoices": [
+              {
+                "doc_no": "IV00037-SAM-3QT7",
+                "debtor_code": "300-YY060",
+                "company_name": "SEKHE",
+                "invoice_date": "10/04/2026",
+                "days_outstanding": 4,
+                "qty_ctn": 5.0,
+                "item_code": "BISON-R",
+                "overdue": false
+              },
+              {
+                "doc_no": "IV00037-SAM-3QT7",
+                "debtor_code": "300-YY060",
+                "company_name": "SEKHE",
+                "invoice_date": "10/04/2026",
+                "days_outstanding": 4,
+                "qty_ctn": 2.0,
+                "item_code": "CM-002",
+                "overdue": false
+              },
+              {
+                "doc_no": "IV00037-SAM-3QT7",
+                "debtor_code": "300-YY060",
+                "company_name": "SEKHE",
+                "invoice_date": "10/04/2026",
+                "days_outstanding": 4,
+                "qty_ctn": 3.0,
+                "item_code": "SKNR",
+                "overdue": false
+              },
+              {
+                "doc_no": "IV00037-SAM-3QT7",
+                "debtor_code": "300-YY060",
+                "company_name": "SEKHE",
+                "invoice_date": "10/04/2026",
+                "days_outstanding": 4,
+                "qty_ctn": 3.0,
+                "item_code": "SKNW",
+                "overdue": false
+              },
+              {
+                "doc_no": "IV00037-SAM-3QT7",
+                "debtor_code": "300-YY060",
+                "company_name": "SEKHE",
+                "invoice_date": "10/04/2026",
+                "days_outstanding": 4,
+                "qty_ctn": 2.0,
+                "item_code": "TR-002",
+                "overdue": false
+              },
+              {
+                "doc_no": "IV00037-SAM-3QT7",
+                "debtor_code": "300-YY060",
+                "company_name": "SEKHE",
+                "invoice_date": "10/04/2026",
+                "days_outstanding": 4,
+                "qty_ctn": 5.0,
+                "item_code": "EVO",
+                "overdue": false
+              }
+            ]
+          },
+          {
+            "debtor_code": "300-YY010",
+            "company_name": "UCOK",
+            "total_ctn": 74.0,
+            "overdue_ctn": 0,
+            "invoice_count": 4,
+            "overdue_count": 0,
+            "oldest_days": 4,
+            "invoices": [
+              {
+                "doc_no": "IV00038-SAM-3QT7",
+                "debtor_code": "300-YY010",
+                "company_name": "UCOK",
+                "invoice_date": "10/04/2026",
+                "days_outstanding": 4,
+                "qty_ctn": 50.0,
+                "item_code": "BISON-R",
+                "overdue": false
+              },
+              {
+                "doc_no": "IV00038-SAM-3QT7",
+                "debtor_code": "300-YY010",
+                "company_name": "UCOK",
+                "invoice_date": "10/04/2026",
+                "days_outstanding": 4,
+                "qty_ctn": 5.0,
+                "item_code": "CM-002",
+                "overdue": false
+              },
+              {
+                "doc_no": "IV00038-SAM-3QT7",
+                "debtor_code": "300-YY010",
+                "company_name": "UCOK",
+                "invoice_date": "10/04/2026",
+                "days_outstanding": 4,
+                "qty_ctn": 2.0,
+                "item_code": "DPM EVO",
+                "overdue": false
+              },
+              {
+                "doc_no": "IV00038-SAM-3QT7",
+                "debtor_code": "300-YY010",
+                "company_name": "UCOK",
+                "invoice_date": "10/04/2026",
+                "days_outstanding": 4,
+                "qty_ctn": 17.0,
+                "item_code": "SKNR",
+                "overdue": false
+              }
+            ]
+          }
+        ],
+        "outstanding_debtors": 3
+      },
+      "debtor_cards": {
+        "total_debtors": 48,
+        "active_count": 15,
+        "pending_count": 0,
+        "reactivation_count": 23,
+        "inactive_count": 0,
+        "activation_rate": 29.2,
+        "activation_base": 48,
+        "activation_active": 14,
+        "pending_activation": 0,
+        "total_new_sku": 45,
+        "new_accounts_count": 1,
+        "new_vip_count": 1,
+        "kpi_targets": {
+          "new_accounts": null,
+          "vip_count": null,
+          "new_sku": 17,
+          "event": null,
+          "new_accounts_actual": null,
+          "vip_count_actual": null,
+          "event_actual": null,
+          "birthday_actual": null
+        }
+      },
+      "kpi": {
+        "items": {
+          "sales_normal_pct": {
+            "label": "销售 Normal %",
+            "section": "A",
+            "weight": 0.37,
+            "actual": 40.1,
+            "target": 100.0,
+            "score": 14.837,
+            "max_score": 37.0,
+            "pct": 40.1,
+            "source": "auto",
+            "excluded": false
+          },
+          "alt_channel_contact": {
+            "label": "Alt Sales - Contact <2 days",
+            "section": "B",
+            "weight": 0.02,
+            "actual": 0.0,
+            "target": 2.0,
+            "score": 0.0,
+            "max_score": 2.0,
+            "pct": 0.0,
+            "source": "manual_mgmt",
+            "excluded": false
+          },
+          "alt_channel_deliver": {
+            "label": "Alt Sales - 送货 <7 days",
+            "section": "B",
+            "weight": 0.03,
+            "actual": 0.0,
+            "target": 3.0,
+            "score": 0.0,
+            "max_score": 3.0,
+            "pct": 0.0,
+            "source": "manual_mgmt",
+            "excluded": false
+          },
+          "event": {
+            "label": "做Event / PSR",
+            "section": "B",
+            "weight": 0.03,
+            "actual": 0,
+            "target": 16.0,
+            "score": 0.0,
+            "max_score": 3.0,
+            "pct": 0.0,
+            "source": "manual_agent",
+            "excluded": false
+          },
+          "new_accounts": {
+            "label": "开户口 (新户口)",
+            "section": "B",
+            "weight": 0.03,
+            "actual": 1,
+            "target": 5.0,
+            "score": 0.6,
+            "max_score": 3.0,
+            "pct": 20.0,
+            "source": "auto",
+            "excluded": false
+          },
+          "vip_count": {
+            "label": "VIP 招聘",
+            "section": "B",
+            "weight": 0.01,
+            "actual": 3,
+            "target": 3.0,
+            "score": 1.0,
+            "max_score": 1.0,
+            "pct": 100.0,
+            "source": "auto",
+            "excluded": false
+          },
+          "reactivation": {
+            "label": "激活户口",
+            "section": "B",
+            "weight": 0.03,
+            "actual": 23,
+            "target": 5.0,
+            "score": 3.0,
+            "max_score": 3.0,
+            "pct": 460.0,
+            "source": "auto",
+            "excluded": false
+          },
+          "new_sku": {
+            "label": "加SKU数量",
+            "section": "B",
+            "weight": 0.03,
+            "actual": 45,
+            "target": 17.0,
+            "score": 3.0,
+            "max_score": 3.0,
+            "pct": 264.7,
+            "source": "auto",
+            "excluded": false
+          },
+          "activation_rate": {
+            "label": "持续光顾率",
+            "section": "B",
+            "weight": 0.03,
+            "actual": 29.2,
+            "target": 80.0,
+            "score": 1.095,
+            "max_score": 3.0,
+            "pct": 36.5,
+            "source": "auto",
+            "excluded": false
+          },
+          "iface_pen": {
+            "label": "iFACE Penetration",
+            "section": "B",
+            "weight": 0.015,
+            "actual": 0,
+            "target": 3,
+            "score": 0.0,
+            "max_score": 1.5,
+            "pct": 0.0,
+            "source": "auto",
+            "excluded": false
+          },
+          "iface_target": {
+            "label": "iFACE CTN Target",
+            "section": "B",
+            "weight": 0.015,
+            "actual": 0,
+            "target": 7,
+            "score": 0.0,
+            "max_score": 1.5,
+            "pct": 0.0,
+            "source": "auto",
+            "excluded": false
+          },
+          "sukun_pen": {
+            "label": "SUKUN Penetration",
+            "section": "B",
+            "weight": 0.015,
+            "actual": 16,
+            "target": 2,
+            "score": 1.5,
+            "max_score": 1.5,
+            "pct": 800.0,
+            "source": "auto",
+            "excluded": false
+          },
+          "sukun_target": {
+            "label": "SUKUN CTN Target",
+            "section": "B",
+            "weight": 0.015,
+            "actual": 93.0,
+            "target": 130,
+            "score": 1.073,
+            "max_score": 1.5,
+            "pct": 71.5,
+            "source": "auto",
+            "excluded": false
+          },
+          "evo_pen": {
+            "label": "EVO Penetration",
+            "section": "B",
+            "weight": 0.015,
+            "actual": 8,
+            "target": 5,
+            "score": 1.5,
+            "max_score": 1.5,
+            "pct": 160.0,
+            "source": "auto",
+            "excluded": false
+          },
+          "evo_target": {
+            "label": "EVO CTN Target",
+            "section": "B",
+            "weight": 0.015,
+            "actual": 33.0,
+            "target": 100,
+            "score": 0.495,
+            "max_score": 1.5,
+            "pct": 33.0,
+            "source": "auto",
+            "excluded": false
+          },
+          "bison_pen": {
+            "label": "BISON Penetration",
+            "section": "B",
+            "weight": 0.015,
+            "actual": 6,
+            "target": 3,
+            "score": 1.5,
+            "max_score": 1.5,
+            "pct": 200.0,
+            "source": "auto",
+            "excluded": false
+          },
+          "bison_target": {
+            "label": "BISON CTN Target",
+            "section": "B",
+            "weight": 0.015,
+            "actual": 83.0,
+            "target": 86,
+            "score": 1.448,
+            "max_score": 1.5,
+            "pct": 96.5,
+            "source": "auto",
+            "excluded": false
+          },
+          "tr20_pen": {
+            "label": "TR20 Penetration",
+            "section": "B",
+            "weight": 0.015,
+            "actual": 1,
+            "target": 4,
+            "score": 0.375,
+            "max_score": 1.5,
+            "pct": 25.0,
+            "source": "auto",
+            "excluded": false
+          },
+          "tr20_target": {
+            "label": "TR20 CTN Target",
+            "section": "B",
+            "weight": 0.015,
+            "actual": 1.0,
+            "target": 5,
+            "score": 0.3,
+            "max_score": 1.5,
+            "pct": 20.0,
+            "source": "auto",
+            "excluded": false
+          },
+          "lam_lwm_pen": {
+            "label": "LAM+LWM Penetration",
+            "section": "B",
+            "weight": 0.015,
+            "actual": 2,
+            "target": 4,
+            "score": 0.75,
+            "max_score": 1.5,
+            "pct": 50.0,
+            "source": "auto",
+            "excluded": false
+          },
+          "lam_lwm_target": {
+            "label": "LAM+LWM CTN Target",
+            "section": "B",
+            "weight": 0.015,
+            "actual": 4.0,
+            "target": 5,
+            "score": 1.2,
+            "max_score": 1.5,
+            "pct": 80.0,
+            "source": "auto",
+            "excluded": false
+          },
+          "birthday_campaign": {
+            "label": "生日礼物 Campaign",
+            "section": "C",
+            "weight": 0.01,
+            "actual": 0,
+            "target": 0,
+            "score": 0,
+            "max_score": 1.0,
+            "pct": 0,
+            "source": "manual_agent",
+            "excluded": false,
+            "input_role": "agent",
+            "audit_role": "management"
+          },
+          "campaign_1": {
+            "label": "Campaign Related",
+            "section": "C",
+            "weight": 0.02,
+            "actual": 0.0,
+            "target": 2.0,
+            "score": 0.0,
+            "max_score": 2.0,
+            "pct": 0.0,
+            "source": "manual_agent",
+            "excluded": false
+          },
+          "d_key_accuracy": {
+            "label": "KEY 单精准度",
+            "section": "D",
+            "weight": 0.04,
+            "actual": 0.0,
+            "target": 4.0,
+            "score": 0.0,
+            "max_score": 4.0,
+            "pct": 0.0,
+            "source": "manual_accounts",
+            "excluded": false
+          },
+          "d_account_accuracy": {
+            "label": "帐目精准度",
+            "section": "D",
+            "weight": 0.04,
+            "actual": 0.0,
+            "target": 4.0,
+            "score": 0.0,
+            "max_score": 4.0,
+            "pct": 0.0,
+            "source": "manual_accounts",
+            "excluded": false
+          },
+          "d_outstanding": {
+            "label": "欠账",
+            "section": "D",
+            "weight": 0.04,
+            "actual": 0.0,
+            "target": 4.0,
+            "score": 0.0,
+            "max_score": 4.0,
+            "pct": 0.0,
+            "source": "manual_accounts",
+            "excluded": false
+          },
+          "d_followup": {
+            "label": "其它 Follow Up",
+            "section": "D",
+            "weight": 0.04,
+            "actual": 0.0,
+            "target": 4.0,
+            "score": 0.0,
+            "max_score": 4.0,
+            "pct": 0.0,
+            "source": "manual_accounts",
+            "excluded": false
+          },
+          "e_punctuality": {
+            "label": "准时 Punctuality",
+            "section": "E",
+            "weight": 0.01,
+            "actual": 0.0,
+            "target": 1.0,
+            "score": 0.0,
+            "max_score": 1.0,
+            "pct": 0.0,
+            "source": "manual_mgmt",
+            "excluded": false
+          },
+          "e_warehouse": {
+            "label": "货仓整洁度",
+            "section": "E",
+            "weight": 0.01,
+            "actual": 0.0,
+            "target": 1.0,
+            "score": 0.0,
+            "max_score": 1.0,
+            "pct": 0.0,
+            "source": "manual_mgmt",
+            "excluded": false
+          },
+          "e_efficiency": {
+            "label": "有效率和有担待",
+            "section": "E",
+            "weight": 0.01,
+            "actual": 0.0,
+            "target": 1.0,
+            "score": 0.0,
+            "max_score": 1.0,
+            "pct": 0.0,
+            "source": "manual_mgmt",
+            "excluded": false
+          },
+          "e_check_car": {
+            "label": "Check 车",
+            "section": "E",
+            "weight": 0.01,
+            "actual": 0.0,
+            "target": 1.0,
+            "score": 0.0,
+            "max_score": 1.0,
+            "pct": 0.0,
+            "source": "manual_mgmt",
+            "excluded": false
+          },
+          "e_check_stock": {
+            "label": "Check Stock",
+            "section": "E",
+            "weight": 0.01,
+            "actual": 0.0,
+            "target": 1.0,
+            "score": 0.0,
+            "max_score": 1.0,
+            "pct": 0.0,
+            "source": "manual_mgmt",
+            "excluded": false
+          }
+        },
+        "section_scores": {
+          "A": {
+            "score": 14.837,
+            "max_score": 37.0
+          },
+          "B": {
+            "score": 18.836,
+            "max_score": 39.0
+          },
+          "C": {
+            "score": 0.0,
+            "max_score": 3.0
+          },
+          "D": {
+            "score": 0.0,
+            "max_score": 16.0
+          },
+          "E": {
+            "score": 0.0,
+            "max_score": 5.0
+          }
+        },
+        "grand_total": 33.673,
+        "max_total": 100.0,
+        "grand_pct": 33.7,
+        "kpi_month": "Apr 26"
+      },
+      "inherited_from": null,
+      "inherit_from_month": null
     }
   },
   "team": {
-    "team_normal_ctn": 21127.0,
+    "team_normal_ctn": 21349.0,
     "team_ga_ctn": 1826.0,
     "team_ma_ctn": 8139.0,
-    "team_canggih_ctn": 31092.0,
-    "team_8com_ctn": 1363.0,
-    "team_8com_unpaid": 210.0,
-    "t1_total_target": 46024.168,
-    "t2_total_target": 49250.0,
+    "team_canggih_ctn": 31314.0,
+    "team_8com_ctn": 1429.0,
+    "team_8com_unpaid": 209.0,
+    "t1_total_target": 46024.127199999995,
+    "t2_total_target": 49249.959200000005,
     "ga_total_target": 2830.3011,
-    "ma_total_target": 15384.670100000001,
-    "t1_pct": 45.9,
-    "t2_pct": 42.9,
+    "ma_total_target": 15230.8234,
+    "t1_pct": 46.4,
+    "t2_pct": 43.3,
     "ga_pct": 64.5,
-    "ma_pct": 52.9,
-    "t1_gap": -24897.17,
-    "t2_gap": -28123.0,
+    "ma_pct": 53.4,
+    "t1_gap": -24675.13,
+    "t2_gap": -27900.96,
     "ga_gap": -1004.3,
-    "ma_gap": -7245.67,
+    "ma_gap": -7091.82,
     "t1_color": "red",
     "brand_summary": {
       "iFACE": {
@@ -24850,7 +25196,6 @@
           "CJ",
           "JACKY",
           "JAMES",
-          "JW",
           "KEAN",
           "KEE",
           "KF",
@@ -24858,21 +25203,22 @@
           "KW",
           "LEON",
           "NMK",
-          "YI"
+          "YI",
+          "SAM"
         ]
       },
       "SUKUN": {
         "total_comm": 0.0,
         "both_hit_agents": [],
         "one_hit_agents": [
-          "LEON"
+          "LEON",
+          "SAM"
         ],
         "none_hit_agents": [
           "BEN",
           "CJ",
           "JACKY",
           "JAMES",
-          "JW",
           "KEAN",
           "KEE",
           "KF",
@@ -24886,13 +25232,13 @@
         "total_comm": 0.0,
         "both_hit_agents": [],
         "one_hit_agents": [
-          "JACKY"
+          "JACKY",
+          "SAM"
         ],
         "none_hit_agents": [
           "BEN",
           "CJ",
           "JAMES",
-          "JW",
           "KEAN",
           "KEE",
           "KF",
@@ -24909,13 +25255,13 @@
         "one_hit_agents": [
           "JAMES",
           "KEE",
-          "YI"
+          "YI",
+          "SAM"
         ],
         "none_hit_agents": [
           "BEN",
           "CJ",
           "JACKY",
-          "JW",
           "KEAN",
           "KF",
           "KI-MI",
@@ -24935,14 +25281,14 @@
           "BEN",
           "JACKY",
           "JAMES",
-          "JW",
           "KEAN",
           "KEE",
           "KF",
           "KI-MI",
           "LEON",
           "NMK",
-          "YI"
+          "YI",
+          "SAM"
         ]
       },
       "LAM+LWM": {
@@ -24957,14 +25303,14 @@
         "none_hit_agents": [
           "BEN",
           "JAMES",
-          "JW",
           "KEE",
           "KF",
           "KI-MI",
           "KW",
           "LEON",
           "NMK",
-          "YI"
+          "YI",
+          "SAM"
         ]
       }
     },
@@ -25042,13 +25388,22 @@
         "rank": 8
       },
       {
+        "agent": "SAM",
+        "normal_ctn": 312.0,
+        "t1_target": 778,
+        "t1_pct": 40.1,
+        "t1_color": "red",
+        "brands_earned": 0,
+        "rank": 9
+      },
+      {
         "agent": "JAMES",
         "normal_ctn": 1333.0,
         "t1_target": 3334,
         "t1_pct": 40.0,
         "t1_color": "red",
         "brands_earned": 0,
-        "rank": 9
+        "rank": 10
       },
       {
         "agent": "KI-MI",
@@ -25057,7 +25412,7 @@
         "t1_pct": 33.7,
         "t1_color": "red",
         "brands_earned": 0,
-        "rank": 10
+        "rank": 11
       },
       {
         "agent": "BEN",
@@ -25066,7 +25421,7 @@
         "t1_pct": 31.1,
         "t1_color": "red",
         "brands_earned": 0,
-        "rank": 11
+        "rank": 12
       },
       {
         "agent": "JACKY",
@@ -25075,15 +25430,6 @@
         "t1_pct": 24.2,
         "t1_color": "red",
         "brands_earned": 1,
-        "rank": 12
-      },
-      {
-        "agent": "JW",
-        "normal_ctn": 90.0,
-        "t1_target": 778,
-        "t1_pct": 11.6,
-        "t1_color": "red",
-        "brands_earned": 0,
         "rank": 13
       }
     ],
@@ -25194,7 +25540,6 @@
         "CJ": 90,
         "JACKY": 124,
         "JAMES": 111,
-        "JW": 18,
         "KEAN": 86,
         "KEE": 84,
         "KF": 134,
@@ -25202,7 +25547,8 @@
         "KW": 78,
         "LEON": 82,
         "NMK": 101,
-        "YI": 151
+        "YI": 151,
+        "SAM": 22
       }
     },
     "camp_bison_apr26": {
@@ -25213,7 +25559,6 @@
         "CJ": 100,
         "JACKY": 138,
         "JAMES": 122,
-        "JW": 35,
         "KEAN": 113,
         "KEE": 122,
         "KF": 141,
@@ -25221,7 +25566,8 @@
         "KW": 137,
         "LEON": 98,
         "NMK": 113,
-        "YI": 168
+        "YI": 168,
+        "SAM": 42
       }
     },
     "camp_1775396958014": {
