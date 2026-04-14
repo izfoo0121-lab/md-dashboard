@@ -2956,14 +2956,19 @@ function bulkMarkDelivered(campId, month, agent, codes, remark) {
     AGENTS.forEach(ag => {
       const key = `camp_claim_${monthSlug}_${ag}_${campId}_${code}`;
       if (!localStorage.getItem(key)) {
-        localStorage.setItem(key, JSON.stringify({ ts, remark, count: 1, bulk: true, status: 'delivered' }));
+        const claimData = { ts, remark, count: 1, bulk: true, status: 'delivered' };
+        localStorage.setItem(key, JSON.stringify(claimData));
+        // Sync to GistSync
+        if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+          GistSync.saveClaim(month, ag, campId, code, claimData).catch(()=>{});
+        }
         count++;
       }
     });
   });
 
   resultEl.style.color = '#3ddc84';
-  resultEl.textContent = `✓ Marked ${count} entries delivered (${codes.length} codes × ${AGENTS.length} agent${AGENTS.length>1?'s':''})`;
+  resultEl.textContent = `✓ Marked ${count} entries delivered (${codes.length} codes × ${AGENTS.length} agent${AGENTS.length>1?'s':''}) — synced to GistSync`;
   document.getElementById('bulk-debtor-codes').value = '';
 }
 
@@ -2989,6 +2994,10 @@ function bulkUndo() {
       const key = `camp_claim_${monthSlug}_${ag}_${campId}_${code}`;
       if (localStorage.getItem(key)) {
         localStorage.removeItem(key);
+        // Remove from GistSync too
+        if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+          GistSync.removeClaim(month, ag, campId, code).catch(()=>{});
+        }
         removed++;
       }
     });
