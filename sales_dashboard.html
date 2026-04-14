@@ -314,9 +314,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
       </div>
     </div>
   </div>
-  <select class="agent-select" id="agent-select" onchange="selectAgent(this.value)">
-    <option value="">— Select Agent —</option>
-  </select>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <select class="agent-select" id="agent-select" onchange="selectAgent(this.value)">
+      <option value="">— Select Agent —</option>
+    </select>
+    <button onclick="logout()" id="logout-btn" style="display:none;background:rgba(200,56,26,.15);border:1px solid rgba(200,56,26,.3);color:#c8381a;font-family:var(--mono);font-size:10px;padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;">⏏ Logout</button>
+  </div>
 </div>
 
 <!-- ── View 1: Debtors ── -->
@@ -342,18 +345,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 
     <!-- Numpad -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
-      <button class="pin-btn" onclick="pinPress('1')">1</button>
-      <button class="pin-btn" onclick="pinPress('2')">2</button>
-      <button class="pin-btn" onclick="pinPress('3')">3</button>
-      <button class="pin-btn" onclick="pinPress('4')">4</button>
-      <button class="pin-btn" onclick="pinPress('5')">5</button>
-      <button class="pin-btn" onclick="pinPress('6')">6</button>
-      <button class="pin-btn" onclick="pinPress('7')">7</button>
-      <button class="pin-btn" onclick="pinPress('8')">8</button>
-      <button class="pin-btn" onclick="pinPress('9')">9</button>
-      <div></div>
-      <button class="pin-btn" onclick="pinPress('0')">0</button>
-      <button class="pin-btn" onclick="pinPress('⌫')">⌫</button>
+      ${[1,2,3,4,5,6,7,8,9,'','0','⌫'].map(k =>
+        k === '' ? '<div></div>' :
+        `<button class="pin-btn" onclick="pinPress('${k}')">${k}</button>`
+      ).join('')}
     </div>
   </div>
 </div>
@@ -438,6 +433,7 @@ function checkPin() {
     document.getElementById('pin-name-hint').textContent = agentName === 'GT138888' ? 'ADMIN' : agentName;
     setTimeout(()=>{
       document.getElementById('pin-gate').style.display = 'none';
+      document.getElementById('logout-btn').style.display = 'block';
       // Lock to agent if not admin
       if (agentName !== 'GT138888') {
         lockToAgent(agentName);
@@ -458,6 +454,18 @@ function checkPin() {
   }
 }
 
+function logout() {
+  sessionStorage.removeItem('md_auth');
+  sessionStorage.removeItem('md_agent');
+  currentAgent = null;
+  _pin = ''; _pinLocked = false;
+  updatePinDisplay();
+  document.getElementById('pin-gate').style.display = 'flex';
+  // Reset agent selector
+  const sel = document.getElementById('agent-select');
+  if (sel) { sel.value = ''; sel.style.pointerEvents=''; sel.style.opacity=''; }
+}
+
 function lockToAgent(agentName) {
   // Auto-select agent and hide the dropdown for non-admins
   const sel = document.getElementById('agent-select');
@@ -476,6 +484,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   if (sessionStorage.getItem('md_auth') === '1') {
     const agent = sessionStorage.getItem('md_agent');
     document.getElementById('pin-gate').style.display = 'none';
+    document.getElementById('logout-btn').style.display = 'block';
     if (agent && agent !== 'GT138888') {
       // Will lock after data loads
       window._pendingAgent = agent;
@@ -2714,14 +2723,7 @@ function showCampDetail(event, debtorCode, debtorName) {
   document.body.style.overflow = 'hidden';
 }
 
-function saveCampRemark(campId, debtorCode) {
-  const inp = document.getElementById(`remark-${campId}`);
-  if (!inp) return;
-  const existing = getCampStatus(campId, debtorCode);
-  setCampStatus(campId, debtorCode, existing?.status || 'not_in', inp.value.trim());
-  inp.style.borderColor = 'var(--green)';
-  setTimeout(() => { if(inp) inp.style.borderColor = 'var(--border)'; }, 1000);
-}
+// saveCampRemark defined above with GistSync support
 
 function closeCampDetail(e) {
   if (e && e.target !== document.getElementById('camp-detail-overlay')) return;
@@ -3234,12 +3236,22 @@ function closeEventSheet(e) {
 
 async function saveEventCount() {
   const val = parseInt(document.getElementById('event-input').value) || 0;
-  // Save to Streamlit storage
-  const key = `kpi_event_${currentAgent}_${DATA.current_month}`;
-  try {
-    await window.storage.set(key, JSON.stringify({count: val, updated: new Date().toISOString()}));
-  } catch(e) {
-    localStorage.setItem(key, JSON.stringify({count: val, updated: new Date().toISOString()}));
+  const month = DATA.current_month || '';
+  const slug  = month.replace(' ','').toLowerCase();
+  // Save locally
+  const key = `kpi_event_${currentAgent}_${month}`;
+  localStorage.setItem(key, JSON.stringify({count: val, updated: new Date().toISOString()}));
+  // Sync to GistSync as pending_verification so MD can verify
+  if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+    const submission = {
+      type: 'event',
+      agent: currentAgent,
+      count: val,
+      ts: Date.now(),
+      status: 'pending_verification',
+      month: month
+    };
+    GistSync.saveClaim(month, currentAgent, 'kpi_event', currentAgent, submission).catch(()=>{});
   }
   // Update display immediately
   if (DATA.agents[currentAgent]?.kpi?.items?.event) {
