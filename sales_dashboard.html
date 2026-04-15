@@ -291,7 +291,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
   <span style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;">Go to:</span>
   <a href="https://izfoo0121-lab.github.io/md-dashboard/management.html" style="font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;padding:3px 8px;border:1px solid rgba(77,166,255,.3);border-radius:6px;white-space:nowrap;">📊 Management</a>
   <a href="https://izfoo0121-lab.github.io/md-dashboard/admin.html" style="font-family:var(--mono);font-size:9px;color:var(--accent);text-decoration:none;padding:3px 8px;border:1px solid rgba(240,192,64,.3);border-radius:6px;white-space:nowrap;">⚙ Admin</a>
-  <button onclick="switchView('camps',document.querySelector('.nav-item[onclick*=camps]'))" style="font-family:var(--mono);font-size:9px;color:var(--green);background:none;text-decoration:none;padding:3px 8px;border:1px solid rgba(61,220,132,.3);border-radius:6px;white-space:nowrap;cursor:pointer;">📢 Campaigns</button>
+  <a href="https://izfoo0121-lab.github.io/md-dashboard/campaigns.html" style="font-family:var(--mono);font-size:9px;color:var(--green);text-decoration:none;padding:3px 8px;border:1px solid rgba(61,220,132,.3);border-radius:6px;white-space:nowrap;">📢 Campaigns</a>
   <a href="https://izfoo0121-lab.github.io/md-dashboard/campaign_audit.html" style="font-family:var(--mono);font-size:9px;color:#a78bfa;text-decoration:none;padding:3px 8px;border:1px solid rgba(167,139,250,.3);border-radius:6px;white-space:nowrap;">🔍 Audit</a>
   <a href="https://izfoo0121-lab.github.io/md-dashboard/accounts.html" style="font-family:var(--mono);font-size:9px;color:#ff8c5a;text-decoration:none;padding:3px 8px;border:1px solid rgba(200,90,26,.3);border-radius:6px;white-space:nowrap;">🏦 Accounts</a>
 </div>
@@ -314,12 +314,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
       </div>
     </div>
   </div>
-  <div style="display:flex;align-items:center;gap:8px;">
-    <select class="agent-select" id="agent-select" onchange="selectAgent(this.value)">
-      <option value="">— Select Agent —</option>
-    </select>
-    <button onclick="logout()" id="logout-btn" style="display:none;background:rgba(200,56,26,.15);border:1px solid rgba(200,56,26,.3);color:#c8381a;font-family:var(--mono);font-size:10px;padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;">⏏ Logout</button>
-  </div>
+  <select class="agent-select" id="agent-select" onchange="selectAgent(this.value)">
+    <option value="">— Select Agent —</option>
+  </select>
 </div>
 
 <!-- ── View 1: Debtors ── -->
@@ -423,16 +420,10 @@ function checkPin() {
   _pinLocked = true;
   const allPins = Object.assign({}, DEFAULT_PINS);
 
-  // Load from dashboard_data.json config (fastest)
+  // Try to load from targets.json if available
   try {
-    const fromData = (typeof DATA !== 'undefined' && DATA.config?.agent_pins) || {};
-    Object.assign(allPins, fromData);
-  } catch {}
-
-  // Also load from cached targets.json pins if available
-  try {
-    const cached = JSON.parse(localStorage.getItem('md_agent_pins') || '{}');
-    if (Object.keys(cached).length) Object.assign(allPins, cached);
+    const fromTargets = (typeof DATA !== 'undefined' && DATA.config?.agent_pins) || {};
+    Object.assign(allPins, fromTargets);
   } catch {}
 
   const match = Object.entries(allPins).find(([,p])=>p===_pin);
@@ -447,7 +438,6 @@ function checkPin() {
     document.getElementById('pin-name-hint').textContent = agentName === 'GT138888' ? 'ADMIN' : agentName;
     setTimeout(()=>{
       document.getElementById('pin-gate').style.display = 'none';
-      document.getElementById('logout-btn').style.display = 'block';
       // Lock to agent if not admin
       if (agentName !== 'GT138888') {
         lockToAgent(agentName);
@@ -468,18 +458,6 @@ function checkPin() {
   }
 }
 
-function logout() {
-  sessionStorage.removeItem('md_auth');
-  sessionStorage.removeItem('md_agent');
-  currentAgent = null;
-  _pin = ''; _pinLocked = false;
-  updatePinDisplay();
-  document.getElementById('pin-gate').style.display = 'flex';
-  // Reset agent selector
-  const sel = document.getElementById('agent-select');
-  if (sel) { sel.value = ''; sel.style.pointerEvents=''; sel.style.opacity=''; }
-}
-
 function lockToAgent(agentName) {
   // Auto-select agent and hide the dropdown for non-admins
   const sel = document.getElementById('agent-select');
@@ -498,7 +476,6 @@ window.addEventListener('DOMContentLoaded', ()=>{
   if (sessionStorage.getItem('md_auth') === '1') {
     const agent = sessionStorage.getItem('md_agent');
     document.getElementById('pin-gate').style.display = 'none';
-    document.getElementById('logout-btn').style.display = 'block';
     if (agent && agent !== 'GT138888') {
       // Will lock after data loads
       window._pendingAgent = agent;
@@ -2275,7 +2252,7 @@ function renderGroupBrandTargets() {
   const prevMonthCtn    = team.prev_month_ctn   || 0;
   const curMonthPaid    = team.team_canggih_ctn  || 0;
   const totalPaidCtn    = prevMonthCtn + curMonthPaid;
-  const totalUnpaidCtn  = team.team_8com_unpaid  || 0;
+  const totalUnpaidCtn  = team.team_canggih_unpaid || team.team_8com_unpaid || 0;
   const totalSalesCtn   = team.total_sales_ctn   || 0;
 
   const rightPanelHtml = `
@@ -2351,11 +2328,6 @@ function loadFlags() {
 }
 function saveFlags(flags) {
   try { localStorage.setItem(FLAGS_KEY, JSON.stringify(flags)); } catch(e) {}
-  // Sync to Gist so management can see flags
-  if (typeof GistSync !== 'undefined' && GistSync.isConfigured() && currentAgent) {
-    const agentFlags = flags[currentAgent] || {};
-    GistSync.saveFlags(DATA?.current_month||'', currentAgent, agentFlags).catch(()=>{});
-  }
 }
 function getFlag(agent, debtorCode) {
   const flags = loadFlags();
@@ -2610,35 +2582,7 @@ function getCampStatuses() {
 }
 
 function getCampStatus(campId, debtorCode) {
-  // Check camp_status_ (legacy) first
-  const fromStatus = getCampStatuses()[`${campId}_${debtorCode}`];
-  if (fromStatus) return fromStatus;
-  // Also check camp_claim_ keys (GistSync format)
-  const month = DATA?.current_month || '';
-  const slug  = month.replace(' ','').toLowerCase();
-  const claimKey = `camp_claim_${slug}_${currentAgent}_${campId}_${debtorCode}`;
-  const raw = localStorage.getItem(claimKey);
-  if (raw) {
-    try {
-      const v = JSON.parse(raw);
-      if (v && v.status && v.status !== 'pending_remove') {
-        return { status: 'delivered', remark: v.remark || '', ts: v.ts };
-      }
-    } catch(e) {}
-  }
-  // Check GistSync claims object
-  const claimsRaw = localStorage.getItem('claims_' + slug);
-  if (claimsRaw) {
-    try {
-      const claims = JSON.parse(claimsRaw);
-      const gk = `${campId}_${currentAgent}_${debtorCode}`;
-      const gc = claims[gk];
-      if (gc && gc.status && gc.status !== 'pending_remove') {
-        return { status: 'delivered', remark: gc.remark || '', ts: gc.ts };
-      }
-    } catch(e) {}
-  }
-  return null;
+  return getCampStatuses()[`${campId}_${debtorCode}`] || null;
 }
 
 function setCampStatus(campId, debtorCode, status) {
@@ -2647,15 +2591,6 @@ function setCampStatus(campId, debtorCode, status) {
   const remark = all[key]?.remark || '';   // preserve existing remark
   all[key] = { status, remark, ts: new Date().toISOString(), agent: currentAgent };
   try { localStorage.setItem(CAMP_STATUS_KEY(), JSON.stringify(all)); } catch(e) {}
-  // Sync status update to Gist
-  if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
-    const claimData = { status, remark, ts: Date.now(), agent: currentAgent };
-    if (status === 'not_in') {
-      GistSync.removeClaim(DATA?.current_month||'', currentAgent, campId, debtorCode).catch(()=>{});
-    } else {
-      GistSync.saveClaim(DATA?.current_month||'', currentAgent, campId, debtorCode, claimData).catch(()=>{});
-    }
-  }
   renderDebtors();
 }
 
@@ -2668,12 +2603,6 @@ function saveCampRemark(campId, debtorCode) {
   all[key].remark = inp.value.trim();
   all[key].ts     = new Date().toISOString();
   try { localStorage.setItem(CAMP_STATUS_KEY(), JSON.stringify(all)); } catch(e) {}
-  // Sync remark update to Gist if claim exists
-  if (typeof GistSync !== 'undefined' && GistSync.isConfigured() && all[key].status !== 'not_in') {
-    GistSync.saveClaim(DATA?.current_month||'', currentAgent, campId, debtorCode, {
-      ...all[key], ts: Date.now()
-    }).catch(()=>{});
-  }
   // Visual feedback
   inp.style.borderColor = 'var(--green)';
   setTimeout(() => { inp.style.borderColor = ''; }, 1000);
@@ -2765,7 +2694,14 @@ function showCampDetail(event, debtorCode, debtorName) {
   document.body.style.overflow = 'hidden';
 }
 
-// saveCampRemark defined above with GistSync support
+function saveCampRemark(campId, debtorCode) {
+  const inp = document.getElementById(`remark-${campId}`);
+  if (!inp) return;
+  const existing = getCampStatus(campId, debtorCode);
+  setCampStatus(campId, debtorCode, existing?.status || 'not_in', inp.value.trim());
+  inp.style.borderColor = 'var(--green)';
+  setTimeout(() => { if(inp) inp.style.borderColor = 'var(--border)'; }, 1000);
+}
 
 function closeCampDetail(e) {
   if (e && e.target !== document.getElementById('camp-detail-overlay')) return;
@@ -2777,8 +2713,6 @@ function closeCampDetail(e) {
 function renderCamps() {
   const el = document.getElementById('camps-content');
   if (!el || !currentAgent || !DATA) return;
-
-
 
   // Show filter bar
   const fb = document.getElementById('camps-filter-bar');
@@ -2827,8 +2761,6 @@ function renderCamps() {
           description: 'VIP debtors with birthday this month',
           deadline: '',
         };
-        const bdaySlug = (DATA.current_month||'').replace(' ','').toLowerCase();
-        const bdayClaims = (() => { try { return JSON.parse(localStorage.getItem('claims_'+bdaySlug)||'{}'); } catch(e){return{};} })();
         agentBdayDebtors.forEach(bd => {
           const fullDebtor = debtors.find(d => d.debtor_code === bd.code) || {
             debtor_code: bd.code,
@@ -2836,14 +2768,7 @@ function renderCamps() {
             phone: bd.phone,
             debtor_type: bd.type,
           };
-          // Check GistSync claims AND localStorage bday key
-          const claimKey = `birthday_gift_${currentAgent}_${bd.code}`;
-          const gistClaim = bdayClaims[claimKey];
-          const localKey  = `bday_gift_${currentAgent}_${bd.code}_${bdaySlug}`;
-          const localSent = localStorage.getItem(localKey) === '1';
-          const sent = (gistClaim && gistClaim.status && gistClaim.status !== 'pending_remove') || localSent;
-          const vs = sent ? { status: 'delivered', remark: gistClaim?.note || 'Gift sent' } 
-                          : (statuses[`${bdayId}_${bd.code}`] || null);
+          const vs = statuses[`${bdayId}_${bd.code}`];
           campMap[bdayId].debtors.push({ ...fullDebtor, visit_status: vs });
         });
       }
@@ -3175,24 +3100,9 @@ function saveBdayGift(debtorCode, month, sent, btn) {
   if (sent) {
     localStorage.setItem(key, '1');
     localStorage.setItem(noteKey, note);
-    // Sync to GistSync so management can audit
-    if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
-      const claimData = {
-        status: 'pending',
-        note: note,
-        ts: Date.now(),
-        agent: currentAgent,
-        debtor: debtorCode,
-      };
-      GistSync.saveClaim(DATA?.current_month||'', currentAgent, 'birthday_gift', debtorCode, claimData).catch(()=>{});
-    }
   } else {
     localStorage.removeItem(key);
     localStorage.removeItem(noteKey);
-    // Remove from GistSync
-    if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
-      GistSync.removeClaim(DATA?.current_month||'', currentAgent, 'birthday_gift', debtorCode).catch(()=>{});
-    }
   }
   btn.closest('div[style*=fixed]').remove();
   renderDebtors();
@@ -3252,23 +3162,14 @@ function closeBdaySheet(e) {
 
 function saveBdayActual() {
   const val = parseInt(document.getElementById('bday-actual-input').value) || 0;
-  const month = DATA?.current_month || '';
-  const slug  = month.replace(' ','').toLowerCase();
-  // Save locally
+  // Save to Streamlit storage (same pattern as event)
+  const key = `kpi_birthday_${currentAgent}`;
   try {
     const stored = JSON.parse(localStorage.getItem('kpi_manual') || '{}');
     if (!stored[currentAgent]) stored[currentAgent] = {};
     stored[currentAgent].birthday_campaign = val;
     localStorage.setItem('kpi_manual', JSON.stringify(stored));
   } catch(e) {}
-  // Sync to GistSync KPI scores
-  if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
-    const kpiScores = (() => { try { return JSON.parse(localStorage.getItem('md_scores_'+slug)||'{}'); } catch(e){return{};} })();
-    if (!kpiScores[currentAgent]) kpiScores[currentAgent] = {};
-    kpiScores[currentAgent].birthday_campaign = val;
-    localStorage.setItem('md_scores_'+slug, JSON.stringify(kpiScores));
-    GistSync.saveKPIScores(month, kpiScores).catch(()=>{});
-  }
   // Update local display
   if (DATA.agents[currentAgent]?.kpi?.items?.birthday_campaign) {
     DATA.agents[currentAgent].kpi.items.birthday_campaign.actual = val;
@@ -3298,22 +3199,12 @@ function closeEventSheet(e) {
 
 async function saveEventCount() {
   const val = parseInt(document.getElementById('event-input').value) || 0;
-  const month = DATA.current_month || '';
-  const slug  = month.replace(' ','').toLowerCase();
-  // Save locally
-  const key = `kpi_event_${currentAgent}_${month}`;
-  localStorage.setItem(key, JSON.stringify({count: val, updated: new Date().toISOString()}));
-  // Sync to GistSync as pending_verification so MD can verify
-  if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
-    const submission = {
-      type: 'event',
-      agent: currentAgent,
-      count: val,
-      ts: Date.now(),
-      status: 'pending_verification',
-      month: month
-    };
-    GistSync.saveClaim(month, currentAgent, 'kpi_event', currentAgent, submission).catch(()=>{});
+  // Save to Streamlit storage
+  const key = `kpi_event_${currentAgent}_${DATA.current_month}`;
+  try {
+    await window.storage.set(key, JSON.stringify({count: val, updated: new Date().toISOString()}));
+  } catch(e) {
+    localStorage.setItem(key, JSON.stringify({count: val, updated: new Date().toISOString()}));
   }
   // Update display immediately
   if (DATA.agents[currentAgent]?.kpi?.items?.event) {
@@ -3330,16 +3221,6 @@ async function saveEventCount() {
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 loadData();
-
-// Fetch targets.json to cache latest agent PINs (so PIN changes take effect immediately)
-fetch('targets.json?v=' + Date.now())
-  .then(r => r.json())
-  .then(t => {
-    const pins = t.agent_pins || {};
-    if (Object.keys(pins).length) {
-      localStorage.setItem('md_agent_pins', JSON.stringify(pins));
-    }
-  }).catch(() => {});
 
 // ── GistSync Module ─────────────────────────────────────────────────
 /**
@@ -3530,22 +3411,6 @@ const GistSync = (() => {
     const claims = data[`claims_${slug}`] || {};
     Object.entries(claims).forEach(([key, val]) => {
       localStorage.setItem(`camp_claim_${slug}_${key}`, JSON.stringify(val));
-      // Also sync birthday_gift claims to bday_gift_ key so debtor card updates
-      if (key.startsWith('birthday_gift_') && val && val.status && val.status !== 'pending_remove') {
-        // key format: birthday_gift_{agent}_{debtorCode}
-        const parts = key.split('_');
-        // parts: ['birthday','gift',agent,...debtorCode parts]
-        const agent = parts[2];
-        const debtorCode = parts.slice(3).join('_');
-        const bdayKey = `bday_gift_${agent}_${debtorCode}_${slug}`;
-        localStorage.setItem(bdayKey, '1');
-      } else if (key.startsWith('birthday_gift_') && val && val.status === 'pending_remove') {
-        const parts = key.split('_');
-        const agent = parts[2];
-        const debtorCode = parts.slice(3).join('_');
-        const bdayKey = `bday_gift_${agent}_${debtorCode}_${slug}`;
-        localStorage.removeItem(bdayKey);
-      }
     });
 
     // Flags → localStorage
