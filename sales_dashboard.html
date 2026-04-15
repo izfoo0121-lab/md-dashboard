@@ -294,6 +294,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
   <a href="https://izfoo0121-lab.github.io/md-dashboard/campaigns.html" style="font-family:var(--mono);font-size:9px;color:var(--green);text-decoration:none;padding:3px 8px;border:1px solid rgba(61,220,132,.3);border-radius:6px;white-space:nowrap;">📢 Campaigns</a>
   <a href="https://izfoo0121-lab.github.io/md-dashboard/campaign_audit.html" style="font-family:var(--mono);font-size:9px;color:#a78bfa;text-decoration:none;padding:3px 8px;border:1px solid rgba(167,139,250,.3);border-radius:6px;white-space:nowrap;">🔍 Audit</a>
   <a href="https://izfoo0121-lab.github.io/md-dashboard/accounts.html" style="font-family:var(--mono);font-size:9px;color:#ff8c5a;text-decoration:none;padding:3px 8px;border:1px solid rgba(200,90,26,.3);border-radius:6px;white-space:nowrap;">🏦 Accounts</a>
+  <button onclick="doLogout()" style="margin-left:auto;font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.4);background:transparent;border:1px solid rgba(255,255,255,.15);padding:3px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;flex-shrink:0;">⏏ Logout</button>
 </div>
 
 <div class="header">
@@ -390,6 +391,16 @@ const DEFAULT_PINS = {
 
 let _pin = '';
 let _pinLocked = false;
+
+function doLogout() {
+  _pin = '';
+  _pinLocked = false;
+  currentAgent = null;
+  document.getElementById('pin-gate').style.display = 'flex';
+  document.querySelectorAll('.pin-dot').forEach(d => d.classList.remove('filled','ok','err'));
+  document.getElementById('pin-name-hint').textContent = '';
+  document.getElementById('pin-err').textContent = '';
+}
 
 function pinPress(k) {
   if (_pinLocked) return;
