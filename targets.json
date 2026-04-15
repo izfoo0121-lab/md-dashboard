@@ -1855,6 +1855,12 @@
         "kpi_overrides": {},
         "is_newbie": true,
         "active": true
+      },
+      "_group": {
+        "t1": 46000,
+        "t2": 49000,
+        "ga": 2830,
+        "ma": 15385
       }
     },
     "Jan 26": {
