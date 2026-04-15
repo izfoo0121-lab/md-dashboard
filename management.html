@@ -252,6 +252,12 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
       <div id="md-approvals-list"></div>
     </div>
 
+    <!-- 0d. Flagged Debtors -->
+    <div id="flagged-section" style="display:none;">
+      <div class="sec-lbl no-border" style="color:var(--accent);">⚑ Flagged Debtors</div>
+      <div id="flagged-list"></div>
+    </div>
+
     <!-- 1. Team Sales -->
     <div class="sec-lbl no-border">📊 Team Sales Progress</div>
     <div class="overall-card">
@@ -748,6 +754,7 @@ function renderOverview() {
   renderPendingActions();
   renderBdayAudit();
   renderMdApprovals();
+  renderFlaggedDebtors();
   renderAnnualProgress();
   renderLeaderboard();
   renderGroupBrands();
@@ -1802,6 +1809,18 @@ function renderCampaignsMgmt() {
   const slug  = month.replace(' ','').toLowerCase();
   const agents = Object.keys(D.agents || {});
 
+  // Fetch latest campaigns.json for live campaign list (reflects Admin changes immediately)
+  fetch('campaigns.json?v=' + Date.now())
+    .then(function(r) { return r.json(); })
+    .then(function(campFile) {
+      _renderCampaignsMgmtWithData(D, month, slug, agents, campFile, sec, el);
+    })
+    .catch(function() {
+      _renderCampaignsMgmtWithData(D, month, slug, agents, null, sec, el);
+    });
+}
+
+function _renderCampaignsMgmtWithData(D, month, slug, agents, campFile, sec, el) {
   // Use pre-built campaign_summary from JSON (no need to iterate debtors)
   const campSummary = {};
   const prebuilt = D.campaign_summary || {};
@@ -1812,6 +1831,29 @@ function renderCampaignsMgmt() {
       campSummary[cid].agents[ae[0]] = { total: ae[1], claimed: 0 };
     });
   });
+
+  // Merge live campaigns.json — adds any new campaigns added since last bat run
+  if (campFile && campFile.campaigns) {
+    campFile.campaigns.filter(function(c) { return c.active; }).forEach(function(c) {
+      if (!campSummary[c.id]) {
+        // New campaign not in JSON yet — create with 0 totals per agent
+        campSummary[c.id] = { name: c.name, type: c.type, agents: {} };
+        agents.forEach(function(ag) { campSummary[c.id].agents[ag] = { total: 0, claimed: 0 }; });
+      } else {
+        // Update name/type from latest campaigns.json
+        campSummary[c.id].name = c.name;
+        campSummary[c.id].type = c.type;
+      }
+    });
+    // Remove campaigns that are now inactive
+    Object.keys(campSummary).forEach(function(cid) {
+      if (cid === 'birthday_gift') return;
+      var stillActive = campFile.campaigns.some(function(c) { return c.id === cid && c.active; });
+      if (!stillActive && campFile.campaigns.some(function(c) { return c.id === cid; })) {
+        delete campSummary[cid];
+      }
+    });
+  }
 
   // Add birthday_gift as a campaign
   const bdayCamp = D.birthday_campaign || {};
@@ -1933,6 +1975,101 @@ function renderCampaignsMgmt() {
   });
 
   el.innerHTML = html;
+}
+
+
+// ── Flagged Debtors ────────────────────────────────────────────────────────
+function renderFlaggedDebtors() {
+  const D = CURRENT_DATA || DATA;
+  const sec = document.getElementById('flagged-section');
+  const el  = document.getElementById('flagged-list');
+  if (!sec || !el || !D) return;
+
+  const month = D.current_month || '';
+  const slug  = month.replace(' ','').toLowerCase();
+  const agents = Object.keys(D.agents || {});
+
+  // Load flags from GistSync/localStorage
+  var allFlags = [];
+  agents.forEach(function(agent) {
+    var agentFlags = {};
+    try { agentFlags = JSON.parse(localStorage.getItem('touro_debtor_flags_' + agent) || '{}'); } catch(e) {}
+    Object.entries(agentFlags).forEach(function(e) {
+      var code = e[0]; var f = e[1];
+      if (!f || !f.reason) return;
+      // Get debtor name from DATA
+      var debtorName = code;
+      var phone = '';
+      var dc = D.agents[agent]?.debtor_cards?.debtors;
+      if (dc) {
+        var found = dc.find(function(d) { return d.debtor_code === code; });
+        if (found) { debtorName = found.company_name || code; phone = found.phone || ''; }
+      }
+      allFlags.push({ agent: agent, code: code, name: debtorName, phone: phone, reason: f.reason, note: f.note || '', flagged_at: f.flagged_at || '' });
+    });
+  });
+
+  if (!allFlags.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+
+  var REASON_LABELS = { cant_contact: '📵 Cant Contact', close_account: '❌ Close Account', transfer: '🔄 Transfer', other: '📝 Other' };
+  var REASON_COLORS = { cant_contact: 'var(--orange)', close_account: 'var(--accent)', transfer: 'var(--blue)', other: 'var(--ink3)' };
+
+  // Group by agent
+  var byAgent = {};
+  allFlags.forEach(function(f) {
+    if (!byAgent[f.agent]) byAgent[f.agent] = [];
+    byAgent[f.agent].push(f);
+  });
+
+  var html = '<div style="display:flex;flex-direction:column;gap:8px;">';
+
+  Object.entries(byAgent).forEach(function(e) {
+    var agent = e[0]; var flags = e[1];
+    html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;">';
+    html += '<div style="padding:8px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">';
+    html += '<div style="font-family:var(--display);font-size:16px;letter-spacing:.05em;color:var(--blue);">' + agent + '</div>';
+    html += '<div style="font-family:var(--mono);font-size:9px;color:var(--accent);">' + flags.length + ' flagged</div></div>';
+
+    flags.forEach(function(f) {
+      var col = REASON_COLORS[f.reason] || 'var(--ink3)';
+      var lbl = REASON_LABELS[f.reason] || f.reason;
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.04);">';
+      html += '<div style="flex:1;">';
+      html += '<div style="font-family:var(--mono);font-size:11px;font-weight:600;">' + f.name + '</div>';
+      html += '<div style="font-family:var(--mono);font-size:8px;color:var(--ink3);">' + f.code + (f.phone ? ' · ' + f.phone : '') + '</div>';
+      if (f.note) html += '<div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:2px;">"' + f.note + '"</div>';
+      html += '</div>';
+      html += '<span style="font-family:var(--mono);font-size:9px;color:' + col + ';background:rgba(255,255,255,.06);padding:2px 8px;border-radius:6px;white-space:nowrap;">' + lbl + '</span>';
+      html += '<button onclick="mdResolveFlag('' + agent + '','' + f.code + '','' + month + '','' + slug + '')" style="background:rgba(42,122,75,.15);border:1px solid rgba(42,122,75,.4);color:var(--green);font-family:var(--mono);font-size:8px;padding:3px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;">✓ Resolve</button>';
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function mdResolveFlag(agent, debtorCode, month, slug) {
+  // Remove from localStorage
+  var agentFlags = {};
+  try { agentFlags = JSON.parse(localStorage.getItem('touro_debtor_flags_' + agent) || '{}'); } catch(e) {}
+  delete agentFlags[debtorCode];
+  localStorage.setItem('touro_debtor_flags_' + agent, JSON.stringify(agentFlags));
+
+  // Also update the combined flags key
+  var allFlags = {};
+  try { allFlags = JSON.parse(localStorage.getItem('touro_debtor_flags') || '{}'); } catch(e) {}
+  if (allFlags[agent]) { delete allFlags[agent][debtorCode]; }
+  localStorage.setItem('touro_debtor_flags', JSON.stringify(allFlags));
+
+  // Sync to GistSync
+  if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+    GistSync.saveFlags(month, agent, agentFlags).catch(function(){});
+  }
+
+  renderFlaggedDebtors();
 }
 
 
