@@ -247,6 +247,34 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
 
       <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-bottom:12px;" id="mt-status"></div>
 
+      <!-- Group Target Override -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+        <div style="font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--blue);margin-bottom:10px;">🏆 Group Target Override</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-bottom:10px;">Set a fixed group total. Leave blank to use sum of individual agent targets.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;">
+          <div class="field-wrap">
+            <div class="field-lbl" style="color:var(--green);">T1 Target</div>
+            <input type="number" min="0" id="grp-t1" placeholder="Auto (sum)" 
+              oninput="saveGroupTarget('t1',this.value)">
+          </div>
+          <div class="field-wrap">
+            <div class="field-lbl" style="color:var(--blue);">T2 Target</div>
+            <input type="number" min="0" id="grp-t2" placeholder="Auto (sum)"
+              oninput="saveGroupTarget('t2',this.value)">
+          </div>
+          <div class="field-wrap">
+            <div class="field-lbl" style="color:var(--orange);">GA Target</div>
+            <input type="number" min="0" id="grp-ga" placeholder="Auto (sum)"
+              oninput="saveGroupTarget('ga',this.value)">
+          </div>
+          <div class="field-wrap">
+            <div class="field-lbl" style="color:var(--purple);">MA Target</div>
+            <input type="number" min="0" id="grp-ma" placeholder="Auto (sum)"
+              oninput="saveGroupTarget('ma',this.value)">
+          </div>
+        </div>
+      </div>
+
       <!-- Per-agent forms for selected month -->
       <div id="mt-agent-forms"></div>
     </div>
@@ -3307,6 +3335,21 @@ function initMonthlyTargetsTab() {
   renderMonthlyTargets();
 }
 
+function saveGroupTarget(field, val) {
+  const monthSel = document.getElementById('mt-month-sel')?.value;
+  if (!monthSel) return;
+  const month = monthSel.replace('-', ' ');
+  if (!CONFIG.monthly_targets) CONFIG.monthly_targets = {};
+  if (!CONFIG.monthly_targets[month]) CONFIG.monthly_targets[month] = {};
+  if (!CONFIG.monthly_targets[month]._group) CONFIG.monthly_targets[month]._group = {};
+  if (val === '' || val === null) {
+    delete CONFIG.monthly_targets[month]._group[field];
+  } else {
+    CONFIG.monthly_targets[month]._group[field] = parseFloat(val) || 0;
+  }
+  updateRawJSON();
+}
+
 function renderMonthlyTargets() {
   const monthSel  = document.getElementById('mt-month-sel')?.value;
   if (!monthSel) return;
@@ -3321,6 +3364,13 @@ function renderMonthlyTargets() {
     ? `✓ ${month} has saved targets for ${Object.keys(mData).length} agent(s)`
     : `${month} — no overrides saved yet. Using default targets from Agent Targets tab.`;
   status.style.color = hasData ? 'var(--green)' : 'var(--ink3)';
+
+  // Populate group target fields
+  const grp = mData._group || {};
+  ['t1','t2','ga','ma'].forEach(f => {
+    const el = document.getElementById('grp-' + f);
+    if (el) el.value = grp[f] != null ? grp[f] : '';
+  });
 
   document.getElementById('mt-agent-forms').innerHTML = agents.map(agent => {
     const d  = mData[agent] || {};
