@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-15 09:15:30",
+  "generated_at": "2026-04-15 09:28:24",
   "current_month": "Apr 26",
   "working_days": {
     "date": "2026-04-15",
@@ -25356,7 +25356,23 @@
     ],
     "scope": "GRP 2A",
     "group_incentive": null,
-    "agent_pins": {}
+    "agent_pins": {
+      "BEN": "1001",
+      "CJ": "1002",
+      "JACKY": "1003",
+      "JAMES": "1004",
+      "JW": "1005",
+      "KEAN": "1006",
+      "KEE": "1007",
+      "KF": "1008",
+      "KI-MI": "1009",
+      "KW": "1010",
+      "LEON": "1011",
+      "NMK": "1012",
+      "YI": "1013",
+      "SAM": "1014",
+      "GT138888": "0121"
+    }
   },
   "campaign_summary": {
     "camp_lam_lwm_mar26": {
