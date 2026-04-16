@@ -2598,28 +2598,42 @@ function getCampStatuses() {
 }
 
 function getCampStatus(campId, debtorCode) {
+  // Primary: read from camp_claim system (GistSync-backed)
+  const claim = getCampClaims(currentAgent, campId, debtorCode);
+  if (claim) return claim;
+  // Fallback: old camp_status system (local only)
   return getCampStatuses()[`${campId}_${debtorCode}`] || null;
 }
 
 function setCampStatus(campId, debtorCode, status) {
-  const all    = getCampStatuses();
-  const key    = `${campId}_${debtorCode}`;
-  const remark = all[key]?.remark || '';   // preserve existing remark
-  all[key] = { status, remark, ts: new Date().toISOString(), agent: currentAgent };
+  // Write to both systems for compatibility
+  // New system (GistSync-backed)
+  const existing = getCampClaims(currentAgent, campId, debtorCode) || {};
+  const updated = { ...existing, status, ts: new Date().toISOString(), agent: currentAgent };
+  saveCampClaim(currentAgent, campId, debtorCode, updated);
+  // Old system (local fallback)
+  const all  = getCampStatuses();
+  const key  = `${campId}_${debtorCode}`;
+  const remark = all[key]?.remark || existing.remark || '';
+  all[key] = { status, remark, ts: updated.ts, agent: currentAgent };
   try { localStorage.setItem(CAMP_STATUS_KEY(), JSON.stringify(all)); } catch(e) {}
   renderDebtors();
 }
 
 function saveCampRemark(campId, debtorCode) {
-  const inp    = document.getElementById(`remark-${campId}`);
+  const inp = document.getElementById(`remark-${campId}`);
   if (!inp) return;
-  const all    = getCampStatuses();
-  const key    = `${campId}_${debtorCode}`;
+  const remark = inp.value.trim();
+  // New system
+  const existing = getCampClaims(currentAgent, campId, debtorCode) || {};
+  saveCampClaim(currentAgent, campId, debtorCode, { ...existing, remark, ts: new Date().toISOString(), agent: currentAgent });
+  // Old system
+  const all = getCampStatuses();
+  const key = `${campId}_${debtorCode}`;
   if (!all[key]) all[key] = { status: 'not_in', agent: currentAgent };
-  all[key].remark = inp.value.trim();
-  all[key].ts     = new Date().toISOString();
+  all[key].remark = remark;
+  all[key].ts = new Date().toISOString();
   try { localStorage.setItem(CAMP_STATUS_KEY(), JSON.stringify(all)); } catch(e) {}
-  // Visual feedback
   inp.style.borderColor = 'var(--green)';
   setTimeout(() => { inp.style.borderColor = ''; }, 1000);
 }
@@ -2710,14 +2724,7 @@ function showCampDetail(event, debtorCode, debtorName) {
   document.body.style.overflow = 'hidden';
 }
 
-function saveCampRemark(campId, debtorCode) {
-  const inp = document.getElementById(`remark-${campId}`);
-  if (!inp) return;
-  const existing = getCampStatus(campId, debtorCode);
-  setCampStatus(campId, debtorCode, existing?.status || 'not_in', inp.value.trim());
-  inp.style.borderColor = 'var(--green)';
-  setTimeout(() => { if(inp) inp.style.borderColor = 'var(--border)'; }, 1000);
-}
+// saveCampRemark: consolidated above
 
 function closeCampDetail(e) {
   if (e && e.target !== document.getElementById('camp-detail-overlay')) return;
@@ -2743,7 +2750,9 @@ function renderCamps() {
     (d.campaigns || []).forEach(c => {
       if (_campFilter !== 'all' && c.type !== _campFilter) return;
       if (!campMap[c.id]) campMap[c.id] = { ...c, debtors: [] };
-      const vs = statuses[`${c.id}_${d.debtor_code}`];
+      // Read from new GistSync-backed claim system, fallback to old status
+      const claim = getCampClaims(currentAgent, c.id, d.debtor_code);
+      const vs = claim || statuses[`${c.id}_${d.debtor_code}`] || null;
       campMap[c.id].debtors.push({ ...d, visit_status: vs });
     });
   });
