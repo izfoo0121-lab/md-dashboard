@@ -2468,6 +2468,24 @@ function renderKPI() {
   const kpi = DATA.agents[currentAgent]?.kpi || {};
   const el  = document.getElementById('kpi-content');
 
+  // Merge live MD-entered scores (Event/PSR, Birthday) from md_scores into KPI items
+  const curMonth = DATA.current_month || '';
+  const slug     = curMonth.replace(' ','');
+  try {
+    const liveScores = JSON.parse(localStorage.getItem('md_scores_' + slug) || '{}');
+    const agScores   = liveScores[currentAgent] || {};
+    // Merge each live score into kpi.items if it exists
+    ['event', 'birthday_campaign'].forEach(key => {
+      if (agScores[key] != null && kpi.items?.[key]) {
+        kpi.items[key].actual = agScores[key];
+        const target = kpi.items[key].target;
+        if (target > 0) {
+          kpi.items[key].pct = Math.min(agScores[key] / target * 100, 100);
+        }
+      }
+    });
+  } catch(e) {}
+
   if (!Object.keys(kpi).length) {
     el.innerHTML = '<div style="padding:20px;text-align:center;font-family:var(--mono);color:var(--muted);font-size:11px;">No KPI data available</div>';
     return;
@@ -3258,11 +3276,20 @@ function saveBdayActual() {
 
 // ── Event Entry ────────────────────────────────────────────────────────────
 function openEventSheet() {
-  const kpi = DATA?.agents[currentAgent]?.kpi;
+  const kpi       = DATA?.agents[currentAgent]?.kpi;
   const eventItem = kpi?.items?.event;
-  document.getElementById('event-input').value = eventItem?.actual || '';
+  // Check GistSync KPI scores for live value
+  const curMonth  = DATA?.current_month || '';
+  const slug      = curMonth.replace(' ','');
+  let liveVal     = null;
+  try {
+    const scores = JSON.parse(localStorage.getItem('md_scores_' + slug) || '{}');
+    liveVal = scores[currentAgent]?.event ?? null;
+  } catch(e) {}
+  const actual = liveVal !== null ? liveVal : (eventItem?.actual || '');
+  document.getElementById('event-input').value = actual;
   document.getElementById('event-target-hint').textContent =
-    eventItem?.target ? `Monthly target: ${eventItem.target} phone numbers` : '';
+    eventItem?.target ? 'Monthly target: ' + eventItem.target + ' phone numbers' : '';
   document.getElementById('event-sheet-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
   setTimeout(() => document.getElementById('event-input').focus(), 300);
@@ -3276,20 +3303,27 @@ function closeEventSheet(e) {
 
 async function saveEventCount() {
   const val = parseInt(document.getElementById('event-input').value) || 0;
-  // Save to Streamlit storage
-  const key = `kpi_event_${currentAgent}_${DATA.current_month}`;
-  try {
-    await window.storage.set(key, JSON.stringify({count: val, updated: new Date().toISOString()}));
-  } catch(e) {
-    localStorage.setItem(key, JSON.stringify({count: val, updated: new Date().toISOString()}));
-  }
-  // Update display immediately
+  // Save to localStorage
+  const key = 'kpi_event_' + currentAgent + '_' + (DATA?.current_month||'');
+  localStorage.setItem(key, JSON.stringify({count: val, updated: new Date().toISOString()}));
+  // Update local display immediately
   if (DATA.agents[currentAgent]?.kpi?.items?.event) {
     DATA.agents[currentAgent].kpi.items.event.actual = val;
     DATA.agents[currentAgent].kpi.items.event.pct =
       (DATA.agents[currentAgent].kpi.items.event.target || 1) > 0
         ? Math.min(val / DATA.agents[currentAgent].kpi.items.event.target * 100, 100)
         : 0;
+  }
+  // Sync to GistSync so management.html sees the count
+  const curMonth = DATA?.current_month || '';
+  if (curMonth && typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+    const slug  = curMonth.replace(' ','');
+    const lsKey = 'md_scores_' + slug;
+    let scores  = {};
+    try { scores = JSON.parse(localStorage.getItem(lsKey) || '{}'); } catch(e) {}
+    if (!scores[currentAgent]) scores[currentAgent] = {};
+    scores[currentAgent].event = val;
+    GistSync.saveKPIScores(curMonth, scores).catch(e => console.warn('[saveEventCount] gist sync failed', e));
   }
   document.getElementById('event-sheet-overlay').classList.remove('open');
   document.body.style.overflow = '';
