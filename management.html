@@ -1043,55 +1043,171 @@ function renderMonthlySummary() {
   document.getElementById('monthly-month-label').textContent =
     `${D.current_month || ''} · Day ${D.working_days?.elapsed_working_days||'?'} of ${D.working_days?.total_working_days||'?'}`;
 
-  const cols = '70px 55px 55px 55px 55px 55px 55px 50px 45px 50px 50px 55px 55px 55px';
-  const hdrs = ['Agent','Tgt Normal','Act Normal','Tgt MA','Act MA','开新户口','VIP','激活户口','加SKU','光顾率','交易次数','工作日','平均交易','KPI A+B'];
+  // col layout: Agent | Normal(act/tgt/%) | MA(act/tgt/%) | 开新户口(act/tgt) | VIP(act/tgt) | 激活户口(act/tgt) | 加SKU(act/tgt) | 光顾率(act/tgt%) | 交易 | 工作日 | 平均交易 | KPI A+B
+  const cols = '68px 110px 110px 80px 70px 80px 80px 90px 55px 45px 55px 60px';
+  const hdrs = [
+    {l:'AGENT',         sub:''},
+    {l:'NORMAL',        sub:'Act / Tgt / %'},
+    {l:'MASTER AGENT',  sub:'Act / Tgt / %'},
+    {l:'开新户口',       sub:'Act / Tgt'},
+    {l:'VIP',           sub:'Act / Tgt'},
+    {l:'激活户口',       sub:'Act / Tgt'},
+    {l:'加SKU',         sub:'Act / Tgt'},
+    {l:'光顾率',         sub:'Act / Tgt%'},
+    {l:'交易次数',       sub:''},
+    {l:'工作日',         sub:''},
+    {l:'平均交易',       sub:''},
+    {l:'KPI A+B',       sub:'Score'},
+  ];
 
-  let html = `<div style="min-width:700px;">
-    <div style="display:grid;grid-template-columns:${cols};gap:0;border-bottom:2px solid var(--border);">
-      ${hdrs.map((h,i) => `<div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);padding:6px 6px;text-align:${i===0?'left':'center'};border-right:1px solid var(--border);">${h}</div>`).join('')}
+  // helper: act/tgt cell with colour on pct
+  const atCell = (act, tgt, isPct=false) => {
+    const p    = tgt > 0 ? Math.round(act / tgt * 100) : null;
+    const col  = p === null ? 'var(--ink3)' : p >= 100 ? '#2a7a4b' : p >= 70 ? '#c8860a' : '#c8381a';
+    const actStr = isPct ? act+'%' : fi(act);
+    const tgtStr = isPct ? tgt+'%' : fi(tgt);
+    const pctStr = p !== null ? `<span style="color:${col};font-size:8px;"> ${p}%</span>` : '';
+    return `<div style="font-family:var(--mono);font-size:10px;padding:5px 6px;text-align:center;
+      border-right:1px solid var(--border);border-bottom:1px solid var(--border);line-height:1.4;">
+      <span style="color:${col};font-weight:600;">${actStr}</span>
+      <span style="color:var(--ink3);font-size:9px;">/${tgtStr}</span>
+      ${pctStr}
     </div>`;
+  };
+  const cell = (val, color='') =>
+    `<div style="font-family:var(--mono);font-size:10px;padding:7px 6px;text-align:center;
+      border-right:1px solid var(--border);border-bottom:1px solid var(--border);${color}">${val}</div>`;
+
+  let html = `<div style="min-width:800px;">
+    <div style="display:grid;grid-template-columns:${cols};gap:0;border-bottom:2px solid var(--border);background:var(--card);">
+      ${hdrs.map((h,i) => `<div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;
+        letter-spacing:.05em;color:var(--ink3);padding:5px 6px;text-align:${i===0?'left':'center'};
+        border-right:1px solid var(--border);line-height:1.4;">
+        ${h.l}${h.sub?`<br><span style="font-size:7px;color:var(--ink3);opacity:.7;text-transform:none;letter-spacing:0;">${h.sub}</span>`:''}
+      </div>`).join('')}
+    </div>`;
+
+  // Pull live KPI scores from localStorage
+  const slug = (D.current_month||'').replace(' ','');
+  let liveScores = {};
+  try { liveScores = JSON.parse(localStorage.getItem('md_scores_'+slug)||'{}'); } catch(e) {}
 
   agents.forEach((agent,idx) => {
     const sp  = D.agents[agent]?.sales_progression || {};
     const dc  = D.agents[agent]?.debtor_cards || {};
     const kpi = D.agents[agent]?.kpi || {};
+    const kpiItems = kpi.items || {};
     const bg  = idx%2===0 ? '' : 'background:#faf8f5;';
 
-    const t1tgt = sp.tiers?.normal_t1?.target || 0;
-    const matgt = sp.tiers?.ma?.target || 0;
-    const newAcc = dc.debtors?.filter(d=>d.is_new).length || 0;
-    const vip    = dc.debtors?.filter(d=>d.vip).length || 0;
-    const react  = dc.reactivation_count || 0;
-    const newSku = dc.total_new_sku || 0;
-    const rate   = dc.activation_rate || 0;
-    const txn    = sp.txn_count || 0;
-    const wdays  = sp.elapsed_working_days || DATA.working_days?.elapsed_working_days || 0;
-    const avgTxn = sp.avg_txn_per_day || 0;
-    const kpiScore = kpi.total_abc || 0;
-
+    const t1tgt  = sp.tiers?.normal_t1?.target || 0;
+    const matgt  = sp.tiers?.ma?.target || 0;
     const normalPct = sp.tiers?.normal_t1?.pct || 0;
     const maPct     = sp.tiers?.ma?.pct || 0;
 
-    const cell = (val, color='') => `<div style="font-family:var(--mono);font-size:10px;padding:7px 6px;text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);${color}">${val}</div>`;
-    const pctCell = (p, val) => cell(val, `color:${pc(p)};`);
+    // KPI actuals — merge live scores
+    const newAcc  = dc.debtors?.filter(d=>d.is_new).length || 0;
+    const newAccTgt = kpiItems.new_accounts?.target || 0;
 
-    html += `<div style="display:grid;grid-template-columns:${cols};gap:0;${bg}" onclick="openDrill('${agent}')" style="cursor:pointer;">
-      <div style="font-family:var(--mono);font-size:11px;font-weight:600;padding:7px 8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);color:var(--blue);cursor:pointer;">${agent}</div>
-      ${cell(fi(t1tgt))}
-      ${pctCell(normalPct, fi(sp.normal_ctn))}
-      ${cell(fi(matgt))}
-      ${pctCell(maPct, fi(sp.ma_ctn))}
-      ${cell(newAcc)}
-      ${cell(vip)}
-      ${cell(react)}
-      ${cell(newSku)}
-      ${cell(rate+'%', `color:${pc(rate)};`)}
+    const vipAct  = dc.debtors?.filter(d=>d.vip && d.status==='active').length || 0;
+    const vipTgt  = kpiItems.vip_count?.target || 0;
+
+    const reactAct = dc.reactivation_count || 0;
+    const reactTgt = kpiItems.reactivation?.target || 0;
+
+    const newSkuAct = dc.total_new_sku || 0;
+    const newSkuTgt = kpiItems.new_sku?.target || 0;
+
+    const rateAct = dc.activation_rate || 0;
+    const rateTgt = kpiItems.activation_rate?.target || 80;
+
+    const txn    = sp.txn_count || 0;
+    const wdays  = sp.elapsed_working_days || D.working_days?.elapsed_working_days || 0;
+    const avgTxn = sp.avg_txn_per_day || 0;
+
+    // KPI score — merge live event/birthday from md_scores
+    let kpiScore = kpi.total_abc || 0;
+
+    html += `<div style="display:grid;grid-template-columns:${cols};gap:0;${bg}cursor:pointer;" onclick="openDrill('${agent}')">
+      <div style="font-family:var(--mono);font-size:11px;font-weight:600;padding:7px 8px;
+        border-right:1px solid var(--border);border-bottom:1px solid var(--border);color:var(--blue);">${agent}</div>
+      ${atCell(sp.normal_ctn||0, t1tgt)}
+      ${atCell(sp.ma_ctn||0, matgt)}
+      ${atCell(newAcc, newAccTgt)}
+      ${atCell(vipAct, vipTgt)}
+      ${atCell(reactAct, reactTgt)}
+      ${atCell(newSkuAct, newSkuTgt)}
+      ${atCell(rateAct, rateTgt, true)}
       ${cell(txn)}
       ${cell(wdays)}
       ${cell(avgTxn.toFixed(1))}
-      ${cell(kpiScore.toFixed(1), `color:${pc(kpiScore/61*100)};`)}
+      ${cell(kpiScore.toFixed(1), `color:${pc(kpiScore/61*100)};font-weight:600;`)}
     </div>`;
   });
+
+  // TOTAL row
+  const totNormal = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.normal_ctn||0),0);
+  const totNormTgt = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.tiers?.normal_t1?.target||0),0);
+  const totMA    = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.ma_ctn||0),0);
+  const totMATgt = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.tiers?.ma?.target||0),0);
+  const totNew   = agents.reduce((s,a)=>s+(D.agents[a]?.debtor_cards?.debtors?.filter(d=>d.is_new).length||0),0);
+  const totTxn   = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.txn_count||0),0);
+  const totKpi   = agents.reduce((s,a)=>s+(D.agents[a]?.kpi?.total_abc||0),0);
+  const avgKpi   = agents.length ? (totKpi/agents.length).toFixed(1) : '—';
+
+  html += `<div style="display:grid;grid-template-columns:${cols};gap:0;background:var(--ink);border-top:2px solid var(--border);">
+    <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:7px 8px;border-right:1px solid rgba(255,255,255,.1);color:#fff;">TOTAL</div>
+    <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:7px 6px;text-align:center;border-right:1px solid rgba(255,255,255,.1);color:#ffc94d;">
+      ${fi(totNormal)}<span style="color:rgba(255,255,255,.4);font-size:9px;">/${fi(totNormTgt)}</span>
+    </div>
+    <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:7px 6px;text-align:center;border-right:1px solid rgba(255,255,255,.1);color:#a78bfa;">
+      ${fi(totMA)}<span style="color:rgba(255,255,255,.4);font-size:9px;">/${fi(totMATgt)}</span>
+    </div>
+    <div style="font-family:var(--mono);font-size:10px;padding:7px 6px;text-align:center;border-right:1px solid rgba(255,255,255,.1);color:#fff;">${totNew}</div>
+    <div style="border-right:1px solid rgba(255,255,255,.1);"></div>
+    <div style="border-right:1px solid rgba(255,255,255,.1);"></div>
+    <div style="border-right:1px solid rgba(255,255,255,.1);"></div>
+    <div style="border-right:1px solid rgba(255,255,255,.1);"></div>
+    <div style="font-family:var(--mono);font-size:10px;padding:7px 6px;text-align:center;border-right:1px solid rgba(255,255,255,.1);color:#fff;">${totTxn}</div>
+    <div style="border-right:1px solid rgba(255,255,255,.1);"></div>
+    <div style="border-right:1px solid rgba(255,255,255,.1);"></div>
+    <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:7px 6px;text-align:center;color:#ffc94d;">avg ${avgKpi}</div>
+  </div>`;
+
+  // ── Legend ──
+  html += `
+  <div style="margin-top:10px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;">
+    <div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:8px;">Table Guide</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px 16px;">
+
+      <!-- Colour thresholds -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;width:100%;border-bottom:1px solid var(--border);padding-bottom:6px;">
+        <span style="font-family:var(--mono);font-size:8px;color:var(--ink3);">COLOUR:</span>
+        <span style="font-family:var(--mono);font-size:9px;color:#2a7a4b;font-weight:600;">■ ≥100%</span>
+        <span style="font-family:var(--mono);font-size:9px;color:#c8860a;font-weight:600;">■ 70–99%</span>
+        <span style="font-family:var(--mono);font-size:9px;color:#c8381a;font-weight:600;">■ &lt;70%</span>
+        <span style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-left:8px;">FORMAT: Actual / Target  Achievement%</span>
+      </div>
+
+      <!-- Column descriptions -->
+      ${[
+        ['NORMAL',    'Normal T1 CTN paid this month vs agent target'],
+        ['MASTER AGENT', 'MA-tier CTN (RM/CTN ≥ MA rate) vs MA target'],
+        ['开新户口',   'New debtor accounts opened this month vs target'],
+        ['VIP',       'Active VIP debtors purchased this month vs target'],
+        ['激活户口',   'Debtors reactivated after missing last month vs target'],
+        ['加SKU',     'Debtors who bought a new SKU group vs target (17)'],
+        ['光顾率',    'Active debtors ÷ total non-personal debtors vs 80% target'],
+        ['交易次数',  'Total unique invoices this agent this month'],
+        ['工作日',    'Working days elapsed in current month'],
+        ['平均交易',  'Avg invoices per working day'],
+        ['KPI A+B',   'Combined Section A (Sales) + B (Penetration/Service) KPI score'],
+      ].map(([col, desc]) => `
+        <div style="display:flex;gap:6px;align-items:baseline;min-width:260px;flex:1;">
+          <span style="font-family:var(--mono);font-size:9px;font-weight:600;color:var(--ink2);white-space:nowrap;min-width:90px;">${col}</span>
+          <span style="font-family:var(--mono);font-size:9px;color:var(--ink3);">${desc}</span>
+        </div>`).join('')}
+    </div>
+  </div>`;
 
   html += `</div>`;
   el.innerHTML = html;
