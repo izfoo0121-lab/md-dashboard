@@ -3199,10 +3199,22 @@ function closeCtnTooltip() {
 // ── Event Sheet ────────────────────────────────────────────────────────────
 // ── Birthday Gift Entry ────────────────────────────────────────────────────
 function openBdaySheet() {
-  const kpi = DATA.agents[currentAgent]?.kpi || {};
-  const item = kpi.items?.birthday_campaign || {};
+  const kpi    = DATA.agents[currentAgent]?.kpi || {};
+  const item   = kpi.items?.birthday_campaign || {};
   const target = item.target ?? DATA.birthday_campaign?.by_agent?.[currentAgent] ?? 0;
-  const actual = item.actual ?? 0;
+
+  // Auto-count from debtor card gift marks (bday_gift_* keys)
+  const month  = (DATA?.current_month || '').replace(' ','');
+  const prefix = 'bday_gift_' + currentAgent + '_';
+  const suffix = '_' + month;
+  const autoCount = Object.keys(localStorage)
+    .filter(k => k.startsWith(prefix) && k.endsWith(suffix))
+    .filter(k => localStorage.getItem(k) === '1')
+    .length;
+
+  // Priority: auto-count from marks → stored actual → 0
+  const actual = autoCount > 0 ? autoCount : (item.actual ?? 0);
+
   document.getElementById('bday-target-display').textContent = target || '—';
   document.getElementById('bday-actual-input').value = actual || '';
   document.getElementById('bday-sheet-overlay').classList.add('open');
@@ -3217,17 +3229,27 @@ function closeBdaySheet(e) {
 
 function saveBdayActual() {
   const val = parseInt(document.getElementById('bday-actual-input').value) || 0;
-  // Save to Streamlit storage (same pattern as event)
-  const key = `kpi_birthday_${currentAgent}`;
+  // Save to localStorage
   try {
     const stored = JSON.parse(localStorage.getItem('kpi_manual') || '{}');
     if (!stored[currentAgent]) stored[currentAgent] = {};
     stored[currentAgent].birthday_campaign = val;
     localStorage.setItem('kpi_manual', JSON.stringify(stored));
   } catch(e) {}
-  // Update local display
+  // Update local display immediately
   if (DATA.agents[currentAgent]?.kpi?.items?.birthday_campaign) {
     DATA.agents[currentAgent].kpi.items.birthday_campaign.actual = val;
+  }
+  // Sync to GistSync so management.html sees the count
+  const curMonth = DATA?.current_month || '';
+  if (curMonth && typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+    const slug  = curMonth.replace(' ','');
+    const lsKey = 'md_scores_' + slug;
+    let scores  = {};
+    try { scores = JSON.parse(localStorage.getItem(lsKey) || '{}'); } catch(e) {}
+    if (!scores[currentAgent]) scores[currentAgent] = {};
+    scores[currentAgent].birthday_campaign = val;
+    GistSync.saveKPIScores(curMonth, scores).catch(e => console.warn('[saveBdayActual] gist sync failed', e));
   }
   document.getElementById('bday-sheet-overlay').classList.remove('open');
   document.body.style.overflow = '';
