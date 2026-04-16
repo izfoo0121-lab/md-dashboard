@@ -243,7 +243,13 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 
     <!-- 0b. Birthday Gift Audit -->
     <div id="bday-audit-section" style="display:none;">
-      <div class="sec-lbl no-border" style="color:var(--purple);">🎂 Birthday Gift — Audit Required</div>
+      <div class="sec-lbl no-border" style="color:var(--purple);display:flex;justify-content:space-between;align-items:center;">
+        <span>🎂 Birthday Gift — Audit Required</span>
+        <button onclick="refreshBdayAudit()" id="bday-refresh-btn"
+          style="font-family:var(--mono);font-size:9px;background:rgba(107,63,160,.15);border:1px solid rgba(107,63,160,.3);color:var(--purple);padding:3px 10px;border-radius:6px;cursor:pointer;">
+          ↻ Refresh
+        </button>
+      </div>
       <div id="bday-audit-list"></div>
     </div>
 
@@ -2215,6 +2221,29 @@ function renderYearlyYTD() {
       </div>
     </div>`;
   }).join('');
+}
+
+async function refreshBdayAudit() {
+  const btn = document.getElementById('bday-refresh-btn');
+  if (btn) { btn.textContent = '↻ Loading...'; btn.disabled = true; }
+  try {
+    // Force fresh pull from Gist (bypass 5-min cache)
+    if (GistSync.isConfigured()) {
+      const month = (DATA?.current_month || '').replace(' ','');
+      const data  = await GistSync.pull();  // force fresh
+      if (data) {
+        const kpi = data['kpi_scores'] || {};
+        const curMonth = DATA?.current_month || '';
+        if (kpi[curMonth]) {
+          try { localStorage.setItem('md_scores_' + month, JSON.stringify(kpi[curMonth])); } catch(e) {}
+        }
+      }
+    }
+    renderBdayAudit();
+  } catch(e) { console.warn('[refreshBdayAudit]', e); }
+  finally {
+    if (btn) { btn.textContent = '↻ Refresh'; btn.disabled = false; }
+  }
 }
 
 function saveGistToken() {
