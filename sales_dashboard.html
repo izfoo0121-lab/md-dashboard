@@ -3119,9 +3119,9 @@ function toggleBdayGift(debtorCode, debtorName, event) {
 }
 
 function saveBdayGift(debtorCode, month, sent, btn) {
-  const key = `bday_gift_${currentAgent}_${debtorCode}_${month}`;
+  const key     = `bday_gift_${currentAgent}_${debtorCode}_${month}`;
   const noteKey = `bday_note_${currentAgent}_${debtorCode}_${month}`;
-  const note = document.getElementById('bday-popup-note')?.value || '';
+  const note    = document.getElementById('bday-popup-note')?.value || '';
   if (sent) {
     localStorage.setItem(key, '1');
     localStorage.setItem(noteKey, note);
@@ -3130,6 +3130,36 @@ function saveBdayGift(debtorCode, month, sent, btn) {
     localStorage.removeItem(noteKey);
   }
   btn.closest('div[style*=fixed]').remove();
+
+  // Auto-count all sent birthday gifts for this agent this month
+  const prefix = `bday_gift_${currentAgent}_`;
+  const suffix = `_${month}`;
+  const sentCount = Object.keys(localStorage)
+    .filter(k => k.startsWith(prefix) && k.endsWith(suffix))
+    .filter(k => localStorage.getItem(k) === '1')
+    .length;
+
+  // Update local KPI data immediately
+  if (DATA && DATA.agents && DATA.agents[currentAgent] &&
+      DATA.agents[currentAgent].kpi && DATA.agents[currentAgent].kpi.items &&
+      DATA.agents[currentAgent].kpi.items.birthday_campaign) {
+    DATA.agents[currentAgent].kpi.items.birthday_campaign.actual = sentCount;
+  }
+
+  // Sync to GistSync so management.html sees the count
+  const curMonth = (DATA && DATA.current_month) || '';
+  if (curMonth && typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+    const slug  = curMonth.replace(' ','');
+    const lsKey = 'md_scores_' + slug;
+    let scores  = {};
+    try { scores = JSON.parse(localStorage.getItem(lsKey) || '{}'); } catch(e) {}
+    if (!scores[currentAgent]) scores[currentAgent] = {};
+    scores[currentAgent].birthday_campaign = sentCount;
+    GistSync.saveKPIScores(curMonth, scores).catch(function(e) {
+      console.warn('[bday] kpi sync failed', e);
+    });
+  }
+
   renderDebtors();
 }
 

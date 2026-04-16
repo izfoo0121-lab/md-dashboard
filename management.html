@@ -1219,9 +1219,17 @@ function renderBdayAudit() {
   if (!rows.length) { sec.style.display = 'none'; return; }
   sec.style.display = 'block';
 
+  // Pull live birthday counts from GistSync KPI scores if available
+  const month   = DATA?.current_month || '';
+  const slug    = month.replace(' ','');
+  let liveScores = {};
+  try { liveScores = JSON.parse(localStorage.getItem('md_scores_' + slug) || '{}'); } catch(e) {}
+
   el.innerHTML = rows.map(([agent, target]) => {
     const kpi    = agents[agent]?.kpi?.items?.birthday_campaign || {};
-    const actual = kpi.actual ?? null;
+    // Priority: live GistSync KPI score → JSON KPI actual
+    const liveActual = liveScores[agent]?.birthday_campaign ?? null;
+    const actual = liveActual !== null ? liveActual : (kpi.actual ?? null);
     const done   = actual !== null;
     const pct    = target > 0 && actual !== null ? Math.min(actual/target*100, 100) : 0;
     const col    = pct >= 100 ? '#2a7a4b' : pct >= 60 ? '#c8860a' : '#c8381a';
