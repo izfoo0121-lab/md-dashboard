@@ -2247,16 +2247,20 @@ async function refreshBdayAudit() {
   const btn = document.getElementById('bday-refresh-btn');
   if (btn) { btn.textContent = '↻ Loading...'; btn.disabled = true; }
   try {
-    // Force fresh pull from Gist (bypass 5-min cache)
     if (GistSync.isConfigured()) {
-      const month = (DATA?.current_month || '').replace(' ','');
-      const data  = await GistSync.pull();  // force fresh
-      if (data) {
-        const kpi = data['kpi_scores'] || {};
-        const curMonth = DATA?.current_month || '';
-        if (kpi[curMonth]) {
-          try { localStorage.setItem('md_scores_' + month, JSON.stringify(kpi[curMonth])); } catch(e) {}
-        }
+      const curMonth = DATA?.current_month || '';
+      const slug     = curMonth.replace(' ','');
+      // Pull kpi_scores file specifically
+      const kpiData  = await GistSync.pull('kpi_scores');
+      if (kpiData && kpiData[curMonth]) {
+        try { localStorage.setItem('md_scores_' + slug, JSON.stringify(kpiData[curMonth])); } catch(e) {}
+      }
+      // Also re-pull claims for birthday audit
+      const claims = await GistSync.pull('claims_' + slug);
+      if (claims) {
+        Object.entries(claims).forEach(([k, v]) => {
+          try { localStorage.setItem('camp_claim_' + slug + '_' + k, JSON.stringify(v)); } catch(e) {}
+        });
       }
     }
     renderBdayAudit();
@@ -2359,11 +2363,20 @@ async function saveAllEventScores() {
   // Save to localStorage
   localStorage.setItem(lsKey, JSON.stringify(scores));
 
-  // Sync to GistSync
+  // Sync to GistSync — push kpi_scores file directly
   if (GistSync.isConfigured()) {
     try {
-      await GistSync.saveKPIScores(month, scores);
-      alert('Saved ' + changed + ' agents\' Event/PSR scores for ' + month + ' ✓\nAgents will see updated counts on their next KPI view.');
+      // Read full kpi_scores, update this month, push back
+      let allKpi = {};
+      try {
+        const existing = await GistSync.pull('kpi_scores');
+        if (existing) allKpi = existing;
+      } catch(e) {}
+      allKpi[month] = scores;
+      await GistSync.push('kpi_scores', allKpi);
+      // Also update localStorage for immediate local read
+      localStorage.setItem('md_scores_' + slug, JSON.stringify(scores));
+      alert('Saved ' + changed + ' agents\' Event/PSR scores for ' + month + ' ✓\nAgents will see updated counts on their next login.');
     } catch(e) {
       alert('Saved locally. Gist sync failed: ' + e.message);
     }
