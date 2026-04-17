@@ -371,13 +371,24 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 <script>
 // ── Agent PINs — set via Admin ─────────────────────────────────────────
 // Format: { AGENT_NAME: '4-digit-pin' }
-// Admin manages these in targets.json under 'agent_pins'
-const AGENT_PINS = (()=>{
+// Agent PINs — loaded from targets.json on boot, cached in localStorage
+const PIN_CACHE_KEY = 'md_agent_pins_cache';
+let _agentPinsLoaded = false;
+
+async function preloadAgentPins() {
   try {
-    const pins = DATA_PINS || {};  // injected after data loads
-    return pins;
-  } catch { return {}; }
-})();
+    const r = await fetch('targets.json?v=' + Date.now());
+    if (!r.ok) return;
+    const t = await r.json();
+    const pins = t.agent_pins || {};
+    if (Object.keys(pins).length) {
+      localStorage.setItem(PIN_CACHE_KEY, JSON.stringify(pins));
+      _agentPinsLoaded = true;
+    }
+  } catch(e) {}
+}
+// Start loading immediately — don't wait
+preloadAgentPins();
 
 // Fallback default PINs (overridden by targets.json)
 const DEFAULT_PINS = {
@@ -423,18 +434,28 @@ function updatePinDisplay() {
   const err  = document.getElementById('pin-err');
   err.textContent = '';
   const allPins = Object.assign({}, DEFAULT_PINS);
+  try {
+    const cached = JSON.parse(localStorage.getItem(PIN_CACHE_KEY) || '{}');
+    if (Object.keys(cached).length) Object.assign(allPins, cached);
+  } catch {}
   const match = Object.entries(allPins).find(([,p])=>p===_pin);
-  hint.textContent = match && _pin.length===4 ? '' : '';
+  hint.textContent = match && _pin.length===4 ? (match[0]==='GT138888'?'ADMIN':match[0]) : '';
 }
 
 function checkPin() {
   _pinLocked = true;
   const allPins = Object.assign({}, DEFAULT_PINS);
 
-  // Try to load from targets.json if available
+  // Priority 1: DATA.config.agent_pins (if data already loaded)
   try {
-    const fromTargets = (typeof DATA !== 'undefined' && DATA.config?.agent_pins) || {};
-    Object.assign(allPins, fromTargets);
+    const fromData = (typeof DATA !== 'undefined' && DATA?.config?.agent_pins) || {};
+    if (Object.keys(fromData).length) Object.assign(allPins, fromData);
+  } catch {}
+
+  // Priority 2: targets.json cache in localStorage (loaded on boot)
+  try {
+    const cached = JSON.parse(localStorage.getItem(PIN_CACHE_KEY) || '{}');
+    if (Object.keys(cached).length) Object.assign(allPins, cached);
   } catch {}
 
   const match = Object.entries(allPins).find(([,p])=>p===_pin);
