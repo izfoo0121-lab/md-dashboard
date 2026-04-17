@@ -407,6 +407,15 @@ function doLogout() {
   _pin = '';
   _pinLocked = false;
   currentAgent = null;
+  // Clear session so admin can log back in fresh
+  sessionStorage.removeItem('md_auth');
+  sessionStorage.removeItem('md_agent');
+  // Restore dropdown for next login (admin needs full access)
+  const sel = document.getElementById('agent-select');
+  if (sel) {
+    sel.style.pointerEvents = '';
+    sel.style.opacity = '';
+  }
   document.getElementById('pin-gate').style.display = 'flex';
   document.querySelectorAll('.pin-dot').forEach(d => d.classList.remove('filled','ok','err'));
   document.getElementById('pin-name-hint').textContent = '';
@@ -491,15 +500,13 @@ function checkPin() {
 }
 
 function lockToAgent(agentName) {
-  // Auto-select agent and hide the dropdown for non-admins
+  // Auto-select agent and lock dropdown for non-admins
   const sel = document.getElementById('agent-select');
   if (sel) {
     sel.value = agentName;
-    // Hide dropdown so agent can't switch to others
-    sel.closest('.agent-select')?.style && (sel.style.pointerEvents='none');
+    sel.style.pointerEvents = 'none';
     sel.style.opacity = '0.7';
   }
-  // Also trigger agent selection
   selectAgent(agentName);
 }
 
