@@ -662,13 +662,11 @@ window.addEventListener('DOMContentLoaded', ()=>{
 <!-- ── Campaigns View ── -->
 <div id="view-camps" class="view">
   <!-- Campaign type filter -->
-  <div id="camps-filter-bar" style="display:none;padding:10px 14px 4px;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;white-space:nowrap;">
+  <div id="camps-filter-bar" style="display:none;padding:8px 14px 6px;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;white-space:nowrap;">
     <span style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-right:8px;">Filter:</span>
-    <button onclick="setCampFilter('all',this)" class="filter-chip active">ALL</button>
-    <button onclick="setCampFilter('promotion',this)" class="filter-chip">📢 PROMO</button>
-    <button onclick="setCampFilter('foc_sample',this)" class="filter-chip">🎁 FOC</button>
-    <button onclick="setCampFilter('festive_gift',this)" class="filter-chip">🧧 FESTIVE</button>
-    <button onclick="setCampFilter('birthday_gift',this)" class="filter-chip">🎂 BIRTHDAY</button>
+    <div id="camps-filter-chips" style="display:inline-flex;gap:5px;flex-wrap:nowrap;">
+      <button onclick="setCampFilter('all',this)" class="filter-chip active">ALL</button>
+    </div>
   </div>
   <div id="camps-content">
     <div style="text-align:center;padding:30px;font-family:var(--mono);font-size:11px;color:var(--muted);">Select an agent to view campaigns</div>
@@ -1259,7 +1257,7 @@ function renderDebtors() {
       const selMonth = DATA?.current_month || '';
       const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       const selMonthNum = MONTHS.indexOf((selMonth.split(' ')[0]||'')) + 1;
-      const matchBday = selMonthNum > 0 ? (d.birth_month === selMonthNum) : d.birthday_this_month;
+      const matchBday = selMonthNum > 0 ? (parseInt(d.birth_month) === selMonthNum) : d.birthday_this_month;
       if (!matchBday) return false;
     }
     if (filters.special === 'drop'     && !d.volume_drop_pct)    return false;
@@ -1444,7 +1442,7 @@ function renderDebtors() {
         const selM = DATA?.current_month || '';
         const MTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         const selMNum = MTHS.indexOf((selM.split(' ')[0]||'')) + 1;
-        const showBday = selMNum > 0 ? (d.birth_month === selMNum) : d.birthday_this_month;
+        const showBday = selMNum > 0 ? (parseInt(d.birth_month) === selMNum) : d.birthday_this_month;
         if (!showBday) return '';
         const bdayKey = `bday_gift_${currentAgent}_${d.debtor_code}_${(DATA?.current_month||'').replace(' ','')}`;
         const giftSent = localStorage.getItem(bdayKey) === '1';
@@ -2763,11 +2761,45 @@ function renderCamps() {
   const debtors  = DATA.agents[currentAgent]?.debtor_cards?.debtors || [];
   const statuses = getCampStatuses();
 
+  // ── Build dynamic filter chips from this agent's actual campaigns ──────
+  const campEmoji2 = {free_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',foc_sample:'🎁',voucher:'🎟️',other:'📋'};
+  const allCampTypes = new Map(); // type → label
+  const allCampIds   = new Map(); // id → {name, type}
+  debtors.forEach(d => (d.campaigns||[]).forEach(c => {
+    allCampTypes.set(c.type, (campEmoji2[c.type]||'📋') + ' ' + (c.type||'other').replace(/_/g,' ').toUpperCase());
+    allCampIds.set(c.id, { name: c.name, type: c.type });
+  }));
+  // Always add birthday if DATA has birthday_campaign for this agent
+  const bdayCount = DATA.birthday_campaign?.by_agent?.[currentAgent] || 0;
+  if (bdayCount > 0) allCampTypes.set('birthday_gift', '🎂 BIRTHDAY');
+
+  const chipsEl = document.getElementById('camps-filter-chips');
+  if (chipsEl) {
+    let chipsHtml = `<button onclick="setCampFilter('all',this)" class="filter-chip ${_campFilter==='all'?'active':''}">ALL</button>`;
+    // Type-level filters
+    allCampTypes.forEach((label, type) => {
+      chipsHtml += `<button onclick="setCampFilter('${type}',this)" class="filter-chip ${_campFilter===type?'active':''}">${label}</button>`;
+    });
+    // Campaign-level filters (individual campaigns by ID)
+    if (allCampIds.size > 1) {
+      allCampIds.forEach((info, id) => {
+        const emoji = campEmoji2[info.type] || '📋';
+        const shortName = info.name.length > 18 ? info.name.slice(0,16)+'…' : info.name;
+        chipsHtml += `<button onclick="setCampFilter('id:${id}',this)" class="filter-chip ${_campFilter==='id:'+id?'active':''}" style="font-size:9px;">${emoji} ${shortName}</button>`;
+      });
+    }
+    chipsEl.innerHTML = chipsHtml;
+  }
+
   // Collect all unique campaigns this agent has
   const campMap  = {};
   debtors.forEach(d => {
     (d.campaigns || []).forEach(c => {
-      if (_campFilter !== 'all' && c.type !== _campFilter) return;
+      // Support filtering by type OR by specific campaign id
+      if (_campFilter !== 'all') {
+        if (_campFilter.startsWith('id:') && c.id !== _campFilter.slice(3)) return;
+        if (!_campFilter.startsWith('id:') && c.type !== _campFilter) return;
+      }
       if (!campMap[c.id]) campMap[c.id] = { ...c, debtors: [] };
       // Read from new GistSync-backed claim system, fallback to old status
       const claim = getCampClaims(currentAgent, c.id, d.debtor_code);
@@ -2777,7 +2809,7 @@ function renderCamps() {
   });
 
   // ── Inject birthday campaign debtors ───────────────────────────────────
-  if (_campFilter === 'all' || _campFilter === 'birthday_gift') {
+  if (_campFilter === 'all' || _campFilter === 'birthday_gift' || _campFilter === 'id:birthday_gift_auto') {
     const bdayCamp = DATA.birthday_campaign;
     if (bdayCamp) {
       const bdayId = 'birthday_gift_auto';
