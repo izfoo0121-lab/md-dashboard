@@ -2493,10 +2493,11 @@ function renderKPI() {
 
   const items   = kpi.items || {};
   const secSc   = kpi.section_scores || {};
-  const total   = kpi.total_abc || 0;
-  const maxABC  = kpi.max_abc || 61; // A+B+C = 35+36+... = roughly 61% of total
-  const grandTotal = kpi.grand_total || total;
-  const totalColor = total >= 80 ? 'var(--green)' : total >= 60 ? 'var(--accent)' : 'var(--red)';
+  const total      = kpi.total_abc ?? kpi.grand_total ?? 0;
+  const maxABC     = kpi.max_abc ?? kpi.max_total ?? 61;
+  const grandTotal = kpi.grand_total ?? total;
+  const totalPct   = kpi.total_pct ?? kpi.grand_pct ?? 0;
+  const totalColor = totalPct >= 80 ? 'var(--green)' : totalPct >= 50 ? 'var(--accent)' : 'var(--red)';
 
   // ── Hero card ──
   const heroHtml = `<div class="kpi-hero">
@@ -2507,7 +2508,7 @@ function renderKPI() {
         <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:4px;">Grand Total: <span style="color:${totalColor}">${grandTotal.toFixed(1)} pts</span> ${kpi.section_d?.score != null ? '' : '(D+E pending)'}</div>
       </div>
       <div style="text-align:right;">
-        <div style="font-family:var(--display);font-size:28px;color:${totalColor}">${kpi.total_pct || 0}%</div>
+        <div style="font-family:var(--display);font-size:28px;color:${totalColor}">${totalPct}%</div>
         <div style="font-family:var(--mono);font-size:9px;color:var(--muted)">Achievement</div>
       </div>
     </div>
