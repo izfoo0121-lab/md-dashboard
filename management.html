@@ -1376,6 +1376,26 @@ function renderBdayAudit() {
     const pct    = target > 0 && actual !== null ? Math.min(actual/target*100, 100) : 0;
     const col    = pct >= 100 ? '#2a7a4b' : pct >= 60 ? '#c8860a' : '#c8381a';
 
+    // Check if MD already approved
+    const mdClaims = (() => { try { return JSON.parse(localStorage.getItem('md_bday_claims_' + slug) || '{}'); } catch(e) { return {}; } })();
+    const mdApproved = mdClaims[agent]?.md_approved || false;
+    const mdOverride = mdClaims[agent]?.md_override ?? null;
+    const displayActual = mdOverride !== null ? mdOverride : actual;
+
+    if (mdApproved) {
+      // Collapsed approved state
+      return `<div style="background:rgba(42,122,75,.08);border:1px solid rgba(42,122,75,.3);border-radius:12px;padding:10px 14px;margin-bottom:8px;border-left:4px solid #2a7a4b;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-family:var(--display);font-size:16px;letter-spacing:.05em;color:#2a7a4b;">✓ ${agent}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">Approved · ${displayActual ?? target} / ${target} debtors</div>
+        </div>
+        <button onclick="auditBday('${agent}','undo')"
+          style="background:rgba(200,56,26,.1);border:1px solid rgba(200,56,26,.3);color:#c8381a;font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:6px;cursor:pointer;">
+          ↩ Undo
+        </button>
+      </div>`;
+    }
+
     return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;border-left:4px solid ${done?col:'rgba(255,255,255,.15)'};">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <div>
@@ -1383,7 +1403,7 @@ function renderBdayAudit() {
           <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">
             Target: ${target} debtors &nbsp;·&nbsp;
             ${done
-              ? `Self-reported: <span style="color:${col};font-weight:600;">${actual}</span>`
+              ? `Self-reported: <span style="color:${col};font-weight:600;">${displayActual}</span>`
               : `<span style="color:#c8381a;">Not yet reported</span>`}
           </div>
         </div>
@@ -1435,12 +1455,50 @@ async function auditBday(agent, action) {
   try { claims = JSON.parse(localStorage.getItem('md_bday_claims_' + month) || '{}'); } catch(e) {}
 
   if (action === 'approve') {
-    claims[agent] = Object.assign({}, claims[agent] || {}, { md_approved: true, approved_at: Date.now() });
+    // Get birthday debtors for this agent
+    const bdayDebtors = (DATA?.birthday_campaign?.debtors || []).filter(d => d.agent === agent);
+    const approvedCount = bdayDebtors.length;
+
+    // Write bday_gift_* keys for each debtor (so debtor card shows ✓ Gift Sent)
+    bdayDebtors.forEach(d => {
+      const k = 'bday_gift_' + agent + '_' + d.code + '_' + month;
+      try { localStorage.setItem(k, '1'); } catch(e) {}
+    });
+
+    // Save approval to claims
+    claims[agent] = Object.assign({}, claims[agent] || {}, {
+      md_approved: true, approved_at: Date.now(), count: approvedCount
+    });
     try { localStorage.setItem('md_bday_claims_' + month, JSON.stringify(claims)); } catch(e) {}
+
+    // Save count to kpi_scores
+    let scores = {};
+    try { scores = JSON.parse(localStorage.getItem('md_scores_' + month) || '{}'); } catch(e) {}
+    if (!scores[agent]) scores[agent] = {};
+    scores[agent].birthday_campaign = approvedCount;
+    try { localStorage.setItem('md_scores_' + month, JSON.stringify(scores)); } catch(e) {}
+
+    // Sync to Gist
     if (GistSync.isConfigured()) {
-      try { await GistSync.push(gistKey, claims); } catch(e) { console.warn('[auditBday] gist sync failed', e); }
+      try {
+        await GistSync.push(gistKey, claims);
+        // Push bday_gift keys into claims_{month} for cross-device sync
+        let campClaims = {};
+        try { campClaims = await GistSync.pull('claims_' + month) || {}; } catch(e) {}
+        bdayDebtors.forEach(d => {
+          campClaims['bday_gift_' + agent + '_' + d.code] = '1';
+        });
+        await GistSync.push('claims_' + month, campClaims);
+        // Push kpi_scores
+        let allKpi = {};
+        try { allKpi = await GistSync.pull('kpi_scores') || {}; } catch(e) {}
+        if (!allKpi[curMonth]) allKpi[curMonth] = {};
+        if (!allKpi[curMonth][agent]) allKpi[curMonth][agent] = {};
+        allKpi[curMonth][agent].birthday_campaign = approvedCount;
+        await GistSync.push('kpi_scores', allKpi);
+      } catch(e) { console.warn('[auditBday] gist sync failed', e); }
     }
-    showMgmtToast('✓ ' + agent + ' birthday gift approved', '#2a7a4b');
+    showMgmtToast('✓ ' + agent + ' approved — ' + approvedCount + ' debtors', '#2a7a4b');
     renderBdayAudit();
 
   } else if (action === 'adjust') {
