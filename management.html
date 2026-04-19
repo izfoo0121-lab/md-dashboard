@@ -243,50 +243,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 
     <!-- 0b. Birthday Gift Audit -->
     <div id="bday-audit-section" style="display:none;">
-      <div class="sec-lbl no-border" style="color:var(--purple);display:flex;justify-content:space-between;align-items:center;">
-        <span>🎂 Birthday Gift — Audit Required</span>
-        <button onclick="refreshBdayAudit()" id="bday-refresh-btn"
-          style="font-family:var(--mono);font-size:9px;background:rgba(107,63,160,.15);border:1px solid rgba(107,63,160,.3);color:var(--purple);padding:3px 10px;border-radius:6px;cursor:pointer;">
-          ↻ Refresh
-        </button>
-      </div>
+      <div class="sec-lbl no-border" style="color:var(--purple);">🎂 Birthday Gift — Audit Required</div>
       <div id="bday-audit-list"></div>
-    </div>
-
-    <!-- 0c. Campaign Progress (MD view) -->
-    <div id="camp-progress-section" style="display:none;">
-      <div class="sec-lbl no-border" style="color:var(--blue);">📢 Campaign Progress</div>
-      <div id="camp-progress-list"></div>
-    </div>
-
-    <!-- 0d. GistSync token (shown only if not configured) -->
-    <div id="gist-token-banner" style="display:none;background:#fdf8ed;border:1px solid rgba(200,134,10,.3);border-radius:10px;padding:10px 14px;margin-bottom:10px;">
-      <div style="font-family:var(--mono);font-size:9px;color:#c8860a;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">GistSync — Not Configured</div>
-      <div style="font-family:var(--mono);font-size:10px;color:#5a5550;margin-bottom:8px;">Enter your GitHub token to sync flags, claims &amp; approvals across devices.</div>
-      <div style="display:flex;gap:6px;">
-        <input type="password" id="gist-token-input" placeholder="ghp_..." style="flex:1;font-family:var(--mono);font-size:11px;padding:6px 10px;border:1px solid rgba(200,134,10,.4);border-radius:6px;background:#fff;">
-        <button onclick="saveGistToken()" style="background:#c8860a;border:none;color:#fff;font-family:var(--mono);font-size:10px;padding:6px 12px;border-radius:6px;cursor:pointer;">Save</button>
-      </div>
-    </div>
-
-    <!-- 0e. Event / PSR Input (MD enters for all agents) -->
-    <div id="event-input-section">
-      <div class="sec-lbl no-border" style="color:var(--blue);display:flex;justify-content:space-between;align-items:center;">
-        <span>📱 Event / PSR — Monthly Count</span>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <select id="event-month-sel"
-            style="font-family:var(--mono);font-size:9px;background:var(--surface);border:1px solid var(--border);color:var(--ink);padding:3px 6px;border-radius:6px;cursor:pointer;"
-            onchange="loadEventScores()">
-          </select>
-          <button onclick="saveAllEventScores()"
-            style="font-family:var(--mono);font-size:9px;background:rgba(26,92,143,.2);border:1px solid rgba(26,92,143,.4);color:var(--blue);padding:3px 12px;border-radius:6px;cursor:pointer;font-weight:600;">
-            💾 Save All
-          </button>
-        </div>
-      </div>
-      <div class="card" style="overflow:hidden;">
-        <div id="event-scores-grid" style="padding:4px 0;"></div>
-      </div>
     </div>
 
     <!-- 1. Team Sales -->
@@ -780,95 +738,8 @@ async function loadData() {
     initMonthSelector();
     renderOverview();
   } catch(e) {
-    document.body.innerHTML = `<div style="padding:40px;text-align:center;font-family:monospace;color:#c8381a;">\u274c Could not load dashboard_data.json<br><small style="color:#999">${e.message}</small></div>`;
-    return;
+    document.body.innerHTML = `<div style="padding:40px;text-align:center;font-family:monospace;color:#c8381a;">❌ Could not load dashboard_data.json<br><small style="color:#999">${e.message}</small></div>`;
   }
-  // Secondary loads — isolated, never kill login/page
-  try { await loadCampaignSection(); } catch(e) { console.warn('[mgmt] campaign load failed:', e); }
-  try { await pullGistData(); } catch(e) { console.warn('[mgmt] gist pull failed:', e); }
-}
-
-async function loadCampaignSection() {
-  const r = await fetch('campaigns.json?v=' + Date.now());
-  if (!r.ok) return;
-  const camps = await r.json();
-  renderCampaignProgress(camps);
-}
-
-async function pullGistData() {
-  if (!GistSync.isConfigured()) return;
-  const month = (DATA?.current_month || '').replace(' ','');
-  if (!month) return;
-  const gistFlags = await GistSync.pull('flags_' + month);
-  if (gistFlags) {
-    try { localStorage.setItem(FLAGS_KEY, JSON.stringify(gistFlags)); } catch(e) {}
-    renderPendingActions();
-  }
-  const gistClaims = await GistSync.pull('claims_' + month);
-  if (gistClaims) {
-    Object.entries(gistClaims).forEach(([k, v]) => {
-      try { localStorage.setItem('camp_claim_' + month + '_' + k, JSON.stringify(v)); } catch(e) {}
-    });
-    renderBdayAudit();
-  }
-}
-
-function renderCampaignProgress(camps) {
-  const el = document.getElementById('camp-progress-section');
-  if (!el || !Array.isArray(camps)) return;
-  const month = DATA?.current_month || '';
-  const activeCamps = camps.filter(c => c.active !== false);
-  if (!activeCamps.length) { el.style.display = 'none'; return; }
-  el.style.display = 'block';
-  const list = document.getElementById('camp-progress-list');
-  if (!list) return;
-  list.innerHTML = activeCamps.map(c => {
-    const agents = Object.keys(DATA?.agents || {});
-    const rows = agents.map(agent => {
-      const slug = month.replace(' ','');
-      const claimKey = 'camp_claim_' + slug + '_' + agent + '_' + (c.id || c.name);
-      let claim = null;
-      try { claim = JSON.parse(localStorage.getItem(claimKey) || 'null'); } catch(ex) {}
-      const done = claim?.status === 'done' || claim?.status === 'approved';
-      const col  = done ? '#2a7a4b' : '#9a9590';
-      return `<div class="camp-agent-row">
-        <div class="camp-agent-lbl">${agent}</div>
-        <div class="camp-bar-bg"><div class="camp-bar-fill" style="width:${done?100:0}%;background:${col};"></div></div>
-        <div class="camp-stat" style="color:${col};">${done ? '\u2713' : '\u2014'}</div>
-        <div style="display:flex;gap:4px;justify-content:flex-end;">
-          <button onclick="mdApproveCamp('${agent}','${c.id||c.name}',true)"
-            style="background:rgba(42,122,75,.15);border:1px solid rgba(42,122,75,.3);color:#2a7a4b;font-family:var(--mono);font-size:8px;padding:3px 7px;border-radius:5px;cursor:pointer;">OK</button>
-          <button onclick="mdApproveCamp('${agent}','${c.id||c.name}',false)"
-            style="background:rgba(200,56,26,.1);border:1px solid rgba(200,56,26,.3);color:#c8381a;font-family:var(--mono);font-size:8px;padding:3px 7px;border-radius:5px;cursor:pointer;">No</button>
-        </div>
-      </div>`;
-    }).join('');
-    return `<div class="camp-prog-card">
-      <div class="camp-prog-header">
-        <div class="camp-prog-name">${c.name || c.id || ''}</div>
-        <div class="camp-prog-meta">${c.desc || ''}</div>
-      </div>
-      ${rows}
-    </div>`;
-  }).join('');
-}
-
-async function mdApproveCamp(agent, campId, approve) {
-  const month = (DATA?.current_month || '').replace(' ','');
-  const claimKey = 'camp_claim_' + month + '_' + agent + '_' + campId;
-  let existing = null;
-  try { existing = JSON.parse(localStorage.getItem(claimKey) || 'null'); } catch(ex) {}
-  const updated = Object.assign({}, existing || {}, { status: approve ? 'approved' : 'rejected', md_action: Date.now() });
-  try { localStorage.setItem(claimKey, JSON.stringify(updated)); } catch(ex) {}
-  if (GistSync.isConfigured()) {
-    try {
-      const claims = {};
-      Object.keys(localStorage).filter(k => k.startsWith('camp_claim_' + month + '_'))
-        .forEach(k => { try { claims[k.replace('camp_claim_' + month + '_', '')] = JSON.parse(localStorage.getItem(k)); } catch(ex) {} });
-      await GistSync.push('claims_' + month, claims);
-    } catch(ex) { console.warn('[mdApproveCamp] gist sync failed', ex); }
-  }
-  try { await loadCampaignSection(); } catch(ex) {}
 }
 
 function renderOverview() {
@@ -920,6 +791,7 @@ function renderOverview() {
 
   renderPendingActions();
   renderBdayAudit();
+  renderCampaignsMgmt();
   renderAnnualProgress();
   renderLeaderboard();
   renderGroupBrands();
@@ -929,7 +801,6 @@ function renderOverview() {
   renderNewbieProgress();
   renderAgingOverview();
   renderMonthlySummary();
-  initGistBanner();
 }
 
 // ── Annual YTD Progress ────────────────────────────────────────────────────
@@ -1043,171 +914,55 @@ function renderMonthlySummary() {
   document.getElementById('monthly-month-label').textContent =
     `${D.current_month || ''} · Day ${D.working_days?.elapsed_working_days||'?'} of ${D.working_days?.total_working_days||'?'}`;
 
-  // col layout: Agent | Normal(act/tgt/%) | MA(act/tgt/%) | 开新户口(act/tgt) | VIP(act/tgt) | 激活户口(act/tgt) | 加SKU(act/tgt) | 光顾率(act/tgt%) | 交易 | 工作日 | 平均交易 | KPI A+B
-  const cols = '68px 110px 110px 80px 70px 80px 80px 90px 55px 45px 55px 60px';
-  const hdrs = [
-    {l:'AGENT',         sub:''},
-    {l:'NORMAL',        sub:'Act / Tgt / %'},
-    {l:'MASTER AGENT',  sub:'Act / Tgt / %'},
-    {l:'开新户口',       sub:'Act / Tgt'},
-    {l:'VIP',           sub:'Act / Tgt'},
-    {l:'激活户口',       sub:'Act / Tgt'},
-    {l:'加SKU',         sub:'Act / Tgt'},
-    {l:'光顾率',         sub:'Act / Tgt%'},
-    {l:'交易次数',       sub:''},
-    {l:'工作日',         sub:''},
-    {l:'平均交易',       sub:''},
-    {l:'KPI A+B',       sub:'Score'},
-  ];
+  const cols = '70px 55px 55px 55px 55px 55px 55px 50px 45px 50px 50px 55px 55px 55px';
+  const hdrs = ['Agent','Tgt Normal','Act Normal','Tgt MA','Act MA','开新户口','VIP','激活户口','加SKU','光顾率','交易次数','工作日','平均交易','KPI A+B'];
 
-  // helper: act/tgt cell with colour on pct
-  const atCell = (act, tgt, isPct=false) => {
-    const p    = tgt > 0 ? Math.round(act / tgt * 100) : null;
-    const col  = p === null ? 'var(--ink3)' : p >= 100 ? '#2a7a4b' : p >= 70 ? '#c8860a' : '#c8381a';
-    const actStr = isPct ? act+'%' : fi(act);
-    const tgtStr = isPct ? tgt+'%' : fi(tgt);
-    const pctStr = p !== null ? `<span style="color:${col};font-size:8px;"> ${p}%</span>` : '';
-    return `<div style="font-family:var(--mono);font-size:10px;padding:5px 6px;text-align:center;
-      border-right:1px solid var(--border);border-bottom:1px solid var(--border);line-height:1.4;">
-      <span style="color:${col};font-weight:600;">${actStr}</span>
-      <span style="color:var(--ink3);font-size:9px;">/${tgtStr}</span>
-      ${pctStr}
+  let html = `<div style="min-width:700px;">
+    <div style="display:grid;grid-template-columns:${cols};gap:0;border-bottom:2px solid var(--border);">
+      ${hdrs.map((h,i) => `<div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);padding:6px 6px;text-align:${i===0?'left':'center'};border-right:1px solid var(--border);">${h}</div>`).join('')}
     </div>`;
-  };
-  const cell = (val, color='') =>
-    `<div style="font-family:var(--mono);font-size:10px;padding:7px 6px;text-align:center;
-      border-right:1px solid var(--border);border-bottom:1px solid var(--border);${color}">${val}</div>`;
-
-  let html = `<div style="min-width:800px;">
-    <div style="display:grid;grid-template-columns:${cols};gap:0;border-bottom:2px solid var(--border);background:var(--card);">
-      ${hdrs.map((h,i) => `<div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;
-        letter-spacing:.05em;color:var(--ink3);padding:5px 6px;text-align:${i===0?'left':'center'};
-        border-right:1px solid var(--border);line-height:1.4;">
-        ${h.l}${h.sub?`<br><span style="font-size:7px;color:var(--ink3);opacity:.7;text-transform:none;letter-spacing:0;">${h.sub}</span>`:''}
-      </div>`).join('')}
-    </div>`;
-
-  // Pull live KPI scores from localStorage
-  const slug = (D.current_month||'').replace(' ','');
-  let liveScores = {};
-  try { liveScores = JSON.parse(localStorage.getItem('md_scores_'+slug)||'{}'); } catch(e) {}
 
   agents.forEach((agent,idx) => {
     const sp  = D.agents[agent]?.sales_progression || {};
     const dc  = D.agents[agent]?.debtor_cards || {};
     const kpi = D.agents[agent]?.kpi || {};
-    const kpiItems = kpi.items || {};
     const bg  = idx%2===0 ? '' : 'background:#faf8f5;';
 
-    const t1tgt  = sp.tiers?.normal_t1?.target || 0;
-    const matgt  = sp.tiers?.ma?.target || 0;
+    const t1tgt = sp.tiers?.normal_t1?.target || 0;
+    const matgt = sp.tiers?.ma?.target || 0;
+    const newAcc = dc.debtors?.filter(d=>d.is_new).length || 0;
+    const vip    = dc.debtors?.filter(d=>d.vip).length || 0;
+    const react  = dc.reactivation_count || 0;
+    const newSku = dc.total_new_sku || 0;
+    const rate   = dc.activation_rate || 0;
+    const txn    = sp.txn_count || 0;
+    const wdays  = sp.elapsed_working_days || DATA.working_days?.elapsed_working_days || 0;
+    const avgTxn = sp.avg_txn_per_day || 0;
+    const kpiScore = kpi.total_abc || 0;
+
     const normalPct = sp.tiers?.normal_t1?.pct || 0;
     const maPct     = sp.tiers?.ma?.pct || 0;
 
-    // KPI actuals — merge live scores
-    const newAcc  = dc.debtors?.filter(d=>d.is_new).length || 0;
-    const newAccTgt = kpiItems.new_accounts?.target || 0;
+    const cell = (val, color='') => `<div style="font-family:var(--mono);font-size:10px;padding:7px 6px;text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);${color}">${val}</div>`;
+    const pctCell = (p, val) => cell(val, `color:${pc(p)};`);
 
-    const vipAct  = dc.debtors?.filter(d=>d.vip && d.status==='active').length || 0;
-    const vipTgt  = kpiItems.vip_count?.target || 0;
-
-    const reactAct = dc.reactivation_count || 0;
-    const reactTgt = kpiItems.reactivation?.target || 0;
-
-    const newSkuAct = dc.total_new_sku || 0;
-    const newSkuTgt = kpiItems.new_sku?.target || 0;
-
-    const rateAct = dc.activation_rate || 0;
-    const rateTgt = kpiItems.activation_rate?.target || 80;
-
-    const txn    = sp.txn_count || 0;
-    const wdays  = sp.elapsed_working_days || D.working_days?.elapsed_working_days || 0;
-    const avgTxn = sp.avg_txn_per_day || 0;
-
-    // KPI score — merge live event/birthday from md_scores
-    let kpiScore = kpi.total_abc ?? kpi.grand_total ?? 0;
-
-    html += `<div style="display:grid;grid-template-columns:${cols};gap:0;${bg}cursor:pointer;" onclick="openDrill('${agent}')">
-      <div style="font-family:var(--mono);font-size:11px;font-weight:600;padding:7px 8px;
-        border-right:1px solid var(--border);border-bottom:1px solid var(--border);color:var(--blue);">${agent}</div>
-      ${atCell(sp.normal_ctn||0, t1tgt)}
-      ${atCell(sp.ma_ctn||0, matgt)}
-      ${atCell(newAcc, newAccTgt)}
-      ${atCell(vipAct, vipTgt)}
-      ${atCell(reactAct, reactTgt)}
-      ${atCell(newSkuAct, newSkuTgt)}
-      ${atCell(rateAct, rateTgt, true)}
+    html += `<div style="display:grid;grid-template-columns:${cols};gap:0;${bg}" onclick="openDrill('${agent}')" style="cursor:pointer;">
+      <div style="font-family:var(--mono);font-size:11px;font-weight:600;padding:7px 8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);color:var(--blue);cursor:pointer;">${agent}</div>
+      ${cell(fi(t1tgt))}
+      ${pctCell(normalPct, fi(sp.normal_ctn))}
+      ${cell(fi(matgt))}
+      ${pctCell(maPct, fi(sp.ma_ctn))}
+      ${cell(newAcc)}
+      ${cell(vip)}
+      ${cell(react)}
+      ${cell(newSku)}
+      ${cell(rate+'%', `color:${pc(rate)};`)}
       ${cell(txn)}
       ${cell(wdays)}
       ${cell(avgTxn.toFixed(1))}
-      ${cell(kpiScore.toFixed(1), `color:${pc(kpiScore/61*100)};font-weight:600;`)}
+      ${cell(kpiScore.toFixed(1), `color:${pc(kpiScore/61*100)};`)}
     </div>`;
   });
-
-  // TOTAL row
-  const totNormal = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.normal_ctn||0),0);
-  const totNormTgt = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.tiers?.normal_t1?.target||0),0);
-  const totMA    = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.ma_ctn||0),0);
-  const totMATgt = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.tiers?.ma?.target||0),0);
-  const totNew   = agents.reduce((s,a)=>s+(D.agents[a]?.debtor_cards?.debtors?.filter(d=>d.is_new).length||0),0);
-  const totTxn   = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.txn_count||0),0);
-  const totKpi   = agents.reduce((s,a)=>s+(D.agents[a]?.kpi?.total_abc ?? D.agents[a]?.kpi?.grand_total ?? 0),0);
-  const avgKpi   = agents.length ? (totKpi/agents.length).toFixed(1) : '—';
-
-  html += `<div style="display:grid;grid-template-columns:${cols};gap:0;background:var(--ink);border-top:2px solid var(--border);">
-    <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:7px 8px;border-right:1px solid rgba(255,255,255,.1);color:#fff;">TOTAL</div>
-    <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:7px 6px;text-align:center;border-right:1px solid rgba(255,255,255,.1);color:#ffc94d;">
-      ${fi(totNormal)}<span style="color:rgba(255,255,255,.4);font-size:9px;">/${fi(totNormTgt)}</span>
-    </div>
-    <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:7px 6px;text-align:center;border-right:1px solid rgba(255,255,255,.1);color:#a78bfa;">
-      ${fi(totMA)}<span style="color:rgba(255,255,255,.4);font-size:9px;">/${fi(totMATgt)}</span>
-    </div>
-    <div style="font-family:var(--mono);font-size:10px;padding:7px 6px;text-align:center;border-right:1px solid rgba(255,255,255,.1);color:#fff;">${totNew}</div>
-    <div style="border-right:1px solid rgba(255,255,255,.1);"></div>
-    <div style="border-right:1px solid rgba(255,255,255,.1);"></div>
-    <div style="border-right:1px solid rgba(255,255,255,.1);"></div>
-    <div style="border-right:1px solid rgba(255,255,255,.1);"></div>
-    <div style="font-family:var(--mono);font-size:10px;padding:7px 6px;text-align:center;border-right:1px solid rgba(255,255,255,.1);color:#fff;">${totTxn}</div>
-    <div style="border-right:1px solid rgba(255,255,255,.1);"></div>
-    <div style="border-right:1px solid rgba(255,255,255,.1);"></div>
-    <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:7px 6px;text-align:center;color:#ffc94d;">avg ${avgKpi}</div>
-  </div>`;
-
-  // ── Legend ──
-  html += `
-  <div style="margin-top:10px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;">
-    <div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:8px;">Table Guide</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px 16px;">
-
-      <!-- Colour thresholds -->
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;width:100%;border-bottom:1px solid var(--border);padding-bottom:6px;">
-        <span style="font-family:var(--mono);font-size:8px;color:var(--ink3);">COLOUR:</span>
-        <span style="font-family:var(--mono);font-size:9px;color:#2a7a4b;font-weight:600;">■ ≥100%</span>
-        <span style="font-family:var(--mono);font-size:9px;color:#c8860a;font-weight:600;">■ 70–99%</span>
-        <span style="font-family:var(--mono);font-size:9px;color:#c8381a;font-weight:600;">■ &lt;70%</span>
-        <span style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-left:8px;">FORMAT: Actual / Target  Achievement%</span>
-      </div>
-
-      <!-- Column descriptions -->
-      ${[
-        ['NORMAL',    'Normal T1 CTN paid this month vs agent target'],
-        ['MASTER AGENT', 'MA-tier CTN (RM/CTN ≥ MA rate) vs MA target'],
-        ['开新户口',   'New debtor accounts opened this month vs target'],
-        ['VIP',       'Active VIP debtors purchased this month vs target'],
-        ['激活户口',   'Debtors reactivated after missing last month vs target'],
-        ['加SKU',     'Debtors who bought a new SKU group vs target (17)'],
-        ['光顾率',    'Active debtors ÷ total non-personal debtors vs 80% target'],
-        ['交易次数',  'Total unique invoices this agent this month'],
-        ['工作日',    'Working days elapsed in current month'],
-        ['平均交易',  'Avg invoices per working day'],
-        ['KPI A+B',   'Combined Section A (Sales) + B (Penetration/Service) KPI score'],
-      ].map(([col, desc]) => `
-        <div style="display:flex;gap:6px;align-items:baseline;min-width:260px;flex:1;">
-          <span style="font-family:var(--mono);font-size:9px;font-weight:600;color:var(--ink2);white-space:nowrap;min-width:90px;">${col}</span>
-          <span style="font-family:var(--mono);font-size:9px;color:var(--ink3);">${desc}</span>
-        </div>`).join('')}
-    </div>
-  </div>`;
 
   html += `</div>`;
   el.innerHTML = html;
@@ -1244,7 +999,7 @@ function exportMonthlyExcel() {
       sp.txn_count || 0,
       sp.elapsed_working_days || 0,
       sp.avg_txn_per_day || 0,
-      (kpi.total_abc ?? kpi.grand_total ?? 0).toFixed(2),
+      (kpi.total_abc || 0).toFixed(2),
     ]);
   });
 
@@ -1301,50 +1056,12 @@ function exportMonthlyExcel() {
 }
 
 // ── Pending Actions (Flags) ────────────────────────────────────────────────
-// ── GistSync ──────────────────────────────────────────────────────────────
-const GistSync = (() => {
-  const GIST_ID = 'ceb4064c9e2a6d37c6e52c3b02f04a1d';
-  function token() { return localStorage.getItem('md_gist_token') || ''; }
-  function isConfigured() { return !!token(); }
-  async function push(key, data) {
-    if (!isConfigured()) return null;
-    try {
-      const r = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-        method: 'PATCH',
-        headers: { Authorization: `token ${token()}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ files: { [key + '.json']: { content: JSON.stringify(data, null, 2) } } })
-      });
-      return r.ok ? await r.json() : null;
-    } catch(e) { console.warn('[GistSync] push failed:', e); return null; }
-  }
-  async function pull(key) {
-    if (!isConfigured()) return null;
-    try {
-      const r = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-        headers: { Authorization: `token ${token()}` }
-      });
-      if (!r.ok) return null;
-      const g = await r.json();
-      const f = g.files?.[key + '.json'];
-      if (!f) return null;
-      const raw = f.content || (f.raw_url ? await (await fetch(f.raw_url)).text() : null);
-      return raw ? JSON.parse(raw) : null;
-    } catch(e) { console.warn('[GistSync] pull failed:', e); return null; }
-  }
-  return { push, pull, isConfigured, token };
-})();
-
-// ── Flags ──────────────────────────────────────────────────────────────────
 const FLAGS_KEY = 'touro_debtor_flags';
 function loadFlags() {
   try { return JSON.parse(localStorage.getItem(FLAGS_KEY)||'{}'); } catch(e) { return {}; }
 }
-async function saveFlags(f) {
+function saveFlags(f) {
   try { localStorage.setItem(FLAGS_KEY, JSON.stringify(f)); } catch(e) {}
-  const month = (DATA?.current_month || '').replace(' ','');
-  if (month && GistSync.isConfigured()) {
-    try { await GistSync.push('flags_' + month, f); } catch(e) { console.warn('[mgmt] flags gist sync failed', e); }
-  }
 }
 function renderBdayAudit() {
   const el = document.getElementById('bday-audit-list');
@@ -1361,17 +1078,9 @@ function renderBdayAudit() {
   if (!rows.length) { sec.style.display = 'none'; return; }
   sec.style.display = 'block';
 
-  // Pull live birthday counts from GistSync KPI scores if available
-  const month   = DATA?.current_month || '';
-  const slug    = month.replace(' ','');
-  let liveScores = {};
-  try { liveScores = JSON.parse(localStorage.getItem('md_scores_' + slug) || '{}'); } catch(e) {}
-
   el.innerHTML = rows.map(([agent, target]) => {
     const kpi    = agents[agent]?.kpi?.items?.birthday_campaign || {};
-    // Priority: live GistSync KPI score → JSON KPI actual
-    const liveActual = liveScores[agent]?.birthday_campaign ?? null;
-    const actual = liveActual !== null ? liveActual : (kpi.actual ?? null);
+    const actual = kpi.actual ?? null;
     const done   = actual !== null;
     const pct    = target > 0 && actual !== null ? Math.min(actual/target*100, 100) : 0;
     const col    = pct >= 100 ? '#2a7a4b' : pct >= 60 ? '#c8860a' : '#c8381a';
@@ -1411,39 +1120,191 @@ function renderBdayAudit() {
   }).join('');
 }
 
-async function auditBday(agent, action) {
-  const month = (DATA?.current_month || '').replace(' ','');
-  const gistKey = 'claims_' + month;
-  const bdayKey = 'bday_gift_' + month + '_' + agent;
-  let claims = {};
-  try { claims = JSON.parse(localStorage.getItem('md_bday_claims_' + month) || '{}'); } catch(e) {}
+function auditBday(agent, action) {
   if (action === 'approve') {
-    claims[agent] = Object.assign({}, claims[agent] || {}, { md_approved: true, approved_at: Date.now() });
-    try { localStorage.setItem('md_bday_claims_' + month, JSON.stringify(claims)); } catch(e) {}
-    if (GistSync.isConfigured()) {
-      try { await GistSync.push(gistKey, claims); } catch(e) { console.warn('[auditBday] gist sync failed', e); }
-    }
-    alert('Birthday gift for ' + agent + ' approved.');
-    renderBdayAudit();
-  } else if (action === 'adjust') {
-    const adj = prompt('Adjust birthday gift count for ' + agent + ':');
-    if (adj !== null && !isNaN(+adj)) {
-      claims[agent] = Object.assign({}, claims[agent] || {}, { md_override: +adj, adjusted_at: Date.now() });
-      try { localStorage.setItem('md_bday_claims_' + month, JSON.stringify(claims)); } catch(e) {}
-      if (GistSync.isConfigured()) {
-        try { await GistSync.push(gistKey, claims); } catch(e) { console.warn('[auditBday] gist sync failed', e); }
-      }
-      alert('Updated ' + agent + ' birthday gift to ' + adj);
-      renderBdayAudit();
-    }
-  } else if (action === 'undo') {
-    delete claims[agent];
-    try { localStorage.setItem('md_bday_claims_' + month, JSON.stringify(claims)); } catch(e) {}
-    if (GistSync.isConfigured()) {
-      try { await GistSync.push(gistKey, claims); } catch(e) {}
-    }
-    renderBdayAudit();
+    alert(`✓ Birthday gift for ${agent} approved. Record updated.`);
+  } else {
+    const adj = prompt(`Adjust birthday gift count for ${agent}:`);
+    if (adj !== null) alert(`Updated ${agent} birthday gift to ${adj}`);
   }
+}
+
+// ── Campaign Progress (management view) ───────────────────────────────────
+function renderCampaignsMgmt() {
+  const section = document.getElementById('campaigns-mgmt-section');
+  const list    = document.getElementById('campaigns-mgmt-list');
+  if (!section || !list) return;
+
+  // Load campaigns from localStorage (written by admin.html / campaigns.json)
+  let campaigns = [];
+  try {
+    const raw = localStorage.getItem('touro_campaigns');
+    if (raw) campaigns = JSON.parse(raw).campaigns || [];
+  } catch(e) {}
+
+  const active = campaigns.filter(c => c.active);
+  if (!active.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+
+  const month  = DATA?.current_month || '';
+  const slug   = month.replace(' ', '');
+  const AGENTS = Object.keys(DATA?.agents || {});
+
+  // Collect all claim records for this month for a given campId
+  function getClaims(campId) {
+    const claims = {};
+    Object.keys(localStorage)
+      .filter(k => k.startsWith(`camp_claim_${slug}_`) && k.includes(`_${campId}_`))
+      .forEach(k => {
+        const raw  = k.replace(`camp_claim_${slug}_`, '');
+        const data = JSON.parse(localStorage.getItem(k) || 'null');
+        if (data) claims[raw] = data;
+      });
+    return claims;
+  }
+
+  const CONDITION_LABEL = {
+    non_buyers_only: 'Non-buyers only',
+    all_in_category: 'All in category',
+    active_only:     'Active buyers only',
+    no_condition:    '',
+  };
+  const TYPE_COLORS = {
+    free_sample:'#c8860a', foc_sample:'#c8860a', birthday_gift:'#c8381a',
+    promotion:'#1a5c8f', festive_gift:'#6b3fa0', other:'#555'
+  };
+
+  list.innerHTML = active.map(camp => {
+    const claims   = getClaims(camp.id);
+    const poolSize = camp.debtors?.length || 0;
+
+    // Tally statuses — remove from active count
+    let delivered = 0, refused = 0, removed = 0, nextVisit = 0, notIn = 0;
+    Object.values(claims).forEach(c => {
+      const s = c.status || 'delivered';
+      if      (s === 'delivered')  delivered++;
+      else if (s === 'refused')    refused++;
+      else if (s === 'removed')    removed++;
+      else if (s === 'next_visit') nextVisit++;
+      else if (s === 'not_in')     notIn++;
+    });
+    const activePool = poolSize - removed;
+    const pending    = Math.max(activePool - delivered - refused - nextVisit - notIn, 0);
+    const pct        = activePool > 0 ? Math.min(Math.round(delivered / activePool * 100), 100) : 0;
+    const pctCol     = pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--gold)' : 'var(--accent)';
+
+    // FOC cost
+    const focCost   = parseFloat(camp.foc_cost_unit) || 0;
+    const focActual = delivered * focCost;
+    const focCap    = parseFloat(camp.foc_budget_cap) || 0;
+    const focPct    = focCap > 0 ? Math.min(Math.round(focActual / focCap * 100), 100) : 0;
+    const focWarn   = focPct >= 90;
+
+    // Per-agent rows
+    const agentRows = AGENTS.map(agent => {
+      const agDebtors = (camp.debtors || []).filter(d => d.agent === agent);
+      if (!agDebtors.length) return null;
+      let agDeliv = 0, agRemoved = 0;
+      agDebtors.forEach(d => {
+        const key   = `${agent}_${camp.id}_${d.code || d.debtor_code}`;
+        const claim = claims[key];
+        if (!claim) return;
+        if (claim.status === 'removed') agRemoved++;
+        else if (claim.status === 'delivered' || (!claim.status && claim.ts)) agDeliv++;
+      });
+      const agActive = agDebtors.length - agRemoved;
+      const agPct    = agActive > 0 ? Math.min(Math.round(agDeliv / agActive * 100), 100) : 0;
+      const agCol    = agPct >= 80 ? 'var(--green)' : agPct >= 50 ? 'var(--gold)' : 'var(--accent)';
+      const agFOC    = focCost > 0 ? ` · RM ${(agDeliv * focCost).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2})}` : '';
+      const rmLabel  = agRemoved > 0 ? ` · <span style="color:var(--purple);">${agRemoved} removed</span>` : '';
+      return `
+      <div style="display:grid;grid-template-columns:64px 1fr 44px;gap:8px;align-items:center;padding:7px 14px;border-bottom:1px solid var(--border);">
+        <div style="font-family:var(--display);font-size:15px;letter-spacing:.04em;">${agent}</div>
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">${agDeliv}/${agActive} delivered${agFOC}${rmLabel}</div>
+          <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:3px;">
+            <div style="height:100%;width:${agPct}%;background:${agCol};border-radius:2px;transition:width .4s;"></div>
+          </div>
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;font-weight:500;color:${agCol};text-align:right;">${agPct}%</div>
+      </div>`;
+    }).filter(Boolean).join('');
+
+    const accentCol = TYPE_COLORS[camp.type] || 'var(--accent)';
+
+    return `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;">
+      <div style="height:3px;background:${accentCol};"></div>
+
+      <!-- Header -->
+      <div style="padding:12px 14px;border-bottom:1px solid var(--border);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <div style="flex:1;">
+            <div style="font-family:var(--mono);font-size:8px;color:${accentCol};text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">
+              ${(camp.type||'').replace(/_/g,' ')}${camp.customer_categories?.length?' · '+camp.customer_categories.join(', '):''}${camp.condition&&camp.condition!=='no_condition'?' · '+(CONDITION_LABEL[camp.condition]||camp.condition):''}
+            </div>
+            <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;">${camp.name}</div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:2px;">
+              ${activePool} active pool${removed>0?` · <span style="color:var(--purple);">${removed} removed</span>`:''} &nbsp;·&nbsp; ⏰ ${camp.deadline||'no deadline'}
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;margin-left:10px;">
+            <div style="font-family:var(--display);font-size:26px;color:${pctCol};">${pct}%</div>
+            <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);">${delivered}/${activePool} delivered</div>
+          </div>
+        </div>
+
+        <!-- Progress bar -->
+        <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:8px;">
+          <div style="height:100%;width:${pct}%;background:${pctCol};border-radius:3px;transition:width .4s;"></div>
+        </div>
+
+        <!-- Status chips -->
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:${focCost>0?'10px':'0'};">
+          ${delivered >0?`<span style="font-family:var(--mono);font-size:8px;background:rgba(42,122,75,.12);color:var(--green);padding:2px 8px;border-radius:10px;">✓ ${delivered} delivered</span>`:''}
+          ${pending   >0?`<span style="font-family:var(--mono);font-size:8px;background:rgba(0,0,0,.05);color:var(--ink3);padding:2px 8px;border-radius:10px;">⏳ ${pending} pending</span>`:''}
+          ${nextVisit >0?`<span style="font-family:var(--mono);font-size:8px;background:rgba(200,134,10,.1);color:var(--gold);padding:2px 8px;border-radius:10px;">📅 ${nextVisit} next visit</span>`:''}
+          ${notIn     >0?`<span style="font-family:var(--mono);font-size:8px;background:rgba(0,0,0,.05);color:var(--ink3);padding:2px 8px;border-radius:10px;">📵 ${notIn} not in</span>`:''}
+          ${refused   >0?`<span style="font-family:var(--mono);font-size:8px;background:rgba(200,56,26,.1);color:var(--accent);padding:2px 8px;border-radius:10px;">✗ ${refused} refused</span>`:''}
+          ${removed   >0?`<span style="font-family:var(--mono);font-size:8px;background:rgba(107,63,160,.1);color:var(--purple);padding:2px 8px;border-radius:10px;">— ${removed} removed</span>`:''}
+        </div>
+
+        <!-- FOC cost banner -->
+        ${focCost>0?`
+        <div style="background:rgba(200,134,10,.06);border:1px solid rgba(200,134,10,${focWarn?'.4':'.15'});border-radius:8px;padding:9px 11px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:${focCap>0?'6px':'0'};">
+            <div>
+              <div style="font-family:var(--mono);font-size:8px;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;">FOC Cost Running Total</div>
+              <div style="font-family:var(--display);font-size:20px;color:${focWarn?'var(--accent)':'var(--gold)'};">RM ${focActual.toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+              <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-top:1px;">${delivered} × RM ${focCost.toFixed(2)}</div>
+            </div>
+            ${focCap>0?`<div style="text-align:right;">
+              <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);">Cap: RM ${focCap.toLocaleString('en-MY',{minimumFractionDigits:0})}</div>
+              <div style="font-family:var(--display);font-size:16px;color:${focWarn?'var(--accent)':'var(--ink3)'};">${focPct}%</div>
+            </div>`:''}
+          </div>
+          ${focCap>0?`<div style="height:4px;background:rgba(200,134,10,.15);border-radius:2px;overflow:hidden;">
+            <div style="height:100%;width:${focPct}%;background:${focWarn?'var(--accent)':'var(--gold)'};border-radius:2px;"></div>
+          </div>`:''}
+        </div>`:''}
+      </div>
+
+      <!-- Per-agent rows -->
+      <div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;padding:7px 14px 4px;border-bottom:1px solid var(--border);">Per-agent delivery</div>
+        ${agentRows||`<div style="padding:12px 14px;font-family:var(--mono);font-size:10px;color:var(--ink3);">No agent assignments found — add an Agent column to your debtor upload list.</div>`}
+      </div>
+
+      <!-- Footer -->
+      <div style="padding:9px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">${Object.keys(claims).length} claim records in Gist</div>
+        <a href="campaign_audit.html" target="_blank"
+           style="font-family:var(--mono);font-size:9px;color:var(--purple);text-decoration:none;padding:4px 10px;border:1px solid rgba(107,63,160,.3);border-radius:6px;background:rgba(107,63,160,.05);">
+          🔍 Open Audit →
+        </a>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderPendingActions() {
@@ -1492,11 +1353,11 @@ function renderPendingActions() {
     </div>`).join('');
 }
 
-async function resolveFlag(agent, debtorCode) {
+function resolveFlag(agent, debtorCode) {
   const flags = loadFlags();
   if (flags[agent]) delete flags[agent][debtorCode];
   if (flags[agent] && !Object.keys(flags[agent]).length) delete flags[agent];
-  await saveFlags(flags);
+  saveFlags(flags);
   renderPendingActions();
 }
 
@@ -2358,171 +2219,6 @@ function renderYearlyYTD() {
     </div>`;
   }).join('');
 }
-
-async function refreshBdayAudit() {
-  const btn = document.getElementById('bday-refresh-btn');
-  if (btn) { btn.textContent = '↻ Loading...'; btn.disabled = true; }
-  try {
-    if (GistSync.isConfigured()) {
-      const curMonth = DATA?.current_month || '';
-      const slug     = curMonth.replace(' ','');
-      // Pull kpi_scores file specifically
-      const kpiData  = await GistSync.pull('kpi_scores');
-      if (kpiData && kpiData[curMonth]) {
-        try { localStorage.setItem('md_scores_' + slug, JSON.stringify(kpiData[curMonth])); } catch(e) {}
-      }
-      // Also re-pull claims for birthday audit
-      const claims = await GistSync.pull('claims_' + slug);
-      if (claims) {
-        Object.entries(claims).forEach(([k, v]) => {
-          try { localStorage.setItem('camp_claim_' + slug + '_' + k, JSON.stringify(v)); } catch(e) {}
-        });
-      }
-    }
-    renderBdayAudit();
-  } catch(e) { console.warn('[refreshBdayAudit]', e); }
-  finally {
-    if (btn) { btn.textContent = '↻ Refresh'; btn.disabled = false; }
-  }
-}
-
-// ── Event / PSR MD Input ─────────────────────────────────────────────────
-const EVENT_AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','YI','SAM'];
-
-function initEventMonthSel() {
-  const sel = document.getElementById('event-month-sel');
-  if (!sel) return;
-  // Build month options — current month + past 5
-  const MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const curMonth = DATA?.current_month || '';
-  const months = [curMonth];
-  // Add previous months from history if available
-  if (window.HISTORY_DATA?.monthly) {
-    window.HISTORY_DATA.monthly.forEach(r => {
-      if (r.Month && r.Month !== curMonth && !months.includes(r.Month)) months.push(r.Month);
-    });
-  }
-  sel.innerHTML = months.slice(0,6).map((m,i) =>
-    `<option value="${m}" ${i===0?'selected':''}>${m.toUpperCase()}</option>`
-  ).join('');
-  loadEventScores();
-}
-
-function loadEventScores() {
-  const month = document.getElementById('event-month-sel')?.value || DATA?.current_month || '';
-  const slug  = month.replace(' ','');
-  let scores  = {};
-  try { scores = JSON.parse(localStorage.getItem('md_scores_' + slug) || '{}'); } catch(e) {}
-
-  const agents = Object.keys(DATA?.agents || {}).filter(a => EVENT_AGENTS.includes(a));
-  const grid   = document.getElementById('event-scores-grid');
-  if (!grid) return;
-
-  grid.innerHTML = agents.map(agent => {
-    const val     = scores[agent]?.event ?? '';
-    const target  = DATA?.agents?.[agent]?.kpi?.items?.event?.target ?? '—';
-    return `<div style="display:grid;grid-template-columns:80px 1fr 80px 80px;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);">
-      <div style="font-family:var(--mono);font-size:11px;font-weight:600;">${agent}</div>
-      <div>
-        <input type="number" min="0" id="event-score-${agent}"
-          value="${val}"
-          placeholder="0"
-          style="width:100%;font-family:var(--mono);font-size:12px;background:var(--card);border:1px solid var(--border);color:var(--ink);padding:6px 8px;border-radius:6px;text-align:center;"
-          onchange="previewEventScore('${agent}')"
-          oninput="previewEventScore('${agent}')">
-      </div>
-      <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);text-align:center;">
-        Target: <span style="color:var(--ink2);font-weight:600;">${target}</span>
-      </div>
-      <div id="event-pct-${agent}" style="font-family:var(--mono);font-size:10px;font-weight:600;text-align:center;color:var(--ink3);">
-        ${val !== '' && target !== '—' ? Math.round(val/target*100)+'%' : '—'}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function previewEventScore(agent) {
-  const inp    = document.getElementById('event-score-' + agent);
-  const pctEl  = document.getElementById('event-pct-' + agent);
-  if (!inp || !pctEl) return;
-  const val    = parseInt(inp.value) || 0;
-  const target = DATA?.agents?.[agent]?.kpi?.items?.event?.target;
-  if (target && target > 0) {
-    const pct = Math.round(val / target * 100);
-    pctEl.textContent = pct + '%';
-    pctEl.style.color = pct >= 100 ? '#2a7a4b' : pct >= 60 ? '#c8860a' : '#c8381a';
-  }
-}
-
-async function saveAllEventScores() {
-  const month  = document.getElementById('event-month-sel')?.value || DATA?.current_month || '';
-  const slug   = month.replace(' ','');
-  const lsKey  = 'md_scores_' + slug;
-  let scores   = {};
-  try { scores = JSON.parse(localStorage.getItem(lsKey) || '{}'); } catch(e) {}
-
-  const agents = Object.keys(DATA?.agents || {}).filter(a => EVENT_AGENTS.includes(a));
-  let changed  = 0;
-
-  agents.forEach(agent => {
-    const inp = document.getElementById('event-score-' + agent);
-    if (!inp) return;
-    const val = inp.value.trim();
-    if (val === '') return;
-    if (!scores[agent]) scores[agent] = {};
-    scores[agent].event = parseInt(val) || 0;
-    changed++;
-  });
-
-  if (!changed) { alert('No values entered.'); return; }
-
-  // Save to localStorage
-  localStorage.setItem(lsKey, JSON.stringify(scores));
-
-  // Sync to GistSync — push kpi_scores file directly
-  if (GistSync.isConfigured()) {
-    try {
-      // Read full kpi_scores, update this month, push back
-      let allKpi = {};
-      try {
-        const existing = await GistSync.pull('kpi_scores');
-        if (existing) allKpi = existing;
-      } catch(e) {}
-      allKpi[month] = scores;
-      await GistSync.push('kpi_scores', allKpi);
-      // Also update localStorage for immediate local read
-      localStorage.setItem('md_scores_' + slug, JSON.stringify(scores));
-      alert('Saved ' + changed + ' agents\' Event/PSR scores for ' + month + ' ✓\nAgents will see updated counts on their next login.');
-    } catch(e) {
-      alert('Saved locally. Gist sync failed: ' + e.message);
-    }
-  } else {
-    alert('Saved locally for ' + month + '. Configure GistSync token for cross-device sync.');
-  }
-
-  loadEventScores(); // refresh display
-}
-
-function saveGistToken() {
-  const t = (document.getElementById('gist-token-input') || {}).value || '';
-  if (!t.startsWith('ghp_') && !t.startsWith('github_pat_')) {
-    alert('Invalid token format. Should start with ghp_ or github_pat_');
-    return;
-  }
-  localStorage.setItem('md_gist_token', t);
-  const banner = document.getElementById('gist-token-banner');
-  if (banner) banner.style.display = 'none';
-  alert('GistSync configured. Reloading data...');
-  pullGistData().catch(e => console.warn(e));
-}
-
-function initGistBanner() {
-  const banner = document.getElementById('gist-token-banner');
-  if (!banner) return;
-  banner.style.display = GistSync.isConfigured() ? 'none' : 'block';
-  initEventMonthSel();
-}
-
 </script>
 </body>
 </html>
