@@ -900,6 +900,7 @@ function renderOverview() {
 
   renderPendingActions();
   renderBdayAudit();
+  renderCampaignsMgmt();
   renderAnnualProgress();
   renderLeaderboard();
   renderGroupBrands();
@@ -1432,44 +1433,31 @@ async function auditBday(agent, action, target) {
   try { claims = JSON.parse(localStorage.getItem('md_bday_claims_' + month) || '{}'); } catch(e) {}
 
   if (action === 'approve') {
-    // Use target count (by_agent) as approved count — this is the correct birthday debtor count
-    // bdayDebtors used only for writing per-debtor bday_gift keys
     const bdayDebtors = (CURRENT_DATA?.birthday_campaign?.debtors || DATA?.birthday_campaign?.debtors || [])
       .filter(d => d.agent === agent);
-    // target param = by_agent count for this month (correct birthday debtor count)
     const approvedCount = target || (CURRENT_DATA?.birthday_campaign?.by_agent?.[agent] ?? bdayDebtors.length);
-
-    // Write bday_gift_* keys for each debtor (so debtor card shows ✓ Gift Sent)
     bdayDebtors.forEach(d => {
       const k = 'bday_gift_' + agent + '_' + d.code + '_' + month;
       try { localStorage.setItem(k, '1'); } catch(e) {}
     });
-
-    // Save approval to claims
     claims[agent] = Object.assign({}, claims[agent] || {}, {
       md_approved: true, approved_at: Date.now(), count: approvedCount
     });
     try { localStorage.setItem('md_bday_claims_' + month, JSON.stringify(claims)); } catch(e) {}
-
-    // Save count to kpi_scores
     let scores = {};
     try { scores = JSON.parse(localStorage.getItem('md_scores_' + month) || '{}'); } catch(e) {}
     if (!scores[agent]) scores[agent] = {};
     scores[agent].birthday_campaign = approvedCount;
     try { localStorage.setItem('md_scores_' + month, JSON.stringify(scores)); } catch(e) {}
-
-    // Sync to Gist
     if (GistSync.isConfigured()) {
       try {
         await GistSync.push(gistKey, claims);
-        // Push bday_gift keys into claims_{month} for cross-device sync
         let campClaims = {};
         try { campClaims = await GistSync.pull('claims_' + month) || {}; } catch(e) {}
         bdayDebtors.forEach(d => {
           campClaims['bday_gift_' + agent + '_' + d.code] = '1';
         });
         await GistSync.push('claims_' + month, campClaims);
-        // Push kpi_scores
         let allKpi = {};
         try { allKpi = await GistSync.pull('kpi_scores') || {}; } catch(e) {}
         if (!allKpi[curMonth]) allKpi[curMonth] = {};
@@ -1484,7 +1472,6 @@ async function auditBday(agent, action, target) {
   } else if (action === 'adjust') {
     const adj = prompt('Adjust birthday gift count for ' + agent + ':');
     if (adj !== null && !isNaN(+adj)) {
-      // Save adjusted count to kpi_scores so agent KPI tab reflects it
       let scores = {};
       try { scores = JSON.parse(localStorage.getItem('md_scores_' + month) || '{}'); } catch(e) {}
       if (!scores[agent]) scores[agent] = {};
@@ -1516,6 +1503,167 @@ async function auditBday(agent, action, target) {
     showMgmtToast(agent + ' approval undone', '#c8381a');
     renderBdayAudit();
   }
+}
+
+// ── Campaign Progress (management view) ───────────────────────────────────
+function renderCampaignsMgmt() {
+  const section = document.getElementById('campaigns-mgmt-section');
+  const list    = document.getElementById('campaigns-mgmt-list');
+  if (!section || !list) return;
+
+  let campaigns = [];
+  try {
+    const raw = localStorage.getItem('touro_campaigns');
+    if (raw) campaigns = JSON.parse(raw).campaigns || [];
+  } catch(e) {}
+
+  const active = campaigns.filter(c => c.active);
+  if (!active.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+
+  const month  = DATA?.current_month || '';
+  const slug   = month.replace(' ', '');
+  const AGENTS = Object.keys(DATA?.agents || {});
+
+  function getClaims(campId) {
+    const claims = {};
+    Object.keys(localStorage)
+      .filter(k => k.startsWith(`camp_claim_${slug}_`) && k.includes(`_${campId}_`))
+      .forEach(k => {
+        const raw  = k.replace(`camp_claim_${slug}_`, '');
+        const data = JSON.parse(localStorage.getItem(k) || 'null');
+        if (data) claims[raw] = data;
+      });
+    return claims;
+  }
+
+  const CONDITION_LABEL = {
+    non_buyers_only: 'Non-buyers only',
+    all_in_category: 'All in category',
+    active_only:     'Active buyers only',
+    no_condition:    '',
+  };
+  const TYPE_COLORS = {
+    free_sample:'#c8860a', foc_sample:'#c8860a', birthday_gift:'#c8381a',
+    promotion:'#1a5c8f', festive_gift:'#6b3fa0', other:'#555'
+  };
+
+  list.innerHTML = active.map(camp => {
+    const claims   = getClaims(camp.id);
+    const poolSize = camp.debtors?.length || 0;
+
+    let delivered = 0, refused = 0, removed = 0, nextVisit = 0, notIn = 0;
+    Object.values(claims).forEach(c => {
+      const s = c.status || 'delivered';
+      if      (s === 'delivered')  delivered++;
+      else if (s === 'refused')    refused++;
+      else if (s === 'removed')    removed++;
+      else if (s === 'next_visit') nextVisit++;
+      else if (s === 'not_in')     notIn++;
+    });
+    const activePool = poolSize - removed;
+    const pending    = Math.max(activePool - delivered - refused - nextVisit - notIn, 0);
+    const pct        = activePool > 0 ? Math.min(Math.round(delivered / activePool * 100), 100) : 0;
+    const pctCol     = pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--gold)' : 'var(--accent)';
+
+    const focCost   = parseFloat(camp.foc_cost_unit) || 0;
+    const focActual = delivered * focCost;
+    const focCap    = parseFloat(camp.foc_budget_cap) || 0;
+    const focPct    = focCap > 0 ? Math.min(Math.round(focActual / focCap * 100), 100) : 0;
+    const focWarn   = focPct >= 90;
+
+    const agentRows = AGENTS.map(agent => {
+      const agDebtors = (camp.debtors || []).filter(d => d.agent === agent);
+      if (!agDebtors.length) return null;
+      let agDeliv = 0, agRemoved = 0;
+      agDebtors.forEach(d => {
+        const key   = `${agent}_${camp.id}_${d.code || d.debtor_code}`;
+        const claim = claims[key];
+        if (!claim) return;
+        if (claim.status === 'removed') agRemoved++;
+        else if (claim.status === 'delivered' || (!claim.status && claim.ts)) agDeliv++;
+      });
+      const agActive = agDebtors.length - agRemoved;
+      const agPct    = agActive > 0 ? Math.min(Math.round(agDeliv / agActive * 100), 100) : 0;
+      const agCol    = agPct >= 80 ? 'var(--green)' : agPct >= 50 ? 'var(--gold)' : 'var(--accent)';
+      const agFOC    = focCost > 0 ? ` · RM ${(agDeliv * focCost).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2})}` : '';
+      const rmLabel  = agRemoved > 0 ? ` · <span style="color:var(--purple);">${agRemoved} removed</span>` : '';
+      return `
+      <div style="display:grid;grid-template-columns:64px 1fr 44px;gap:8px;align-items:center;padding:7px 14px;border-bottom:1px solid var(--border);">
+        <div style="font-family:var(--display);font-size:15px;letter-spacing:.04em;">${agent}</div>
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">${agDeliv}/${agActive} delivered${agFOC}${rmLabel}</div>
+          <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:3px;">
+            <div style="height:100%;width:${agPct}%;background:${agCol};border-radius:2px;transition:width .4s;"></div>
+          </div>
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;font-weight:500;color:${agCol};text-align:right;">${agPct}%</div>
+      </div>`;
+    }).filter(Boolean).join('');
+
+    const accentCol = TYPE_COLORS[camp.type] || 'var(--accent)';
+
+    return `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;">
+      <div style="height:3px;background:${accentCol};"></div>
+      <div style="padding:12px 14px;border-bottom:1px solid var(--border);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <div style="flex:1;">
+            <div style="font-family:var(--mono);font-size:8px;color:${accentCol};text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">
+              ${(camp.type||'').replace(/_/g,' ')}${camp.customer_categories?.length?' · '+camp.customer_categories.join(', '):''}${camp.condition&&camp.condition!=='no_condition'?' · '+(CONDITION_LABEL[camp.condition]||camp.condition):''}
+            </div>
+            <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;">${camp.name}</div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:2px;">
+              ${activePool} active pool${removed>0?` · <span style="color:var(--purple);">${removed} removed</span>`:''} &nbsp;·&nbsp; ⏰ ${camp.deadline||'no deadline'}
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;margin-left:10px;">
+            <div style="font-family:var(--display);font-size:26px;color:${pctCol};">${pct}%</div>
+            <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);">${delivered}/${activePool} delivered</div>
+          </div>
+        </div>
+        <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:8px;">
+          <div style="height:100%;width:${pct}%;background:${pctCol};border-radius:3px;transition:width .4s;"></div>
+        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:${focCost>0?'10px':'0'};">
+          ${delivered >0?`<span style="font-family:var(--mono);font-size:8px;background:rgba(42,122,75,.12);color:var(--green);padding:2px 8px;border-radius:10px;">✓ ${delivered} delivered</span>`:''}
+          ${pending   >0?`<span style="font-family:var(--mono);font-size:8px;background:rgba(0,0,0,.05);color:var(--ink3);padding:2px 8px;border-radius:10px;">⏳ ${pending} pending</span>`:''}
+          ${nextVisit >0?`<span style="font-family:var(--mono);font-size:8px;background:rgba(200,134,10,.1);color:var(--gold);padding:2px 8px;border-radius:10px;">📅 ${nextVisit} next visit</span>`:''}
+          ${notIn     >0?`<span style="font-family:var(--mono);font-size:8px;background:rgba(0,0,0,.05);color:var(--ink3);padding:2px 8px;border-radius:10px;">📵 ${notIn} not in</span>`:''}
+          ${refused   >0?`<span style="font-family:var(--mono);font-size:8px;background:rgba(200,56,26,.1);color:var(--accent);padding:2px 8px;border-radius:10px;">✗ ${refused} refused</span>`:''}
+          ${removed   >0?`<span style="font-family:var(--mono);font-size:8px;background:rgba(107,63,160,.1);color:var(--purple);padding:2px 8px;border-radius:10px;">— ${removed} removed</span>`:''}
+        </div>
+        ${focCost>0?`
+        <div style="background:rgba(200,134,10,.06);border:1px solid rgba(200,134,10,${focWarn?'.4':'.15'});border-radius:8px;padding:9px 11px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:${focCap>0?'6px':'0'};">
+            <div>
+              <div style="font-family:var(--mono);font-size:8px;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;">FOC Cost Running Total</div>
+              <div style="font-family:var(--display);font-size:20px;color:${focWarn?'var(--accent)':'var(--gold)'};">RM ${focActual.toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+              <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-top:1px;">${delivered} × RM ${focCost.toFixed(2)}</div>
+            </div>
+            ${focCap>0?`<div style="text-align:right;">
+              <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);">Cap: RM ${focCap.toLocaleString('en-MY',{minimumFractionDigits:0})}</div>
+              <div style="font-family:var(--display);font-size:16px;color:${focWarn?'var(--accent)':'var(--ink3)'};">${focPct}%</div>
+            </div>`:''}
+          </div>
+          ${focCap>0?`<div style="height:4px;background:rgba(200,134,10,.15);border-radius:2px;overflow:hidden;">
+            <div style="height:100%;width:${focPct}%;background:${focWarn?'var(--accent)':'var(--gold)'};border-radius:2px;"></div>
+          </div>`:''}
+        </div>`:''}
+      </div>
+      <div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;padding:7px 14px 4px;border-bottom:1px solid var(--border);">Per-agent delivery</div>
+        ${agentRows||`<div style="padding:12px 14px;font-family:var(--mono);font-size:10px;color:var(--ink3);">No agent assignments found — add an Agent column to your debtor upload list.</div>`}
+      </div>
+      <div style="padding:9px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">${Object.keys(claims).length} claim records in Gist</div>
+        <a href="campaign_audit.html" target="_blank"
+           style="font-family:var(--mono);font-size:9px;color:var(--purple);text-decoration:none;padding:4px 10px;border:1px solid rgba(107,63,160,.3);border-radius:6px;background:rgba(107,63,160,.05);">
+          🔍 Open Audit →
+        </a>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderPendingActions() {

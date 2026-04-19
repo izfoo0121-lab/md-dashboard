@@ -708,6 +708,47 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
             <div class="input-label">Delivery Note (shown to agent)</div>
             <input type="text" id="new-camp-foc-note" placeholder="e.g. Deliver before Raya / Must state LAM FOC">
           </div>
+          <div class="input-row">
+            <div class="field-wrap">
+              <div class="field-lbl">FOC Cost / Unit (RM)</div>
+              <input type="number" id="new-camp-foc-cost" min="0" step="0.01" placeholder="e.g. 28.40">
+            </div>
+            <div class="field-wrap">
+              <div class="field-lbl">Budget Cap (RM, optional)</div>
+              <input type="number" id="new-camp-foc-budget" min="0" step="1" placeholder="e.g. 8000">
+            </div>
+          </div>
+        </div>
+
+        <!-- Customer categories + condition — shown for FOC/festive types -->
+        <div id="category-camp-fields" style="display:none;">
+          <div class="input-group">
+            <div class="input-label">Target Customer Categories <span style="font-weight:400;color:var(--ink3);">(optional — blank = all debtors in list)</span></div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;" id="cat-checkboxes">
+              <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border);padding:4px 10px;border-radius:8px;cursor:pointer;"><input type="checkbox" value="KR"> KR (Kedai Runcit)</label>
+              <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border);padding:4px 10px;border-radius:8px;cursor:pointer;"><input type="checkbox" value="SH"> SH-Shop</label>
+              <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border);padding:4px 10px;border-radius:8px;cursor:pointer;"><input type="checkbox" value="MM"> Mini Market</label>
+              <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border);padding:4px 10px;border-radius:8px;cursor:pointer;"><input type="checkbox" value="SUNDRY"> Sundry</label>
+              <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border);padding:4px 10px;border-radius:8px;cursor:pointer;"><input type="checkbox" value="KIOSK"> Kiosk</label>
+              <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border);padding:4px 10px;border-radius:8px;cursor:pointer;"><input type="checkbox" value="ALL"> All Categories</label>
+            </div>
+          </div>
+          <div class="input-group">
+            <div class="input-label">Eligibility Condition</div>
+            <select id="new-camp-condition" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 12px;border-radius:8px;">
+              <option value="non_buyers_only">Non-buyers only (not bought this brand in last 3 months)</option>
+              <option value="all_in_category">All in selected category (regardless of buying history)</option>
+              <option value="active_only">Active buyers only (bought at least once in last 3 months)</option>
+              <option value="no_condition">No condition — use debtor list as-is</option>
+            </select>
+          </div>
+          <div class="toggle-row" style="padding:8px 0;">
+            <div>
+              <div class="toggle-label">One-time per debtor</div>
+              <div class="toggle-sub">Each shop claims FOC once only. System blocks duplicate claims.</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="new-camp-one-time" checked><span class="toggle-slider"></span></label>
+          </div>
         </div>
 
         <!-- Festive fields — shown for festive_gift type -->
@@ -2686,22 +2727,34 @@ function createCampaign() {
   const catRules = getCatRules();
 
   // FOC fields
-  const focItem  = document.getElementById('new-camp-foc-item')?.value?.trim().toUpperCase()||'';
-  const focQty   = parseFloat(document.getElementById('new-camp-foc-qty')?.value)||0;
-  const focUnit  = document.getElementById('new-camp-foc-unit')?.value||'packs';
-  const focNote  = document.getElementById('new-camp-foc-note')?.value?.trim()||'';
-  const festive  = document.getElementById('new-camp-festive')?.value||'';
+  const focItem     = document.getElementById('new-camp-foc-item')?.value?.trim().toUpperCase()||'';
+  const focQty      = parseFloat(document.getElementById('new-camp-foc-qty')?.value)||0;
+  const focUnit     = document.getElementById('new-camp-foc-unit')?.value||'packs';
+  const focNote     = document.getElementById('new-camp-foc-note')?.value?.trim()||'';
+  const festive     = document.getElementById('new-camp-festive')?.value||'';
+  const focCost     = parseFloat(document.getElementById('new-camp-foc-cost')?.value)||0;
+  const focBudget   = parseFloat(document.getElementById('new-camp-foc-budget')?.value)||0;
+  const selCats     = Array.from(document.querySelectorAll('#cat-checkboxes input:checked')).map(c=>c.value);
+  const condition   = document.getElementById('new-camp-condition')?.value||'no_condition';
+  const oneTime     = document.getElementById('new-camp-one-time')?.checked ?? true;
 
   CAMPAIGNS_DATA.campaigns.push({
     id:'camp_'+Date.now(), name, type, description:desc,
     brands, promo_detail:promo, min_order_ctn:minOrder,
     cat_rules: catRules,
     // FOC/Festive fields
-    default_foc_item:  focItem,
-    default_foc_qty:   focQty,
-    default_foc_unit:  focUnit,
-    foc_note:          focNote,
-    festive_occasion:  festive,
+    default_foc_item:     focItem,
+    default_foc_qty:      focQty,
+    default_foc_unit:     focUnit,
+    foc_note:             focNote,
+    festive_occasion:     festive,
+    // FOC cost tracking
+    foc_cost_unit:        focCost   || null,
+    foc_budget_cap:       focBudget || null,
+    // Eligibility
+    customer_categories:  selCats.length ? selCats : [],
+    condition:            condition,
+    one_time_per_debtor:  oneTime,
     created_at:new Date().toISOString().split('T')[0],
     deadline, active:true, debtors:_campFileDebtors,
   });
@@ -2710,7 +2763,8 @@ function createCampaign() {
   // Reset form
   ['new-camp-name','new-camp-desc','new-camp-deadline','new-camp-file',
    'new-camp-promo','new-camp-min-order',
-   'new-camp-foc-item','new-camp-foc-qty','new-camp-foc-note'].forEach(id=>{
+   'new-camp-foc-item','new-camp-foc-qty','new-camp-foc-note',
+   'new-camp-foc-cost','new-camp-foc-budget'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
   document.getElementById('camp-file-preview').textContent='';
@@ -2804,9 +2858,11 @@ function toggleBrandFields(type) {
   document.getElementById('brand-camp-fields').style.display =
     type === 'promotion' ? 'block' : 'none';
   document.getElementById('foc-camp-fields').style.display =
-    (type === 'free_sample' || type === 'festive_gift') ? 'block' : 'none';
+    (type === 'free_sample' || type === 'festive_gift' || type === 'foc_sample') ? 'block' : 'none';
   document.getElementById('festive-camp-fields').style.display =
     type === 'festive_gift' ? 'block' : 'none';
+  document.getElementById('category-camp-fields').style.display =
+    (type === 'free_sample' || type === 'festive_gift' || type === 'foc_sample') ? 'block' : 'none';
 }
 
 function closeCampaign(id) {
@@ -2846,6 +2902,10 @@ function renderCampaignsList() {
           ${c.brand?`<span style="font-family:var(--mono);font-size:9px;background:rgba(200,56,26,.1);color:#c8381a;padding:2px 8px;border-radius:8px;border:1px solid rgba(200,56,26,.3);margin-top:6px;display:inline-block;">${c.brand}</span>`:''}
           ${c.promo_detail?`<div id="camp-promo-disp-${c.id}" style="font-family:var(--mono);font-size:10px;color:var(--green);margin-top:4px;font-weight:600;">💬 "${c.promo_detail}"</div>`:''}
           ${c.default_foc_item?`<div style="font-family:var(--mono);font-size:9px;color:#888;margin-top:2px;">🎁 Default FOC: ${c.default_foc_item} × ${c.default_foc_qty} ${c.default_foc_unit||''}</div>`:''}
+          ${c.foc_cost_unit?`<div style="font-family:var(--mono);font-size:9px;color:var(--gold);margin-top:2px;">💰 RM${c.foc_cost_unit}/unit${c.foc_budget_cap?' · Cap: RM'+Number(c.foc_budget_cap).toLocaleString():''}</div>`:''}
+          ${c.customer_categories?.length?`<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;">${c.customer_categories.map(cat=>`<span style="font-family:var(--mono);font-size:8px;background:rgba(26,92,143,.1);color:var(--blue);padding:2px 7px;border-radius:8px;border:1px solid rgba(26,92,143,.2);">${cat}</span>`).join('')}</div>`:''}
+          ${c.condition&&c.condition!=='no_condition'?`<div style="font-family:var(--mono);font-size:9px;color:var(--green);margin-top:2px;">✓ ${{'non_buyers_only':'Non-buyers only','all_in_category':'All in category','active_only':'Active buyers only'}[c.condition]||c.condition}</div>`:''}
+          ${c.one_time_per_debtor?`<div style="font-family:var(--mono);font-size:9px;color:var(--gold);margin-top:2px;">⚡ One-time per debtor</div>`:''}
         </div>
         <div style="display:flex;gap:6px;margin-left:8px;flex-shrink:0;">
           <button onclick="editCampaign('${c.id}')" style="background:none;border:1px solid var(--border);color:var(--blue);font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">✏ Edit</button>
