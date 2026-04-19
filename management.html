@@ -269,26 +269,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
       </div>
     </div>
 
-    <!-- 0e. Event / PSR Input (MD enters for all agents) -->
-    <div id="event-input-section">
-      <div class="sec-lbl no-border" style="color:var(--blue);display:flex;justify-content:space-between;align-items:center;">
-        <span>📱 Event / PSR — Monthly Count</span>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <select id="event-month-sel"
-            style="font-family:var(--mono);font-size:9px;background:var(--surface);border:1px solid var(--border);color:var(--ink);padding:3px 6px;border-radius:6px;cursor:pointer;"
-            onchange="loadEventScores()">
-          </select>
-          <button onclick="saveAllEventScores()"
-            style="font-family:var(--mono);font-size:9px;background:rgba(26,92,143,.2);border:1px solid rgba(26,92,143,.4);color:var(--blue);padding:3px 12px;border-radius:6px;cursor:pointer;font-weight:600;">
-            💾 Save All
-          </button>
-        </div>
-      </div>
-      <div class="card" style="overflow:hidden;">
-        <div id="event-scores-grid" style="padding:4px 0;"></div>
-      </div>
-    </div>
-
     <!-- 1. Team Sales -->
     <div class="sec-lbl no-border">📊 Team Sales Progress</div>
     <div class="overall-card">
@@ -1401,9 +1381,9 @@ function renderBdayAudit() {
         <div>
           <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;">${agent}</div>
           <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">
-            Target: ${target} debtors &nbsp;·&nbsp;
+            Birthday debtors: ${target} &nbsp;·&nbsp;
             ${done
-              ? `Self-reported: <span style="color:${col};font-weight:600;">${displayActual}</span>`
+              ? `${mdOverride !== null ? 'MD Adjusted' : 'Self-reported'}: <span style="color:${col};font-weight:600;">${displayActual}</span>`
               : `<span style="color:#c8381a;">Not yet reported</span>`}
           </div>
         </div>
@@ -1422,10 +1402,7 @@ function renderBdayAudit() {
           style="background:rgba(42,122,75,.2);border:1px solid rgba(42,122,75,.4);color:#2a7a4b;font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;">
           ✓ Approve
         </button>
-        <button onclick="auditBday('${agent}','adjust',${target})"
-          style="background:rgba(200,134,10,.15);border:1px solid rgba(200,134,10,.4);color:#c8860a;font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;">
-          ✏ Adjust
-        </button>
+
       </div>
     </div>`;
   }).join('');
@@ -2489,123 +2466,6 @@ async function refreshBdayAudit() {
   }
 }
 
-// ── Event / PSR MD Input ─────────────────────────────────────────────────
-const EVENT_AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','YI','SAM'];
-
-function initEventMonthSel() {
-  const sel = document.getElementById('event-month-sel');
-  if (!sel) return;
-  // Build month options — current month + past 5
-  const MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const curMonth = DATA?.current_month || '';
-  const months = [curMonth];
-  // Add previous months from history if available
-  if (window.HISTORY_DATA?.monthly) {
-    window.HISTORY_DATA.monthly.forEach(r => {
-      if (r.Month && r.Month !== curMonth && !months.includes(r.Month)) months.push(r.Month);
-    });
-  }
-  sel.innerHTML = months.slice(0,6).map((m,i) =>
-    `<option value="${m}" ${i===0?'selected':''}>${m.toUpperCase()}</option>`
-  ).join('');
-  loadEventScores();
-}
-
-function loadEventScores() {
-  const month = document.getElementById('event-month-sel')?.value || DATA?.current_month || '';
-  const slug  = month.replace(' ','');
-  let scores  = {};
-  try { scores = JSON.parse(localStorage.getItem('md_scores_' + slug) || '{}'); } catch(e) {}
-
-  const agents = Object.keys(DATA?.agents || {}).filter(a => EVENT_AGENTS.includes(a));
-  const grid   = document.getElementById('event-scores-grid');
-  if (!grid) return;
-
-  grid.innerHTML = agents.map(agent => {
-    const val     = scores[agent]?.event ?? '';
-    const target  = DATA?.agents?.[agent]?.kpi?.items?.event?.target ?? '—';
-    return `<div style="display:grid;grid-template-columns:80px 1fr 80px 80px;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);">
-      <div style="font-family:var(--mono);font-size:11px;font-weight:600;">${agent}</div>
-      <div>
-        <input type="number" min="0" id="event-score-${agent}"
-          value="${val}"
-          placeholder="0"
-          style="width:100%;font-family:var(--mono);font-size:12px;background:var(--card);border:1px solid var(--border);color:var(--ink);padding:6px 8px;border-radius:6px;text-align:center;"
-          onchange="previewEventScore('${agent}')"
-          oninput="previewEventScore('${agent}')">
-      </div>
-      <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);text-align:center;">
-        Target: <span style="color:var(--ink2);font-weight:600;">${target}</span>
-      </div>
-      <div id="event-pct-${agent}" style="font-family:var(--mono);font-size:10px;font-weight:600;text-align:center;color:var(--ink3);">
-        ${val !== '' && target !== '—' ? Math.round(val/target*100)+'%' : '—'}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function previewEventScore(agent) {
-  const inp    = document.getElementById('event-score-' + agent);
-  const pctEl  = document.getElementById('event-pct-' + agent);
-  if (!inp || !pctEl) return;
-  const val    = parseInt(inp.value) || 0;
-  const target = DATA?.agents?.[agent]?.kpi?.items?.event?.target;
-  if (target && target > 0) {
-    const pct = Math.round(val / target * 100);
-    pctEl.textContent = pct + '%';
-    pctEl.style.color = pct >= 100 ? '#2a7a4b' : pct >= 60 ? '#c8860a' : '#c8381a';
-  }
-}
-
-async function saveAllEventScores() {
-  const month  = document.getElementById('event-month-sel')?.value || DATA?.current_month || '';
-  const slug   = month.replace(' ','');
-  const lsKey  = 'md_scores_' + slug;
-  let scores   = {};
-  try { scores = JSON.parse(localStorage.getItem(lsKey) || '{}'); } catch(e) {}
-
-  const agents = Object.keys(DATA?.agents || {}).filter(a => EVENT_AGENTS.includes(a));
-  let changed  = 0;
-
-  agents.forEach(agent => {
-    const inp = document.getElementById('event-score-' + agent);
-    if (!inp) return;
-    const val = inp.value.trim();
-    if (val === '') return;
-    if (!scores[agent]) scores[agent] = {};
-    scores[agent].event = parseInt(val) || 0;
-    changed++;
-  });
-
-  if (!changed) { alert('No values entered.'); return; }
-
-  // Save to localStorage
-  localStorage.setItem(lsKey, JSON.stringify(scores));
-
-  // Sync to GistSync — push kpi_scores file directly
-  if (GistSync.isConfigured()) {
-    try {
-      // Read full kpi_scores, update this month, push back
-      let allKpi = {};
-      try {
-        const existing = await GistSync.pull('kpi_scores');
-        if (existing) allKpi = existing;
-      } catch(e) {}
-      allKpi[month] = scores;
-      await GistSync.push('kpi_scores', allKpi);
-      // Also update localStorage for immediate local read
-      localStorage.setItem('md_scores_' + slug, JSON.stringify(scores));
-      alert('Saved ' + changed + ' agents\' Event/PSR scores for ' + month + ' ✓\nAgents will see updated counts on their next login.');
-    } catch(e) {
-      alert('Saved locally. Gist sync failed: ' + e.message);
-    }
-  } else {
-    alert('Saved locally for ' + month + '. Configure GistSync token for cross-device sync.');
-  }
-
-  loadEventScores(); // refresh display
-}
-
 function saveGistToken() {
   const t = (document.getElementById('gist-token-input') || {}).value || '';
   if (!t.startsWith('ghp_') && !t.startsWith('github_pat_')) {
@@ -2623,7 +2483,6 @@ function initGistBanner() {
   const banner = document.getElementById('gist-token-banner');
   if (!banner) return;
   banner.style.display = GistSync.isConfigured() ? 'none' : 'block';
-  initEventMonthSel();
 }
 
 </script>
