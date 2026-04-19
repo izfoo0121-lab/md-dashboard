@@ -1418,11 +1418,11 @@ function renderBdayAudit() {
         <div style="height:100%;width:${pct}%;background:${col};border-radius:2px;"></div>
       </div>` : ''}
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button onclick="auditBday('${agent}','approve')"
+        <button onclick="auditBday('${agent}','approve',${target})"
           style="background:rgba(42,122,75,.2);border:1px solid rgba(42,122,75,.4);color:#2a7a4b;font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;">
           ✓ Approve
         </button>
-        <button onclick="auditBday('${agent}','adjust')"
+        <button onclick="auditBday('${agent}','adjust',${target})"
           style="background:rgba(200,134,10,.15);border:1px solid rgba(200,134,10,.4);color:#c8860a;font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;">
           ✏ Adjust
         </button>
@@ -1447,7 +1447,7 @@ function showMgmtToast(msg, color) {
   t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2500);
 }
 
-async function auditBday(agent, action) {
+async function auditBday(agent, action, target) {
   const month    = (DATA?.current_month || '').replace(' ','');
   const curMonth = DATA?.current_month || '';
   const gistKey  = 'claims_' + month;
@@ -1455,9 +1455,12 @@ async function auditBday(agent, action) {
   try { claims = JSON.parse(localStorage.getItem('md_bday_claims_' + month) || '{}'); } catch(e) {}
 
   if (action === 'approve') {
-    // Get birthday debtors for this agent
-    const bdayDebtors = (DATA?.birthday_campaign?.debtors || []).filter(d => d.agent === agent);
-    const approvedCount = bdayDebtors.length;
+    // Use target count (by_agent) as approved count — this is the correct birthday debtor count
+    // bdayDebtors used only for writing per-debtor bday_gift keys
+    const bdayDebtors = (CURRENT_DATA?.birthday_campaign?.debtors || DATA?.birthday_campaign?.debtors || [])
+      .filter(d => d.agent === agent);
+    // target param = by_agent count for this month (correct birthday debtor count)
+    const approvedCount = target || (CURRENT_DATA?.birthday_campaign?.by_agent?.[agent] ?? bdayDebtors.length);
 
     // Write bday_gift_* keys for each debtor (so debtor card shows ✓ Gift Sent)
     bdayDebtors.forEach(d => {
