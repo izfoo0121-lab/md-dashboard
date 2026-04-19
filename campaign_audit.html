@@ -1,752 +1,353 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-  <meta http-equiv="Cache-Control" content="no-cache,no-store,must-revalidate">
-  <title>Campaign Audit — MIRACLE-奇迹 MD</title>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <style>
-    :root{
-      --bg:#0e0e12;--surface:#16161c;--card:#1c1c24;--border:rgba(255,255,255,.08);
-      --text:#e8e6f0;--muted:#6a687a;--accent:#c8381a;--green:#3ddc84;
-      --blue:#4da6ff;--gold:#f0c040;--purple:#a78bfa;--red:#ff5f5f;
-      --display:'Bebas Neue',sans-serif;--body:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
-    }
-    *{margin:0;padding:0;box-sizing:border-box;}
-    body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;padding-bottom:80px;}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Campaign Audit — MIRACLE 奇迹</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f5f3ee; --surface:#ffffff; --card:#fdfcf9; --border:#e2ddd5;
+  --ink:#1a1714; --ink2:#5a5550; --ink3:#9a9590;
+  --accent:#c8381a; --green:#2a7a4b; --gold:#c8860a; --blue:#1a5c8f;
+  --red:#c8381a; --purple:#6b3fa0;
+  --display:'Bebas Neue',sans-serif; --body:'DM Sans',sans-serif; --mono:'DM Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:100vh;padding-bottom:60px;}
 
-    /* Header */
-    .hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 18px;position:sticky;top:0;z-index:100;}
-    .hdr-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
-    .hdr-title{font-family:var(--display);font-size:28px;letter-spacing:.06em;}
-    .hdr-sub{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
-    .nav-pills{display:flex;gap:6px;flex-wrap:wrap;}
-    .nav-pill{font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);color:var(--muted);text-decoration:none;}
-    .nav-pill:hover{border-color:var(--blue);color:var(--blue);}
+/* ── Login ── */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+.login-box{background:var(--ink);color:#fff;border-radius:20px;padding:32px 24px;width:100%;max-width:360px;}
+.login-title{font-family:var(--display);font-size:36px;letter-spacing:.05em;margin-bottom:4px;}
+.login-sub{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;margin-bottom:24px;}
+.login-input{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;font-family:var(--body);font-size:14px;padding:12px 14px;border-radius:10px;margin-bottom:10px;}
+.login-input::placeholder{color:rgba(255,255,255,.3);}
+.login-btn{width:100%;background:var(--accent);border:none;color:#fff;font-family:var(--display);font-size:20px;letter-spacing:.05em;padding:12px;border-radius:10px;cursor:pointer;margin-top:4px;}
+.login-err{font-family:var(--mono);font-size:10px;color:#ff6b6b;text-align:center;margin-top:8px;display:none;}
 
-    /* Controls */
-    .controls{padding:12px 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--card);border-bottom:1px solid var(--border);}
-    .ctrl-label{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;}
-    select{background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:7px 12px;border-radius:8px;cursor:pointer;}
-    select:focus{outline:none;border-color:var(--blue);}
+/* ── App shell ── */
+#main-app{display:none;}
+.audit-header{background:var(--ink);color:#fff;padding:14px 18px;position:sticky;top:0;z-index:100;}
+.audit-header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.audit-title{font-family:var(--display);font-size:26px;letter-spacing:.05em;}
+.audit-sub{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;}
+.logout-btn{background:rgba(255,255,255,.1);border:none;color:#fff;font-family:var(--mono);font-size:10px;padding:6px 12px;border-radius:8px;cursor:pointer;}
 
-    /* Campaign type tabs */
-    .camp-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto;}
-    .camp-tab{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border:none;background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-1px;}
-    .camp-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+/* Controls bar */
+.controls-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.ctrl-select{background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:7px 10px;border-radius:8px;}
+.ctrl-btn{background:var(--ink);border:none;color:#fff;font-family:var(--mono);font-size:10px;padding:8px 14px;border-radius:8px;cursor:pointer;text-transform:uppercase;letter-spacing:.06em;}
+.ctrl-btn.secondary{background:transparent;border:1px solid var(--border);color:var(--ink2);}
+.ctrl-btn.green{background:var(--green);}
+.ctrl-btn.export{background:var(--blue);}
 
-    /* Body */
-    .page-body{padding:14px 18px;max-width:900px;margin:0 auto;}
+/* Page body */
+.page-body{padding:14px 18px;max-width:860px;margin:0 auto;}
 
-    /* Summary row */
-    .summary-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
-    .sum-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 16px;flex:1;min-width:120px;}
-    .sum-val{font-family:var(--display);font-size:28px;letter-spacing:.04em;}
-    .sum-val.g{color:var(--green);}
-    .sum-val.a{color:var(--gold);}
-    .sum-val.r{color:var(--red);}
-    .sum-val.b{color:var(--blue);}
-    .sum-lbl{font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;}
+/* Summary strip */
+.summary-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;}
+.sum-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;}
+.sum-val{font-family:var(--display);font-size:22px;letter-spacing:.03em;}
+.sum-lbl{font-family:var(--mono);font-size:8px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+.sum-box.green .sum-val{color:var(--green);}
+.sum-box.amber .sum-val{color:var(--gold);}
+.sum-box.red .sum-val{color:var(--red);}
+.sum-box.purple .sum-val{color:var(--purple);}
 
-    /* Agent section */
-    .agent-section{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;}
-    .agent-hdr{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;}
-    .agent-hdr:hover{background:rgba(255,255,255,.02);}
-    .agent-name{font-family:var(--display);font-size:20px;letter-spacing:.05em;}
-    .agent-stats{display:flex;gap:10px;align-items:center;}
-    .stat-chip{font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:10px;}
-    .stat-chip.done{background:rgba(61,220,132,.15);color:var(--green);border:1px solid rgba(61,220,132,.25);}
-    .stat-chip.pending{background:rgba(106,104,122,.1);color:var(--muted);border:1px solid var(--border);}
-    .stat-chip.pct{background:rgba(77,166,255,.12);color:var(--blue);border:1px solid rgba(77,166,255,.2);}
+/* FOC cost banner */
+.foc-banner{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.foc-cost-main{font-family:var(--display);font-size:28px;color:var(--gold);letter-spacing:.03em;}
+.foc-bar-wrap{flex:1;min-width:120px;}
+.foc-bar-bg{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:4px;}
+.foc-bar-fill{height:100%;background:var(--gold);border-radius:3px;transition:width .4s;}
 
-    /* Progress bar */
-    .prog-bar{height:3px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;margin:0 14px 8px;}
-    .prog-fill{height:100%;border-radius:2px;transition:width .4s;}
+/* Section label */
+.sec-lbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink3);padding:8px 0 4px;border-top:1px solid var(--border);margin:12px 0 6px;}
 
-    /* Claim rows */
-    .claims-body{padding:6px 10px 10px;}
-    .claim-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:10px;margin-bottom:4px;background:rgba(255,255,255,.02);border:1px solid transparent;}
-    .claim-row.claimed{background:rgba(61,220,132,.04);border-color:rgba(61,220,132,.12);}
-    .claim-row.pending{background:rgba(255,255,255,.02);}
-    .claim-row.verified{background:rgba(77,166,255,.05);border-color:rgba(77,166,255,.15);}
-    .claim-row.rejected{background:rgba(255,95,95,.05);border-color:rgba(255,95,95,.15);}
-    .claim-info{flex:1;min-width:0;}
-    .claim-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .claim-code{font-family:var(--mono);font-size:9px;color:var(--muted);}
-    .claim-meta{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:1px;}
-    .claim-actions{display:flex;gap:6px;align-items:center;margin-left:10px;flex-shrink:0;}
-    .claim-status{font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:8px;}
-    .claim-status.pending{color:var(--muted);background:rgba(255,255,255,.06);}
-    .claim-status.claimed{color:var(--green);background:rgba(61,220,132,.12);}
-    .claim-status.verified{color:var(--blue);background:rgba(77,166,255,.12);}
-    .claim-status.rejected{color:var(--red);background:rgba(255,95,95,.12);}
-    .audit-btn{font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:8px;border:1px solid;cursor:pointer;background:transparent;transition:all .15s;}
-    .audit-btn.verify{color:var(--green);border-color:rgba(61,220,132,.4);}
-    .audit-btn.verify:hover{background:rgba(61,220,132,.15);}
-    .audit-btn.reject{color:var(--red);border-color:rgba(255,95,95,.3);}
-    .audit-btn.reject:hover{background:rgba(255,95,95,.12);}
-    .audit-btn.undo{color:var(--muted);border-color:var(--border);}
-    .audit-btn.undo:hover{color:var(--text);}
+/* Agent group */
+.agent-group{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;}
+.agent-hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 13px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
+.agent-hdr:hover{background:var(--bg);}
+.agent-name{font-family:var(--display);font-size:17px;letter-spacing:.04em;}
+.agent-meta{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:1px;}
+.agent-pct{font-family:var(--display);font-size:20px;}
+.agent-body{padding:8px 10px;}
 
-    /* Collapsed */
-    .claims-body.collapsed{display:none;}
+/* Debtor row */
+.debtor-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:8px;margin-bottom:3px;border:1px solid transparent;transition:background .15s;}
+.debtor-row.status-pending{background:rgba(0,0,0,.02);}
+.debtor-row.status-delivered{background:rgba(42,122,75,.05);border-color:rgba(42,122,75,.15);}
+.debtor-row.status-refused{background:rgba(200,56,26,.04);border-color:rgba(200,56,26,.1);}
+.debtor-row.status-next_visit{background:rgba(200,134,10,.04);border-color:rgba(200,134,10,.1);}
+.debtor-row.status-not_in{background:rgba(0,0,0,.02);}
+.debtor-row.status-removed{background:rgba(154,149,144,.07);border-color:rgba(154,149,144,.15);opacity:.65;}
 
-    /* Empty */
-    .empty{text-align:center;padding:40px 20px;color:var(--muted);font-family:var(--mono);font-size:11px;}
+/* Strike-through for removed */
+.debtor-row.status-removed .debtor-name,
+.debtor-row.status-removed .debtor-code{text-decoration:line-through;color:var(--ink3);}
 
-    /* Toast */
-    .toast{position:fixed;bottom:20px;right:20px;background:var(--green);color:#0e0e12;font-family:var(--mono);font-size:11px;font-weight:600;padding:10px 20px;border-radius:12px;opacity:0;transition:opacity .3s;z-index:999;pointer-events:none;}
-    .toast.show{opacity:1;}
+/* Debtor info */
+.debtor-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;}
+.debtor-code{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:1px;}
+.debtor-ts{font-family:var(--mono);font-size:8px;color:var(--ink3);}
 
-    /* Export btn */
-    .export-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;padding:7px 14px;border-radius:8px;cursor:pointer;}
-    .export-btn:hover{border-color:var(--blue);color:var(--blue);}
+/* Status badge */
+.status-badge{font-family:var(--mono);font-size:8px;padding:2px 7px;border-radius:10px;white-space:nowrap;}
+.badge-pending{background:rgba(0,0,0,.06);color:var(--ink3);}
+.badge-delivered{background:rgba(42,122,75,.15);color:var(--green);}
+.badge-refused{background:rgba(200,56,26,.12);color:var(--red);}
+.badge-next_visit{background:rgba(200,134,10,.12);color:var(--gold);}
+.badge-not_in{background:rgba(0,0,0,.06);color:var(--ink3);}
+.badge-removed{background:rgba(107,63,160,.1);color:var(--purple);text-decoration:none !important;}
 
-    @media(max-width:480px){
-      .page-body{padding:10px 12px;}
-      .summary-row{gap:8px;}
-      .sum-card{min-width:90px;}
-    }
-  </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+/* Action buttons */
+.action-row{display:flex;gap:4px;align-items:center;flex-shrink:0;margin-left:8px;}
+.act-btn{font-family:var(--mono);font-size:8px;padding:4px 8px;border-radius:6px;cursor:pointer;border:1px solid;white-space:nowrap;transition:opacity .15s;}
+.act-btn:hover{opacity:.75;}
+.btn-verify{background:rgba(42,122,75,.12);border-color:rgba(42,122,75,.3);color:var(--green);}
+.btn-reject{background:rgba(200,56,26,.1);border-color:rgba(200,56,26,.25);color:var(--red);}
+.btn-deliver{background:rgba(42,122,75,.1);border-color:rgba(42,122,75,.2);color:var(--green);}
+.btn-remove{background:transparent;border-color:var(--border);color:var(--ink3);}
+.btn-restore{background:rgba(107,63,160,.1);border-color:rgba(107,63,160,.25);color:var(--purple);}
+
+/* Bulk actions */
+.bulk-bar{background:var(--blue);color:#fff;padding:10px 14px;border-radius:10px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;display:none;}
+.bulk-bar.visible{display:flex;}
+.bulk-info{font-family:var(--mono);font-size:10px;}
+.bulk-actions{display:flex;gap:6px;}
+.bulk-btn{font-family:var(--mono);font-size:9px;padding:5px 10px;border-radius:6px;cursor:pointer;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.15);color:#fff;}
+
+/* ── Remove Confirm Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:var(--surface);border-radius:16px;padding:24px;width:100%;max-width:380px;box-shadow:0 8px 32px rgba(0,0,0,.15);}
+.modal-title{font-family:var(--display);font-size:22px;letter-spacing:.04em;margin-bottom:4px;}
+.modal-sub{font-family:var(--mono);font-size:10px;color:var(--ink3);margin-bottom:16px;}
+.modal-debtor{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:14px;}
+.modal-debtor-name{font-size:13px;font-weight:500;}
+.modal-debtor-meta{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:2px;}
+.modal-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin-bottom:5px;}
+.modal-select{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:12px;padding:9px 10px;border-radius:8px;margin-bottom:10px;}
+.modal-input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--body);font-size:13px;padding:9px 10px;border-radius:8px;margin-bottom:14px;}
+.modal-input::placeholder{color:var(--ink3);}
+.modal-warning{background:rgba(200,56,26,.06);border:1px solid rgba(200,56,26,.15);border-radius:8px;padding:9px 11px;font-family:var(--mono);font-size:9px;color:var(--red);margin-bottom:14px;line-height:1.5;}
+.modal-btns{display:flex;gap:8px;}
+.modal-btn-cancel{flex:1;background:transparent;border:1px solid var(--border);color:var(--ink2);font-family:var(--mono);font-size:11px;padding:11px;border-radius:10px;cursor:pointer;}
+.modal-btn-confirm{flex:1;background:var(--purple);border:none;color:#fff;font-family:var(--mono);font-size:11px;padding:11px;border-radius:10px;cursor:pointer;font-weight:600;}
+
+/* Export panel */
+.export-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:14px;}
+
+/* Sync status */
+.sync-status{font-family:var(--mono);font-size:9px;color:var(--ink3);padding:4px 0;}
+
+/* Progress bar inline */
+.mini-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:3px;width:80px;display:inline-block;vertical-align:middle;}
+.mini-bar-fill{height:100%;border-radius:2px;}
+
+/* Removed reason pill */
+.removed-reason{font-family:var(--mono);font-size:8px;background:rgba(107,63,160,.1);color:var(--purple);padding:2px 7px;border-radius:10px;margin-left:4px;}
+
+/* Empty state */
+.empty-state{text-align:center;padding:32px;font-family:var(--mono);font-size:11px;color:var(--ink3);}
+
+/* Mobile */
+@media(max-width:480px){
+  .summary-strip{grid-template-columns:repeat(3,1fr);}
+  .sum-box:nth-child(4),.sum-box:nth-child(5){display:none;}
+  .page-body{padding:10px 12px;}
+  .debtor-name{max-width:130px;}
+  .controls-bar{padding:8px 12px;}
+}
+</style>
 </head>
 <body>
 
-<!-- Login Gate -->
-<div id="login-gate" style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;">
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px 28px;width:90%;max-width:380px;text-align:center;">
-    <div style="font-family:var(--display);font-size:32px;letter-spacing:.06em;margin-bottom:4px;">AUDIT</div>
-    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:24px;">Management Access Only</div>
-    <input type="password" id="audit-pw" placeholder="Enter password"
-      style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--mono);font-size:14px;padding:13px;box-sizing:border-box;margin-bottom:10px;text-align:center;"
-      onkeydown="if(event.key==='Enter')auditLogin()">
-    <div id="audit-pw-err" style="font-family:var(--mono);font-size:10px;color:var(--red);margin-bottom:10px;display:none;">Incorrect password</div>
-    <button onclick="auditLogin()"
-      style="width:100%;background:var(--accent);border:none;color:#fff;font-family:var(--display);font-size:18px;letter-spacing:.06em;padding:14px;border-radius:10px;cursor:pointer;">
-      ENTER
-    </button>
+<!-- ── Login ── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-title">MIRACLE 奇迹</div>
+    <div class="login-sub">Campaign Audit · Accounts / MD</div>
+    <input class="login-input" type="password" id="login-pw" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">LOGIN</button>
+    <div class="login-err" id="login-err">Wrong password</div>
+  </div>
+</div>
+
+<!-- ── Main App ── -->
+<div id="main-app">
+
+  <!-- Header -->
+  <div class="audit-header">
+    <div class="audit-header-top">
+      <div>
+        <div class="audit-title">Campaign Audit</div>
+        <div class="audit-sub">MIRACLE 奇迹 · GRP 2A · <span id="hdr-role">—</span></div>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- Controls bar -->
+  <div class="controls-bar">
+    <select class="ctrl-select" id="sel-month" onchange="loadAudit()">
+      <option>Jan 26</option><option>Feb 26</option><option>Mar 26</option>
+      <option>Apr 26</option><option selected>May 26</option><option>Jun 26</option>
+    </select>
+    <select class="ctrl-select" id="sel-camp" onchange="loadAudit()">
+      <option value="">All campaigns</option>
+    </select>
+    <select class="ctrl-select" id="sel-agent" onchange="loadAudit()">
+      <option value="">All agents</option>
+      <option>BEN</option><option>CJ</option><option>JACKY</option><option>JAMES</option>
+      <option>JW</option><option>KEAN</option><option>KEE</option><option>KF</option>
+      <option>KI-MI</option><option>KW</option><option>LEON</option><option>NMK</option>
+      <option>SAM</option><option>YI</option>
+    </select>
+    <select class="ctrl-select" id="sel-status" onchange="loadAudit()">
+      <option value="">All statuses</option>
+      <option value="pending">Pending</option>
+      <option value="delivered">Delivered</option>
+      <option value="next_visit">Next Visit</option>
+      <option value="not_in">Not In</option>
+      <option value="refused">Refused</option>
+      <option value="removed">Removed</option>
+    </select>
+    <button class="ctrl-btn secondary" onclick="pullFromGist()">↓ Refresh</button>
+    <button class="ctrl-btn export" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+
+  <div class="page-body">
+
+    <!-- Sync status -->
+    <div class="sync-status" id="sync-status">Loading claims...</div>
+
+    <!-- Summary strip -->
+    <div class="summary-strip" id="summary-strip">
+      <div class="sum-box"><div class="sum-val" id="s-pool">—</div><div class="sum-lbl">Pool</div></div>
+      <div class="sum-box green"><div class="sum-val" id="s-delivered">—</div><div class="sum-lbl">Delivered</div></div>
+      <div class="sum-box amber"><div class="sum-val" id="s-pending">—</div><div class="sum-lbl">Pending</div></div>
+      <div class="sum-box red"><div class="sum-val" id="s-refused">—</div><div class="sum-lbl">Refused</div></div>
+      <div class="sum-box purple"><div class="sum-val" id="s-removed">—</div><div class="sum-lbl">Removed</div></div>
+    </div>
+
+    <!-- FOC cost banner -->
+    <div class="foc-banner" id="foc-banner" style="display:none;">
+      <div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">FOC Cost Running Total</div>
+        <div class="foc-cost-main" id="foc-cost-actual">RM —</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);" id="foc-cost-detail">— deliveries × RM —</div>
+      </div>
+      <div class="foc-bar-wrap">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">Budget cap</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--ink2);" id="foc-cap">RM —</div>
+        </div>
+        <div class="foc-bar-bg"><div class="foc-bar-fill" id="foc-bar" style="width:0%"></div></div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-top:3px;" id="foc-pct">0% of budget</div>
+      </div>
+    </div>
+
+    <!-- Bulk action bar -->
+    <div class="bulk-bar" id="bulk-bar">
+      <div class="bulk-info"><span id="bulk-count">0</span> selected</div>
+      <div class="bulk-actions">
+        <button class="bulk-btn" onclick="bulkAction('delivered')">✓ Mark Delivered</button>
+        <button class="bulk-btn" onclick="bulkAction('refused')" style="background:rgba(200,56,26,.3);">✗ Mark Refused</button>
+        <button class="bulk-btn" onclick="clearSelection()">✕ Clear</button>
+      </div>
+    </div>
+
+    <!-- Audit list -->
+    <div id="audit-list"></div>
+
+  </div>
+</div>
+
+<!-- ── Remove Confirm Modal ── -->
+<div class="modal-overlay" id="remove-modal" onclick="closeRemoveModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-title">Remove from Pool</div>
+    <div class="modal-sub">This debtor will be excluded from campaign counts and FOC budget. The record stays visible (struck through) for audit.</div>
+    <div class="modal-debtor" id="modal-debtor-info">
+      <div class="modal-debtor-name" id="modal-debtor-name">—</div>
+      <div class="modal-debtor-meta" id="modal-debtor-meta">—</div>
+    </div>
+    <div class="modal-label">Reason for removal</div>
+    <select class="modal-select" id="remove-reason">
+      <option value="shop_closed">Shop closed / no longer operating</option>
+      <option value="transferred">Transferred to another agent</option>
+      <option value="wrong_category">Wrong debtor category (not eligible)</option>
+      <option value="duplicate">Duplicate entry</option>
+      <option value="already_buyer">Already a buyer (data error)</option>
+      <option value="other">Other</option>
+    </select>
+    <div class="modal-label">Additional note (optional)</div>
+    <input class="modal-input" type="text" id="remove-note" placeholder="e.g. Confirmed closed by KEE on 5 May">
+    <div class="modal-warning">
+      ⚠ Pool count, delivery % and FOC budget will recalculate immediately.<br>
+      Agent's pending list will update on next refresh.<br>
+      Action is reversible — use Restore to undo.
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn-cancel" onclick="closeRemoveModal()">Cancel</button>
+      <button class="modal-btn-confirm" onclick="confirmRemove()">Remove from Pool</button>
+    </div>
   </div>
 </div>
 
 <script>
-// Audit page passwords
-const AUDIT_PASSWORDS = ['touro2026', 'accounts2026'];  // admin or accounts dept
+// ═══════════════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════════════
+const PASSWORDS = {
+  'touro2026':    { role: 'MD / Admin',    level: 'admin' },
+  'accounts2026': { role: 'Accounts (Section D)', level: 'accounts' },
+};
+let currentRole = null;
 
-function auditLogin() {
-  const pw = document.getElementById('audit-pw').value;
-  if (AUDIT_PASSWORDS.includes(pw)) {
-    document.getElementById('login-gate').style.display = 'none';
-    sessionStorage.setItem('audit_auth', '1');
-    loadAuditData();
+function doLogin() {
+  const pw = document.getElementById('login-pw').value.trim();
+  const match = PASSWORDS[pw];
+  if (match) {
+    currentRole = match;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+    document.getElementById('hdr-role').textContent = match.role;
+    init();
   } else {
-    document.getElementById('audit-pw-err').style.display = 'block';
-    document.getElementById('audit-pw').value = '';
-    document.getElementById('audit-pw').focus();
+    const err = document.getElementById('login-err');
+    err.style.display = 'block';
+    setTimeout(() => err.style.display = 'none', 2500);
   }
 }
 
-// Auto-bypass if already authenticated this session
-window.addEventListener('DOMContentLoaded', () => {
-  if (sessionStorage.getItem('audit_auth') === '1') {
-    document.getElementById('login-gate').style.display = 'none';
-    loadAuditData();
-  } else {
-    setTimeout(() => document.getElementById('audit-pw')?.focus(), 100);
-  }
-});
-</script>
-
-<div class="hdr">
-  <div class="hdr-top">
-    <div>
-      <div class="hdr-title">CAMPAIGN AUDIT</div>
-      <div class="hdr-sub">Management View — Review & Verify Agent Claims</div>
-    </div>
-    <div class="nav-pills">
-      <a href="sales_dashboard.html" class="nav-pill">👥 Agent</a>
-      <a href="management.html" class="nav-pill">📊 Management</a>
-      <a href="admin.html" class="nav-pill">⚙️ Admin</a>
-    </div>
-  </div>
-</div>
-
-<!-- Controls -->
-<div class="controls">
-  <span class="ctrl-label">Month:</span>
-  <select id="month-select" onchange="loadAuditData()">
-    <option value="Jan 26">Jan 26</option>
-    <option value="Feb 26">Feb 26</option>
-    <option value="Mar 26">Mar 26</option>
-    <option value="Apr 26" selected>Apr 26</option>
-  </select>
-  <span class="ctrl-label">Agent:</span>
-  <select id="agent-select" onchange="renderAudit()">
-    <option value="ALL">All Agents</option>
-  </select>
-  <button class="export-btn" onclick="exportAuditCSV()">⬇ Export CSV</button>
-  <button class="export-btn" onclick="showBulkMarkPanel()" style="background:rgba(61,220,132,.15);border-color:rgba(61,220,132,.4);color:var(--green);">📥 Bulk Mark Delivered</button>
-  <button class="export-btn" onclick="exportClaimsBackup()" style="background:rgba(77,166,255,.12);border-color:rgba(77,166,255,.3);color:var(--blue);">💾 Backup Claims</button>
-  <button class="export-btn" onclick="importClaimsBackup()" style="background:rgba(167,139,250,.12);border-color:rgba(167,139,250,.3);color:var(--purple);">📤 Restore Claims</button>
-  <input type="file" id="claims-restore-input" accept=".json" style="display:none;" onchange="doRestoreClaims(this)">
-</div>
-
-<!-- Campaign type tabs -->
-<div class="camp-tabs" id="camp-tabs"></div>
-
-<!-- Main content -->
-<div class="page-body">
-  <div id="summary-row" class="summary-row"></div>
-  <div id="audit-content"></div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
-const AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','YI'];
-const CAMP_EMOJI = {free_sample:'🎁',foc_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',other:'📋'};
-const CAMP_LABEL = {free_sample:'FOC Sample',foc_sample:'FOC Sample',birthday_gift:'Birthday Gift',promotion:'Brand Promo',festive_gift:'Festive Gift',other:'Other'};
-
-let DASH_DATA  = null;   // current month data
-let CAMP_DATA  = null;   // campaigns.json
-let activeCampId = 'ALL';
-
-// ── Storage helpers ────────────────────────────────────────────────────────
-function getClaimKey(month, agent, campId, debtorCode) {
-  return `camp_claim_${month.replace(' ','')}_${agent}_${campId}_${debtorCode}`;
-}
-function getClaim(month, agent, campId, debtorCode) {
-  try { return JSON.parse(localStorage.getItem(getClaimKey(month,agent,campId,debtorCode))||'null'); }
-  catch { return null; }
-}
-function getAuditKey(month, agent, campId, debtorCode) {
-  return `camp_audit_${month.replace(' ','')}_${agent}_${campId}_${debtorCode}`;
-}
-function getAudit(month, agent, campId, debtorCode) {
-  try { return JSON.parse(localStorage.getItem(getAuditKey(month,agent,campId,debtorCode))||'null'); }
-  catch { return null; }
-}
-function saveAudit(month, agent, campId, debtorCode, auditData) {
-  localStorage.setItem(getAuditKey(month,agent,campId,debtorCode), JSON.stringify(auditData));
-  // Sync audit decisions to Gist
-  if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
-    const slug = month.replace(' ','');
-    const cache = GistSync.getCache();
-    const fileKey = `audit_${slug}`;
-    if (!cache[fileKey]) cache[fileKey] = {};
-    cache[fileKey][`${agent}_${campId}_${debtorCode}`] = auditData;
-    GistSync.push(fileKey, cache[fileKey]).catch(()=>{});
-  }
+function doLogout() {
+  currentRole = null;
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('login-pw').value = '';
 }
 
-// ── Load data ─────────────────────────────────────────────────────────────
-async function loadAuditData() {
-  const month = document.getElementById('month-select').value;
-  const slug  = month.toLowerCase().replace(' ','');
-  try {
-    const r = await fetch(`data_${slug}.json?v=${Date.now()}`);
-    DASH_DATA = await r.json();
-  } catch(e) { DASH_DATA = null; }
-  try {
-    const r2 = await fetch(`campaigns.json?v=${Date.now()}`);
-    CAMP_DATA = await r2.json();
-  } catch(e) { CAMP_DATA = null; }
-  buildCampTabs();
-  renderAudit();
-}
-
-// ── Campaign tabs ──────────────────────────────────────────────────────────
-function buildCampTabs() {
-  const camps = CAMP_DATA?.campaigns?.filter(c=>c.active) || [];
-  const tabs  = document.getElementById('camp-tabs');
-  tabs.innerHTML = `<button class="camp-tab ${activeCampId==='ALL'?'active':''}" onclick="switchCamp('ALL',this)">ALL</button>`
-    + camps.map(c => `<button class="camp-tab ${activeCampId===c.id?'active':''}" onclick="switchCamp('${c.id}',this)">${CAMP_EMOJI[c.type]||'📋'} ${c.name}</button>`).join('');
-}
-
-function switchCamp(id, btn) {
-  activeCampId = id;
-  document.querySelectorAll('.camp-tab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  renderAudit();
-}
-
-// ── Main render ────────────────────────────────────────────────────────────
-function renderAudit() {
-  const month     = document.getElementById('month-select').value;
-  const agentSel  = document.getElementById('agent-select').value;
-  const camps     = (CAMP_DATA?.campaigns||[]).filter(c => activeCampId==='ALL' || c.id===activeCampId);
-
-  // Build all claim records
-  const records = []; // {camp, agent, debtor, claim, audit}
-  AGENTS.forEach(agent => {
-    if (agentSel !== 'ALL' && agent !== agentSel) return;
-    const debtors = DASH_DATA?.agents?.[agent]?.debtor_cards?.debtors || [];
-    debtors.forEach(d => {
-      (d.campaigns||[]).forEach(c => {
-        if (activeCampId !== 'ALL' && c.id !== activeCampId) return;
-        const camp  = camps.find(x=>x.id===c.id);
-        if (!camp) return;
-        const claim = getClaim(month, agent, c.id, d.debtor_code);
-        const audit = getAudit(month, agent, c.id, d.debtor_code);
-        records.push({camp, agent, debtor:d, campEntry:c, claim, audit});
-      });
-    });
-  });
-
-  // Summary
-  const total    = records.length;
-  const claimed  = records.filter(r=>r.claim).length;
-  const verified = records.filter(r=>r.audit?.status==='verified').length;
-  const rejected = records.filter(r=>r.audit?.status==='rejected').length;
-  const pending  = claimed - verified - rejected;
-  const pct      = total > 0 ? Math.round(claimed/total*100) : 0;
-
-  document.getElementById('summary-row').innerHTML = `
-    <div class="sum-card"><div class="sum-val b">${total}</div><div class="sum-lbl">Total Debtors</div></div>
-    <div class="sum-card"><div class="sum-val g">${claimed}</div><div class="sum-lbl">Claimed / Delivered</div></div>
-    <div class="sum-card"><div class="sum-val a">${pct}%</div><div class="sum-lbl">Completion Rate</div></div>
-    <div class="sum-card"><div class="sum-val b">${verified}</div><div class="sum-lbl">Verified ✓</div></div>
-    <div class="sum-card"><div class="sum-val r">${rejected}</div><div class="sum-lbl">Rejected ✗</div></div>
-    <div class="sum-card"><div class="sum-val a">${pending}</div><div class="sum-lbl">Pending Audit</div></div>`;
-
-  if (!records.length) {
-    document.getElementById('audit-content').innerHTML = `<div class="empty">No campaign data for ${month}${activeCampId!=='ALL'?' for this campaign':''}</div>`;
-    return;
-  }
-
-  // Group by agent
-  const byAgent = {};
-  records.forEach(r => {
-    if (!byAgent[r.agent]) byAgent[r.agent] = [];
-    byAgent[r.agent].push(r);
-  });
-
-  document.getElementById('audit-content').innerHTML = Object.entries(byAgent).map(([agent, recs]) => {
-    const agentClaimed  = recs.filter(r=>r.claim).length;
-    const agentVerified = recs.filter(r=>r.audit?.status==='verified').length;
-    const agentRejected = recs.filter(r=>r.audit?.status==='rejected').length;
-    const agentPending  = agentClaimed - agentVerified - agentRejected;
-    const agentPct      = recs.length > 0 ? Math.round(agentClaimed/recs.length*100) : 0;
-    const progColor     = agentPct>=80?'var(--green)':agentPct>=50?'var(--gold)':'var(--red)';
-
-    const rows = recs.map(r => {
-      const statusLabel = r.audit?.status === 'verified' ? '✓ Verified'
-                        : r.audit?.status === 'rejected' ? '✗ Rejected'
-                        : r.claim ? '● Claimed'
-                        : '○ Pending';
-      const statusClass = r.audit?.status || (r.claim ? 'claimed' : 'pending');
-      const isFOC = r.camp.type==='foc_sample'||r.camp.type==='festive_gift'||r.camp.type==='birthday_gift';
-      const actionLabel = isFOC ? 'Delivered' : 'Claimed';
-
-      return `<div class="claim-row ${statusClass}" id="row-${agent}-${r.camp.id}-${r.debtor.debtor_code}">
-        <div class="claim-info">
-          <div class="claim-name">${r.debtor.company_name||r.debtor.debtor_code}</div>
-          <div class="claim-code">${r.debtor.debtor_code} · ${CAMP_EMOJI[r.camp.type]} ${r.camp.name}${r.campEntry.cat?' · CAT '+r.campEntry.cat:''}</div>
-          <div class="claim-meta">
-            ${r.claim ? `${actionLabel}: ${r.claim.ts||'—'}${r.claim.count>1?' · '+r.claim.count+'× claims':''}${r.claim.remark?' · "'+r.claim.remark+'"':''}` : 'Not yet ' + actionLabel.toLowerCase()}
-            ${r.audit?.status==='verified'?` · ✓ Verified ${r.audit.ts||''}`:r.audit?.status==='rejected'?` · ✗ Rejected: ${r.audit.reason||''}${r.audit.ts?' · '+r.audit.ts:''}` : ''}
-          </div>
-        </div>
-        <div class="claim-actions">
-          <span class="claim-status ${statusClass}">${statusLabel}</span>
-          ${r.claim && !r.audit ? `
-            <button class="audit-btn verify" onclick="auditClaim('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}','verified')">✓</button>
-            <button class="audit-btn reject" onclick="promptReject('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}')">✗</button>
-          ` : r.audit ? `
-            <button class="audit-btn undo" onclick="auditClaim('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}','undo')">Undo</button>
-          ` : ''}
-        </div>
-      </div>`;
-    }).join('');
-
-    return `<div class="agent-section">
-      <div class="agent-hdr" onclick="toggleAgentSection(this)">
-        <div class="agent-name">${agent}</div>
-        <div class="agent-stats">
-          <span class="stat-chip pct">${agentPct}%</span>
-          <span class="stat-chip done">${agentClaimed}/${recs.length} ${activeCampId==='ALL'?'claimed':''}</span>
-          ${agentPending>0?`<span class="stat-chip pending">${agentPending} pending audit</span>`:''}
-          ${agentVerified>0?`<span style="font-family:var(--mono);font-size:9px;color:var(--blue);">✓${agentVerified}</span>`:''}
-          ${agentRejected>0?`<span style="font-family:var(--mono);font-size:9px;color:var(--red);">✗${agentRejected}</span>`:''}
-          <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">▾</span>
-        </div>
-      </div>
-      <div class="prog-bar"><div class="prog-fill" style="width:${agentPct}%;background:${progColor};"></div></div>
-      <div class="claims-body" id="claims-${agent}">${rows}</div>
-    </div>`;
-  }).join('');
-}
-
-function toggleAgentSection(hdr) {
-  const agent   = hdr.querySelector('.agent-name').textContent;
-  const body    = document.getElementById('claims-'+agent);
-  if (body) body.classList.toggle('collapsed');
-}
-
-// ── Audit actions ──────────────────────────────────────────────────────────
-function auditClaim(month, agent, campId, debtorCode, action) {
-  if (action === 'undo') {
-    localStorage.removeItem(getAuditKey(month,agent,campId,debtorCode));
-  } else {
-    const now = new Date();
-    const ts  = now.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-    saveAudit(month, agent, campId, debtorCode, {status:action, ts, by:'management'});
-  }
-  showToast(action==='verified'?'✓ Verified':action==='undo'?'Undo done':'✗ Rejected');
-  renderAudit();
-}
-
-function promptReject(month, agent, campId, debtorCode) {
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
-  overlay.innerHTML = `
-    <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;">
-      <div style="font-family:var(--display);font-size:20px;color:var(--red);margin-bottom:12px;">✗ Reject Claim</div>
-      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Reason (required)</div>
-      <input type="text" id="reject-reason" placeholder="e.g. No photo proof, wrong quantity, duplicate"
-        style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--body);font-size:13px;padding:11px 12px;margin-bottom:14px;">
-      <div style="display:flex;gap:10px;">
-        <button onclick="confirmReject('${month}','${agent}','${campId}','${debtorCode}',this)"
-          style="flex:1;background:rgba(255,95,95,.2);border:1px solid rgba(255,95,95,.4);color:var(--red);font-family:var(--mono);font-size:12px;font-weight:700;padding:12px;border-radius:10px;cursor:pointer;">
-          ✗ CONFIRM REJECT
-        </button>
-        <button onclick="this.closest('div[style*=fixed]').remove()"
-          style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:12px;border-radius:10px;cursor:pointer;">
-          Cancel
-        </button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
-  setTimeout(()=>document.getElementById('reject-reason')?.focus(),100);
-}
-
-function confirmReject(month, agent, campId, debtorCode, btn) {
-  const reason = document.getElementById('reject-reason')?.value?.trim();
-  if (!reason) { document.getElementById('reject-reason').style.borderColor='var(--red)'; return; }
-  const now = new Date();
-  const ts  = now.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-  saveAudit(month, agent, campId, debtorCode, {status:'rejected', reason, ts, by:'management'});
-  btn.closest('div[style*=fixed]').remove();
-  showToast('✗ Claim rejected');
-  renderAudit();
-}
-
-// ── Export CSV ─────────────────────────────────────────────────────────────
-function exportAuditCSV() {
-  const month   = document.getElementById('month-select').value;
-  const camps   = CAMP_DATA?.campaigns?.filter(c=>activeCampId==='ALL'||c.id===activeCampId)||[];
-  const rows    = [['Month','Agent','Debtor Code','Debtor Name','Campaign','Type','CAT','Claim Status','Claim Time','Remark','Audit Status','Audit Time','Reject Reason']];
-
-  AGENTS.forEach(agent => {
-    const debtors = DASH_DATA?.agents?.[agent]?.debtor_cards?.debtors || [];
-    debtors.forEach(d => {
-      (d.campaigns||[]).forEach(c => {
-        if (activeCampId!=='ALL'&&c.id!==activeCampId) return;
-        const camp  = camps.find(x=>x.id===c.id);
-        if (!camp) return;
-        const claim = getClaim(month,agent,c.id,d.debtor_code);
-        const audit = getAudit(month,agent,c.id,d.debtor_code);
-        rows.push([
-          month, agent,
-          d.debtor_code, (d.company_name||'').replace(/,/g,''),
-          (camp.name||'').replace(/,/g,''), CAMP_LABEL[camp.type]||camp.type,
-          c.cat||'',
-          claim?'Claimed':'Pending',
-          claim?.ts||'',
-          (claim?.remark||'').replace(/,/g,''),
-          audit?.status||'',
-          audit?.ts||'',
-          (audit?.reason||'').replace(/,/g,''),
-        ]);
-      });
-    });
-  });
-
-  const csv  = rows.map(r=>r.join(',')).join('\n');
-  const blob = new Blob([csv],{type:'text/csv'});
-  const a    = document.createElement('a');
-  a.href     = URL.createObjectURL(blob);
-  a.download = `campaign_audit_${month.replace(' ','')}_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
-}
-
-// ── Bulk Mark Delivered ────────────────────────────────────────────────────
-function showBulkMarkPanel() {
-  const month  = document.getElementById('month-select').value;
-  const camps  = (CAMP_DATA?.campaigns||[]).filter(c=>c.active);
-  
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
-  overlay.innerHTML = `
-    <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;">
-      <div style="font-family:var(--display);font-size:22px;margin-bottom:4px;">📥 Bulk Mark Delivered</div>
-      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px;">For past deliveries that weren't recorded</div>
-
-      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Campaign</div>
-      <select id="bulk-camp-sel" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;margin-bottom:12px;">
-        ${camps.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
-      </select>
-
-      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Agent</div>
-      <select id="bulk-agent-sel" onchange="loadBulkDebtors()" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;margin-bottom:12px;">
-        <option value="">— Select Agent —</option>
-        ${AGENTS.map(a=>`<option value="${a}">${a}</option>`).join('')}
-      </select>
-
-      <!-- Excel/CSV Upload option -->
-      <div style="margin-bottom:12px;">
-        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">
-          OR — Upload Excel/CSV with debtor codes
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="file" id="bulk-file-input" accept=".xlsx,.csv" onchange="handleBulkFile(this)"
-            style="font-family:var(--mono);font-size:10px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px;flex:1;">
-          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">Column: "Code" or "Debtor Code"</div>
-        </div>
-        <div id="bulk-file-status" style="font-family:var(--mono);font-size:9px;color:var(--green);margin-top:4px;display:none;"></div>
-      </div>
-
-      <div id="bulk-debtor-list" style="margin-bottom:14px;"></div>
-
-      <div style="display:flex;gap:10px;">
-        <button onclick="confirmBulkMark('${month}')" 
-          style="flex:1;background:var(--green);border:none;color:#000;font-family:var(--mono);font-size:12px;font-weight:800;padding:13px;border-radius:10px;cursor:pointer;box-shadow:0 0 14px rgba(61,220,132,.4);">
-          ✓ MARK ALL SELECTED
-        </button>
-        <button onclick="this.closest('div[style*=fixed]').remove()"
-          style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:13px;border-radius:10px;cursor:pointer;">
-          Cancel
-        </button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
-}
-
-function loadBulkDebtors() {
-  const agent  = document.getElementById('bulk-agent-sel')?.value;
-  const campId = document.getElementById('bulk-camp-sel')?.value;
-  const month  = document.getElementById('month-select').value;
-  const el     = document.getElementById('bulk-debtor-list');
-  if (!el || !agent || !campId) return;
-
-  const debtors = DASH_DATA?.agents?.[agent]?.debtor_cards?.debtors || [];
-  const campDebtors = debtors.filter(d => (d.campaigns||[]).some(c=>c.id===campId));
-
-  if (!campDebtors.length) {
-    el.innerHTML = `<div style="font-family:var(--mono);font-size:10px;color:var(--muted);padding:10px 0;">No debtors found for this agent/campaign</div>`;
-    return;
-  }
-
-  el.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;">${campDebtors.length} debtors</div>
-      <button onclick="toggleAllBulk(true)" style="font-family:var(--mono);font-size:9px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:3px 8px;border-radius:6px;cursor:pointer;">Select All</button>
-    </div>
-    ${campDebtors.map(d => {
-      const alreadyClaimed = !!getClaim(month, agent, campId, d.debtor_code);
-      return `<label style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:rgba(255,255,255,.02);margin-bottom:4px;cursor:pointer;${alreadyClaimed?'opacity:.4;pointer-events:none;':''}">
-        <input type="checkbox" class="bulk-check" value="${d.debtor_code}" ${alreadyClaimed?'disabled':''} style="width:16px;height:16px;">
-        <div>
-          <div style="font-family:var(--mono);font-size:11px;font-weight:500;">${d.company_name||d.debtor_code}</div>
-          <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">${d.debtor_code}${alreadyClaimed?' · ✓ Already marked':''}</div>
-        </div>
-      </label>`;
-    }).join('')}`;
-}
-
-function toggleAllBulk(state) {
-  document.querySelectorAll('.bulk-check:not([disabled])').forEach(cb => cb.checked = state);
-}
-
-function confirmBulkMark(month) {
-  const agent  = document.getElementById('bulk-agent-sel')?.value;
-  const campId = document.getElementById('bulk-camp-sel')?.value;
-  if (!agent || !campId) { showToast('Select agent and campaign first'); return; }
-
-  const checked = Array.from(document.querySelectorAll('.bulk-check:checked')).map(cb=>cb.value);
-  if (!checked.length) { showToast('No debtors selected'); return; }
-
-  const now = new Date();
-  const ts  = now.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-
-  checked.forEach(debtorCode => {
-    const key = `camp_claim_${month.replace(' ','')}_${agent}_${campId}_${debtorCode}`;
-    localStorage.setItem(key, JSON.stringify({ts, count:1, remark:'Bulk import - delivered earlier', bulk:true}));
-  });
-
-  document.querySelector('div[style*=fixed]')?.remove();
-  showToast(`✓ ${checked.length} debtors marked as delivered`);
-  renderAudit();
-}
-
-// ── Claims Backup / Restore ────────────────────────────────────────────────
-function exportClaimsBackup() {
-  const month = document.getElementById('month-select').value;
-  const slug  = month.replace(' ','');
-  const claims = {};
-  Object.keys(localStorage).forEach(k => {
-    if (k.startsWith('camp_claim_' + slug)) claims[k] = JSON.parse(localStorage.getItem(k));
-  });
-  const blob = new Blob([JSON.stringify(claims, null, 2)], {type:'application/json'});
-  const a    = document.createElement('a');
-  a.href     = URL.createObjectURL(blob);
-  a.download = `claims_backup_${slug}_${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-  showToast(`💾 ${Object.keys(claims).length} claims backed up`);
-}
-
-function importClaimsBackup() {
-  document.getElementById('claims-restore-input').click();
-}
-
-function doRestoreClaims(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const claims = JSON.parse(e.target.result);
-      let count = 0;
-      Object.entries(claims).forEach(([k, v]) => {
-        if (k.startsWith('camp_claim_')) {
-          localStorage.setItem(k, JSON.stringify(v));
-          count++;
-        }
-      });
-      showToast(`✓ ${count} claims restored`);
-      renderAudit();
-    } catch(err) {
-      showToast('❌ Invalid backup file');
-    }
-  };
-  reader.readAsText(file);
-  input.value = '';
-}
-
-function handleBulkFile(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const statusEl = document.getElementById('bulk-file-status');
-
-  if (file.name.endsWith('.csv')) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const lines = e.target.result.split('\n');
-      const header = lines[0].toLowerCase().split(',');
-      const codeCol = header.findIndex(h => h.includes('code') || h.includes('debtor'));
-      if (codeCol < 0) { statusEl.textContent = '❌ No "Code" or "Debtor Code" column found'; statusEl.style.color='var(--red)'; statusEl.style.display='block'; return; }
-      const codes = lines.slice(1).map(l => l.split(',')[codeCol]?.trim()).filter(Boolean);
-      applyBulkCodes(codes, file.name, statusEl);
-    };
-    reader.readAsText(file);
-  } else if (file.name.endsWith('.xlsx')) {
-    // Use SheetJS if available
-    if (typeof XLSX !== 'undefined') {
-      const reader = new FileReader();
-      reader.onload = e => {
-        const wb = XLSX.read(e.target.result, {type:'binary'});
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
-        const codeKey = Object.keys(rows[0]||{}).find(k => k.toLowerCase().includes('code') || k.toLowerCase().includes('debtor'));
-        if (!codeKey) { statusEl.textContent = '❌ No "Code" or "Debtor Code" column found'; statusEl.style.color='var(--red)'; statusEl.style.display='block'; return; }
-        const codes = rows.map(r => String(r[codeKey]||'').trim()).filter(Boolean);
-        applyBulkCodes(codes, file.name, statusEl);
-      };
-      reader.readAsBinaryString(file);
-    } else {
-      statusEl.textContent = '⚠ SheetJS not loaded — use CSV format instead';
-      statusEl.style.color = 'var(--gold)';
-      statusEl.style.display = 'block';
-    }
-  }
-}
-
-function applyBulkCodes(codes, filename, statusEl) {
-  // Match uploaded codes against debtor list and auto-check them
-  const checkboxes = document.querySelectorAll('.bulk-check:not([disabled])');
-  let matched = 0;
-  checkboxes.forEach(cb => {
-    if (codes.includes(cb.value)) {
-      cb.checked = true;
-      matched++;
-    }
-  });
-  statusEl.textContent = `✓ ${filename}: ${codes.length} codes loaded, ${matched} matched and selected`;
-  statusEl.style.color = matched > 0 ? 'var(--green)' : 'var(--gold)';
-  statusEl.style.display = 'block';
-}
-
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2000);
-}
-
-// ── Init ──────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  // Populate agent dropdown
-  const sel = document.getElementById('agent-select');
-  AGENTS.forEach(a => sel.add(new Option(a,a)));
-  // loadAuditData() is called by auditLogin() after password check
-  // (or auto-called if already authenticated this session)
-});
-
-// loadAuditData with Gist sync (called after login)
-const _origLoadAuditData = loadAuditData;
-async function loadAuditData() {
-  if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
-    const month = document.getElementById('month-select')?.value || 'Apr 26';
-    await GistSync.pull().catch(()=>{});
-    await GistSync.syncToLocal(month).catch(()=>{});
-  }
-  _origLoadAuditData();
-}
-
-// ── GistSync Module ─────────────────────────────────────────────────
-/**
- * MIRACLE-奇迹 MD Dashboard — Gist Sync Module
- * Stores all agent interactions in a GitHub Gist
- * Cross-device, permanent, audit trail
- * 
- * Setup: Admin sets GIST_ID + GITHUB_PAT in admin.html once
- * All pages load this module and use GistSync.* functions
- */
-
+// ═══════════════════════════════════════════════════════════════════
+// GIST SYNC MODULE (identical to admin.html / sales_dashboard.html)
+// ═══════════════════════════════════════════════════════════════════
 const GistSync = (() => {
-
-  const CONFIG_KEY = 'md_gist_config';
-
-  // ── Hardcoded fallback — set by admin, works for ALL devices automatically ──
-  // Token scope: gist only (cannot touch code repo — safe to embed)
+  const CONFIG_KEY       = 'md_gist_config';
   const HARDCODED_GIST_ID = 'ceb4064c9e2a6d37c6e52c3b02f04a1d';
-  const HARDCODED_TOKEN   = '%%GITHUB_TOKEN%%';  // Admin replaces this via admin.html
+  const HARDCODED_TOKEN   = '%%GITHUB_TOKEN%%';
 
   function getConfig() {
-    // Priority: localStorage (admin override) → hardcoded defaults
     try {
       const ls = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
-      return {
-        gist_id: ls.gist_id || HARDCODED_GIST_ID,
-        token:   ls.token   || HARDCODED_TOKEN,
-      };
-    }
-    catch { return { gist_id: HARDCODED_GIST_ID, token: HARDCODED_TOKEN }; }
+      return { gist_id: ls.gist_id || HARDCODED_GIST_ID, token: ls.token || HARDCODED_TOKEN };
+    } catch { return { gist_id: HARDCODED_GIST_ID, token: HARDCODED_TOKEN }; }
   }
-
-  function saveConfig(cfg) {
-    localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
-    // Note: hardcoded values in HTML are the fallback — localStorage takes priority
-  }
-
   function isConfigured() {
     const c = getConfig();
     return !!(c.gist_id && c.token && c.token !== '%%GITHUB_TOKEN%%');
   }
-
-  // ── Read all data from Gist ─────────────────────────────────────────────
   async function pull() {
     const { gist_id, token } = getConfig();
     if (!gist_id || !token) return null;
@@ -761,72 +362,66 @@ const GistSync = (() => {
         try { result[fname.replace('.json','')] = JSON.parse(f.content || '{}'); }
         catch { result[fname.replace('.json','')] = {}; }
       });
-      // Cache locally
       localStorage.setItem('md_gist_cache', JSON.stringify(result));
       localStorage.setItem('md_gist_cache_ts', Date.now().toString());
       return result;
     } catch { return null; }
   }
-
-  // ── Write a single file to Gist ─────────────────────────────────────────
   async function push(filename, data) {
     const { gist_id, token } = getConfig();
     if (!gist_id || !token) return false;
     try {
       const r = await fetch(`https://api.github.com/gists/${gist_id}`, {
         method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/vnd.github+json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          files: { [`${filename}.json`]: { content: JSON.stringify(data, null, 2) } }
-        })
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files: { [`${filename}.json`]: { content: JSON.stringify(data, null, 2) } } })
       });
       return r.ok;
     } catch { return false; }
   }
-
-  // ── Get cached data (fast, no network) ──────────────────────────────────
   function getCache() {
     try { return JSON.parse(localStorage.getItem('md_gist_cache') || '{}'); }
     catch { return {}; }
   }
-
   function getCacheAge() {
     const ts = localStorage.getItem('md_gist_cache_ts');
     return ts ? (Date.now() - parseInt(ts)) / 1000 : 9999;
   }
 
-  // ── Campaign Claims ──────────────────────────────────────────────────────
+  // ── saveClaim: write/update a claim record ──────────────────────
   async function saveClaim(month, agent, campId, debtorCode, claimData) {
-    const slug = month.replace(' ','');
-    const key  = `${agent}_${campId}_${debtorCode}`;
-
-    // 1. Save to localStorage immediately (instant)
-    const lsKey = `camp_claim_${slug}_${key}`;
+    const slug    = month.replace(' ','');
+    const key     = `${agent}_${campId}_${debtorCode}`;
+    const lsKey   = `camp_claim_${slug}_${key}`;
     localStorage.setItem(lsKey, JSON.stringify(claimData));
-
-    // 2. Push to Gist asynchronously (background, non-blocking)
     if (isConfigured()) {
       const cache   = getCache();
       const fileKey = `claims_${slug}`;
       if (!cache[fileKey]) cache[fileKey] = {};
       cache[fileKey][key] = claimData;
       localStorage.setItem('md_gist_cache', JSON.stringify(cache));
-      push(fileKey, cache[fileKey]).catch(() => {});  // fire and forget
+      push(fileKey, cache[fileKey]).catch(() => {});
     }
   }
 
-  async function removeClaim(month, agent, campId, debtorCode) {
-    const slug = month.replace(' ','');
-    const key  = `${agent}_${campId}_${debtorCode}`;
+  // ── removeFromPool: marks status="removed" — does NOT delete ───
+  async function removeFromPool(month, agent, campId, debtorCode, reason, note) {
+    const claimData = {
+      status:          'removed',
+      removed_by:      'management',
+      removed_ts:      new Date().toISOString().split('T')[0],
+      removed_reason:  reason,
+      removed_note:    note || '',
+    };
+    await saveClaim(month, agent, campId, debtorCode, claimData);
+  }
 
-    // Remove from localStorage
-    localStorage.removeItem(`camp_claim_${slug}_${key}`);
-
-    // Remove from Gist
+  // ── restoreToPool: clears the removed status back to pending ───
+  async function restoreToPool(month, agent, campId, debtorCode) {
+    const slug  = month.replace(' ','');
+    const key   = `${agent}_${campId}_${debtorCode}`;
+    const lsKey = `camp_claim_${slug}_${key}`;
+    localStorage.removeItem(lsKey);
     if (isConfigured()) {
       const cache   = getCache();
       const fileKey = `claims_${slug}`;
@@ -838,133 +433,479 @@ const GistSync = (() => {
     }
   }
 
-  // ── Flags ────────────────────────────────────────────────────────────────
-  async function saveFlags(month, agent, flags) {
-    const slug    = month.replace(' ','');
-    const fileKey = `flags_${slug}`;
-
-    // localStorage
-    localStorage.setItem(`touro_debtor_flags_${agent}`, JSON.stringify(flags));
-
-    // Gist
-    if (isConfigured()) {
-      const cache = getCache();
-      if (!cache[fileKey]) cache[fileKey] = {};
-      cache[fileKey][agent] = flags;
-      localStorage.setItem('md_gist_cache', JSON.stringify(cache));
-      push(fileKey, cache[fileKey]).catch(() => {});
-    }
-  }
-
-  // ── KPI Scores ───────────────────────────────────────────────────────────
-  async function saveKPIScores(month, scores) {
-    const slug    = month.replace(' ','');
-    const fileKey = `kpi_scores`;
-
-    // localStorage
-    localStorage.setItem(`md_scores_${slug}`, JSON.stringify(scores));
-
-    // Gist
-    if (isConfigured()) {
-      const cache = getCache();
-      if (!cache[fileKey]) cache[fileKey] = {};
-      cache[fileKey][month] = scores;
-      localStorage.setItem('md_gist_cache', JSON.stringify(cache));
-      push(fileKey, cache[fileKey]).then(ok => {
-        if (ok) console.log(`[GistSync] KPI scores for ${month} saved to Gist ✓`);
-      }).catch(() => {});
-    }
-  }
-
-  // ── Sync from Gist to localStorage (on page load) ────────────────────────
   async function syncToLocal(month) {
     if (!isConfigured()) return;
     const slug = month.replace(' ','');
-
-    // Pull if cache is older than 5 minutes
     let data;
-    if (getCacheAge() > 300) {
-      data = await pull();
-    } else {
-      data = getCache();
-    }
+    if (getCacheAge() > 300) { data = await pull(); }
+    else { data = getCache(); }
     if (!data) return;
-
-    // Claims → localStorage
     const claims = data[`claims_${slug}`] || {};
     Object.entries(claims).forEach(([key, val]) => {
       localStorage.setItem(`camp_claim_${slug}_${key}`, JSON.stringify(val));
     });
-
-    // Flags → localStorage
-    const flags = data[`flags_${slug}`] || {};
-    Object.entries(flags).forEach(([agent, agentFlags]) => {
-      localStorage.setItem(`touro_debtor_flags_${agent}`, JSON.stringify(agentFlags));
-    });
-
-    // KPI scores → localStorage
-    const kpi = data['kpi_scores'] || {};
-    if (kpi[month]) {
-      localStorage.setItem(`md_scores_${slug}`, JSON.stringify(kpi[month]));
-    }
-
-    console.log(`[GistSync] Synced ${Object.keys(claims).length} claims, ${Object.keys(flags).length} agents' flags for ${month}`);
   }
 
-  // ── Setup (called from Admin to configure) ───────────────────────────────
-  async function setup(gistId, token) {
-    // Test the credentials
-    try {
-      const r = await fetch(`https://api.github.com/gists/${gistId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!r.ok) return { ok: false, error: `HTTP ${r.status} — check Gist ID and token` };
-      saveConfig({ gist_id: gistId, token });
-      return { ok: true };
-    } catch(e) {
-      return { ok: false, error: e.message };
-    }
-  }
-
-  async function createGist(token, description = 'MIRACLE-奇迹 MD Dashboard Data') {
-    try {
-      const r = await fetch('https://api.github.com/gists', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/vnd.github+json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          description,
-          public: false,
-          files: {
-            'claims_init.json': { content: '{}' },
-            'flags_init.json':  { content: '{}' },
-            'kpi_scores.json':  { content: '{}' },
-          }
-        })
-      });
-      if (!r.ok) return { ok: false, error: `HTTP ${r.status}` };
-      const data = await r.json();
-      saveConfig({ gist_id: data.id, token });
-      return { ok: true, gist_id: data.id, url: data.html_url };
-    } catch(e) {
-      return { ok: false, error: e.message };
-    }
-  }
-
-  return {
-    isConfigured, getConfig, setup, createGist,
-    pull, push, getCache, syncToLocal,
-    saveClaim, removeClaim, saveFlags, saveKPIScores,
-  };
-
+  return { isConfigured, getConfig, pull, push, getCache, getCacheAge,
+           saveClaim, removeFromPool, restoreToPool, syncToLocal };
 })();
 
-// Export for use in other files
-if (typeof module !== 'undefined') module.exports = GistSync;
+// ═══════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════
+let CAMPAIGNS_DATA = {};   // from targets.json / localStorage
+let _pendingRemove = null; // { month, agent, campId, debtorCode, name, meta }
+let _selectedRows  = new Set();
 
+// ═══════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════
+async function init() {
+  setSyncStatus('Syncing from Gist...');
+  const month = document.getElementById('sel-month').value;
+  await GistSync.syncToLocal(month);
+  loadCampaignList();
+  loadAudit();
+}
+
+async function pullFromGist() {
+  setSyncStatus('Pulling fresh data from Gist...');
+  const month = document.getElementById('sel-month').value;
+  await GistSync.pull();
+  await GistSync.syncToLocal(month);
+  loadAudit();
+  setSyncStatus('Refreshed from Gist · ' + new Date().toLocaleTimeString());
+}
+
+function setSyncStatus(msg) {
+  document.getElementById('sync-status').textContent = msg;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// LOAD CAMPAIGN LIST INTO SELECTOR
+// ═══════════════════════════════════════════════════════════════════
+function loadCampaignList() {
+  // Try to get campaigns from targets.json data in localStorage
+  // Fallback: parse from all claim keys to infer campaign IDs
+  const month    = document.getElementById('sel-month').value;
+  const slug     = month.replace(' ','');
+  const campSel  = document.getElementById('sel-camp');
+  const existing = Array.from(campSel.options).map(o => o.value).filter(Boolean);
+
+  // Infer campaign IDs from localStorage claim keys
+  const campIds = new Set();
+  Object.keys(localStorage)
+    .filter(k => k.startsWith(`camp_claim_${slug}_`))
+    .forEach(k => {
+      const parts = k.replace(`camp_claim_${slug}_`, '').split('_');
+      // key format: AGENT_campId_debtorCode
+      // campId is everything between agent (parts[0]) and last part (debtorCode)
+      if (parts.length >= 3) {
+        // debtorCode can contain dashes — take first part as agent, last part as code, middle as campId
+        const agent   = parts[0];
+        const code    = parts[parts.length - 1];
+        const campId  = parts.slice(1, parts.length - 1).join('_');
+        if (campId) campIds.add(campId);
+      }
+    });
+
+  campIds.forEach(id => {
+    if (!existing.includes(id)) {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = id.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+      campSel.appendChild(opt);
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// LOAD & RENDER AUDIT
+// ═══════════════════════════════════════════════════════════════════
+function loadAudit() {
+  const month     = document.getElementById('sel-month').value;
+  const slug      = month.replace(' ','');
+  const filterCamp   = document.getElementById('sel-camp').value;
+  const filterAgent  = document.getElementById('sel-agent').value;
+  const filterStatus = document.getElementById('sel-status').value;
+
+  // Collect all claims for this month
+  const claims = {};
+  Object.keys(localStorage)
+    .filter(k => k.startsWith(`camp_claim_${slug}_`))
+    .forEach(k => {
+      const raw  = k.replace(`camp_claim_${slug}_`, '');
+      const data = JSON.parse(localStorage.getItem(k) || 'null');
+      if (data) claims[raw] = data;
+    });
+
+  // Parse into structured rows: { agent, campId, debtorCode, ...claimData }
+  const rows = [];
+  Object.entries(claims).forEach(([key, data]) => {
+    const parts      = key.split('_');
+    if (parts.length < 3) return;
+    const agent      = parts[0];
+    const debtorCode = parts[parts.length - 1];
+    const campId     = parts.slice(1, parts.length - 1).join('_');
+    rows.push({ agent, campId, debtorCode, ...data });
+  });
+
+  // Also include pool members with no claim record (pending)
+  // These come from targets.json campaigns — load if available
+  const targetsRaw = localStorage.getItem('targets_json');
+  if (targetsRaw) {
+    try {
+      const targets = JSON.parse(targetsRaw);
+      const camps   = targets.campaigns || [];
+      camps.forEach(camp => {
+        if (camp.month && camp.month !== month) return;
+        (camp.debtors || []).forEach(d => {
+          const key = `${d.agent || 'UNKNOWN'}_${camp.id}_${d.code || d.debtor_code}`;
+          if (!claims[key]) {
+            rows.push({
+              agent:      d.agent || 'UNKNOWN',
+              campId:     camp.id,
+              debtorCode: d.code || d.debtor_code,
+              debtorName: d.name || d.company_name || d.debtor_code,
+              status:     'pending',
+            });
+          }
+        });
+      });
+    } catch(e) {}
+  }
+
+  // Apply filters
+  const filtered = rows.filter(r => {
+    if (filterCamp   && r.campId !== filterCamp)    return false;
+    if (filterAgent  && r.agent  !== filterAgent)   return false;
+    if (filterStatus && (r.status || 'pending') !== filterStatus) return false;
+    return true;
+  });
+
+  // Recalculate pool — excludes removed from active counts
+  const active    = filtered.filter(r => r.status !== 'removed');
+  const delivered = active.filter(r => r.status === 'delivered').length;
+  const pending   = active.filter(r => !r.status || r.status === 'pending' || r.status === 'next_visit' || r.status === 'not_in').length;
+  const refused   = active.filter(r => r.status === 'refused').length;
+  const removed   = filtered.filter(r => r.status === 'removed').length;
+  const pool      = active.length;
+
+  document.getElementById('s-pool').textContent      = pool;
+  document.getElementById('s-delivered').textContent = delivered;
+  document.getElementById('s-pending').textContent   = pending;
+  document.getElementById('s-refused').textContent   = refused;
+  document.getElementById('s-removed').textContent   = removed;
+
+  // FOC cost banner — only show if single campaign selected and it has foc_cost_unit
+  updateFOCBanner(filtered, filterCamp);
+
+  // Render
+  renderAuditList(filtered, month);
+  setSyncStatus(`${filtered.length} records · ${pool} active pool · last sync ${new Date().toLocaleTimeString()}`);
+  loadCampaignList();
+}
+
+function updateFOCBanner(rows, campId) {
+  const banner = document.getElementById('foc-banner');
+  if (!campId) { banner.style.display = 'none'; return; }
+
+  // Try to get foc_cost_unit from targets.json
+  let focCost = 0;
+  let maxCost = 0;
+  const targetsRaw = localStorage.getItem('targets_json');
+  if (targetsRaw) {
+    try {
+      const targets = JSON.parse(targetsRaw);
+      const camp    = (targets.campaigns || []).find(c => c.id === campId);
+      if (camp) {
+        focCost = parseFloat(camp.foc_cost_unit || 0);
+        maxCost = parseFloat(camp.foc_budget_cap || 0);
+      }
+    } catch(e) {}
+  }
+  if (!focCost) { banner.style.display = 'none'; return; }
+
+  const delivered = rows.filter(r => r.status === 'delivered').length;
+  const actual    = delivered * focCost;
+  const pct       = maxCost > 0 ? Math.min(Math.round(actual / maxCost * 100), 100) : 0;
+
+  banner.style.display = 'flex';
+  document.getElementById('foc-cost-actual').textContent  = `RM ${actual.toLocaleString('en-MY', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+  document.getElementById('foc-cost-detail').textContent  = `${delivered} deliveries × RM ${focCost.toFixed(2)}`;
+  document.getElementById('foc-cap').textContent          = maxCost > 0 ? `RM ${maxCost.toLocaleString('en-MY', {minimumFractionDigits:0})}` : '—';
+  document.getElementById('foc-bar').style.width          = pct + '%';
+  document.getElementById('foc-pct').textContent          = maxCost > 0 ? `${pct}% of budget used` : 'No budget cap set';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RENDER AUDIT LIST — grouped by agent
+// ═══════════════════════════════════════════════════════════════════
+const STATUS_LABEL = {
+  pending:    'Pending',
+  delivered:  'Delivered',
+  refused:    'Refused',
+  next_visit: 'Next Visit',
+  not_in:     'Not In',
+  removed:    'Removed',
+};
+const REMOVE_REASON_LABEL = {
+  shop_closed:     'Shop closed',
+  transferred:     'Transferred',
+  wrong_category:  'Wrong category',
+  duplicate:       'Duplicate',
+  already_buyer:   'Already buyer',
+  other:           'Other',
+};
+
+function renderAuditList(rows, month) {
+  const el = document.getElementById('audit-list');
+  if (!rows.length) {
+    el.innerHTML = `<div class="empty-state">No records found for this filter combination.</div>`;
+    return;
+  }
+
+  // Group by agent
+  const byAgent = {};
+  rows.forEach(r => {
+    if (!byAgent[r.agent]) byAgent[r.agent] = [];
+    byAgent[r.agent].push(r);
+  });
+
+  el.innerHTML = Object.entries(byAgent).sort(([a],[b]) => a.localeCompare(b)).map(([agent, agRows]) => {
+    const active    = agRows.filter(r => r.status !== 'removed');
+    const delivered = active.filter(r => r.status === 'delivered').length;
+    const pool      = active.length;
+    const pct       = pool > 0 ? Math.round(delivered / pool * 100) : 0;
+    const pctColor  = pct >= 80 ? '#2a7a4b' : pct >= 50 ? '#c8860a' : '#c8381a';
+
+    const rowsHtml = agRows
+      .sort((a,b) => {
+        // Sort: pending first, then next_visit, not_in, delivered, refused, removed last
+        const order = { pending:0, next_visit:1, not_in:2, delivered:3, refused:4, removed:5 };
+        return (order[a.status||'pending'] ?? 3) - (order[b.status||'pending'] ?? 3);
+      })
+      .map(r => renderDebtorRow(r, month, agent))
+      .join('');
+
+    return `
+    <div class="agent-group">
+      <div class="agent-hdr" onclick="toggleAgentBody(this)">
+        <div>
+          <div class="agent-name">${agent}</div>
+          <div class="agent-meta">${pool} active · ${delivered} delivered · <span style="color:var(--purple)">${agRows.filter(r=>r.status==='removed').length} removed</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div>
+            <div class="agent-pct" style="color:${pctColor}">${pct}%</div>
+            <div style="width:60px;"><div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${pctColor};border-radius:2px;"></div></div></div>
+          </div>
+          <div style="font-family:var(--mono);font-size:14px;color:var(--ink3);">▾</div>
+        </div>
+      </div>
+      <div class="agent-body">${rowsHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderDebtorRow(r, month, agent) {
+  const status     = r.status || 'pending';
+  const isRemoved  = status === 'removed';
+  const name       = r.debtorName || r.debtor_name || r.company_name || r.debtorCode;
+  const campLabel  = r.campId ? r.campId.replace(/_/g,' ') : '—';
+  const tsLabel    = r.ts || r.removed_ts || '';
+  const reasonLabel= isRemoved ? (REMOVE_REASON_LABEL[r.removed_reason] || r.removed_reason || '') : '';
+  const isSelected = _selectedRows.has(`${agent}_${r.campId}_${r.debtorCode}`);
+
+  // Build action buttons
+  let actions = '';
+  if (!isRemoved) {
+    if (status !== 'delivered') {
+      actions += `<button class="act-btn btn-deliver" onclick="quickMark(event,'${month}','${agent}','${r.campId}','${r.debtorCode}','delivered')">✓ Deliver</button>`;
+    }
+    if (status !== 'refused') {
+      actions += `<button class="act-btn btn-reject" onclick="quickMark(event,'${month}','${agent}','${r.campId}','${r.debtorCode}','refused')">✗ Refuse</button>`;
+    }
+    // Remove button — only for admin/MD, not accounts
+    if (currentRole?.level === 'admin') {
+      actions += `<button class="act-btn btn-remove" onclick="openRemoveModal(event,'${month}','${agent}','${r.campId}','${r.debtorCode}',\`${name.replace(/`/g,"'")}\`,\`${r.debtorCode}\`)">— Remove</button>`;
+    }
+  } else {
+    // Restore button — admin only
+    if (currentRole?.level === 'admin') {
+      actions += `<button class="act-btn btn-restore" onclick="doRestore(event,'${month}','${agent}','${r.campId}','${r.debtorCode}')">↩ Restore</button>`;
+    }
+  }
+
+  return `
+  <div class="debtor-row status-${status}" id="row_${agent}_${r.campId}_${r.debtorCode}">
+    <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+      ${!isRemoved ? `<input type="checkbox" style="flex-shrink:0;" ${isSelected?'checked':''} onchange="toggleSelect('${agent}','${r.campId}','${r.debtorCode}',this.checked)">` : '<div style="width:16px;flex-shrink:0;"></div>'}
+      <div style="flex:1;min-width:0;">
+        <div class="debtor-name">${name}</div>
+        <div class="debtor-code">${r.debtorCode} · ${campLabel}${tsLabel ? ` · ${tsLabel}` : ''}</div>
+        ${isRemoved && reasonLabel ? `<div style="margin-top:2px;"><span class="removed-reason">${reasonLabel}${r.removed_note ? ` — ${r.removed_note}` : ''}</span><span style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-left:4px;">by ${r.removed_by||'mgmt'} ${r.removed_ts||''}</span></div>` : ''}
+      </div>
+    </div>
+    <div class="action-row">
+      <span class="status-badge badge-${status}">${STATUS_LABEL[status]||status}</span>
+      ${actions}
+    </div>
+  </div>`;
+}
+
+function toggleAgentBody(hdr) {
+  const body = hdr.nextElementSibling;
+  const arrow = hdr.querySelector('div:last-child div:last-child');
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    if (arrow) arrow.textContent = '▾';
+  } else {
+    body.style.display = 'none';
+    if (arrow) arrow.textContent = '▸';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// QUICK MARK (deliver / refuse)
+// ═══════════════════════════════════════════════════════════════════
+async function quickMark(event, month, agent, campId, debtorCode, newStatus) {
+  event.stopPropagation();
+  const claimData = {
+    status: newStatus,
+    ts:     new Date().toISOString().split('T')[0],
+    by:     currentRole?.role || 'management',
+  };
+  await GistSync.saveClaim(month, agent, campId, debtorCode, claimData);
+  loadAudit();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// REMOVE MODAL
+// ═══════════════════════════════════════════════════════════════════
+function openRemoveModal(event, month, agent, campId, debtorCode, name, meta) {
+  event.stopPropagation();
+  _pendingRemove = { month, agent, campId, debtorCode };
+  document.getElementById('modal-debtor-name').textContent = name;
+  document.getElementById('modal-debtor-meta').textContent = `${meta} · ${campId.replace(/_/g,' ')} · ${agent}`;
+  document.getElementById('remove-reason').value = 'shop_closed';
+  document.getElementById('remove-note').value   = '';
+  document.getElementById('remove-modal').classList.add('open');
+}
+
+function closeRemoveModal(event) {
+  if (event && event.target !== document.getElementById('remove-modal')) return;
+  document.getElementById('remove-modal').classList.remove('open');
+  _pendingRemove = null;
+}
+
+async function confirmRemove() {
+  if (!_pendingRemove) return;
+  const { month, agent, campId, debtorCode } = _pendingRemove;
+  const reason = document.getElementById('remove-reason').value;
+  const note   = document.getElementById('remove-note').value.trim();
+  document.getElementById('remove-modal').classList.remove('open');
+  await GistSync.removeFromPool(month, agent, campId, debtorCode, reason, note);
+  _pendingRemove = null;
+  loadAudit();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RESTORE
+// ═══════════════════════════════════════════════════════════════════
+async function doRestore(event, month, agent, campId, debtorCode) {
+  event.stopPropagation();
+  if (!confirm(`Restore ${debtorCode} back into the active pool?`)) return;
+  await GistSync.restoreToPool(month, agent, campId, debtorCode);
+  loadAudit();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CHECKBOX SELECTION + BULK ACTIONS
+// ═══════════════════════════════════════════════════════════════════
+function toggleSelect(agent, campId, debtorCode, checked) {
+  const key = `${agent}_${campId}_${debtorCode}`;
+  if (checked) _selectedRows.add(key); else _selectedRows.delete(key);
+  const bar = document.getElementById('bulk-bar');
+  bar.classList.toggle('visible', _selectedRows.size > 0);
+  document.getElementById('bulk-count').textContent = _selectedRows.size;
+}
+
+function clearSelection() {
+  _selectedRows.clear();
+  document.getElementById('bulk-bar').classList.remove('visible');
+  loadAudit();
+}
+
+async function bulkAction(newStatus) {
+  const month = document.getElementById('sel-month').value;
+  if (!_selectedRows.size) return;
+  const label = newStatus === 'delivered' ? 'Mark all selected as Delivered?' : 'Mark all selected as Refused?';
+  if (!confirm(`${label} (${_selectedRows.size} records)`)) return;
+
+  const ts = new Date().toISOString().split('T')[0];
+  for (const key of _selectedRows) {
+    const parts      = key.split('_');
+    const agent      = parts[0];
+    const debtorCode = parts[parts.length - 1];
+    const campId     = parts.slice(1, parts.length - 1).join('_');
+    await GistSync.saveClaim(month, agent, campId, debtorCode, { status: newStatus, ts, by: currentRole?.role || 'management' });
+  }
+  _selectedRows.clear();
+  document.getElementById('bulk-bar').classList.remove('visible');
+  loadAudit();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// EXPORT CSV
+// ═══════════════════════════════════════════════════════════════════
+function exportCSV() {
+  const month       = document.getElementById('sel-month').value;
+  const slug        = month.replace(' ','');
+  const filterCamp  = document.getElementById('sel-camp').value;
+  const filterAgent = document.getElementById('sel-agent').value;
+
+  const rows = [];
+  Object.keys(localStorage)
+    .filter(k => k.startsWith(`camp_claim_${slug}_`))
+    .forEach(k => {
+      const raw   = k.replace(`camp_claim_${slug}_`, '');
+      const data  = JSON.parse(localStorage.getItem(k) || 'null');
+      if (!data) return;
+      const parts = raw.split('_');
+      const agent      = parts[0];
+      const debtorCode = parts[parts.length - 1];
+      const campId     = parts.slice(1, parts.length - 1).join('_');
+      if (filterCamp  && campId !== filterCamp)  return;
+      if (filterAgent && agent  !== filterAgent) return;
+      rows.push({ month, agent, campId, debtorCode, ...data });
+    });
+
+  if (!rows.length) { alert('No data to export.'); return; }
+
+  const headers = ['Month','Agent','Campaign','Debtor Code','Status','Date','Removed By','Removed Reason','Note'];
+  const csvRows = rows.map(r => [
+    r.month, r.agent, r.campId, r.debtorCode,
+    r.status || 'pending', r.ts || r.removed_ts || '',
+    r.removed_by || '', r.removed_reason || '', r.removed_note || ''
+  ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+
+  const csv  = [headers.join(','), ...csvRows].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `campaign_audit_${slug}${filterCamp ? '_'+filterCamp : ''}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// KEYBOARD — ESC closes modal
+// ═══════════════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('remove-modal').classList.remove('open');
+});
 </script>
 </body>
 </html>
