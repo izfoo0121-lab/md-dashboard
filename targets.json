@@ -782,28 +782,34 @@
       },
       "brand_commission": {
         "iFACE": {
-          "penetration_target": 3,
-          "ctn_target": 7
+          "penetration_target": 6,
+          "ctn_target": 7,
+          "pen_auto": true
         },
         "SUKUN": {
-          "penetration_target": 2,
-          "ctn_target": 130
+          "penetration_target": 6,
+          "ctn_target": 130,
+          "pen_auto": true
         },
         "EVO": {
           "penetration_target": 5,
-          "ctn_target": 100
+          "ctn_target": 100,
+          "pen_auto": false
         },
         "BISON": {
-          "penetration_target": 3,
-          "ctn_target": 86
+          "penetration_target": 6,
+          "ctn_target": 86,
+          "pen_auto": true
         },
         "TR20": {
-          "penetration_target": 4,
-          "ctn_target": 5
+          "penetration_target": 6,
+          "ctn_target": 5,
+          "pen_auto": true
         },
         "LAM+LWM": {
           "penetration_target": 4,
-          "ctn_target": 5
+          "ctn_target": 5,
+          "pen_auto": false
         }
       },
       "kpi_targets": {},
@@ -1113,6 +1119,14 @@
         "BISON": 104,
         "TR20": 133,
         "LAM+LWM": 131
+      },
+      "SAM": {
+        "iFACE": 110,
+        "SUKUN": 110,
+        "EVO": 110,
+        "BISON": 110,
+        "TR20": 110,
+        "LAM+LWM": 110
       }
     },
     "Mar 26": {
