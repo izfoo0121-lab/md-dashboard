@@ -1548,7 +1548,7 @@ def save_debtor_snapshot(debtor_cards, targets, cur_month):
             json.dump(targets, f, ensure_ascii=False, indent=2)
         # Also push to Supabase (non-blocking)
         sync_targets_to_supabase(targets)
-        log(f"  ✅ Snapshot saved + KPI targets auto-calculated for {len(snap)} agents")
+        log(f"  [OK] Snapshot saved + KPI targets auto-calculated for {len(snap)} agents")
     else:
         log(f"  Snapshot for {cur_month} already exists — skipping (Day 1 count preserved)")
 
@@ -1745,7 +1745,7 @@ def save_penetration_snapshot(brand_comm, targets, cur_month):
         json.dump(targets, f, ensure_ascii=False, indent=2)
     # Also push to Supabase (non-blocking)
     sync_targets_to_supabase(targets)
-    log(f"  ✅ Penetration snapshot saved — auto-targets set for {len(snap)} agents")
+    log(f"  [OK] Penetration snapshot saved — auto-targets set for {len(snap)} agents")
     return targets
 
 
@@ -2789,7 +2789,7 @@ def main():
     log(f"   months_index.json updated: {existing}")
 
     size_kb = OUTPUT_FILE.stat().st_size / 1024
-    log(f"\n✅ dashboard_data.json written — {size_kb:.0f} KB")
+    log(f"\n[OK] dashboard_data.json written — {size_kb:.0f} KB")
     log(f"   {len(agents)} agents  |  {cur_month}  |  Scope: {SCOPE_AREA}")
     log("=" * 60)
 
