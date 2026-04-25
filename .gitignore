@@ -16,3 +16,14 @@ Thumbs.db
 !dashboard_data.json
 targets.json.bak 
 *.bak 
+
+# Local cleanup artifacts
+*.session
+*.log
+bat_output.txt
+py_diff.txt
+go.html
+gistsync_supabase.js
+cleanup_log.txt
+*_BACKUP_*.xlsx
+*_BACKUP_*.json
