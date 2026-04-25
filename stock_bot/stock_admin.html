@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Miracle Stock Bot — Admin</title>
+<style>
+:root{
+  --bg:#0f1115; --card:#1a1d24; --ink:#eaeaea; --ink2:#9ea4b0; --ink3:#6b7280;
+  --accent:#c8860a; --green:#2a7a4b; --red:#c8381a; --blue:#4da6ff; --purple:#a78bfa;
+  --border:rgba(255,255,255,.1);
+  --mono:ui-monospace,'SF Mono',Menlo,monospace;
+  --display:'Georgia',serif;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:var(--bg);color:var(--ink);
+     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;}
+.wrap{max-width:1000px;margin:0 auto;}
+.header{margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+.header-title{font-family:var(--display);font-size:30px;letter-spacing:.04em;color:var(--accent);margin:0;}
+.header-sub{font-family:var(--mono);font-size:11px;color:var(--ink3);text-transform:uppercase;
+           letter-spacing:.12em;margin-top:4px;}
+
+.tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.tab{padding:10px 16px;background:transparent;border:none;color:var(--ink2);
+     font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;
+     cursor:pointer;border-bottom:2px solid transparent;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab:hover{color:var(--ink);}
+
+.panel{display:none;}
+.panel.active{display:block;}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;
+      padding:16px;margin-bottom:14px;}
+.card h2{font-size:14px;margin:0 0 10px 0;color:var(--ink);display:flex;align-items:center;gap:8px;}
+.card h2 .tag{font-family:var(--mono);font-size:9px;color:var(--ink3);
+              padding:2px 8px;border:1px solid var(--border);border-radius:10px;
+              text-transform:uppercase;letter-spacing:.08em;}
+
+label{display:block;font-family:var(--mono);font-size:10px;color:var(--ink2);
+      text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;}
+input[type=text],input[type=number],textarea,select{
+  width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);
+  border-radius:6px;padding:7px 10px;color:var(--ink);font-family:var(--mono);font-size:12px;
+  font-feature-settings:'tnum';
+}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);}
+textarea{min-height:60px;resize:vertical;}
+.row{display:grid;gap:10px;margin-bottom:8px;}
+.row-2{grid-template-columns:1fr 1fr;}
+.row-3{grid-template-columns:1fr 1fr 1fr;}
+@media(max-width:640px){ .row-2,.row-3{grid-template-columns:1fr;} }
+
+.btn{background:var(--accent);color:#000;border:none;border-radius:6px;padding:8px 14px;
+     font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;
+     cursor:pointer;font-weight:600;}
+.btn:hover{filter:brightness(1.1);}
+.btn-sec{background:transparent;border:1px solid var(--border);color:var(--ink);}
+.btn-danger{background:var(--red);color:#fff;}
+.row-buttons{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+
+.help{font-family:var(--mono);font-size:10px;color:var(--ink3);margin-top:4px;line-height:1.5;}
+.status{padding:7px 12px;border-radius:6px;font-family:var(--mono);font-size:11px;margin-top:8px;display:none;}
+.status.ok{background:rgba(42,122,75,.15);border:1px solid rgba(42,122,75,.4);color:#3ddc84;}
+.status.err{background:rgba(200,56,26,.15);border:1px solid rgba(200,56,26,.4);color:var(--red);}
+
+.kbd{font-family:var(--mono);background:rgba(255,255,255,.08);padding:1px 6px;border-radius:4px;
+     border:1px solid var(--border);font-size:11px;}
+.preview{background:#0a0c10;border:1px solid var(--border);border-radius:8px;padding:12px;
+         font-family:var(--mono);font-size:11px;color:var(--ink2);white-space:pre-wrap;
+         max-height:400px;overflow:auto;}
+
+table.sku-table{width:100%;border-collapse:collapse;font-size:12px;}
+table.sku-table th{background:rgba(255,255,255,.05);padding:8px;text-align:left;
+                    font-family:var(--mono);font-size:10px;color:var(--ink2);
+                    text-transform:uppercase;letter-spacing:.06em;position:sticky;top:0;}
+table.sku-table td{padding:6px 8px;border-top:1px solid var(--border);}
+table.sku-table input{font-size:11px;padding:5px 7px;}
+table.sku-table .del-btn{background:transparent;color:var(--red);border:1px solid rgba(200,56,26,.3);
+                         border-radius:5px;padding:3px 7px;cursor:pointer;font-size:10px;}
+
+.company-sect{background:rgba(200,134,10,.06);border:1px solid rgba(200,134,10,.2);
+             border-radius:8px;padding:12px;margin-bottom:14px;}
+.company-sect h3{margin:0 0 8px 0;color:var(--accent);font-family:var(--display);font-size:18px;letter-spacing:.04em;}
+.sku-count{font-family:var(--mono);font-size:10px;color:var(--ink3);}
+
+.warning{background:rgba(200,56,26,.1);border:1px solid rgba(200,56,26,.3);
+         border-radius:6px;padding:8px 12px;font-size:12px;color:var(--red);margin:8px 0;}
+
+.filter-box{display:flex;gap:8px;margin-bottom:10px;}
+.filter-box input{flex:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="header">
+  <div class="header-title">Stock Bot — Admin</div>
+  <div class="header-sub">Miracle 奇迹 · GRP 2A · Configuration</div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('sku')">🏷 SKU Master</button>
+  <button class="tab" onclick="showTab('topics')">📡 Topics</button>
+  <button class="tab" onclick="showTab('unknown')">❓ Unknown Queue</button>
+  <button class="tab" onclick="showTab('env')">🔐 Env Setup</button>
+</div>
+
+<!-- ============================================================ -->
+<!--  TAB: SKU MASTER                                               -->
+<!-- ============================================================ -->
+<div id="tab-sku" class="panel active">
+
+<div class="card">
+  <h2>📂 Load / Save <span class="tag">sku_master.json</span></h2>
+  <p class="help">
+    This file is the single source of truth. Save and drop it next to <span class="kbd">stock_bot_listener.py</span>,
+    then send <span class="kbd">/reload</span> to the bot (no restart needed).
+  </p>
+  <div class="row-buttons">
+    <button class="btn btn-sec" onclick="document.getElementById('sku-file').click()">📂 Load JSON</button>
+    <input type="file" id="sku-file" accept=".json" style="display:none" onchange="loadSkuFile(event)">
+    <button class="btn" onclick="saveSku()">💾 Save sku_master.json</button>
+  </div>
+  <div id="sku-status" class="status"></div>
+</div>
+
+<div id="company-sections"></div>
+
+<div class="card">
+  <h2>🎯 Bulk Actions</h2>
+  <p class="help">Add all missing aliases for typos from the Unknown Queue. Useful after onboarding a new agent.</p>
+  <div class="row-buttons">
+    <button class="btn btn-sec" onclick="addBlankCompanySku('CCOM')">+ Add SKU to CCOM</button>
+    <button class="btn btn-sec" onclick="addBlankCompanySku('8COM')">+ Add SKU to 8COM</button>
+  </div>
+</div>
+
+</div><!-- /sku tab -->
+
+
+<!-- ============================================================ -->
+<!--  TAB: TOPICS                                                   -->
+<!-- ============================================================ -->
+<div id="tab-topics" class="panel">
+
+<div class="card">
+  <h2>📡 Telegram Topic Mapping <span class="tag">.env</span></h2>
+  <p class="help">
+    These values go into your <span class="kbd">.env</span> file next to <span class="kbd">stock_bot_listener.py</span>.
+    Get each topic ID by going into that topic in Telegram, sending <span class="kbd">/chatid</span> — bot echoes the ID.
+  </p>
+  <div class="row row-2">
+    <div>
+      <label>STOCK_BOT_TOKEN</label>
+      <input type="text" id="env-token" placeholder="123456:ABCDEF...">
+    </div>
+    <div>
+      <label>MD_CHAT_ID (the group id)</label>
+      <input type="text" id="env-chatid" placeholder="-1003...">
+    </div>
+  </div>
+  <div class="row row-2">
+    <div>
+      <label>MD_TOPIC_ID (your private MD topic)</label>
+      <input type="text" id="env-mdtopic" placeholder="e.g. 100">
+    </div>
+    <div>
+      <label>TOPIC_CCOM_ORDER (订货 C com)</label>
+      <input type="text" id="env-ccom-order" placeholder="e.g. 45">
+    </div>
+  </div>
+  <div class="row row-2">
+    <div>
+      <label>TOPIC_8COM_ORDER (8公司 订货)</label>
+      <input type="text" id="env-8com-order" placeholder="e.g. 46">
+    </div>
+    <div>
+      <label>TOPIC_TRANSFER (Stock Transfer)</label>
+      <input type="text" id="env-transfer" placeholder="e.g. 47">
+    </div>
+  </div>
+  <div class="row row-2">
+    <div>
+      <label>TOPIC_CCOM_GRN (来货单 C com)</label>
+      <input type="text" id="env-ccom-grn" placeholder="e.g. 48">
+    </div>
+    <div>
+      <label>TOPIC_8COM_GRN (来货单 8公司)</label>
+      <input type="text" id="env-8com-grn" placeholder="e.g. 49">
+    </div>
+  </div>
+  <div class="row row-3">
+    <div>
+      <label>ADMIN_USER_IDS</label>
+      <input type="text" id="env-admins" placeholder="123456789,987654321">
+    </div>
+    <div>
+      <label>DAILY_PUSH_HOUR</label>
+      <input type="number" id="env-hour" min="0" max="23" value="20">
+    </div>
+    <div>
+      <label>DAILY_PUSH_MINUTE</label>
+      <input type="number" id="env-min" min="0" max="59" value="0">
+    </div>
+  </div>
+  <div class="row-buttons">
+    <button class="btn" onclick="generateEnv()">📄 Generate .env content</button>
+  </div>
+  <div id="env-output" class="preview" style="margin-top:10px;display:none;"></div>
+</div>
+
+</div><!-- /topics tab -->
+
+
+<!-- ============================================================ -->
+<!--  TAB: UNKNOWN QUEUE                                            -->
+<!-- ============================================================ -->
+<div id="tab-unknown" class="panel">
+
+<div class="card">
+  <h2>❓ Unknown SKU Review <span class="tag">unknown_skus.json</span></h2>
+  <p class="help">
+    Load <span class="kbd">unknown_skus.json</span> from the bot folder. Each row shows a SKU the parser couldn't resolve.
+    Click <b>→ Add alias</b> to attach it to an existing SKU. Save and reload the bot.
+  </p>
+  <div class="row-buttons">
+    <button class="btn btn-sec" onclick="document.getElementById('unk-file').click()">📂 Load unknown_skus.json</button>
+    <input type="file" id="unk-file" accept=".json" style="display:none" onchange="loadUnknown(event)">
+  </div>
+  <div id="unk-status" class="status"></div>
+  <div id="unk-list" style="margin-top:12px;"></div>
+</div>
+
+</div><!-- /unknown tab -->
+
+
+<!-- ============================================================ -->
+<!--  TAB: ENV SETUP                                                -->
+<!-- ============================================================ -->
+<div id="tab-env" class="panel">
+
+<div class="card">
+  <h2>🔐 One-time Setup Walkthrough</h2>
+  <p class="help">Step-by-step to get the bot running.</p>
+  <ol style="line-height:2;font-size:13px;">
+    <li><b>Create the bot</b>: Telegram → <span class="kbd">@BotFather</span> → <span class="kbd">/newbot</span> → copy the token</li>
+    <li><b>Add bot to group</b>: "Wwwwwwwwww High School 2.0" → Add Members → your new bot → Admin permissions (so it can read messages in topics)</li>
+    <li><b>Important</b>: In BotFather → <span class="kbd">/setprivacy</span> → Disable. This lets the bot see all group messages (otherwise it only sees commands and mentions).</li>
+    <li><b>Create MD topic</b>: a private topic in the group for your digest. Only you should see this.</li>
+    <li><b>Get topic IDs</b>: run the bot with just the token set → in each topic send <span class="kbd">/chatid</span> → bot echoes the <span class="kbd">thread_id</span></li>
+    <li><b>Fill .env</b>: use the Topics tab above to generate the file content</li>
+    <li><b>Launch</b>: <span class="kbd">run_stock_bot.bat</span></li>
+  </ol>
+</div>
+
+<div class="card">
+  <h2>⚙ Privacy Mode Note <span class="tag">Critical</span></h2>
+  <div class="warning">
+    <b>⚠ By default, Telegram bots only see commands</b>, not plain messages. This bot needs to READ the order/transfer/GRN templates posted by agents, so you MUST disable privacy:
+    <br><br>
+    <b>BotFather → /mybots → [your bot] → Bot Settings → Group Privacy → Turn OFF</b>
+    <br><br>
+    Without this, the listener will receive nothing from the topics.
+  </div>
+</div>
+
+<div class="card">
+  <h2>🔄 Migration from Old Bot</h2>
+  <p class="help">
+    If you were running the old upload-based <span class="kbd">stock_bot.py</span>, stop it before launching the new
+    <span class="kbd">stock_bot_listener.py</span>. Both cannot run on the same bot token simultaneously.
+  </p>
+  <p class="help">
+    Old files (<span class="kbd">stock_bot.py</span>, <span class="kbd">process_stock.py</span>) can stay in the folder
+    as an AutoCount-reconciliation fallback. The new bot uses different files:
+    <span class="kbd">orders_log.json</span>, <span class="kbd">grn_log.json</span>, <span class="kbd">transfers_log.json</span>,
+    <span class="kbd">unknown_skus.json</span>.
+  </p>
+</div>
+
+</div><!-- /env tab -->
+
+</div><!-- /wrap -->
+
+<script>
+// ───────────────────────────────────────────────────────────────────
+// State
+// ───────────────────────────────────────────────────────────────────
+const DEFAULT_MASTER = {
+  version: "1.0",
+  last_updated: new Date().toISOString().slice(0,10),
+  companies: {
+    CCOM: {display_name:"C com", warehouse:"CCOM", skus:{}},
+    "8COM": {display_name:"8公司", warehouse:"8COM", skus:{}}
+  },
+  agents: ["BEN","CJ","JACKY","JAMES","JW","KEAN","KEE","KF","KI-MI","KW","LEON","NMK","SAM","YI"],
+  agent_aliases: {},
+  transfer_reasons: {"1":"过货 (补货)","2":"清货","3":"代替送货","4":"借货"}
+};
+let MASTER = structuredClone(DEFAULT_MASTER);
+let UNKNOWN = [];
+
+// ───────────────────────────────────────────────────────────────────
+// Tab switching
+// ───────────────────────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ───────────────────────────────────────────────────────────────────
+// SKU MASTER RENDERING
+// ───────────────────────────────────────────────────────────────────
+function renderCompanies() {
+  const host = document.getElementById('company-sections');
+  host.innerHTML = '';
+  Object.entries(MASTER.companies || {}).forEach(([code, co]) => {
+    const sect = document.createElement('div');
+    sect.className = 'company-sect';
+    const n = Object.keys(co.skus || {}).length;
+    sect.innerHTML = `
+      <h3>${code} — ${co.display_name || code} <span class="sku-count">(${n} SKUs)</span></h3>
+      <div class="filter-box">
+        <input type="text" placeholder="Filter by SKU or alias…" oninput="filterTable('tbl-${code}', this.value)">
+        <button class="btn btn-sec" onclick="addBlankCompanySku('${code}')">+ Add</button>
+      </div>
+      <div style="max-height:420px;overflow:auto;border:1px solid var(--border);border-radius:6px;">
+      <table class="sku-table" id="tbl-${code}">
+        <thead>
+          <tr>
+            <th style="width:150px;">Canonical</th>
+            <th style="width:120px;">Brand</th>
+            <th>Aliases (comma-sep)</th>
+            <th style="width:60px;"></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      </div>
+    `;
+    host.appendChild(sect);
+    const tbody = sect.querySelector('tbody');
+    Object.entries(co.skus || {}).forEach(([canonical, def]) => {
+      tbody.appendChild(makeSkuRow(code, canonical, def));
+    });
+  });
+}
+
+function makeSkuRow(company, canonical, def) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" value="${esc(canonical)}" onchange="updateCanonical('${company}','${canonical}',this.value)"></td>
+    <td><input type="text" value="${esc(def.brand || '?')}" onchange="updateBrand('${company}','${canonical}',this.value)"></td>
+    <td><input type="text" value="${esc((def.aliases || []).join(', '))}" onchange="updateAliases('${company}','${canonical}',this.value)"></td>
+    <td><button class="del-btn" onclick="deleteSku('${company}','${canonical}')">✕</button></td>
+  `;
+  return tr;
+}
+
+function esc(s) { return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function filterTable(tableId, q) {
+  const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+  const ql = (q || '').toLowerCase();
+  rows.forEach(r => {
+    const txt = r.textContent.toLowerCase();
+    r.style.display = (!ql || txt.includes(ql)) ? '' : 'none';
+  });
+}
+
+function updateCanonical(company, oldName, newName) {
+  if (!newName || newName === oldName) return;
+  const skus = MASTER.companies[company].skus;
+  const def = skus[oldName];
+  if (!def) return;
+  delete skus[oldName];
+  def.canonical = newName;
+  // ensure canonical is in aliases
+  if (!def.aliases) def.aliases = [];
+  if (!def.aliases.includes(newName)) def.aliases.unshift(newName);
+  skus[newName] = def;
+  renderCompanies();
+}
+function updateBrand(company, canonical, v) {
+  MASTER.companies[company].skus[canonical].brand = v.trim() || '?';
+}
+function updateAliases(company, canonical, v) {
+  const arr = v.split(/,/).map(s => s.trim()).filter(Boolean);
+  if (!arr.includes(canonical)) arr.unshift(canonical);
+  MASTER.companies[company].skus[canonical].aliases = arr;
+}
+function deleteSku(company, canonical) {
+  if (!confirm(`Delete SKU "${canonical}" from ${company}?`)) return;
+  delete MASTER.companies[company].skus[canonical];
+  renderCompanies();
+}
+function addBlankCompanySku(company) {
+  const newName = prompt(`New SKU canonical name for ${company}:`, 'NEW_SKU');
+  if (!newName || !newName.trim()) return;
+  const key = newName.trim();
+  if (MASTER.companies[company].skus[key]) {
+    alert('SKU already exists.');
+    return;
+  }
+  MASTER.companies[company].skus[key] = {
+    canonical: key, brand: '?', aliases: [key],
+  };
+  renderCompanies();
+}
+
+// ───────────────────────────────────────────────────────────────────
+// SKU MASTER LOAD / SAVE
+// ───────────────────────────────────────────────────────────────────
+function loadSkuFile(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = evt => {
+    try {
+      const parsed = JSON.parse(evt.target.result);
+      MASTER = parsed;
+      renderCompanies();
+      skuFlash('✓ Loaded', 'ok');
+    } catch (err) {
+      skuFlash('Invalid JSON: ' + err.message, 'err');
+    }
+  };
+  r.readAsText(f);
+}
+
+function saveSku() {
+  MASTER.last_updated = new Date().toISOString().slice(0,10);
+  const blob = new Blob([JSON.stringify(MASTER, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'sku_master.json';
+  a.click();
+  skuFlash('✓ sku_master.json downloaded — drop it next to stock_bot_listener.py', 'ok');
+}
+
+function skuFlash(msg, kind) {
+  const el = document.getElementById('sku-status');
+  el.textContent = msg;
+  el.className = 'status ' + kind;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display='none'; }, 4000);
+}
+
+// ───────────────────────────────────────────────────────────────────
+// UNKNOWN QUEUE
+// ───────────────────────────────────────────────────────────────────
+function loadUnknown(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = evt => {
+    try {
+      UNKNOWN = JSON.parse(evt.target.result);
+      renderUnknown();
+      unkFlash(`✓ Loaded ${UNKNOWN.length} entries`, 'ok');
+    } catch(err) {
+      unkFlash('Invalid JSON: ' + err.message, 'err');
+    }
+  };
+  r.readAsText(f);
+}
+function renderUnknown() {
+  const el = document.getElementById('unk-list');
+  if (!UNKNOWN.length) {
+    el.innerHTML = '<p class="help">No unknown SKUs loaded.</p>';
+    return;
+  }
+  // Group by raw sku, count
+  const counts = {};
+  UNKNOWN.forEach(u => {
+    counts[u.raw_sku] = (counts[u.raw_sku] || 0) + 1;
+  });
+  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+  // For each, show a dropdown of existing canonicals to add as alias
+  const allCanonicals = [];
+  Object.entries(MASTER.companies || {}).forEach(([co, cd]) => {
+    Object.keys(cd.skus || {}).forEach(c => allCanonicals.push({company:co, canonical:c}));
+  });
+  el.innerHTML = '<div style="max-height:500px;overflow:auto;"><table class="sku-table"><thead><tr><th>Raw SKU</th><th>Count</th><th>Add as alias to…</th><th></th></tr></thead><tbody>' +
+    sorted.map(([raw, count]) => `
+      <tr>
+        <td><span class="kbd">${esc(raw)}</span></td>
+        <td>${count}</td>
+        <td>
+          <select id="unk-sel-${esc(raw)}">
+            <option value="">— Select canonical —</option>
+            ${allCanonicals.map(c =>
+              `<option value="${c.company}::${esc(c.canonical)}">${c.company} · ${c.canonical}</option>`
+            ).join('')}
+          </select>
+        </td>
+        <td><button class="btn btn-sec" onclick="attachAlias('${esc(raw)}')">→ Attach</button></td>
+      </tr>
+    `).join('') + '</tbody></table></div>';
+}
+function attachAlias(raw) {
+  const sel = document.getElementById('unk-sel-' + raw);
+  if (!sel || !sel.value) { alert('Pick a canonical SKU first.'); return; }
+  const [company, canonical] = sel.value.split('::');
+  const skus = MASTER.companies[company].skus;
+  if (!skus[canonical]) { alert('SKU not found.'); return; }
+  if (!skus[canonical].aliases) skus[canonical].aliases = [];
+  if (!skus[canonical].aliases.includes(raw)) {
+    skus[canonical].aliases.push(raw);
+  }
+  unkFlash(`✓ Added "${raw}" as alias of ${company} · ${canonical}. Don't forget to save sku_master.json!`, 'ok');
+  renderCompanies();
+}
+function unkFlash(msg, kind) {
+  const el = document.getElementById('unk-status');
+  el.textContent = msg;
+  el.className = 'status ' + kind;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display='none'; }, 4000);
+}
+
+// ───────────────────────────────────────────────────────────────────
+// ENV generation
+// ───────────────────────────────────────────────────────────────────
+function generateEnv() {
+  const vals = {
+    STOCK_BOT_TOKEN:   document.getElementById('env-token').value.trim(),
+    MD_CHAT_ID:        document.getElementById('env-chatid').value.trim(),
+    MD_TOPIC_ID:       document.getElementById('env-mdtopic').value.trim() || '0',
+    TOPIC_CCOM_ORDER:  document.getElementById('env-ccom-order').value.trim(),
+    TOPIC_8COM_ORDER:  document.getElementById('env-8com-order').value.trim(),
+    TOPIC_TRANSFER:    document.getElementById('env-transfer').value.trim(),
+    TOPIC_CCOM_GRN:    document.getElementById('env-ccom-grn').value.trim(),
+    TOPIC_8COM_GRN:    document.getElementById('env-8com-grn').value.trim(),
+    ADMIN_USER_IDS:    document.getElementById('env-admins').value.trim(),
+    DAILY_PUSH_HOUR:   document.getElementById('env-hour').value,
+    DAILY_PUSH_MINUTE: document.getElementById('env-min').value,
+  };
+  const lines = Object.entries(vals).map(([k,v]) => `${k}=${v}`);
+  const txt = '# Generated by stock_admin.html\n# Drop this as `.env` next to stock_bot_listener.py\n\n' + lines.join('\n') + '\n';
+  const el = document.getElementById('env-output');
+  el.textContent = txt;
+  el.style.display = 'block';
+  // Also offer download
+  const blob = new Blob([txt], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '.env';
+  a.textContent = 'Download .env';
+  a.className = 'btn';
+  a.style.display = 'inline-block';
+  a.style.marginTop = '10px';
+  if (el.nextElementSibling?.tagName === 'A') el.nextElementSibling.remove();
+  el.insertAdjacentElement('afterend', a);
+}
+
+// ───────────────────────────────────────────────────────────────────
+// Init
+// ───────────────────────────────────────────────────────────────────
+renderCompanies();
+</script>
+</body>
+</html>

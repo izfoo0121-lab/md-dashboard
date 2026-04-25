@@ -100,10 +100,16 @@ def load_targets_from_supabase():
         rows = sb.table("targets_birthday_overrides").select("*").execute().data
         bday = {}
         for r in rows:
-            info = {"birth_date": r.get("birth_date", "")}
-            if r.get("birth_month"):
-                info["birth_month"] = r["birth_month"]
-            bday[r["debtor_code"]] = info
+            birth_date_val = r.get("birth_date", "")
+            # Preserve "add" / "remove" action strings as plain strings
+            # so process_data.py can use action == "add" / "remove" checks directly
+            if birth_date_val in ("add", "remove"):
+                bday[r["debtor_code"]] = birth_date_val
+            else:
+                info = {"birth_date": birth_date_val}
+                if r.get("birth_month"):
+                    info["birth_month"] = r["birth_month"]
+                bday[r["debtor_code"]] = info
         targets["birthday_overrides"] = bday
 
         # 5. Group brand targets

@@ -1296,11 +1296,13 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
 
             # New debtor (open date within 90 days)
             is_new = False
+            open_month = None   # (year, month) tuple — used by birthday filter
             open_date = info.get("open_date")
             if open_date and pd.notnull(open_date):
                 try:
                     od = pd.to_datetime(open_date)
                     is_new = (datetime.now() - od).days <= 90
+                    open_month = (od.year, od.month)
                 except Exception:
                     pass
 
@@ -1378,6 +1380,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 "debtor_type":        info.get("type", ""),
                 "vip":                info.get("vip", False),
                 "is_new":             is_new,
+                "open_month":         open_month,
                 "birthday_this_month": birthday_this_month,
                 "birth_date_raw":     str(_parse_birth_date(birth_date)) if birth_date and pd.notnull(birth_date) and _parse_birth_date(birth_date) is not None else None,
                 "days_to_birthday":   days_to_bday,
@@ -1580,6 +1583,21 @@ def calc_birthday_campaign(debtor_cards, targets, cur_month=None):
     PERSONAL_TYPES = {"P-Personal","P-PERSONAL","personal","Personal","PERSONAL"}
 
     birthday_debtors = []
+    # ── TEMPORARY DEBUG — remove after investigating 7 missing debtors ─────────
+    _debug_codes = {'300-BY314','300-D323','300-KH261','300-KT193','300-KT195','300-KT200','300-KT202'}
+    for _ag, _adata in debtor_cards.items():
+        for _d in _adata.get("debtors", []):
+            if _d.get("debtor_code","") in _debug_codes:
+                log(f"  DEBUG FOUND {_d.get('debtor_code')} under {_ag}: "
+                    f"vip={_d.get('vip')} is_new={_d.get('is_new')} "
+                    f"open_month={_d.get('open_month')} "
+                    f"type={_d.get('debtor_type')} birth_month={_d.get('birth_month')} "
+                    f"birth_date_raw={_d.get('birth_date_raw')} "
+                    f"birthday_this_month={_d.get('birthday_this_month')}")
+    _found_debug = {_d.get('debtor_code') for _ag,_adata in debtor_cards.items() for _d in _adata.get('debtors',[]) if _d.get('debtor_code') in _debug_codes}
+    for _c in _debug_codes - _found_debug:
+        log(f"  DEBUG MISSING {_c}: not in debtor_cards — Debtor Maintenance.xlsx may be stale or agent mismatch")
+    # ── END DEBUG ─────────────────────────────────────────────────────────────
     for agent, adata in debtor_cards.items():
         for d in adata.get("debtors", []):
             code        = d.get("debtor_code", "")
@@ -1606,11 +1624,30 @@ def calc_birthday_campaign(debtor_cards, targets, cur_month=None):
                 else:
                     birthday_matches = d.get("birthday_this_month", False)
 
+            # Policy: exclude new accounts (opened within 90 days) UNLESS they
+            # opened in the current month or the immediately preceding month.
+            # Rationale: new customers in current/prev month get birthday gift as welcome.
+            recently_opened = False
+            if is_new:
+                open_month = d.get("open_month")   # (year, month) tuple stored in debtor card
+                if open_month:
+                    prev_month = bday_month - 1 if bday_month > 1 else 12
+                    prev_year  = bday_year if bday_month > 1 else bday_year - 1
+                    recently_opened = (
+                        open_month == (bday_year, bday_month) or
+                        open_month == (prev_year, prev_month)
+                    )
+
+            # Check remove override — handle both plain string "remove" and
+            # legacy dict format {"birth_date": "remove"} from old targets.json
+            _ov = overrides.get(code)
+            _is_removed = (_ov == "remove") or (isinstance(_ov, dict) and _ov.get("birth_date") == "remove")
+
             if (birthday_matches
                     and is_vip
                     and not is_personal
-                    and not is_new
-                    and overrides.get(code) != "remove"):
+                    and (not is_new or recently_opened)
+                    and not _is_removed):
                 birthday_debtors.append({
                     "code":   code,
                     "name":   d.get("company_name", code),
@@ -1710,98 +1747,6 @@ def save_penetration_snapshot(brand_comm, targets, cur_month):
     sync_targets_to_supabase(targets)
     log(f"  ✅ Penetration snapshot saved — auto-targets set for {len(snap)} agents")
     return targets
-
-
-
-    """
-    Auto-generate birthday gift list:
-    - VIP debtors only
-    - Exclude P-Personal
-    - Exclude new accounts opened this month
-    - Target = total qualifying debtors (management audits agent's actual)
-    """
-    log("Generating birthday campaign list...")
-    today     = date.today()
-    overrides = targets.get("birthday_overrides", {})
-    PERSONAL_TYPES = {"P-Personal","P-PERSONAL","personal","Personal","PERSONAL"}
-
-    birthday_debtors = []
-    for agent, adata in debtor_cards.items():
-        for d in adata.get("debtors", []):
-            code       = d.get("debtor_code", "")
-            db_type    = d.get("debtor_type", "")
-            is_vip     = d.get("vip", False)
-            is_personal = db_type in PERSONAL_TYPES
-            is_new     = d.get("is_new", False)  # new account this month
-
-            # Criteria: birthday this month + VIP + not personal + not new account
-            # Recompute birthday match for selected month (not today)
-            birth_date = d.get("birth_date_raw") or None
-            birthday_matches = False
-            if birth_date:
-                try:
-                    bd = _parse_birth_date(birth_date)
-                    if bd is not None and not pd.isnull(bd):
-                        birthday_matches = (bd.month == bday_month)
-                except:
-                    pass
-            # Fallback: use birth_month (1-12) if raw date unavailable
-            if not birth_date:
-                stored_birth_month = d.get("birth_month")
-                if stored_birth_month is not None:
-                    birthday_matches = (int(stored_birth_month) == bday_month)
-                else:
-                    birthday_matches = d.get("birthday_this_month", False)
-
-            if (birthday_matches
-                    and is_vip
-                    and not is_personal
-                    and not is_new
-                    and overrides.get(code) != "remove"):
-                birthday_debtors.append({
-                    "code":   code,
-                    "name":   d.get("company_name", code),
-                    "agent":  agent,
-                    "type":   db_type,
-                    "phone":  d.get("phone", ""),
-                    "source": "auto",
-                })
-
-    # Marketing manual overrides — add specific debtors
-    for code, action in overrides.items():
-        if action == "add":
-            for agent, adata in debtor_cards.items():
-                d = next((x for x in adata.get("debtors",[]) if x.get("debtor_code")==code), None)
-                if d:
-                    birthday_debtors.append({
-                        "code":   code,
-                        "name":   d.get("company_name", code),
-                        "agent":  agent,
-                        "type":   d.get("debtor_type",""),
-                        "phone":  d.get("phone",""),
-                        "source": "manual",
-                    })
-                    break
-
-    # Remove duplicates
-    seen = set(); result = []
-    for d in birthday_debtors:
-        if d["code"] not in seen:
-            seen.add(d["code"])
-            result.append(d)
-
-    # Group by agent for per-agent target
-    by_agent = {}
-    for d in result:
-        by_agent.setdefault(d["agent"], []).append(d)
-
-    log(f"  Birthday campaign: {len(result)} VIP debtors ({today.strftime('%B %Y')}) — excl new accounts & personal")
-    return {
-        "month":    today.strftime("%B %Y"),
-        "count":    len(result),
-        "debtors":  result,
-        "by_agent": {a: len(v) for a, v in by_agent.items()},
-    }
 
 
 def calc_brand_campaigns(df, targets, agents, cur_month, prev_months, brand_config):
