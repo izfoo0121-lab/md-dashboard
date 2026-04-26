@@ -170,36 +170,46 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 <!-- Tooltip -->
 <div class="tooltip" id="tooltip"></div>
 
-<!-- GistSync (reads same gist as stock.html) -->
+<!-- SupabaseSync (reads stock tables written by the VPS bot) -->
 <script>
-const GIST_ID = 'ceb4064c9e2a6d37c6e52c3b02f04a1d';
-const TOKEN_PLACEHOLDER = '%%GITHUB_TOKEN%%';
+const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxaXRnbXlkY2J5aXlncWpzc3JiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTQ5NzIsImV4cCI6MjA5MjI3MDk3Mn0.5A5LEYDMSYOq0hMJDmaBScuCiJiyg5WrKXYasTSgMuE';
 
-const GistSync = (() => {
-  const CFG_KEY = 'md_gist_config';
-  function getConfig(){
-    try{const ls=JSON.parse(localStorage.getItem(CFG_KEY)||'{}');
-        return {gist_id:ls.gist_id||GIST_ID,token:ls.token||TOKEN_PLACEHOLDER};}
-    catch{return {gist_id:GIST_ID,token:TOKEN_PLACEHOLDER};}
+const SupabaseSync = (() => {
+  const headers = {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    Accept: 'application/json',
+  };
+
+  async function readTable(table){
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*`, {headers});
+    if(!r.ok){
+      const body = await r.text().catch(() => '');
+      throw new Error(`${table} ${r.status}: ${body.slice(0,120)}`);
+    }
+    return await r.json();
   }
+
   async function pull(){
-    const {gist_id,token}=getConfig();
-    if(!token||token===TOKEN_PLACEHOLDER) return null;
     try{
-      const r=await fetch(`https://api.github.com/gists/${gist_id}`,{
-        headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json'}
-      });
-      if(!r.ok) return null;
-      const data=await r.json();
-      const result={};
-      Object.entries(data.files||{}).forEach(([fname,f])=>{
-        try{result[fname.replace('.json','')]=JSON.parse(f.content||'[]');}
-        catch{result[fname.replace('.json','')]=[];}
-      });
-      return result;
-    }catch{return null;}
+      const [orders, grns, transfers] = await Promise.all([
+        readTable('stock_orders'),
+        readTable('stock_grn'),
+        readTable('stock_transfers'),
+      ]);
+      return {
+        stock_orders: Array.isArray(orders) ? orders : [],
+        stock_grn: Array.isArray(grns) ? grns : [],
+        stock_transfers: Array.isArray(transfers) ? transfers : [],
+      };
+    }catch(e){
+      console.error('Supabase pull failed', e);
+      return null;
+    }
   }
-  return{getConfig,pull};
+
+  return{pull};
 })();
 </script>
 
@@ -232,9 +242,9 @@ async function refreshData(){
   loading.style.display='block';
   main.style.display='none';
 
-  const data=await GistSync.pull();
+  const data=await SupabaseSync.pull();
   if(!data){
-    loading.innerHTML='<div style="color:var(--accent);">❌ Cannot fetch Gist. Check token in admin.html.</div>';
+    loading.innerHTML='<div style="color:var(--accent);">❌ Cannot fetch Supabase stock data.</div>';
     return;
   }
 
