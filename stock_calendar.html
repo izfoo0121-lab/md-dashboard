@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Miracle MD — Stock Calendar</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f3ee;--surface:#ffffff;--card:#fdfcf9;--border:#e2ddd5;
+  --ink:#1a1714;--ink2:#5a5550;--ink3:#9a9590;
+  --accent:#c8381a;--green:#2a7a4b;--gold:#c8860a;--blue:#1a5c8f;
+  --red-bg:#fde8e4;--green-bg:#edf6f1;--gold-bg:#fdf8ed;--blue-bg:#edf3f9;
+  --display:'Bebas Neue',sans-serif;
+  --body:'DM Sans',sans-serif;
+  --mono:'DM Mono',monospace;
+  /* Cell status colors */
+  --c-matched:#edf6f1;--c-matched-border:#2a7a4b;--c-matched-text:#2a7a4b;
+  --c-ordered:#edf3f9;--c-ordered-border:#1a5c8f;--c-ordered-text:#1a5c8f;
+  --c-received:#fdf8ed;--c-received-border:#c8860a;--c-received-text:#c8860a;
+  --c-gap:#fde8e4;--c-gap-border:#c8381a;--c-gap-text:#c8381a;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:100vh;padding-bottom:40px;}
+
+/* Header */
+.hdr{background:var(--ink);color:#fff;padding:14px 18px;position:sticky;top:0;z-index:200;}
+.hdr-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.hdr-title{font-family:var(--display);font-size:26px;letter-spacing:.05em;line-height:1;}
+.hdr-sub{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;margin-top:2px;}
+.nav-btn{background:rgba(255,255,255,.1);border:none;color:#fff;font-family:var(--mono);font-size:9px;padding:5px 10px;border-radius:8px;cursor:pointer;text-decoration:none;display:inline-block;margin-right:4px;}
+.nav-btn:hover{background:rgba(255,255,255,.2);}
+.month-nav{display:flex;align-items:center;gap:8px;}
+.month-label{font-family:var(--display);font-size:20px;letter-spacing:.04em;min-width:160px;text-align:center;}
+.month-arrow{background:rgba(255,255,255,.12);border:none;color:#fff;font-size:16px;width:28px;height:28px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.month-arrow:hover{background:rgba(255,255,255,.25);}
+
+/* KPI strip */
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;}
+.kpi-box{background:rgba(255,255,255,.07);border-radius:8px;padding:7px 8px;}
+.kpi-val{font-family:var(--display);font-size:18px;color:#fff;line-height:1;}
+.kpi-val.g{color:#5de89a;}.kpi-val.r{color:#ff6b6b;}.kpi-val.w{color:#ffc94d;}.kpi-val.b{color:#4da6ff;}
+.kpi-lbl{font-family:var(--mono);font-size:7px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;}
+
+/* Page body */
+.page{padding:12px 14px;max-width:1400px;margin:0 auto;}
+@media(min-width:600px){.page{padding:16px 20px;}}
+
+/* Filter row */
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+.filter-chip{font-family:var(--mono);font-size:10px;padding:6px 12px;border:1px solid var(--border);border-radius:20px;background:var(--surface);color:var(--ink2);cursor:pointer;transition:all .15s;}
+.filter-chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+.filter-chip:hover:not(.active){background:var(--card);}
+
+/* Legend */
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.legend-item{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--ink2);}
+.legend-dot{width:10px;height:10px;border-radius:3px;border:1px solid;}
+
+/* Calendar grid */
+.cal-wrap{overflow-x:auto;margin-bottom:16px;border-radius:12px;border:1px solid var(--border);}
+.cal-table{border-collapse:collapse;width:100%;min-width:800px;background:var(--surface);}
+.cal-table th{background:var(--card);padding:6px 4px;text-align:center;
+             font-family:var(--mono);font-size:9px;text-transform:uppercase;
+             letter-spacing:.06em;color:var(--ink3);border-bottom:1px solid var(--border);
+             position:sticky;top:0;white-space:nowrap;}
+.cal-table th.agent-col{text-align:left;padding-left:12px;min-width:70px;position:sticky;left:0;z-index:10;background:var(--card);}
+.cal-table th.weekend{background:rgba(200,56,26,.04);}
+.cal-table th.today-col{background:rgba(200,56,26,.08);color:var(--accent);}
+.cal-table td{padding:3px 2px;text-align:center;border-right:1px solid rgba(226,221,213,.4);border-bottom:1px solid rgba(226,221,213,.4);}
+.cal-table td.agent-name{text-align:left;padding:6px 12px;font-family:var(--display);font-size:15px;letter-spacing:.04em;position:sticky;left:0;background:var(--surface);z-index:5;white-space:nowrap;border-right:1px solid var(--border);}
+.cal-table tbody tr:hover td{background:rgba(26,23,20,.02);}
+.cal-table tbody tr:hover td.agent-name{background:var(--card);}
+.cal-table td.total-cell{font-family:var(--mono);font-size:10px;padding:4px 8px;border-left:1px solid var(--border);white-space:nowrap;text-align:right;}
+.cal-table tr.total-row td{background:var(--card);font-family:var(--mono);font-size:10px;padding:5px 4px;font-weight:600;border-top:2px solid var(--border);}
+.cal-table tr.total-row td.agent-name{font-family:var(--mono);font-size:10px;color:var(--ink2);}
+
+/* Calendar cells */
+.cell{width:22px;height:22px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;transition:transform .1s;border:1px solid transparent;}
+.cell:hover{transform:scale(1.3);z-index:20;position:relative;}
+.cell.matched{background:var(--c-matched);border-color:var(--c-matched-border);color:var(--c-matched-text);}
+.cell.ordered{background:var(--c-ordered);border-color:var(--c-ordered-border);color:var(--c-ordered-text);}
+.cell.received{background:var(--c-received);border-color:var(--c-received-border);color:var(--c-received-text);}
+.cell.gap{background:var(--c-gap);border-color:var(--c-gap-border);color:var(--c-gap-text);animation:pulse 2s infinite;}
+.cell.future{color:var(--ink3);font-size:8px;}
+.cell.empty{color:rgba(154,149,144,.25);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.6;}}
+
+/* Summary cards below calendar */
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:16px;}
+.summary-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.summary-card .agent{font-family:var(--display);font-size:22px;letter-spacing:.04em;margin-bottom:6px;}
+.summary-card .stats{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+.summary-card .stat{font-family:var(--mono);font-size:10px;color:var(--ink2);}
+.summary-card .stat b{font-size:14px;color:var(--ink);font-family:var(--display);letter-spacing:.02em;}
+.summary-card.has-gap{border-left:3px solid var(--accent);}
+.summary-card .gap-tag{font-family:var(--mono);font-size:9px;color:var(--accent);background:var(--red-bg);padding:2px 8px;border-radius:10px;display:inline-block;margin-top:4px;}
+.rate-bar{height:3px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+.rate-fill{height:100%;border-radius:2px;transition:width .4s;}
+
+/* Tooltip */
+.tooltip{position:fixed;background:var(--ink);color:#fff;padding:10px 14px;border-radius:8px;font-family:var(--mono);font-size:11px;z-index:1000;pointer-events:none;display:none;max-width:220px;line-height:1.6;}
+.tooltip .tt-title{font-size:12px;font-weight:600;margin-bottom:4px;}
+
+/* Loading / empty */
+.loader{text-align:center;padding:40px;color:var(--ink3);font-family:var(--mono);font-size:11px;}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-top">
+    <div>
+      <a class="nav-btn" href="management.html">← Management</a>
+      <a class="nav-btn" href="stock.html">📦 Stock</a>
+      <div class="hdr-title" style="margin-top:6px;">Miracle-奇迹 MD</div>
+      <div class="hdr-sub">Stock Order Calendar · GRP 2A</div>
+    </div>
+    <div>
+      <div class="month-nav">
+        <button class="month-arrow" onclick="changeMonth(-1)">‹</button>
+        <div class="month-label" id="month-label">APR 2026</div>
+        <button class="month-arrow" onclick="changeMonth(1)">›</button>
+      </div>
+    </div>
+  </div>
+  <div class="kpi-strip">
+    <div class="kpi-box"><div class="kpi-val g" id="k-orders">—</div><div class="kpi-lbl">Orders</div></div>
+    <div class="kpi-box"><div class="kpi-val b" id="k-received">—</div><div class="kpi-lbl">Received</div></div>
+    <div class="kpi-box"><div class="kpi-val r" id="k-gaps">—</div><div class="kpi-lbl">Gaps ⚠</div></div>
+    <div class="kpi-box"><div class="kpi-val w" id="k-rate">—</div><div class="kpi-lbl">Fulfillment</div></div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- Filters -->
+  <div class="filter-row">
+    <div class="filter-chip active" onclick="setCompany(this,'all')">All</div>
+    <div class="filter-chip" onclick="setCompany(this,'CCOM')">CCOM</div>
+    <div class="filter-chip" onclick="setCompany(this,'8COM')">8公司</div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--c-matched);border-color:var(--c-matched-border)"></div>✓ Ordered + Received</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--c-ordered);border-color:var(--c-ordered-border)"></div>○ Ordered (pending)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--c-received);border-color:var(--c-received-border)"></div>↓ Received only</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--c-gap);border-color:var(--c-gap-border)"></div>⚠ Gap (2+ days, no GRN)</div>
+  </div>
+
+  <div id="loading-state" class="loader">
+    <span class="spinner"></span>Loading stock calendar from Gist…
+  </div>
+
+  <div id="main-content" style="display:none;">
+    <!-- Calendar grid -->
+    <div class="cal-wrap">
+      <table class="cal-table" id="cal-table"></table>
+    </div>
+
+    <!-- Agent summary cards -->
+    <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink3);margin-bottom:10px;padding-top:4px;border-top:1px solid var(--border);">Agent Summary</div>
+    <div class="summary-grid" id="summary-grid"></div>
+  </div>
+</div>
+
+<!-- Tooltip -->
+<div class="tooltip" id="tooltip"></div>
+
+<!-- GistSync (reads same gist as stock.html) -->
+<script>
+const GIST_ID = 'ceb4064c9e2a6d37c6e52c3b02f04a1d';
+const TOKEN_PLACEHOLDER = '%%GITHUB_TOKEN%%';
+
+const GistSync = (() => {
+  const CFG_KEY = 'md_gist_config';
+  function getConfig(){
+    try{const ls=JSON.parse(localStorage.getItem(CFG_KEY)||'{}');
+        return {gist_id:ls.gist_id||GIST_ID,token:ls.token||TOKEN_PLACEHOLDER};}
+    catch{return {gist_id:GIST_ID,token:TOKEN_PLACEHOLDER};}
+  }
+  async function pull(){
+    const {gist_id,token}=getConfig();
+    if(!token||token===TOKEN_PLACEHOLDER) return null;
+    try{
+      const r=await fetch(`https://api.github.com/gists/${gist_id}`,{
+        headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json'}
+      });
+      if(!r.ok) return null;
+      const data=await r.json();
+      const result={};
+      Object.entries(data.files||{}).forEach(([fname,f])=>{
+        try{result[fname.replace('.json','')]=JSON.parse(f.content||'[]');}
+        catch{result[fname.replace('.json','')]=[];}
+      });
+      return result;
+    }catch{return null;}
+  }
+  return{getConfig,pull};
+})();
+</script>
+
+<!-- App -->
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','YI'];
+const GAP_DAYS = 2;
+
+let STATE = {
+  orders: [],
+  grns: [],
+  year: new Date().getFullYear(),
+  month: new Date().getMonth() + 1,
+  company: 'all',
+};
+
+// ── Date helpers ───────────────────────────────────────────────────────────
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function monthLabel(y,m){ return new Date(y,m-1,1).toLocaleString('en-US',{month:'long',year:'numeric'}); }
+function daysInMonth(y,m){ return new Date(y,m,0).getDate(); }
+function weekdayOf(y,m,d){ return new Date(y,m-1,d).toLocaleString('en-US',{weekday:'short'}); }
+function isWeekend(y,m,d){ const dow=new Date(y,m-1,d).getDay(); return dow===0||dow===6; }
+function dateStr(y,m,d){ return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+
+// ── Data loading ───────────────────────────────────────────────────────────
+async function refreshData(){
+  const loading=document.getElementById('loading-state');
+  const main=document.getElementById('main-content');
+  loading.style.display='block';
+  main.style.display='none';
+
+  const data=await GistSync.pull();
+  if(!data){
+    loading.innerHTML='<div style="color:var(--accent);">❌ Cannot fetch Gist. Check token in admin.html.</div>';
+    return;
+  }
+
+  STATE.orders = Array.isArray(data.stock_orders) ? data.stock_orders : [];
+  STATE.grns   = Array.isArray(data.stock_grn)    ? data.stock_grn    : [];
+
+  loading.style.display='none';
+  main.style.display='block';
+  renderAll();
+}
+
+// ── Calendar computation ───────────────────────────────────────────────────
+function computeCalendar(){
+  const {year,month,company,orders,grns} = STATE;
+  const today = todayStr();
+  const prefix = `${year}-${String(month).padStart(2,'0')}`;
+
+  // Filter by company
+  const fOrders = company==='all' ? orders : orders.filter(o=>o.company===company);
+  const fGrns   = company==='all' ? grns   : grns.filter(g=>g.company===company);
+
+  // Filter to this month
+  const mOrders = fOrders.filter(o=>(o.date||'').startsWith(prefix));
+  const mGrns   = fGrns.filter(g=>(g.date||'').startsWith(prefix));
+
+  // Build lookups: agent → day → items
+  const orderMap = {};
+  const grnMap   = {};
+  const allAgents = new Set(AGENTS);
+
+  mOrders.forEach(o=>{
+    const a=o.agent||'?'; allAgents.add(a);
+    const d=parseInt((o.date||'').split('-')[2]);
+    if(!orderMap[a]) orderMap[a]={};
+    if(!orderMap[a][d]) orderMap[a][d]=[];
+    orderMap[a][d].push(o);
+  });
+  mGrns.forEach(g=>{
+    const a=g.agent||'?'; allAgents.add(a);
+    const d=parseInt((g.date||'').split('-')[2]);
+    if(!grnMap[a]) grnMap[a]={};
+    if(!grnMap[a][d]) grnMap[a][d]=[];
+    grnMap[a][d].push(g);
+  });
+
+  const days = Array.from({length:daysInMonth(year,month)},(_,i)=>i+1);
+  const cells = {};
+  const agentSummary = {};
+  const dayTotals = {};
+
+  Array.from(allAgents).sort().forEach(agent=>{
+    let totalOrders=0, totalReceived=0, gaps=0, gapDates=[];
+
+    days.forEach(d=>{
+      const key=`${agent}-${d}`;
+      const dayOrders=(orderMap[agent]||{})[d]||[];
+      const dayGrns=(grnMap[agent]||{})[d]||[];
+      const ds=dateStr(year,month,d);
+      const isFuture=ds>today;
+      const hasOrder=dayOrders.length>0;
+      const hasGrn=dayGrns.length>0;
+      const daysPast=Math.floor((new Date(today)-new Date(ds))/86400000);
+      const isGap=hasOrder&&!hasGrn&&daysPast>=GAP_DAYS&&!isFuture;
+
+      let status='empty';
+      if(hasOrder&&hasGrn)    status='matched';
+      else if(hasOrder&&isGap) status='gap';
+      else if(hasOrder)        status='ordered';
+      else if(hasGrn)          status='received';
+
+      cells[key]={status,orders:dayOrders,grns:dayGrns,date:ds,isFuture};
+
+      if(!dayTotals[d]) dayTotals[d]={orders:0,received:0,gaps:0};
+      if(hasOrder){ totalOrders++; dayTotals[d].orders++; }
+      if(hasGrn)  { totalReceived++; dayTotals[d].received++; }
+      if(isGap)   { gaps++; dayTotals[d].gaps++; gapDates.push(`${d}`); }
+    });
+
+    const rate=totalOrders?Math.round(totalReceived/totalOrders*100):0;
+    agentSummary[agent]={totalOrders,totalReceived,gaps,gapDates,rate};
+  });
+
+  const agents=Array.from(allAgents).sort();
+  const totOrders=Object.values(agentSummary).reduce((a,s)=>a+s.totalOrders,0);
+  const totReceived=Object.values(agentSummary).reduce((a,s)=>a+s.totalReceived,0);
+  const totGaps=Object.values(agentSummary).reduce((a,s)=>a+s.gaps,0);
+  const totRate=totOrders?Math.round(totReceived/totOrders*100):0;
+
+  return{year,month,days,cells,agents,agentSummary,dayTotals,totOrders,totReceived,totGaps,totRate,today};
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function renderAll(){
+  const cal=computeCalendar();
+  document.getElementById('month-label').textContent=monthLabel(cal.year,cal.month).toUpperCase();
+
+  // KPIs
+  document.getElementById('k-orders').textContent=cal.totOrders;
+  document.getElementById('k-received').textContent=cal.totReceived;
+  document.getElementById('k-gaps').textContent=cal.totGaps;
+  document.getElementById('k-rate').textContent=cal.totRate+'%';
+
+  renderCalTable(cal);
+  renderSummaryCards(cal);
+}
+
+function renderCalTable(cal){
+  const {year,month,days,cells,agents,agentSummary,dayTotals,totOrders,totReceived,totGaps,today}=cal;
+  const t=document.getElementById('cal-table');
+  t.innerHTML='';
+
+  // Header row
+  const thead=document.createElement('thead');
+  const hr=document.createElement('tr');
+  const th0=document.createElement('th');
+  th0.className='agent-col';
+  th0.textContent='Agent';
+  hr.appendChild(th0);
+  days.forEach(d=>{
+    const th=document.createElement('th');
+    const ds=dateStr(year,month,d);
+    th.className=(ds===today?'today-col':isWeekend(year,month,d)?'weekend':'');
+    th.innerHTML=`${d}<br><span style="font-size:7px;opacity:.6">${weekdayOf(year,month,d).slice(0,1)}</span>`;
+    hr.appendChild(th);
+  });
+  const thTotal=document.createElement('th');
+  thTotal.textContent='Rate';
+  thTotal.style.textAlign='right';
+  thTotal.style.paddingRight='8px';
+  hr.appendChild(thTotal);
+  thead.appendChild(hr);
+  t.appendChild(thead);
+
+  // Body
+  const tbody=document.createElement('tbody');
+  agents.forEach(agent=>{
+    const row=document.createElement('tr');
+    const tdName=document.createElement('td');
+    tdName.className='agent-name';
+    tdName.textContent=agent;
+    row.appendChild(tdName);
+
+    days.forEach(d=>{
+      const td=document.createElement('td');
+      const key=`${agent}-${d}`;
+      const cell=cells[key]||{status:'empty'};
+      const icons={matched:'✓',ordered:'○',received:'↓',gap:'!',empty:'·'};
+      const div=document.createElement('div');
+      div.className=`cell ${cell.status}${cell.isFuture?' future':''}`;
+      div.textContent=cell.isFuture&&cell.status==='empty'?'':icons[cell.status]||'·';
+      div.addEventListener('mouseenter',(e)=>showTooltip(e,agent,d,cell,year,month));
+      div.addEventListener('mouseleave',hideTooltip);
+      td.appendChild(div);
+      row.appendChild(td);
+    });
+
+    const s=agentSummary[agent]||{};
+    const tdTotal=document.createElement('td');
+    tdTotal.className='total-cell';
+    const gapBadge=s.gaps>0?` <span style="color:var(--accent)">⚠${s.gaps}</span>`:'';
+    tdTotal.innerHTML=`${s.rate||0}%${gapBadge}`;
+    row.appendChild(tdTotal);
+    tbody.appendChild(row);
+  });
+
+  // Total row
+  const totalRow=document.createElement('tr');
+  totalRow.className='total-row';
+  const tdTotalName=document.createElement('td');
+  tdTotalName.className='agent-name';
+  tdTotalName.textContent='Day total';
+  totalRow.appendChild(tdTotalName);
+  days.forEach(d=>{
+    const td=document.createElement('td');
+    const dt=dayTotals[d]||{orders:0,gaps:0};
+    if(dt.gaps>0){
+      td.style.background='rgba(200,56,26,.06)';
+      td.innerHTML=`<span style="color:var(--accent);font-size:9px">${dt.orders}</span>`;
+    } else if(dt.orders>0){
+      td.innerHTML=`<span style="font-size:9px">${dt.orders}</span>`;
+    } else {
+      td.innerHTML=`<span style="opacity:.25;font-size:9px">·</span>`;
+    }
+    totalRow.appendChild(td);
+  });
+  const tdTotalRate=document.createElement('td');
+  tdTotalRate.className='total-cell';
+  tdTotalRate.textContent=cal.totRate+'%';
+  totalRow.appendChild(tdTotalRate);
+  tbody.appendChild(totalRow);
+  t.appendChild(tbody);
+}
+
+function renderSummaryCards(cal){
+  const {agentSummary}=cal;
+  const grid=document.getElementById('summary-grid');
+  grid.innerHTML='';
+
+  // Sort by gaps desc then fulfillment asc
+  const sorted=Object.entries(agentSummary)
+    .sort(([,a],[,b])=>b.gaps-a.gaps||a.rate-b.rate);
+
+  sorted.forEach(([agent,s])=>{
+    const card=document.createElement('div');
+    card.className=`summary-card${s.gaps>0?' has-gap':''}`;
+    const rateColor=s.rate>=90?'var(--green)':s.rate>=70?'var(--gold)':'var(--accent)';
+    card.innerHTML=`
+      <div class="agent">${agent}</div>
+      <div class="stats">
+        <div class="stat"><b>${s.totalOrders}</b><br>Orders</div>
+        <div class="stat"><b>${s.totalReceived}</b><br>Received</div>
+        <div class="stat"><b style="color:${rateColor}">${s.rate}%</b><br>Rate</div>
+        <div class="stat"><b style="color:${s.gaps>0?'var(--accent)':'var(--green)'}">${s.gaps}</b><br>Gaps</div>
+      </div>
+      ${s.gaps>0?`<div class="gap-tag">⚠ Gaps: Apr ${s.gapDates.slice(0,3).join(', Apr ')}${s.gapDates.length>3?' +more':''}</div>`:''}
+      <div class="rate-bar"><div class="rate-fill" style="width:${s.rate}%;background:${rateColor}"></div></div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ── Tooltip ────────────────────────────────────────────────────────────────
+function showTooltip(e, agent, day, cell, year, month){
+  const tt=document.getElementById('tooltip');
+  const ds=`${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  const statusLabel={matched:'Ordered + Received',ordered:'Ordered (pending GRN)',received:'Received (no order)',gap:'⚠ GAP — delivery overdue',empty:'No activity'}[cell.status];
+
+  let html=`<div class="tt-title">${agent} — Apr ${day}</div>`;
+  html+=`<div style="opacity:.7;margin-bottom:4px">${statusLabel}</div>`;
+
+  if(cell.orders&&cell.orders.length>0){
+    const o=cell.orders[0];
+    const items=(o.lines||[]).filter(l=>l.sku).map(l=>`${l.sku} ${l.qty}`).join(', ');
+    html+=`<div>📋 Order: ${items||'—'}</div>`;
+    if(o.meta&&o.meta.contact) html+=`<div style="opacity:.6">📞 ${o.meta.contact}</div>`;
+  }
+  if(cell.grns&&cell.grns.length>0){
+    const g=cell.grns[0];
+    const items=(g.lines||[]).filter(l=>l.sku).map(l=>`${l.sku} ${l.qty}`).join(', ');
+    html+=`<div>📦 GRN: ${items||'—'}${g.total_hint?` (total ${g.total_hint})`:''}</div>`;
+  }
+
+  tt.innerHTML=html;
+  tt.style.display='block';
+  const rect=e.target.getBoundingClientRect();
+  tt.style.left=Math.min(rect.right+8,window.innerWidth-230)+'px';
+  tt.style.top=Math.max(rect.top-10,8)+'px';
+}
+
+function hideTooltip(){
+  document.getElementById('tooltip').style.display='none';
+}
+
+// ── Month navigation ───────────────────────────────────────────────────────
+function changeMonth(delta){
+  STATE.month+=delta;
+  if(STATE.month>12){STATE.month=1;STATE.year++;}
+  if(STATE.month<1){STATE.month=12;STATE.year--;}
+  renderAll();
+}
+
+function setCompany(el,v){
+  document.querySelectorAll('.filter-chip').forEach(e=>e.classList.remove('active'));
+  el.classList.add('active');
+  STATE.company=v;
+  renderAll();
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+refreshData();
+</script>
+</body>
+</html>
