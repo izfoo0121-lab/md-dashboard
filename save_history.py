@@ -331,7 +331,7 @@ def save_history():
     # ── Save ──────────────────────────────────────────────────────────────
     wb.save(HISTORY_FILE)
     size_kb = HISTORY_FILE.stat().st_size / 1024
-    log(f"\n✅ history.xlsx saved — {size_kb:.0f} KB")
+    log(f"\n[OK] history.xlsx saved — {size_kb:.0f} KB")
     log(f"   {len(monthly_rows)} agents · {month}")
     log("=" * 50)
 

@@ -26,4 +26,4 @@ data = {
 with open(HISTORY_JSON, "w", encoding="utf-8") as f:
     json.dump(data, f, ensure_ascii=False)
 
-print(f"✅ history.json saved — {HISTORY_JSON.stat().st_size//1024} KB")
+print(f"[OK] history.json saved — {HISTORY_JSON.stat().st_size//1024} KB")
