@@ -1,6 +1,6 @@
 {
   "_comment": "MD Sales Dashboard — loaded from Supabase",
-  "_loaded_at": "2026-04-25T13:39:58.981907",
+  "_loaded_at": "2026-04-27T10:22:34.489975",
   "agents": {
     "KEE": {
       "is_newbie": false,
@@ -3182,6 +3182,10 @@
     "300-KT200": "add",
     "300-KT202": "add",
     "300-D323": "add",
+    "300-KH292": "remove",
+    "300-KT206": "remove",
+    "300-WK079": "remove",
+    "300-WK084": "remove",
     "300-KH261": "add",
     "300-BR031": "remove",
     "300-H030": "remove",
@@ -3190,11 +3194,7 @@
     "300-WK081": "remove",
     "300-D300": "remove",
     "300-D070": "remove",
-    "300-D247": "remove",
-    "300-KH292": "remove",
-    "300-KT206": "remove",
-    "300-WK079": "remove",
-    "300-WK084": "remove"
+    "300-D247": "remove"
   },
   "group_brand_targets": {
     "SUKUN": 7800.0,
