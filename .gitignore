@@ -27,3 +27,4 @@ gistsync_supabase.js
 cleanup_log.txt
 *_BACKUP_*.xlsx
 *_BACKUP_*.json
+stock_bot/
