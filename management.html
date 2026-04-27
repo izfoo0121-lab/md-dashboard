@@ -2705,12 +2705,12 @@ function renderDroppingDebtors() {
     const dropCol = d.stopped ? 'var(--accent)' : 'var(--gold)';
     // Static item-code → SKU group map (mirrors price_ref.json)
     const SKU_ITEM_MAP = {
-      'IFACE': ['IF-001','IF-002','IF-003','IFCE','IFACE','IF001','IF002'],
-      'SUKUN': ['SK-001','SK-002','SKNR','SUKUN','SKN','SK001','SK002'],
-      'EVO':   ['EV-001','EV-002','EVO','EVO-001','EVO-002','EV001','EV002'],
-      'BISON': ['BS-001','BS-002','BISON','BSN','BS001','BS002'],
-      'TR20':  ['TR-001','TR-002','TR20','TR002','TR001','TR-003'],
-      'LAM+LWM':['LAM','LWM','LAM-001','LWM-001','LM001','LW001'],
+      'IFACE':   ['IFACE B','IFACE DB','IFACE M','IFACE R'],
+      'SUKUN':   ['SKNR','SKNW'],
+      'EVO':     ['EVO','DPM EVO'],
+      'BISON':   ['BISON-G','BISON-M','BISON-R'],
+      'TR20':    ['TR-002','TR20'],
+      'LAM+LWM': ['LAM','LWM'],
     };
     const _sumSkuCtn = (monthKey) => {
       if (!_dropSkuFilter || _dropSkuFilter === 'all') return null;
@@ -2718,10 +2718,7 @@ function renderDroppingDebtors() {
       const itemKeys = SKU_ITEM_MAP[_dropSkuFilter] || [];
       if (!itemKeys.length) return null;
       return rows
-        .filter(r => itemKeys.some(k =>
-          (r.item||'').toUpperCase().includes(k.toUpperCase()) ||
-          k.toUpperCase().includes((r.item||'').toUpperCase())
-        ))
+        .filter(r => itemKeys.includes(r.item || ''))
         .reduce((s, r) => s + (r.ctn || 0), 0);
     };
     const _curMth  = DATA?.current_month || '';
