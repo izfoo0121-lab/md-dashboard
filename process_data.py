@@ -1583,21 +1583,6 @@ def calc_birthday_campaign(debtor_cards, targets, cur_month=None):
     PERSONAL_TYPES = {"P-Personal","P-PERSONAL","personal","Personal","PERSONAL"}
 
     birthday_debtors = []
-    # ── TEMPORARY DEBUG — remove after investigating 7 missing debtors ─────────
-    _debug_codes = {'300-BY314','300-D323','300-KH261','300-KT193','300-KT195','300-KT200','300-KT202'}
-    for _ag, _adata in debtor_cards.items():
-        for _d in _adata.get("debtors", []):
-            if _d.get("debtor_code","") in _debug_codes:
-                log(f"  DEBUG FOUND {_d.get('debtor_code')} under {_ag}: "
-                    f"vip={_d.get('vip')} is_new={_d.get('is_new')} "
-                    f"open_month={_d.get('open_month')} "
-                    f"type={_d.get('debtor_type')} birth_month={_d.get('birth_month')} "
-                    f"birth_date_raw={_d.get('birth_date_raw')} "
-                    f"birthday_this_month={_d.get('birthday_this_month')}")
-    _found_debug = {_d.get('debtor_code') for _ag,_adata in debtor_cards.items() for _d in _adata.get('debtors',[]) if _d.get('debtor_code') in _debug_codes}
-    for _c in _debug_codes - _found_debug:
-        log(f"  DEBUG MISSING {_c}: not in debtor_cards — Debtor Maintenance.xlsx may be stale or agent mismatch")
-    # ── END DEBUG ─────────────────────────────────────────────────────────────
     for agent, adata in debtor_cards.items():
         for d in adata.get("debtors", []):
             code        = d.get("debtor_code", "")
