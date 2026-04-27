@@ -2703,8 +2703,36 @@ function renderDroppingDebtors() {
   list.innerHTML = shown.map((d, i) => {
     const bg      = i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,.02)';
     const dropCol = d.stopped ? 'var(--accent)' : 'var(--gold)';
-    const prevCtn = d.ctn_prev1 || 0;
-    const curCtn  = d.ctn_cur  || 0;
+    // Static item-code → SKU group map (mirrors price_ref.json)
+    const SKU_ITEM_MAP = {
+      'IFACE': ['IF-001','IF-002','IF-003','IFCE','IFACE','IF001','IF002'],
+      'SUKUN': ['SK-001','SK-002','SKNR','SUKUN','SKN','SK001','SK002'],
+      'EVO':   ['EV-001','EV-002','EVO','EVO-001','EVO-002','EV001','EV002'],
+      'BISON': ['BS-001','BS-002','BISON','BSN','BS001','BS002'],
+      'TR20':  ['TR-001','TR-002','TR20','TR002','TR001','TR-003'],
+      'LAM+LWM':['LAM','LWM','LAM-001','LWM-001','LM001','LW001'],
+    };
+    const _sumSkuCtn = (monthKey) => {
+      if (!_dropSkuFilter || _dropSkuFilter === 'all') return null;
+      const rows     = (d.month_breakdown || {})[monthKey] || [];
+      const itemKeys = SKU_ITEM_MAP[_dropSkuFilter] || [];
+      if (!itemKeys.length) return null;
+      return rows
+        .filter(r => itemKeys.some(k =>
+          (r.item||'').toUpperCase().includes(k.toUpperCase()) ||
+          k.toUpperCase().includes((r.item||'').toUpperCase())
+        ))
+        .reduce((s, r) => s + (r.ctn || 0), 0);
+    };
+    const _curMth  = DATA?.current_month || '';
+    const _allMths = Object.keys(d.month_breakdown || {});
+    const _prevMth = _allMths.find(m => m !== _curMth) || '';
+    const _skuCur  = _sumSkuCtn(_curMth);
+    const _skuPrev = _sumSkuCtn(_prevMth);
+    const prevCtn  = (_dropSkuFilter && _dropSkuFilter !== 'all' && _skuPrev !== null)
+                     ? _skuPrev : (d.ctn_prev1 || 0);
+    const curCtn   = (_dropSkuFilter && _dropSkuFilter !== 'all' && _skuCur  !== null)
+                     ? _skuCur  : (d.ctn_cur   || 0);
 
     const statusTag = d.stopped
       ? `<span style="font-family:var(--mono);font-size:8px;background:rgba(200,56,26,.1);color:var(--accent);padding:2px 7px;border-radius:8px;white-space:nowrap;">Stopped</span>`
