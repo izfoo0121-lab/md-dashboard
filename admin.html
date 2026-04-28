@@ -1072,7 +1072,7 @@ async function loadKpiManual() {
   // Fetch all agents from CONFIG
   const agents = Object.keys(CONFIG.agents || {}).filter(a =>
     !CONFIG.agents[a]?.archived        // skip archived
-  );
+  ).sort();
   if (!agents.length) {
     form.innerHTML = '<div style="color:var(--muted);font-family:var(--mono);font-size:11px;">No agents configured. Add agents in Agent Targets tab first.</div>';
     statusEl.textContent = '';
@@ -1122,7 +1122,7 @@ async function saveKpiManual() {
   const month = document.getElementById('kpi-manual-month').value;
   if (!month) { alert('Select a month first'); return; }
 
-  const agents = Object.keys(CONFIG.agents || {}).filter(a => !CONFIG.agents[a]?.archived);
+  const agents = Object.keys(CONFIG.agents || {}).filter(a => !CONFIG.agents[a]?.archived).sort();
   const payload = agents.map(agent => {
     const newAccInput = document.getElementById(`kpi_m_new_${agent}`);
     const vipInput    = document.getElementById(`kpi_m_vip_${agent}`);
