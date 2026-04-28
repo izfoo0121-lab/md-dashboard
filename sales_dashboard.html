@@ -2827,27 +2827,27 @@ function renderGroupBrandTargets() {
       <div style="font-family:var(--mono);font-size:9px;color:var(--blue);text-align:right;margin-bottom:8px;">${DATA.current_month||''}</div>
       <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
         <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">前月条数 (已付款)</span>
-        <span style="font-family:var(--mono);font-size:11px;font-weight:600;">${fmtNum(prevMonthCtn)}</span>
+        <span style="font-family:var(--mono);font-size:11px;font-weight:600;">${fmtNum(Math.round(prevMonthCtn))}</span>
       </div>
       <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
         <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">本月条数 (已付款)</span>
-        <span style="font-family:var(--mono);font-size:11px;font-weight:600;">${fmtNum(curMonthPaid)}</span>
+        <span style="font-family:var(--mono);font-size:11px;font-weight:600;">${fmtNum(Math.round(curMonthPaid))}</span>
       </div>
       <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid var(--border);margin-bottom:10px;">
         <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">总共条数 (已付款)</span>
-        <span style="font-family:var(--display);font-size:20px;color:var(--green);">${fmtNum(totalPaidCtn)}</span>
+        <span style="font-family:var(--display);font-size:20px;color:var(--green);">${fmtNum(Math.round(totalPaidCtn))}</span>
       </div>
       <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
         <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">总共条数 (待付款)</span>
-        <span style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--red);">${fmtNum(canggihUnpaidCtn)}</span>
+        <span style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--red);">${fmtNum(Math.round(canggihUnpaidCtn))}</span>
       </div>
       <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
         <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">8com 总待付款条数</span>
-        <span style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--red);">${fmtNum(totalUnpaidCtn)}</span>
+        <span style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--red);">${fmtNum(Math.round(totalUnpaidCtn))}</span>
       </div>
       <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid var(--border);">
         <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">${DATA.current_month||''} 销售 (条数)</span>
-        <span style="font-family:var(--display);font-size:24px;color:var(--accent);">${fmtNum(totalSalesCtn)}</span>
+        <span style="font-family:var(--display);font-size:24px;color:var(--accent);">${fmtNum(Math.round(totalSalesCtn))}</span>
       </div>
     </div>`;
 
