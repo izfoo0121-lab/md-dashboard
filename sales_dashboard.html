@@ -290,10 +290,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 <!-- ── Cross-page Nav ── -->
 <div style="background:rgba(255,255,255,.04);border-bottom:1px solid var(--border);padding:6px 16px;display:flex;gap:10px;align-items:center;overflow-x:auto;">
   <span style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;">Go to:</span>
-  <a href="https://izfoo0121-lab.github.io/md-dashboard/management.html" style="font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;padding:3px 8px;border:1px solid rgba(77,166,255,.3);border-radius:6px;white-space:nowrap;">📊 Management</a>
-  <a href="https://izfoo0121-lab.github.io/md-dashboard/admin.html" style="font-family:var(--mono);font-size:9px;color:var(--accent);text-decoration:none;padding:3px 8px;border:1px solid rgba(240,192,64,.3);border-radius:6px;white-space:nowrap;">⚙ Admin</a>
-  <a href="https://izfoo0121-lab.github.io/md-dashboard/campaign_audit.html" style="font-family:var(--mono);font-size:9px;color:#a78bfa;text-decoration:none;padding:3px 8px;border:1px solid rgba(167,139,250,.3);border-radius:6px;white-space:nowrap;">🔍 Audit</a>
-  <a href="https://izfoo0121-lab.github.io/md-dashboard/accounts.html" style="font-family:var(--mono);font-size:9px;color:#ff8c5a;text-decoration:none;padding:3px 8px;border:1px solid rgba(200,90,26,.3);border-radius:6px;white-space:nowrap;">🏦 Accounts</a>
+  <a href="management.html" style="font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;padding:3px 8px;border:1px solid rgba(77,166,255,.3);border-radius:6px;white-space:nowrap;">📊 Management</a>
+  <a href="admin.html" style="font-family:var(--mono);font-size:9px;color:var(--accent);text-decoration:none;padding:3px 8px;border:1px solid rgba(240,192,64,.3);border-radius:6px;white-space:nowrap;">⚙ Admin</a>
+  <a href="campaign_audit.html" style="font-family:var(--mono);font-size:9px;color:#a78bfa;text-decoration:none;padding:3px 8px;border:1px solid rgba(167,139,250,.3);border-radius:6px;white-space:nowrap;">🔍 Audit</a>
+  <a href="accounts.html" style="font-family:var(--mono);font-size:9px;color:#ff8c5a;text-decoration:none;padding:3px 8px;border:1px solid rgba(200,90,26,.3);border-radius:6px;white-space:nowrap;">🏦 Accounts</a>
 </div>
 
 <div class="header">
@@ -602,7 +602,7 @@ function updateSyncStatus() {
   <div class="filter-row" id="status-filter-row">
     <button class="filter-chip active" data-val="all" onclick="setFilter('status','all',this)">全部 All</button>
     <button class="filter-chip" data-val="active" onclick="setFilter('status','active',this)">已激活</button>
-    <button class="filter-chip" data-val="pending" onclick="setFilter('status','pending',this)">❌ Pending</button>
+    <button class="filter-chip" data-val="pending" onclick="setFilter('status','pending',this)">当月未开单</button>
     <button class="filter-chip" data-val="need_reactivation" onclick="setFilter('status','need_reactivation',this)">待激活</button>
   </div>
   <div class="filter-row" id="special-filter-row">
@@ -610,6 +610,8 @@ function updateSyncStatus() {
     <button class="filter-chip" data-val="new" onclick="setSpecialFilter('new',this)">🆕 New</button>
     <button class="filter-chip" data-val="birthday" onclick="setSpecialFilter('birthday',this)">🎂 Birthday</button>
     <button class="filter-chip" data-val="drop" onclick="setSpecialFilter('drop',this)">📉 Drop</button>
+    <button class="filter-chip" data-val="unpurchased" onclick="setSpecialFilter('unpurchased',this)">🎯 未购买</button>
+    <button class="filter-chip" data-val="nonvip" onclick="setSpecialFilter('nonvip',this)">⭐ 非VIP</button>
     <button class="filter-chip" data-val="newsku" onclick="setSpecialFilter('newsku',this)">✨ 新增SKU</button>
     <button class="filter-chip" data-val="flagged" onclick="setSpecialFilter('flagged',this)" style="border-color:rgba(255,95,95,.4);color:var(--red);">⚑ Flagged</button>
     <button class="filter-chip" data-val="campaign" onclick="setSpecialFilter('campaign',this)" style="border-color:rgba(61,220,132,.4);color:var(--green);">🎁 Campaign</button>
@@ -619,16 +621,6 @@ function updateSyncStatus() {
   <div class="filter-row" id="type-filter-row">
     <span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">Type:</span>
     <button class="filter-chip active" onclick="setTypeFilter('all',this)">All</button>
-  </div>
-  <div class="filter-row" id="brand-filter-row">
-    <span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">未购买:</span>
-    <button class="filter-chip active" data-brand="all" onclick="setBrandFilter('all',this)">All</button>
-    <button class="filter-chip" data-brand="IFACE" onclick="setBrandFilter('IFACE',this)">iFACE</button>
-    <button class="filter-chip" data-brand="SUKUN" onclick="setBrandFilter('SUKUN',this)">SUKUN</button>
-    <button class="filter-chip" data-brand="EVO" onclick="setBrandFilter('EVO',this)">EVO</button>
-    <button class="filter-chip" data-brand="BISON" onclick="setBrandFilter('BISON',this)">BISON</button>
-    <button class="filter-chip" data-brand="TR20" onclick="setBrandFilter('TR20',this)">TR20</button>
-    <button class="filter-chip" data-brand="LAM+LWM" onclick="setBrandFilter('LAM+LWM',this)">LAM+LWM</button>
   </div>
   <div id="debtor-list"></div>
   <div class="pagination">
@@ -684,7 +676,7 @@ function updateSyncStatus() {
   <div class="card" style="margin-bottom:10px;">
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <div>
-        <div style="font-family:var(--display);font-size:20px;letter-spacing:.05em;">品牌目标</div>
+        <div style="font-family:var(--display);font-size:20px;letter-spacing:.05em;">中两边 ZLB</div>
         <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:1px;">Brand Commission Target</div>
       </div>
       <div style="font-family:var(--mono);font-size:20px;color:var(--green);" id="total-comm">RM 0.00</div>
@@ -840,7 +832,7 @@ function updateSyncStatus() {
 <nav class="bottom-nav">
   <div class="nav-item active" onclick="switchView('debtors',this)"><div class="nav-icon">👥</div><div class="nav-label">Debtors</div></div>
   <div class="nav-item" onclick="switchView('sales',this)"><div class="nav-icon">📈</div><div class="nav-label">Sales</div></div>
-  <div class="nav-item" onclick="switchView('brand',this)"><div class="nav-icon">🏷️</div><div class="nav-label" style="font-size:7px;">品牌目标</div></div>
+  <div class="nav-item" onclick="switchView('brand',this)"><div class="nav-icon">🏷️</div><div class="nav-label" style="font-size:7px;">中两边 ZLB</div></div>
   <div class="nav-item" onclick="switchView('group',this)"><div class="nav-icon">🏢</div><div class="nav-label">Group</div></div>
   <div class="nav-item" onclick="switchView('kpi',this)"><div class="nav-icon">🎯</div><div class="nav-label">KPI</div></div>
   <div class="nav-item" onclick="switchView('camps',this)"><div class="nav-icon">🎁</div><div class="nav-label">Camps</div></div>
@@ -856,6 +848,19 @@ let currentView = 'debtors';
 let filters = { status: 'all', special: null, type: 'all', brand: 'all' };
 let currentPage = 1;
 const PAGE_SIZE = 12;
+let dropCtnFilter = 'all';
+let dropSkuFilter = 'all';
+let unpurchasedBrandFilter = 'IFACE';
+let unpurchasedTypeFilter  = 'all';
+let nonvipTypeFilter = 'all';
+const UNPURCHASED_BRAND_ITEMS = {
+  'IFACE':   ['IFACE B','IFACE DB','IFACE M','IFACE R'],
+  'SUKUN':   ['SKNR','SKNW'],
+  'EVO':     ['EVO','DPM EVO'],
+  'BISON':   ['BISON-G','BISON-M','BISON-R'],
+  'TR20':    ['TR-002','TR20'],
+  'LAM+LWM': ['LAM','LWM'],
+};
 
 const BRAND_COLORS = {
   'iFACE':'#4da6ff','SUKUN':'#a78bfa','EVO':'#ff5f5f',
@@ -941,6 +946,11 @@ async function switchMonth(slug) {
     } else {
       currentAgent = '';
       filters = { status:'all', special:null, type:'all', brand:'all' };
+      dropCtnFilter = 'all';
+      dropSkuFilter = 'all';
+      unpurchasedBrandFilter = 'IFACE';
+      unpurchasedTypeFilter  = 'all';
+      nonvipTypeFilter = 'all';
       const listEl = document.getElementById('debtor-list');
       if (listEl) listEl.innerHTML = '';
     }
@@ -1232,7 +1242,7 @@ function renderGlobalSearch(query) {
       ${results.length} result${results.length!==1?'s':''} across all agents
     </div>
     ${results.slice(0, 50).map(d => {
-      const stMap = { active:'已激活', need_reactivation:'待激活', pending:'Pending' };
+      const stMap = { active:'已激活', need_reactivation:'待激活', pending:'当月未开单' };
       const stCls = { active:'status-active', need_reactivation:'status-reactiv', pending:'status-pending' };
       const stTxt = stMap[d.status] || d.status || '';
       const phone = (d.phone||'').replace(/\s/g,'');
@@ -1286,6 +1296,11 @@ function selectAgent(agent) {
   currentAgent = agent;
   currentPage  = 1;
   filters = { status:'all', special:null, type:'all', brand:'all' };
+  dropCtnFilter = 'all';
+  dropSkuFilter = 'all';
+  unpurchasedBrandFilter = 'IFACE';
+  unpurchasedTypeFilter  = 'all';
+  nonvipTypeFilter = 'all';
 
   // If debtors not loaded yet, fetch from GitHub
   const dc = DATA.agents[agent]?.debtor_cards;
@@ -1333,7 +1348,6 @@ function selectAgent(agent) {
   // Reset all filter rows
   document.querySelectorAll('#status-filter-row .filter-chip').forEach((c,i) => c.classList.toggle('active', i===0));
   document.querySelectorAll('#special-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
-  document.querySelectorAll('#brand-filter-row .filter-chip').forEach((c,i) => c.classList.toggle('active', i===0));
 
   // Rebuild debtor type chips with counts
   const debtors = DATA.agents[agent]?.debtor_cards?.debtors || [];
@@ -1394,6 +1408,17 @@ function setSpecialFilter(val, el) {
     el.classList.add('active');
     filters.special = val;
     filters.status  = 'all';
+    if (val === 'drop') {
+      dropCtnFilter = 'all';
+      dropSkuFilter = 'all';
+    }
+    if (val === 'unpurchased') {
+      unpurchasedBrandFilter = 'IFACE';
+      unpurchasedTypeFilter  = 'all';
+    }
+    if (val === 'nonvip') {
+      nonvipTypeFilter = 'all';
+    }
     document.querySelectorAll('#status-filter-row .filter-chip').forEach((c,i) => c.classList.toggle('active', i===0));
   }
   currentPage = 1;
@@ -1406,150 +1431,287 @@ function setTypeFilter(val, el) {
   currentPage = 1;
   renderDebtors();
 }
-function setBrandFilter(val, el) {
-  const wasActive = el.classList.contains('active') && val !== 'all';
-  document.querySelectorAll('#brand-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
-  if (wasActive) {
-    document.querySelector('[data-brand="all"]').classList.add('active');
-    filters.brand = 'all';
-  } else {
-    el.classList.add('active');
-    filters.brand = val;
-  }
+function isPersonalDebtor(d) {
+  return /(^|-)personal/i.test(d.debtor_type || '');
+}
+
+function monthRows(d, monthKey) {
+  return (d.month_breakdown || {})[monthKey] || [];
+}
+
+function sumItemCtn(d, monthKey, itemCode) {
+  return monthRows(d, monthKey)
+    .filter(r => (r.item || '') === itemCode)
+    .reduce((sum, r) => sum + (Number(r.ctn) || 0), 0);
+}
+
+function getPrevMonthKey(d, curMth) {
+  return Object.keys(d.month_breakdown || {}).find(m => m !== curMth) || '';
+}
+
+function buildDropSkuOptions(debtors) {
+  const skuSet = new Set();
+  debtors.forEach(d => {
+    Object.values(d.month_breakdown || {}).flat().forEach(r => {
+      if (r.item) skuSet.add(r.item);
+    });
+  });
+  return [...skuSet].sort((a, b) => a.localeCompare(b));
+}
+
+function buildDroppingSkuRows(debtors, selectedSku = 'all') {
+  const curMth = DATA?.current_month || '';
+  const rows = [];
+  debtors.forEach(d => {
+    if (isPersonalDebtor(d)) return;
+    const prevMth = getPrevMonthKey(d, curMth);
+    const itemCodes = selectedSku === 'all'
+      ? ['ALL SKU']
+      : [selectedSku];
+    itemCodes.forEach(itemCode => {
+      const prevCtn = itemCode === 'ALL SKU' ? (d.ctn_prev1 || 0) : sumItemCtn(d, prevMth, itemCode);
+      const curCtn = itemCode === 'ALL SKU' ? (d.ctn_cur || 0) : sumItemCtn(d, curMth, itemCode);
+      if (prevCtn > 0 && curCtn < prevCtn) {
+        rows.push({
+          debtor_code: d.debtor_code,
+          company_name: d.company_name,
+          debtor_type: d.debtor_type,
+          sku: itemCode,
+          prev_ctn: prevCtn,
+          cur_ctn: curCtn,
+          drop_pct: Math.round((prevCtn - curCtn) / prevCtn * 100),
+          stopped: curCtn === 0,
+        });
+      }
+    });
+  });
+  return rows;
+}
+
+function setDropCtnFilter(val, el) {
+  dropCtnFilter = val;
+  document.querySelectorAll('#drop-ctn-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
+  el?.classList.add('active');
   currentPage = 1;
   renderDebtors();
 }
 
-function renderDebtors() {
-  if (!currentAgent || !DATA) return;
-  const agData  = DATA.agents[currentAgent]?.debtor_cards || {};
-  const debtors = agData.debtors || [];
+function setDropSkuFilter(val, el) {
+  dropSkuFilter = val;
+  document.querySelectorAll('#drop-sku-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
+  el?.classList.add('active');
+  currentPage = 1;
+  renderDebtors();
+}
 
-  // Summary strip — activation rate (excl. Personal) + 待激活
-  const total   = agData.total_debtors || 0;
-  const active  = agData.active_count  || 0;
-  const pending = agData.pending_count || 0;
-  const inactive = agData.inactive_count || 0;  // 待激活 = not bought in 2+ months
-  const reactiv = agData.reactivation_count || 0;  // KPI: reactivated this month
-  const rate    = agData.activation_rate ?? 0;
-  const npTotal = agData.activation_base   ?? total;
-  const npActive= agData.activation_active ?? active;
+function renderDropMode(debtors) {
+  const skuOptions = buildDropSkuOptions(debtors);
+  let dropRows = buildDroppingSkuRows(debtors, dropSkuFilter);
+  if (dropCtnFilter === 'stopped') dropRows = dropRows.filter(r => r.stopped);
+  if (dropCtnFilter === 'reduced30') dropRows = dropRows.filter(r => !r.stopped && r.drop_pct >= 30);
+  dropRows.sort((a, b) =>
+    (b.prev_ctn - b.cur_ctn) - (a.prev_ctn - a.cur_ctn));
+  const shownDropRows = dropRows.slice(0, 100);
 
-  document.getElementById('sum-total').textContent   = total;
-  document.getElementById('sum-active').textContent  = active;
-  document.getElementById('sum-reactiv').textContent = inactive;  // show 待激活 count
-  const rateEl = document.getElementById('sum-rate');
-  rateEl.textContent = rate + '%';
-  rateEl.title = `${npActive} / ${npTotal} (excl. Personal)`;
-  document.getElementById('sum-newsku') && (document.getElementById('sum-newsku').textContent = agData.total_new_sku ?? '—');
-  // Flag count
-  const flagCount = getAgentFlagCount(currentAgent);
-  document.getElementById('sum-flags').textContent = flagCount;
+  document.getElementById('page-info').textContent = `1-${shownDropRows.length} of ${dropRows.length}`;
+  document.getElementById('btn-prev').disabled = true;
+  document.getElementById('btn-next').disabled = true;
 
-  // Filter
-  const search = (document.getElementById('debtor-search')?.value || '').toLowerCase();
-  // Show/hide clear button
-  const clearBtn = document.getElementById('search-clear-btn');
-  if (clearBtn) clearBtn.style.display = search ? 'block' : 'none';
-  // Make sure debtor list is visible (not hidden by global search)
-  document.getElementById('debtor-list').style.display = '';
-  const SKU_GRP = {
-    'IFACE':'IFACE','SUKUN':'SUKUN','EVO':'EVO',
-    'BISON':'BISON','TR20':'TR20','LAM+LWM':'LAM+LWM'
-  };
+  const skuButtons = ['all', ...skuOptions].map(sku => {
+    const label = sku === 'all' ? 'ALL SKU' : sku;
+    return `<button class="filter-chip ${sku === dropSkuFilter ? 'active' : ''}" onclick="setDropSkuFilter('${sku.replace(/'/g,"\\'")}',this)">${label}</button>`;
+  }).join('');
 
-  let filtered = debtors.filter(d => {
-    if (search && !d.company_name.toLowerCase().includes(search) && !d.debtor_code.toLowerCase().includes(search)) return false;
-    if (filters.status !== 'all' && d.status !== filters.status) return false;
-    if (filters.special === 'vip'      && !d.vip)                return false;
-    if (filters.special === 'new'      && !d.is_new)             return false;
-    if (filters.special === 'birthday') {
-      // Match birth_month to the selected month in DATA (not today)
-      const selMonth = DATA?.current_month || '';
-      const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      const selMonthNum = MONTHS.indexOf((selMonth.split(' ')[0]||'')) + 1;
-      const matchBday = selMonthNum > 0 ? (d.birth_month === selMonthNum) : d.birthday_this_month;
-      if (!matchBday) return false;
-    }
-    if (filters.special === 'drop'     && !d.volume_drop_pct)    return false;
-    if (filters.special === 'newsku'   && !(d.new_sku_count > 0)) return false;
-    if (filters.special === 'flagged'   && !getFlag(currentAgent, d.debtor_code)) return false;
-    if (filters.special === 'campaign'  && !(d.campaigns||[]).length) return false;
-    if (filters.special === 'overdue'   && !d.has_overdue) return false;
-    if (filters.special === 'neartarget') {
-      // Has bought something this month but not yet hit any campaign threshold
-      const camps = d.campaigns || [];
-      const hasNearTarget = camps.some(c => {
-        const catRule = c.cat && c.cat_rules ? c.cat_rules[c.cat] : null;
-        const minCtn  = catRule?.min_ctn || c.min_order_ctn || 0;
-        const curCtn  = d.ctn_cur || 0;
-        return minCtn > 0 && curCtn > 0 && curCtn < minCtn;
-      });
-      // Also check brand camp tiers
-      const hasBrandNear = Object.values(d.brand_camp_tiers||{}).some(t => {
-        const minCtn = t.tier === 'A' ? 2 : t.tier === 'B' ? 5 : t.tier === 'C' ? 10 : 0;
-        return minCtn > 0 && (d.ctn_cur||0) > 0 && (d.ctn_cur||0) < minCtn;
-      });
-      if (!hasNearTarget && !hasBrandNear) return false;
-    }
-    if (filters.type !== 'all'         && d.debtor_type !== filters.type) return false;
-    if (filters.brand !== 'all') {
-      const grp = SKU_GRP[filters.brand] || filters.brand;
-      const st  = (d.sku_status || {})[grp];
-      if (st !== 'lapsed') return false;
-    }
-    return true;
+  const dropHtml = shownDropRows.length ? shownDropRows.map(r => `
+    <div class="debtor-card" style="padding:12px 14px;">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
+        <div style="min-width:0;">
+          <div class="debtor-name">${r.company_name || ''}</div>
+          <div class="debtor-meta">${r.debtor_code || ''} · ${r.debtor_type || ''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+          <span class="status-inline" style="background:rgba(77,166,255,.15);color:var(--blue);">${r.sku}</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--text);white-space:nowrap;">${r.prev_ctn} → ${r.cur_ctn}</span>
+          <span class="status-inline" style="background:rgba(255,95,95,.15);color:var(--red);">-${r.drop_pct}%</span>
+        </div>
+      </div>
+    </div>`).join('') : `<div class="empty-state">No dropping SKU rows</div>`;
+
+  document.getElementById('debtor-list').innerHTML = `
+    <div style="margin:8px 0 10px;">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">条数下降:</div>
+      <div id="drop-sku-filter-row" class="filter-row" style="display:flex;overflow-x:auto;gap:8px;white-space:nowrap;padding-bottom:4px;margin-bottom:8px;">${skuButtons}</div>
+      <div id="drop-ctn-filter-row" class="filter-row" style="display:flex;overflow-x:auto;gap:8px;white-space:nowrap;padding-bottom:4px;">
+        <button class="filter-chip ${dropCtnFilter === 'all' ? 'active' : ''}" onclick="setDropCtnFilter('all',this)">ALL</button>
+        <button class="filter-chip ${dropCtnFilter === 'stopped' ? 'active' : ''}" onclick="setDropCtnFilter('stopped',this)">STOPPED BUYING</button>
+        <button class="filter-chip ${dropCtnFilter === 'reduced30' ? 'active' : ''}" onclick="setDropCtnFilter('reduced30',this)">REDUCED ≥30%</button>
+      </div>
+    </div>
+    ${dropHtml}`;
+}
+
+function renderUnpurchasedMode(debtors) {
+  const PERSONAL = ['P-Personal','P-PERSONAL','personal','Personal','PERSONAL'];
+  const eligible = debtors.filter(d =>
+    !PERSONAL.some(p => (d.debtor_type || '').includes(p)) &&
+    d.dm_active !== false
+  );
+
+  const brandNeverBought = {};
+  Object.keys(UNPURCHASED_BRAND_ITEMS).forEach(brand => {
+    const items = UNPURCHASED_BRAND_ITEMS[brand];
+    brandNeverBought[brand] = eligible.filter(d => {
+      const total = Object.values(d.month_breakdown || {})
+        .flat()
+        .filter(r => items.includes(r.item))
+        .reduce((s, r) => s + (r.ctn || 0), 0);
+      return total === 0;
+    });
   });
 
-  // Brand banner
-  let bannerEl = document.getElementById('brand-banner');
-  if (!bannerEl) {
-    bannerEl = document.createElement('div');
-    bannerEl.id = 'brand-banner';
-    bannerEl.className = 'brand-banner';
-    bannerEl.style.display = 'none';
-    document.getElementById('debtor-list').before(bannerEl);
-  }
-  if (filters.brand !== 'all') {
-    bannerEl.style.display = 'flex';
-    bannerEl.innerHTML = `<span class="brand-banner-text">还未购买 ${filters.brand} — ${filtered.length} 户口</span>
-      <button class="brand-banner-close" onclick="setBrandFilter('all',document.querySelector('#brand-filter-row .filter-chip[data-brand=\\'all\\']'))">×</button>`;
-  } else if (filters.special === 'newsku') {
-    bannerEl.style.display = 'flex';
-    bannerEl.style.background = 'rgba(167,139,250,.1)';
-    bannerEl.style.borderColor = 'rgba(167,139,250,.3)';
-    bannerEl.innerHTML = `<span style="font-family:var(--mono);font-size:11px;color:var(--purple);">✨ 新增SKU 本月 — ${filtered.length} 户口</span>
-      <button class="brand-banner-close" onclick="setSpecialFilter('newsku',document.querySelector('[data-val=\\'newsku\\']'))">×</button>`;
-  } else {
-    bannerEl.style.display = 'none';
-    bannerEl.style.background = '';
-    bannerEl.style.borderColor = '';
-  }
+  const brandButtons = Object.keys(UNPURCHASED_BRAND_ITEMS)
+    .map(brand => {
+      const count = brandNeverBought[brand].length;
+      const active = brand === unpurchasedBrandFilter;
+      return `<button class="filter-chip ${active ? 'active' : ''}"
+        onclick="setUnpurchasedBrand('${brand}',this)">
+        ${brand} (${count})</button>`;
+    }).join('');
 
-  // Sort — if drop filter active, sort by CTN drop (M-1 minus this month) highest first
-  if (filters.special === 'drop') {
-    filtered.sort((a, b) => {
-      const dropA = (a.ctn_prev1 || 0) - (a.ctn_cur || 0);
-      const dropB = (b.ctn_prev1 || 0) - (b.ctn_cur || 0);
-      return dropB - dropA;
-    });
-  }
-  const totalF = filtered.length;
-  const pages  = Math.max(1, Math.ceil(totalF / PAGE_SIZE));
-  currentPage  = Math.min(currentPage, pages);
-  const start  = (currentPage - 1) * PAGE_SIZE;
-  const items  = filtered.slice(start, start + PAGE_SIZE);
+  const selectedDebtors = brandNeverBought[unpurchasedBrandFilter] || [];
+  const typeCounts = {};
+  selectedDebtors.forEach(d => {
+    const t = d.debtor_type || 'Unknown';
+    typeCounts[t] = (typeCounts[t] || 0) + 1;
+  });
 
-  document.getElementById('page-info').textContent  = `${start+1}–${Math.min(start+PAGE_SIZE,totalF)} of ${totalF}`;
-  document.getElementById('btn-prev').disabled = currentPage <= 1;
-  document.getElementById('btn-next').disabled = currentPage >= pages;
+  const typeButtons = [
+    `<button class="filter-chip ${unpurchasedTypeFilter === 'all' ? 'active' : ''}"
+      onclick="setUnpurchasedType('all',this)">
+      ALL (${selectedDebtors.length})</button>`,
+    ...Object.entries(typeCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([type, count]) =>
+        `<button class="filter-chip ${unpurchasedTypeFilter === type ? 'active' : ''}"
+          onclick="setUnpurchasedType('${type.replace(/'/g,"\\'")}',this)">
+          ${type} (${count})</button>`
+      )
+  ].join('');
 
-  // Render cards
-  const html = items.map((d, idx) => {
-    const runNo = start + idx + 1;
+  const shown = unpurchasedTypeFilter === 'all'
+    ? selectedDebtors
+    : selectedDebtors.filter(d => d.debtor_type === unpurchasedTypeFilter);
+
+  shown.sort((a, b) => (a.company_name || '').localeCompare(b.company_name || ''));
+
+  const debtorHtml = shown.length
+    ? shown.map((d, idx) => renderDebtorCard(d, idx + 1)).join('')
+    : `<div class="empty-state">No debtors for ${unpurchasedBrandFilter}</div>`;
+
+  document.getElementById('page-info').textContent = `1-${shown.length} of ${selectedDebtors.length}`;
+  document.getElementById('btn-prev').disabled = true;
+  document.getElementById('btn-next').disabled = true;
+
+  document.getElementById('debtor-list').innerHTML = `
+    <div style="margin-bottom:10px;">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">中两边 ZLB</div>
+      <div style="display:flex;gap:6px;overflow-x:auto;white-space:nowrap;padding-bottom:4px;">
+        ${brandButtons}
+      </div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">TYPE · 未购买 ${unpurchasedBrandFilter}</div>
+      <div style="display:flex;gap:6px;overflow-x:auto;white-space:nowrap;padding-bottom:4px;">
+        ${typeButtons}
+      </div>
+    </div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:10px;padding:4px 8px;background:rgba(255,255,255,.03);border-radius:6px;border-left:2px solid var(--green);">
+      ${selectedDebtors.length} 个客户从未购买 ${unpurchasedBrandFilter} · 近4个月 · 不含Personal
+    </div>
+    ${debtorHtml}`;
+}
+
+function setUnpurchasedBrand(brand, el) {
+  unpurchasedBrandFilter = brand;
+  unpurchasedTypeFilter  = 'all';
+  const debtors = DATA?.agents?.[currentAgent]?.debtor_cards?.debtors || [];
+  renderUnpurchasedMode(debtors);
+}
+
+function setUnpurchasedType(type, el) {
+  unpurchasedTypeFilter = type;
+  const debtors = DATA?.agents?.[currentAgent]?.debtor_cards?.debtors || [];
+  renderUnpurchasedMode(debtors);
+}
+
+function renderNonVipMode(debtors) {
+  const PERSONAL = ['P-Personal','P-PERSONAL','personal','Personal','PERSONAL'];
+  const eligible = debtors.filter(d =>
+    !d.vip &&
+    !PERSONAL.some(p => (d.debtor_type || '').includes(p)) &&
+    d.dm_active !== false
+  );
+
+  eligible.sort((a, b) => {
+    const aCtn = (a.ctn_cur || 0) + (a.ctn_prev1 || 0) + (a.ctn_prev2 || 0);
+    const bCtn = (b.ctn_cur || 0) + (b.ctn_prev1 || 0) + (b.ctn_prev2 || 0);
+    return bCtn - aCtn;
+  });
+
+  const typeCounts = {};
+  eligible.forEach(d => {
+    const t = d.debtor_type || 'Unknown';
+    typeCounts[t] = (typeCounts[t] || 0) + 1;
+  });
+
+  const typeButtons = [
+    `<button class="filter-chip ${nonvipTypeFilter === 'all' ? 'active' : ''}"
+      onclick="setNonVipType('all',this)">
+      ALL (${eligible.length})</button>`,
+    ...Object.entries(typeCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([type, count]) =>
+        `<button class="filter-chip ${nonvipTypeFilter === type ? 'active' : ''}"
+          onclick="setNonVipType('${type.replace(/'/g,"\\'")}',this)">
+          ${type} (${count})</button>`
+      )
+  ].join('');
+
+  const shown = nonvipTypeFilter === 'all'
+    ? eligible
+    : eligible.filter(d => d.debtor_type === nonvipTypeFilter);
+
+  const debtorHtml = shown.length
+    ? shown.map((d, idx) => renderDebtorCard(d, idx + 1)).join('')
+    : `<div class="empty-state">No non-VIP debtors</div>`;
+
+  document.getElementById('page-info').textContent = `1-${shown.length} of ${eligible.length}`;
+  document.getElementById('btn-prev').disabled = true;
+  document.getElementById('btn-next').disabled = true;
+
+  document.getElementById('debtor-list').innerHTML = `
+    <div style="margin-bottom:10px;">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">TYPE</div>
+      <div style="display:flex;gap:6px;overflow-x:auto;white-space:nowrap;padding-bottom:4px;">
+        ${typeButtons}
+      </div>
+    </div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:10px;padding:4px 8px;background:rgba(255,255,255,.03);border-radius:6px;border-left:2px solid var(--accent);">
+      ${eligible.length} 个非VIP客户 · 按CTN排序 · 不含Personal
+    </div>
+    ${debtorHtml}`;
+}
+
+function setNonVipType(type, el) {
+  nonvipTypeFilter = type;
+  const debtors = DATA?.agents?.[currentAgent]?.debtor_cards?.debtors || [];
+  renderNonVipMode(debtors);
+}
+
+function renderDebtorCard(d, runNo) {
     // Status label — Chinese
     const stCls = d.status==='active' ? 'si-active' : d.status==='pending' ? 'si-pending' : 'si-reactiv';
-    const stTxt = d.status==='active' ? '已激活' : d.status==='pending' ? '❌ Pending' : '待激活';
+    const stTxt = d.status==='active' ? '已激活' : d.status==='pending' ? '当月未开单' : '待激活';
 
     // Badges
     // Campaign badges — show category-specific promo if available
@@ -1716,11 +1878,13 @@ function renderDebtors() {
 
     // Phone — clean null/nan
     const phone = d.phone && d.phone !== 'nan' && d.phone !== 'None' && d.phone.trim() !== '' ? d.phone.trim() : '';
+    const debtorName = (d.company_name && d.company_name.trim() !== '')
+      ? d.company_name : d.debtor_code;
 
     return `<div class="debtor-card">
       <div class="dc-top" onclick="toggleCard('${mbKey}')" style="cursor:pointer;">
         <div class="dc-left">
-          <div class="dc-name"><span style="font-family:var(--display);font-size:14px;color:var(--muted);margin-right:8px;letter-spacing:.03em;">${runNo}.</span>${d.company_name || d.debtor_code}</div>
+          <div class="dc-name"><span style="font-family:var(--display);font-size:14px;color:var(--muted);margin-right:8px;letter-spacing:.03em;">${runNo}.</span>${debtorName}</div>
           <div class="dc-meta">
             <span class="dc-code">${d.debtor_code}</span>
             ${d.debtor_type ? `<span class="dc-type">${d.debtor_type}</span>` : ''}
@@ -1817,7 +1981,133 @@ function renderDebtors() {
         <span id="dc-btn-lbl-${mbKey}">▼ Details</span>
       </button>
     </div>`;
-  }).join('');
+}
+
+function renderDebtors() {
+  if (!currentAgent || !DATA) return;
+  const agData  = DATA.agents[currentAgent]?.debtor_cards || {};
+  const debtors = agData.debtors || [];
+
+  // Summary strip — activation rate (excl. Personal) + 待激活
+  const total   = agData.total_debtors || 0;
+  const active  = agData.active_count  || 0;
+  const pending = agData.pending_count || 0;
+  const inactive = agData.inactive_count || 0;  // 待激活 = not bought in 2+ months
+  const reactiv = agData.reactivation_count || 0;  // KPI: reactivated this month
+  const rate    = agData.activation_rate ?? 0;
+  const npTotal = agData.activation_base   ?? total;
+  const npActive= agData.activation_active ?? active;
+
+  document.getElementById('sum-total').textContent   = total;
+  document.getElementById('sum-active').textContent  = active;
+  document.getElementById('sum-reactiv').textContent = inactive;  // show 待激活 count
+  const rateEl = document.getElementById('sum-rate');
+  rateEl.textContent = rate + '%';
+  rateEl.title = `${npActive} / ${npTotal} (excl. Personal)`;
+  document.getElementById('sum-newsku') && (document.getElementById('sum-newsku').textContent = agData.total_new_sku ?? '—');
+  // Flag count
+  const flagCount = getAgentFlagCount(currentAgent);
+  document.getElementById('sum-flags').textContent = flagCount;
+
+  if (filters.special === 'drop') {
+    renderDropMode(debtors);
+    return;
+  }
+  if (filters.special === 'unpurchased') {
+    renderUnpurchasedMode(debtors);
+    return;
+  }
+  if (filters.special === 'nonvip') {
+    renderNonVipMode(debtors);
+    return;
+  }
+
+  // Filter
+  const search = (document.getElementById('debtor-search')?.value || '').toLowerCase();
+  // Show/hide clear button
+  const clearBtn = document.getElementById('search-clear-btn');
+  if (clearBtn) clearBtn.style.display = search ? 'block' : 'none';
+  // Make sure debtor list is visible (not hidden by global search)
+  document.getElementById('debtor-list').style.display = '';
+  let filtered = debtors.filter(d => {
+    if (search && !d.company_name.toLowerCase().includes(search) && !d.debtor_code.toLowerCase().includes(search)) return false;
+    if (filters.status !== 'all' && d.status !== filters.status) return false;
+    if (filters.special === 'vip'      && !d.vip)                return false;
+    if (filters.special === 'new'      && !d.is_new)             return false;
+    if (filters.special === 'birthday') {
+      // Match birth_month to the selected month in DATA (not today)
+      const selMonth = DATA?.current_month || '';
+      const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const selMonthNum = MONTHS.indexOf((selMonth.split(' ')[0]||'')) + 1;
+      const matchBday = selMonthNum > 0 ? (d.birth_month === selMonthNum) : d.birthday_this_month;
+      if (!matchBday) return false;
+    }
+    if (filters.special === 'drop'     && !d.volume_drop_pct)    return false;
+    if (filters.special === 'newsku'   && !(d.new_sku_count > 0)) return false;
+    if (filters.special === 'flagged'   && !getFlag(currentAgent, d.debtor_code)) return false;
+    if (filters.special === 'campaign'  && !(d.campaigns||[]).length) return false;
+    if (filters.special === 'overdue'   && !d.has_overdue) return false;
+    if (filters.special === 'neartarget') {
+      // Has bought something this month but not yet hit any campaign threshold
+      const camps = d.campaigns || [];
+      const hasNearTarget = camps.some(c => {
+        const catRule = c.cat && c.cat_rules ? c.cat_rules[c.cat] : null;
+        const minCtn  = catRule?.min_ctn || c.min_order_ctn || 0;
+        const curCtn  = d.ctn_cur || 0;
+        return minCtn > 0 && curCtn > 0 && curCtn < minCtn;
+      });
+      // Also check brand camp tiers
+      const hasBrandNear = Object.values(d.brand_camp_tiers||{}).some(t => {
+        const minCtn = t.tier === 'A' ? 2 : t.tier === 'B' ? 5 : t.tier === 'C' ? 10 : 0;
+        return minCtn > 0 && (d.ctn_cur||0) > 0 && (d.ctn_cur||0) < minCtn;
+      });
+      if (!hasNearTarget && !hasBrandNear) return false;
+    }
+    if (filters.type !== 'all'         && d.debtor_type !== filters.type) return false;
+    return true;
+  });
+
+  // Brand banner
+  let bannerEl = document.getElementById('brand-banner');
+  if (!bannerEl) {
+    bannerEl = document.createElement('div');
+    bannerEl.id = 'brand-banner';
+    bannerEl.className = 'brand-banner';
+    bannerEl.style.display = 'none';
+    document.getElementById('debtor-list').before(bannerEl);
+  }
+  if (filters.special === 'newsku') {
+    bannerEl.style.display = 'flex';
+    bannerEl.style.background = 'rgba(167,139,250,.1)';
+    bannerEl.style.borderColor = 'rgba(167,139,250,.3)';
+    bannerEl.innerHTML = `<span style="font-family:var(--mono);font-size:11px;color:var(--purple);">✨ 新增SKU 本月 — ${filtered.length} 户口</span>
+      <button class="brand-banner-close" onclick="setSpecialFilter('newsku',document.querySelector('[data-val=\\'newsku\\']'))">×</button>`;
+  } else {
+    bannerEl.style.display = 'none';
+    bannerEl.style.background = '';
+    bannerEl.style.borderColor = '';
+  }
+
+  // Sort — if drop filter active, sort by CTN drop (M-1 minus this month) highest first
+  if (filters.special === 'drop') {
+    filtered.sort((a, b) => {
+      const dropA = (a.ctn_prev1 || 0) - (a.ctn_cur || 0);
+      const dropB = (b.ctn_prev1 || 0) - (b.ctn_cur || 0);
+      return dropB - dropA;
+    });
+  }
+  const totalF = filtered.length;
+  const pages  = Math.max(1, Math.ceil(totalF / PAGE_SIZE));
+  currentPage  = Math.min(currentPage, pages);
+  const start  = (currentPage - 1) * PAGE_SIZE;
+  const items  = filtered.slice(start, start + PAGE_SIZE);
+
+  document.getElementById('page-info').textContent  = `${start+1}–${Math.min(start+PAGE_SIZE,totalF)} of ${totalF}`;
+  document.getElementById('btn-prev').disabled = currentPage <= 1;
+  document.getElementById('btn-next').disabled = currentPage >= pages;
+
+  // Render cards
+  const html = items.map((d, idx) => renderDebtorCard(d, start + idx + 1)).join('');
 
   document.getElementById('debtor-list').innerHTML = html ||
     `<div style="text-align:center;padding:30px;font-family:var(--mono);font-size:11px;color:var(--muted);">No debtors match filter</div>`;
