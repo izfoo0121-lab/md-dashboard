@@ -73,7 +73,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 .h-hdr{font-family:var(--mono);font-size:8px;color:var(--ink3);text-align:center;padding:5px 2px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.05em;}
 .h-agent{font-weight:600;font-size:11px;padding:7px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;cursor:pointer;color:var(--blue);}
 .h-cell{border-bottom:1px solid var(--border);border-left:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:500;padding:6px 2px;}
-.hc-g{background:#d4ede1;color:#1a5c38;}.hc-o{background:#fde8d8;color:#7a3500;}.hc-r{background:#fde8e4;color:#8f1a0a;}
+.hc-g{background:#d4ede1;color:#1a5c38;}.hc-o{background:#fef9c3;color:#854d0e;}.hc-r{background:#fde8e4;color:#8f1a0a;}
 /* Debtor summary table */
 .dt-wrap{min-width:340px;}
 .dt-hdr{display:grid;gap:0;border-bottom:2px solid var(--border);}
@@ -902,7 +902,7 @@ const SupabaseKpiSync = (() => {
       const rows = await r.json();
       const byAgent = {};
       rows.forEach(r => {
-        const a = r.agent;
+        const a = (r.agent || '').toUpperCase();
         if (!byAgent[a]) byAgent[a] = { verified: 0, excluded: 0 };
         if (r.status === 'excluded') byAgent[a].excluded++;
         else if (['claimed','delivered','verified'].includes(r.status)) byAgent[a].verified++;
@@ -2124,16 +2124,36 @@ function renderCampaignsMgmt() {
     const isBday = camp.type === 'birthday_gift' || camp.id === 'birthday_gift_auto';
     const pool   = getCampaignPool(camp);
     const listCodes = new Set(pool.map(d => d.code));
-    // Agent-keyed index of pool entries
-    const poolByAgent = {};
-    pool.forEach(d => {
-      if (!d.agent) return;
-      if (!poolByAgent[d.agent]) poolByAgent[d.agent] = [];
-      poolByAgent[d.agent].push(d);
-    });
-
     // Pull Supabase claims for THIS campaign
     const campClaims = (CAMP_CLAIMS_CACHE || []).filter(r => r.camp_id === camp.id);
+
+    const poolByAgent = {};
+    const poolCodes = new Set(pool.map(d => (d.code || '').toUpperCase()));
+    const poolHasAgent = pool.some(d => d.agent && d.agent.trim() !== '');
+    if (poolHasAgent) {
+      // Future campaigns: agent field present in pool
+      pool.forEach(d => {
+        const ag = (d.agent || '').toUpperCase();
+        if (!ag) return;
+        if (!poolByAgent[ag]) poolByAgent[ag] = [];
+        poolByAgent[ag].push(d);
+      });
+    } else {
+      // Legacy campaigns: no agent field — derive from claims (on-list only)
+      campClaims.forEach(r => {
+        const ag = (r.agent || '').toUpperCase();
+        const code = (r.debtor_code || '').toUpperCase();
+        if (!poolCodes.has(code)) return;
+        if (!poolByAgent[ag]) poolByAgent[ag] = new Set();
+        poolByAgent[ag].add(code);
+      });
+    }
+    // Normalize — ensure all AGENTS have an entry
+    AGENTS.forEach(ag => {
+      const val = poolByAgent[ag];
+      poolByAgent[ag] = val instanceof Set ? [...val] : (val || []);
+    });
+    const isLegacyPool = !poolHasAgent;
 
     // Per-agent rollup
     const perAgent = {};   // agent → { poolCount, delivered, onListDelivered, offListDelivered, excluded, offListCodes:[] }
@@ -2150,7 +2170,7 @@ function renderCampaignsMgmt() {
 
     // First pass — walk through claims, bucket by agent + on/off list
     campClaims.forEach(r => {
-      const ag = r.agent || '';
+      const ag = (r.agent || '').toUpperCase();
       if (!perAgent[ag]) return;  // unknown agent, skip
       const code = (r.debtor_code || '').toUpperCase();
       const status = r.status;
@@ -2181,12 +2201,12 @@ function renderCampaignsMgmt() {
       if (isBday) {
         a.effPool = Math.max(0, a.poolCount - a.excluded);
         // For birthday: don't expand pool with off-list. Off-list birthday is a data concern.
-        a.pct = a.effPool > 0 ? Math.round(a.onListDelivered / a.effPool * 100) : 0;
+        a.pct = a.effPool > 0 ? Math.min(100, Math.round(a.onListDelivered / a.effPool * 100)) : 0;
         a.yet = Math.max(0, a.effPool - a.onListDelivered);
       } else {
         // Option 4: pool expands by off-list deliveries
         a.effPool = Math.max(0, a.poolCount + a.offListDelivered - a.excluded);
-        a.pct = a.effPool > 0 ? Math.round(a.delivered / a.effPool * 100) : 0;
+        a.pct = a.effPool > 0 ? Math.min(100, Math.round(a.delivered / a.effPool * 100)) : 0;
         a.yet = Math.max(0, a.effPool - a.delivered);
       }
     });
@@ -2204,13 +2224,13 @@ function renderCampaignsMgmt() {
       effPool   = Math.max(0, totalPoolCount - totalExcluded);
       delivered = totalOnList;  // birthday counts on-list only
       totalYet  = Math.max(0, effPool - delivered);
-      pct       = effPool > 0 ? Math.round(delivered / effPool * 100) : 0;
+      pct       = effPool > 0 ? Math.min(100, Math.round(delivered / effPool * 100)) : 0;
     } else {
       // Option 4: pool auto-expands
       effPool   = Math.max(0, totalPoolCount + totalOffList - totalExcluded);
       delivered = totalOnList + totalOffList;
       totalYet  = Math.max(0, effPool - delivered);
-      pct       = effPool > 0 ? Math.round(delivered / effPool * 100) : 0;
+      pct       = effPool > 0 ? Math.min(100, Math.round(delivered / effPool * 100)) : 0;
     }
 
     return {
@@ -2470,20 +2490,50 @@ function renderCommHeatmap(){
   const DATA = CURRENT_DATA || window.__DATA__;
   const agents=Object.keys(DATA.agents||{});
   const brands=Object.keys(DATA.config?.brand_config||BC);
-  const aw='65px',bw=`${Math.floor(80/brands.length)}%`;
-  let html=`<div class="heat-table"><div class="heat-grid" style="grid-template-columns:${aw} ${brands.map(()=>bw).join(' ')}">`;
+  const aw='65px',bw=`${Math.floor(75/brands.length)}%`;
+  const tw='38px';
+  let html=`<div class="heat-table"><div class="heat-grid" style="grid-template-columns:${aw} ${brands.map(()=>bw).join(' ')} ${tw}">`;
   html+=`<div class="h-hdr" style="text-align:left;padding-left:8px;">Agent</div>`;
   brands.forEach(b=>html+=`<div class="h-hdr">${b.replace('LAM+LWM','L+L')}</div>`);
+  html+=`<div class="h-hdr" style="color:var(--ink3);">✓+½</div>`;
+
+  // Brand totals accumulators
+  const brandHit={}, brandOne={};
+  brands.forEach(b=>{ brandHit[b]=0; brandOne[b]=0; });
+
   agents.forEach(agent=>{
     const bcomm=DATA.agents[agent]?.brand_commission||{};
     html+=`<div class="h-agent" onclick="openDrill('${agent}')">${agent}</div>`;
+    let agentScore=0;
     brands.forEach(b=>{
       const st=bcomm[b]?.status||'none_hit';
       const cls=st==='both_hit'?'hc-g':st==='one_hit'?'hc-o':'hc-r';
       const icon=st==='both_hit'?'✓':st==='one_hit'?'½':'✗';
+      if(st==='both_hit'){ brandHit[b]++; agentScore++; }
+      else if(st==='one_hit'){ brandOne[b]++; agentScore++; }
       html+=`<div class="h-cell ${cls}">${icon}</div>`;
     });
+    // Agent total column
+    const agCls=agentScore===brands.length?'hc-g':agentScore>0?'hc-o':'hc-r';
+    html+=`<div class="h-cell ${agCls}" style="font-weight:700;">${agentScore}</div>`;
   });
+
+  // Brand totals row
+  html+=`<div class="h-agent" style="font-size:9px;color:var(--ink3);">Total</div>`;
+  brands.forEach(b=>{
+    const tot=brandHit[b]+brandOne[b];
+    const cls=tot===agents.length?'hc-g':tot>0?'hc-o':'hc-r';
+    html+=`<div class="h-cell ${cls}" style="font-weight:700;">${tot}</div>`;
+  });
+  // Grand total cell
+  const grandTotal=agents.reduce((s,ag)=>{
+    const bcomm=DATA.agents[ag]?.brand_commission||{};
+    return s+brands.filter(b=>['both_hit','one_hit'].includes(bcomm[b]?.status)).length;
+  },0);
+  const maxTotal=agents.length*brands.length;
+  const gtCls=grandTotal===maxTotal?'hc-g':grandTotal>0?'hc-o':'hc-r';
+  html+=`<div class="h-cell ${gtCls}" style="font-weight:700;">${grandTotal}</div>`;
+
   html+=`</div></div>`;
   document.getElementById('comm-heatmap').innerHTML=html;}
 
