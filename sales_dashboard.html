@@ -1491,9 +1491,12 @@ function buildDroppingSkuRows(debtors, selectedSku = 'all') {
 function getDebtorSkuDrops(d) {
   const curMth  = DATA?.current_month || '';
   const prevMth = getPrevMonthKey(d, curMth);
-  const skus    = Object.keys(d.sku_status || {});
+  // Get all unique item codes from both months
+  const prevItems = (d.month_breakdown?.[prevMth] || []).map(r => r.item).filter(Boolean);
+  const curItems  = (d.month_breakdown?.[curMth]  || []).map(r => r.item).filter(Boolean);
+  const allSkus   = [...new Set([...prevItems, ...curItems])];
   const stopped = [], reduced = [];
-  skus.forEach(sku => {
+  allSkus.forEach(sku => {
     const prev = sumItemCtn(d, prevMth, sku);
     const cur  = sumItemCtn(d, curMth,  sku);
     if (prev > 0 && cur < prev) {
