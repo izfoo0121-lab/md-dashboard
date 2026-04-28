@@ -1225,10 +1225,10 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             ctn_prev1 = round(float(d_rows[d_rows["paid_on"] == prev1_m]["qty_ctn"].sum()), 2) if not d_rows.empty else 0.0
             ctn_prev2 = round(float(d_rows[d_rows["paid_on"] == prev2_m]["qty_ctn"].sum()), 2) if not d_rows.empty else 0.0
 
-            # Item breakdown per month (for tooltip on CTN tap)
-            # Uses invoice date (tranx_mth_full) — matches sku_status and brand penetration logic.
-            # Per Isaac's rule: brand-level metrics use invoice; normal totals use paid.
-            _bd_col = "tranx_mth_full" if "tranx_mth_full" in d_rows.columns else "paid_on"
+            # Item breakdown per month -- uses paid_on to match ctn_cur/prev1/prev2 logic.
+            # tranx_mth_full (invoice date) caused empty breakdowns for debtors with
+            # null/empty invoice dates, producing false SKU drop pills in the dashboard.
+            _bd_col = "paid_on"
             def item_breakdown(month_label):
                 m_rows = d_rows[d_rows[_bd_col] == month_label]
                 if m_rows.empty:
