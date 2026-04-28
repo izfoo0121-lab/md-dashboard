@@ -199,8 +199,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
   <!-- Cross-page nav -->
   <div style="background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.08);padding:6px 16px;display:flex;gap:10px;align-items:center;overflow-x:auto;">
     <span style="font-family:var(--mono);font-size:8px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;">Go to:</span>
-    <a href="https://izfoo0121-lab.github.io/md-dashboard/sales_dashboard.html" style="font-family:var(--mono);font-size:9px;color:#4da6ff;text-decoration:none;padding:3px 8px;border:1px solid rgba(77,166,255,.3);border-radius:6px;white-space:nowrap;">👥 Agent</a>
-    <a href="https://izfoo0121-lab.github.io/md-dashboard/admin.html" style="font-family:var(--mono);font-size:9px;color:#f0c040;text-decoration:none;padding:3px 8px;border:1px solid rgba(240,192,64,.3);border-radius:6px;white-space:nowrap;">⚙ Admin</a>
+    <a href="sales_dashboard.html" style="font-family:var(--mono);font-size:9px;color:#4da6ff;text-decoration:none;padding:3px 8px;border:1px solid rgba(77,166,255,.3);border-radius:6px;white-space:nowrap;">👥 Agent</a>
+    <a href="admin.html" style="font-family:var(--mono);font-size:9px;color:#f0c040;text-decoration:none;padding:3px 8px;border:1px solid rgba(240,192,64,.3);border-radius:6px;white-space:nowrap;">⚙ Admin</a>
   </div>
   <div class="mgmt-header">
     <div class="header-row">
@@ -362,6 +362,25 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
     <div id="dropping-debtors-section" style="display:none;">
       <div class="sec-lbl">📉 Dropping Debtors — Volume Down vs Last Month</div>
       <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin:0 0 8px 2px;">Debtors who bought last month but reduced volume this month. Sorted by prev month CTN highest first. P-Personal excluded.</div>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px;">
+        <span style="font-size:12px;color:var(--ink3);">Agent:</span>
+        <div style="position:relative;display:inline-block;" id="drop-agent-dropdown-wrap">
+          <div id="drop-agent-trigger" onclick="toggleDropAgentMenu()" 
+            style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);font-size:12px;min-width:160px;justify-content:space-between;">
+            <span id="drop-agent-label">All agents</span>
+            <span style="font-size:9px;opacity:0.5;">▼</span>
+          </div>
+          <div id="drop-agent-panel" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:var(--card);border:1px solid var(--border);border-radius:6px;min-width:180px;padding:6px 0;">
+            <div style="padding:4px 10px 6px;border-bottom:1px solid var(--border);display:flex;gap:10px;margin-bottom:2px;">
+              <span onclick="dropAgentSelectAll()" style="font-size:11px;color:var(--accent);cursor:pointer;">All</span>
+              <span style="opacity:0.3;">·</span>
+              <span onclick="dropAgentClearAll()" style="font-size:11px;color:var(--ink3);cursor:pointer;">Clear</span>
+            </div>
+            <div id="drop-agent-list"></div>
+          </div>
+        </div>
+        <div id="drop-agent-pills" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+      </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;" id="drop-filter-row">
         <button onclick="setDropFilter('all',this)" class="lb-btn active" style="background:var(--ink);color:#fff;border-radius:6px;padding:4px 10px;">All</button>
         <button onclick="setDropFilter('stopped',this)" class="lb-btn" style="border-radius:6px;padding:4px 10px;">Stopped buying</button>
@@ -2625,6 +2644,7 @@ function renderBrandVolumeAlert() {
 // ── Dropping Debtors ───────────────────────────────────────────────────────
 let _dropFilter    = 'all';
 let _dropSkuFilter = 'all';
+let _dropAgentFilter = new Set(); // empty = all agents selected
 
 function setDropFilter(f, btn) {
   _dropFilter = f;
@@ -2652,12 +2672,83 @@ function setDropSkuFilter(f, btn) {
   renderDroppingDebtors();
 }
 
+function getDropAgents() {
+  const D = CURRENT_DATA || DATA;
+  return Object.keys(D?.agents || {}).sort();
+}
+
+function toggleDropAgentMenu() {
+  const p = document.getElementById('drop-agent-panel');
+  if (!p) return;
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+  if (p.style.display === 'block') renderDropAgentList();
+}
+
+function renderDropAgentList() {
+  const list = document.getElementById('drop-agent-list');
+  if (!list) return;
+  const agents = getDropAgents();
+  list.innerHTML = agents.map(a => `
+    <div onclick="dropAgentToggle('${a}')" style="display:flex;align-items:center;gap:8px;padding:5px 10px;cursor:pointer;font-size:12px;">
+      <div style="width:13px;height:13px;border:1px solid var(--border);border-radius:3px;background:${_dropAgentFilter.size===0||_dropAgentFilter.has(a)?'var(--accent)':'var(--card)'};display:flex;align-items:center;justify-content:center;">
+        ${_dropAgentFilter.size===0||_dropAgentFilter.has(a)?'<span style="font-size:9px;color:#fff;">✓</span>':''}
+      </div>
+      ${a}
+    </div>`).join('');
+}
+
+function renderDropAgentPills() {
+  const label = document.getElementById('drop-agent-label');
+  const pills = document.getElementById('drop-agent-pills');
+  if (!label || !pills) return;
+  if (_dropAgentFilter.size === 0) {
+    label.textContent = 'All agents';
+    pills.innerHTML = '';
+  } else {
+    label.textContent = `${_dropAgentFilter.size} selected`;
+    pills.innerHTML = [..._dropAgentFilter].map(a => `
+      <span onclick="dropAgentToggle('${a}')" style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:rgba(200,56,26,.1);border-radius:5px;font-size:11px;color:var(--accent);cursor:pointer;">
+        ${a} <span style="opacity:0.6;font-size:9px;">✕</span>
+      </span>`).join('');
+  }
+}
+
+function dropAgentToggle(a) {
+  if (_dropAgentFilter.has(a)) _dropAgentFilter.delete(a);
+  else _dropAgentFilter.add(a);
+  renderDropAgentList();
+  renderDropAgentPills();
+  renderDroppingDebtors();
+}
+
+function dropAgentSelectAll() {
+  _dropAgentFilter.clear();
+  renderDropAgentList();
+  renderDropAgentPills();
+  renderDroppingDebtors();
+}
+
+function dropAgentClearAll() {
+  _dropAgentFilter.clear();
+  renderDropAgentList();
+  renderDropAgentPills();
+  renderDroppingDebtors();
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#drop-agent-dropdown-wrap')) {
+    const p = document.getElementById('drop-agent-panel');
+    if (p) p.style.display = 'none';
+  }
+});
+
 function renderDroppingDebtors() {
   const section = document.getElementById('dropping-debtors-section');
   const list    = document.getElementById('dropping-debtors-list');
   if (!section || !list) return;
   const D      = CURRENT_DATA || DATA;
   const agents = Object.keys(D.agents || {}).sort();
+  renderDropAgentPills();
 
   // Collect all debtors with a volume drop
   const drops = [];
@@ -2666,6 +2757,7 @@ function renderDroppingDebtors() {
     debtors.forEach(d => {
       // Exclude P-Personal accounts — not real shop debtors
       if ((d.debtor_type || '').toUpperCase() === 'P-PERSONAL') return;
+      if (_dropAgentFilter.size > 0 && !_dropAgentFilter.has(agent)) return;
 
       // Include if: stopped buying (ctn_cur=0, ctn_prev1>0) OR volume dropped ≥30%
       const stopped = (d.ctn_cur || 0) === 0 && (d.ctn_prev1 || 0) > 0;
@@ -2703,33 +2795,8 @@ function renderDroppingDebtors() {
   list.innerHTML = shown.map((d, i) => {
     const bg      = i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,.02)';
     const dropCol = d.stopped ? 'var(--accent)' : 'var(--gold)';
-    // Static item-code → SKU group map (mirrors price_ref.json)
-    const SKU_ITEM_MAP = {
-      'IFACE':   ['IFACE B','IFACE DB','IFACE M','IFACE R'],
-      'SUKUN':   ['SKNR','SKNW'],
-      'EVO':     ['EVO','DPM EVO'],
-      'BISON':   ['BISON-G','BISON-M','BISON-R'],
-      'TR20':    ['TR-002','TR20'],
-      'LAM+LWM': ['LAM','LWM'],
-    };
-    const _sumSkuCtn = (monthKey) => {
-      if (!_dropSkuFilter || _dropSkuFilter === 'all') return null;
-      const rows     = (d.month_breakdown || {})[monthKey] || [];
-      const itemKeys = SKU_ITEM_MAP[_dropSkuFilter] || [];
-      if (!itemKeys.length) return null;
-      return rows
-        .filter(r => itemKeys.includes(r.item || ''))
-        .reduce((s, r) => s + (r.ctn || 0), 0);
-    };
-    const _curMth  = DATA?.current_month || '';
-    const _allMths = Object.keys(d.month_breakdown || {});
-    const _prevMth = _allMths.find(m => m !== _curMth) || '';
-    const _skuCur  = _sumSkuCtn(_curMth);
-    const _skuPrev = _sumSkuCtn(_prevMth);
-    const prevCtn  = (_dropSkuFilter && _dropSkuFilter !== 'all' && _skuPrev !== null)
-                     ? _skuPrev : (d.ctn_prev1 || 0);
-    const curCtn   = (_dropSkuFilter && _dropSkuFilter !== 'all' && _skuCur  !== null)
-                     ? _skuCur  : (d.ctn_cur   || 0);
+    const prevCtn = d.ctn_prev1 || 0;
+    const curCtn  = d.ctn_cur  || 0;
 
     const statusTag = d.stopped
       ? `<span style="font-family:var(--mono);font-size:8px;background:rgba(200,56,26,.1);color:var(--accent);padding:2px 7px;border-radius:8px;white-space:nowrap;">Stopped</span>`
