@@ -1494,6 +1494,8 @@ function getDebtorSkuDrops(d) {
   // Get all unique item codes from both months
   const prevItems = (d.month_breakdown?.[prevMth] || []).map(r => r.item).filter(Boolean);
   const curItems  = (d.month_breakdown?.[curMth]  || []).map(r => r.item).filter(Boolean);
+  // Guard: if no item-level data in either month, skip to avoid false positives
+  if (prevItems.length === 0 && curItems.length === 0) return { stopped: [], reduced: [] };
   const allSkus   = [...new Set([...prevItems, ...curItems])];
   const stopped = [], reduced = [];
   allSkus.forEach(sku => {
