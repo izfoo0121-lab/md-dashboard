@@ -1488,6 +1488,21 @@ function buildDroppingSkuRows(debtors, selectedSku = 'all') {
   return rows;
 }
 
+function getDebtorSkuDrops(d) {
+  const curMth  = DATA?.current_month || '';
+  const prevMth = getPrevMonthKey(d, curMth);
+  const skus    = Object.keys(d.sku_status || {});
+  const stopped = [], reduced = [];
+  skus.forEach(sku => {
+    const prev = sumItemCtn(d, prevMth, sku);
+    const cur  = sumItemCtn(d, curMth,  sku);
+    if (prev > 0 && cur < prev) {
+      cur === 0 ? stopped.push(sku) : reduced.push(sku);
+    }
+  });
+  return { stopped, reduced };
+}
+
 function setDropCtnFilter(val, el) {
   dropCtnFilter = val;
   document.querySelectorAll('#drop-ctn-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
@@ -1522,12 +1537,34 @@ function renderDropMode(debtors) {
     return `<button class="filter-chip ${sku === dropSkuFilter ? 'active' : ''}" onclick="setDropSkuFilter('${sku.replace(/'/g,"\\'")}',this)">${label}</button>`;
   }).join('');
 
-  const dropHtml = shownDropRows.length ? shownDropRows.map(r => `
+  const dropHtml = shownDropRows.length ? shownDropRows.map(r => {
+    let skuPillsHtml = '';
+    if (dropSkuFilter === 'all') {
+      const orig = debtors.find(d => d.debtor_code === r.debtor_code);
+      if (orig) {
+        const { stopped, reduced } = getDebtorSkuDrops(orig);
+        const stoppedPills = stopped.map(s =>
+          `<span style="font-size:11px;padding:2px 7px;border-radius:4px;background:rgba(255,95,95,.15);color:var(--red);border:0.5px solid rgba(255,95,95,.3);">${s}</span>`
+        ).join('');
+        const reducedPills = reduced.map(s =>
+          `<span style="font-size:11px;padding:2px 7px;border-radius:4px;background:rgba(255,193,7,.15);color:var(--accent);border:0.5px solid rgba(255,193,7,.3);">${s}</span>`
+        ).join('');
+        const stoppedHtml = stopped.length
+          ? `<span style="font-size:10px;color:var(--red);margin-right:3px;">停购:</span>${stoppedPills}` : '';
+        const reducedHtml = reduced.length
+          ? `<span style="font-size:10px;color:var(--accent);margin-left:${stopped.length?'8px':'0'};margin-right:3px;">减少:</span>${reducedPills}` : '';
+        if (stopped.length || reduced.length) {
+          skuPillsHtml = `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:6px;">${stoppedHtml}${reducedHtml}</div>`;
+        }
+      }
+    }
+    return `
     <div class="debtor-card" style="padding:12px 14px;">
       <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
         <div style="min-width:0;">
           <div class="debtor-name">${r.company_name || ''}</div>
           <div class="debtor-meta">${r.debtor_code || ''} · ${r.debtor_type || ''}</div>
+          ${skuPillsHtml}
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
           <span class="status-inline" style="background:rgba(77,166,255,.15);color:var(--blue);">${r.sku}</span>
@@ -1535,7 +1572,8 @@ function renderDropMode(debtors) {
           <span class="status-inline" style="background:rgba(255,95,95,.15);color:var(--red);">-${r.drop_pct}%</span>
         </div>
       </div>
-    </div>`).join('') : `<div class="empty-state">No dropping SKU rows</div>`;
+    </div>`;
+  }).join('') : `<div class="empty-state">No dropping SKU rows</div>`;
 
   document.getElementById('debtor-list').innerHTML = `
     <div style="margin:8px 0 10px;">
