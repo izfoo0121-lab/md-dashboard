@@ -2792,6 +2792,31 @@ document.addEventListener('click', e => {
   }
 });
 
+function getMgmtDebtorSkuDrops(d) {
+  const D = CURRENT_DATA || DATA;
+  const curMth  = D.current_month || '';
+  const mb      = d.month_breakdown || {};
+  const months  = Object.keys(mb).sort((a,b) => {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const [am,ay] = a.split(' '); const [bm,by] = b.split(' ');
+    return (parseInt(by)||0) - (parseInt(ay)||0) || months.indexOf(bm) - months.indexOf(am);
+  });
+  const prevMth = months.find(m => m !== curMth) || '';
+  const prevItems = (mb[prevMth] || []).map(r => r.item).filter(Boolean);
+  const curItems  = (mb[curMth]  || []).map(r => r.item).filter(Boolean);
+  if (prevItems.length === 0 && curItems.length === 0) return { stopped: [], reduced: [] };
+  const allSkus = [...new Set([...prevItems, ...curItems])];
+  const stopped = [], reduced = [];
+  allSkus.forEach(sku => {
+    const prev = (mb[prevMth]||[]).filter(r=>r.item===sku).reduce((s,r)=>s+(r.ctn||0),0);
+    const cur  = (mb[curMth] ||[]).filter(r=>r.item===sku).reduce((s,r)=>s+(r.ctn||0),0);
+    if (prev > 0 && cur < prev) {
+      cur === 0 ? stopped.push(sku) : reduced.push(sku);
+    }
+  });
+  return { stopped, reduced };
+}
+
 function renderDroppingDebtors() {
   const section = document.getElementById('dropping-debtors-section');
   const list    = document.getElementById('dropping-debtors-list');
@@ -2816,15 +2841,14 @@ function renderDroppingDebtors() {
       if (_dropFilter === 'stopped' && !stopped) return;
       if (_dropFilter === 'reduced' && !reduced) return;
 
-      // Find lapsed SKUs — bought in prev months but not this month
-      const lapsedSkus = Object.entries(d.sku_status || {})
-        .filter(([, v]) => v === 'lapsed')
-        .map(([k]) => k);
+      // Find item-level SKU drops from month_breakdown
+      const { stopped: skuStopped, reduced: skuReduced } = getMgmtDebtorSkuDrops(d);
+      const lapsedSkus = [...new Set([...skuStopped, ...skuReduced])];
 
       // Apply SKU brand filter — only show if selected brand is lapsed for this debtor
       if (_dropSkuFilter !== 'all' && !lapsedSkus.includes(_dropSkuFilter)) return;
 
-      drops.push({ agent, ...d, stopped, reduced, lapsedSkus });
+      drops.push({ agent, ...d, stopped, reduced, lapsedSkus, skuStopped, skuReduced });
     });
   });
 
@@ -2852,13 +2876,18 @@ function renderDroppingDebtors() {
       ? `<span style="font-family:var(--mono);font-size:8px;background:rgba(200,56,26,.1);color:var(--accent);padding:2px 7px;border-radius:8px;white-space:nowrap;">Stopped</span>`
       : `<span style="font-family:var(--mono);font-size:8px;background:rgba(200,134,10,.1);color:var(--gold);padding:2px 7px;border-radius:8px;white-space:nowrap;">-${d.volume_drop_pct}%</span>`;
 
-    // SKU lapsed pills — highlight the filtered SKU if brand filter active
-    const skuPills = d.lapsedSkus.length
-      ? d.lapsedSkus.map(sku => {
-          const col      = SKU_COLS[sku] || 'var(--ink3)';
-          const isActive = _dropSkuFilter === sku;
-          return `<span style="font-family:var(--mono);font-size:8px;background:${isActive ? col : 'rgba(0,0,0,.06)'};color:${isActive ? '#fff' : col};border:1px solid ${col}33;padding:1px 6px;border-radius:6px;white-space:nowrap;font-weight:${isActive?'600':'400'};">${sku}</span>`;
-        }).join('')
+    const stoppedPills = d.skuStopped?.map(s =>
+      `<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:rgba(200,56,26,.15);color:var(--accent);border:0.5px solid rgba(200,56,26,.3);font-family:var(--mono);white-space:nowrap;">${s}</span>`
+    ).join('') || '';
+    const reducedPills = d.skuReduced?.map(s =>
+      `<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:rgba(200,134,10,.15);color:var(--gold);border:0.5px solid rgba(200,134,10,.3);font-family:var(--mono);white-space:nowrap;">${s}</span>`
+    ).join('') || '';
+    const stoppedHtml = d.skuStopped?.length
+      ? `<span style="font-size:9px;color:var(--accent);margin-right:3px;">停购:</span>${stoppedPills}` : '';
+    const reducedHtml = d.skuReduced?.length
+      ? `<span style="font-size:9px;color:var(--gold);margin-left:${d.skuStopped?.length?'6px':'0'};margin-right:3px;">减少:</span>${reducedPills}` : '';
+    const skuPills = (d.skuStopped?.length || d.skuReduced?.length)
+      ? stoppedHtml + reducedHtml
       : `<span style="font-family:var(--mono);font-size:8px;color:var(--ink3);">—</span>`;
 
     return `
@@ -2881,7 +2910,7 @@ function renderDroppingDebtors() {
       </div>
       <!-- SKU lapsed row -->
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-left:64px;">
-        <span style="font-family:var(--mono);font-size:8px;color:var(--ink3);white-space:nowrap;">Lapsed SKU:</span>
+        <span style="font-family:var(--mono);font-size:8px;color:var(--ink3);white-space:nowrap;">条数下降:</span>
         ${skuPills}
       </div>
     </div>`;
