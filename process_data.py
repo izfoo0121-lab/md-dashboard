@@ -1225,10 +1225,10 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             ctn_prev1 = round(float(d_rows[d_rows["paid_on"] == prev1_m]["qty_ctn"].sum()), 2) if not d_rows.empty else 0.0
             ctn_prev2 = round(float(d_rows[d_rows["paid_on"] == prev2_m]["qty_ctn"].sum()), 2) if not d_rows.empty else 0.0
 
-            # Item breakdown per month -- uses paid_on to match ctn_cur/prev1/prev2 logic.
-            # tranx_mth_full (invoice date) caused empty breakdowns for debtors with
-            # null/empty invoice dates, producing false SKU drop pills in the dashboard.
-            _bd_col = "paid_on"
+            # Item breakdown per month (for tooltip on CTN tap)
+            # Uses invoice date (tranx_mth_full) — matches sku_status and brand penetration logic.
+            # Per Isaac's rule: brand-level metrics use invoice; normal totals use paid.
+            _bd_col = "tranx_mth_full" if "tranx_mth_full" in d_rows.columns else "paid_on"
             def item_breakdown(month_label):
                 m_rows = d_rows[d_rows[_bd_col] == month_label]
                 if m_rows.empty:
@@ -1296,13 +1296,11 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
 
             # New debtor (open date within 90 days)
             is_new = False
-            open_month = None   # (year, month) tuple — used by birthday filter
             open_date = info.get("open_date")
             if open_date and pd.notnull(open_date):
                 try:
                     od = pd.to_datetime(open_date)
                     is_new = (datetime.now() - od).days <= 90
-                    open_month = (od.year, od.month)
                 except Exception:
                     pass
 
@@ -1380,7 +1378,6 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 "debtor_type":        info.get("type", ""),
                 "vip":                info.get("vip", False),
                 "is_new":             is_new,
-                "open_month":         open_month,
                 "birthday_this_month": birthday_this_month,
                 "birth_date_raw":     str(_parse_birth_date(birth_date)) if birth_date and pd.notnull(birth_date) and _parse_birth_date(birth_date) is not None else None,
                 "days_to_birthday":   days_to_bday,
@@ -1548,7 +1545,7 @@ def save_debtor_snapshot(debtor_cards, targets, cur_month):
             json.dump(targets, f, ensure_ascii=False, indent=2)
         # Also push to Supabase (non-blocking)
         sync_targets_to_supabase(targets)
-        log(f"  [OK] Snapshot saved + KPI targets auto-calculated for {len(snap)} agents")
+        log(f"  ✅ Snapshot saved + KPI targets auto-calculated for {len(snap)} agents")
     else:
         log(f"  Snapshot for {cur_month} already exists — skipping (Day 1 count preserved)")
 
@@ -1609,30 +1606,11 @@ def calc_birthday_campaign(debtor_cards, targets, cur_month=None):
                 else:
                     birthday_matches = d.get("birthday_this_month", False)
 
-            # Policy: exclude new accounts (opened within 90 days) UNLESS they
-            # opened in the current month or the immediately preceding month.
-            # Rationale: new customers in current/prev month get birthday gift as welcome.
-            recently_opened = False
-            if is_new:
-                open_month = d.get("open_month")   # (year, month) tuple stored in debtor card
-                if open_month:
-                    prev_month = bday_month - 1 if bday_month > 1 else 12
-                    prev_year  = bday_year if bday_month > 1 else bday_year - 1
-                    recently_opened = (
-                        open_month == (bday_year, bday_month) or
-                        open_month == (prev_year, prev_month)
-                    )
-
-            # Check remove override — handle both plain string "remove" and
-            # legacy dict format {"birth_date": "remove"} from old targets.json
-            _ov = overrides.get(code)
-            _is_removed = (_ov == "remove") or (isinstance(_ov, dict) and _ov.get("birth_date") == "remove")
-
             if (birthday_matches
                     and is_vip
                     and not is_personal
-                    and (not is_new or recently_opened)
-                    and not _is_removed):
+                    and not is_new
+                    and overrides.get(code) != "remove"):
                 birthday_debtors.append({
                     "code":   code,
                     "name":   d.get("company_name", code),
@@ -1730,8 +1708,100 @@ def save_penetration_snapshot(brand_comm, targets, cur_month):
         json.dump(targets, f, ensure_ascii=False, indent=2)
     # Also push to Supabase (non-blocking)
     sync_targets_to_supabase(targets)
-    log(f"  [OK] Penetration snapshot saved — auto-targets set for {len(snap)} agents")
+    log(f"  ✅ Penetration snapshot saved — auto-targets set for {len(snap)} agents")
     return targets
+
+
+
+    """
+    Auto-generate birthday gift list:
+    - VIP debtors only
+    - Exclude P-Personal
+    - Exclude new accounts opened this month
+    - Target = total qualifying debtors (management audits agent's actual)
+    """
+    log("Generating birthday campaign list...")
+    today     = date.today()
+    overrides = targets.get("birthday_overrides", {})
+    PERSONAL_TYPES = {"P-Personal","P-PERSONAL","personal","Personal","PERSONAL"}
+
+    birthday_debtors = []
+    for agent, adata in debtor_cards.items():
+        for d in adata.get("debtors", []):
+            code       = d.get("debtor_code", "")
+            db_type    = d.get("debtor_type", "")
+            is_vip     = d.get("vip", False)
+            is_personal = db_type in PERSONAL_TYPES
+            is_new     = d.get("is_new", False)  # new account this month
+
+            # Criteria: birthday this month + VIP + not personal + not new account
+            # Recompute birthday match for selected month (not today)
+            birth_date = d.get("birth_date_raw") or None
+            birthday_matches = False
+            if birth_date:
+                try:
+                    bd = _parse_birth_date(birth_date)
+                    if bd is not None and not pd.isnull(bd):
+                        birthday_matches = (bd.month == bday_month)
+                except:
+                    pass
+            # Fallback: use birth_month (1-12) if raw date unavailable
+            if not birth_date:
+                stored_birth_month = d.get("birth_month")
+                if stored_birth_month is not None:
+                    birthday_matches = (int(stored_birth_month) == bday_month)
+                else:
+                    birthday_matches = d.get("birthday_this_month", False)
+
+            if (birthday_matches
+                    and is_vip
+                    and not is_personal
+                    and not is_new
+                    and overrides.get(code) != "remove"):
+                birthday_debtors.append({
+                    "code":   code,
+                    "name":   d.get("company_name", code),
+                    "agent":  agent,
+                    "type":   db_type,
+                    "phone":  d.get("phone", ""),
+                    "source": "auto",
+                })
+
+    # Marketing manual overrides — add specific debtors
+    for code, action in overrides.items():
+        if action == "add":
+            for agent, adata in debtor_cards.items():
+                d = next((x for x in adata.get("debtors",[]) if x.get("debtor_code")==code), None)
+                if d:
+                    birthday_debtors.append({
+                        "code":   code,
+                        "name":   d.get("company_name", code),
+                        "agent":  agent,
+                        "type":   d.get("debtor_type",""),
+                        "phone":  d.get("phone",""),
+                        "source": "manual",
+                    })
+                    break
+
+    # Remove duplicates
+    seen = set(); result = []
+    for d in birthday_debtors:
+        if d["code"] not in seen:
+            seen.add(d["code"])
+            result.append(d)
+
+    # Group by agent for per-agent target
+    by_agent = {}
+    for d in result:
+        by_agent.setdefault(d["agent"], []).append(d)
+
+    log(f"  Birthday campaign: {len(result)} VIP debtors ({today.strftime('%B %Y')}) — excl new accounts & personal")
+    return {
+        "month":    today.strftime("%B %Y"),
+        "count":    len(result),
+        "debtors":  result,
+        "by_agent": {a: len(v) for a, v in by_agent.items()},
+    }
 
 
 def calc_brand_campaigns(df, targets, agents, cur_month, prev_months, brand_config):
@@ -2460,6 +2530,40 @@ def calc_working_days(targets=None, cur_month=None):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+def calc_agent_activity_daily(df, agents, cur_month):
+    """Daily Canggih CTN + transaction count by agent for Activity Map."""
+    if df is None or not cur_month:
+        return {}
+    try:
+        parts = cur_month.split()
+        month_idx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].index(parts[0]) + 1
+        year = 2000 + int(parts[1])
+    except Exception:
+        return {}
+
+    rows = df[
+        (df["item_group"] != EIGHTCOM_GROUP) &
+        (df["date_parsed"].notna()) &
+        (df["date_parsed"].dt.month == month_idx) &
+        (df["date_parsed"].dt.year == year)
+    ].copy()
+    if rows.empty:
+        return {agent: {} for agent in agents}
+
+    rows["activity_date"] = rows["date_parsed"].dt.strftime("%Y-%m-%d")
+    out = {agent: {} for agent in agents}
+    grouped = rows.groupby(["agent", "activity_date"])
+    for (agent, day), g in grouped:
+        if agent not in out:
+            out[agent] = {}
+        txn_count = g["doc_no"].nunique() if "doc_no" in g.columns else len(g)
+        out[agent][day] = {
+            "ctn": round(float(g["qty_ctn"].sum()), 2),
+            "txn": int(txn_count),
+        }
+    return out
+
+
 def main():
     log("=" * 60)
     log("MD Sales Dashboard — process_data.py (Phase 2)")
@@ -2686,6 +2790,7 @@ def main():
     team         = calc_team_summary(sales_prog, brand_comm, all_agents, targets, cur_month, df_raw, prev_months)
     working_days = calc_working_days(targets, cur_month)
     brand_camps  = calc_brand_campaigns(df, targets, agents, cur_month, prev_months, brand_config)
+    agent_activity_daily = calc_agent_activity_daily(df, all_agents, cur_month)
 
     # ── Enrich debtor cards with brand campaign tiers ──
     # Personal debtors skipped (business rule, same as other campaigns)
@@ -2717,6 +2822,7 @@ def main():
         "group_brand_targets": group_brands,
         "birthday_campaign":   birthday_camp,
         "brand_campaigns":     brand_camps,
+        "agent_activity_daily": agent_activity_daily,
         "agents":         {},
         "team":           team,
         "config": {
@@ -2743,6 +2849,52 @@ def main():
             "inherited_from":     ag_cfg.get("inherits_from", None),
             "inherit_from_month": ag_cfg.get("inherit_from_month", None),
         }
+
+    # ── Supabase KPI manual scores fetch ────────────────────────────
+    try:
+        import requests as _req
+        _SB_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co'
+        _SB_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw'
+        _resp = _req.get(
+            f"{_SB_URL}/rest/v1/kpi_scores",
+            params={"select": "agent,scores", "month": f"eq.{cur_month}"},
+            headers={"apikey": _SB_KEY, "Authorization": f"Bearer {_SB_KEY}"},
+            timeout=10
+        )
+        if _resp.ok:
+            _sb_kpi = {r['agent']: r['scores'] for r in _resp.json()}
+            _applied = 0
+            for _agent, _adata in output.get('agents', {}).items():
+                _items = _adata.get('kpi', {}).get('items', {})
+                _scores = _sb_kpi.get(_agent, {})
+                if not _scores:
+                    continue
+                for _key, _item in _items.items():
+                    if not _item.get('needs_supabase_fetch'):
+                        continue
+                    if _key in _scores:
+                        _item['actual'] = _scores[_key]
+                        _tgt = _item.get('target') or 1
+                        _max = _item.get('max_score') or 0
+                        _item['score'] = round(min(_item['actual'] / _tgt, 1) * _max, 2)
+                        _item['pct'] = round((_item['actual'] / _tgt) * 100) if _tgt else 0
+                # Recompute KPI totals for this agent
+                _kpi = _adata.get('kpi', {})
+                _all_items = _kpi.get('items', {})
+                if _all_items:
+                    _kpi['grand_total'] = round(sum(i.get('score', 0) for i in _all_items.values()), 2)
+                    _kpi['total_abc'] = round(sum(i.get('score', 0) for i in _all_items.values() if i.get('section') in ('A', 'B', 'C')), 2)
+                    _max_total = sum(i.get('max_score', 0) for i in _all_items.values())
+                    _max_abc = sum(i.get('max_score', 0) for i in _all_items.values() if i.get('section') in ('A', 'B', 'C'))
+                    _kpi['grand_pct'] = round(_kpi['grand_total'] / _max_total * 100, 1) if _max_total else 0
+                    _kpi['total_pct'] = round(_kpi['total_abc'] / _max_abc * 100, 1) if _max_abc else 0
+                _applied += 1
+            log(f"   [Supabase KPI] Applied scores for {_applied} agents")
+        else:
+            log(f"   [Supabase KPI] Fetch failed: {_resp.status_code}")
+    except Exception as _e:
+        log(f"   [Supabase KPI] Skipped: {_e}")
+    # ────────────────────────────────────────────────────────────────
 
     # ── Write JSON ──────────────────────────────────────────────────
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
@@ -2774,7 +2926,7 @@ def main():
     log(f"   months_index.json updated: {existing}")
 
     size_kb = OUTPUT_FILE.stat().st_size / 1024
-    log(f"\n[OK] dashboard_data.json written — {size_kb:.0f} KB")
+    log(f"\n✅ dashboard_data.json written — {size_kb:.0f} KB")
     log(f"   {len(agents)} agents  |  {cur_month}  |  Scope: {SCOPE_AREA}")
     log("=" * 60)
 
