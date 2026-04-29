@@ -1388,7 +1388,7 @@ function renderAnnualProgress() {
 }
 function renderMonthlySummary() {
   const D = CURRENT_DATA || DATA;
-  const agents = Object.keys(D.agents||{});
+  const agents = Object.keys(D.agents||{}).sort();
   const el = document.getElementById('monthly-summary-table');
   document.getElementById('monthly-month-label').textContent =
     `${D.current_month || ''} · Day ${D.working_days?.elapsed_working_days||'?'} of ${D.working_days?.total_working_days||'?'}`;
