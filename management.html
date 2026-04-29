@@ -1437,6 +1437,16 @@ async function renderMonthlySummary() {
       ${pctStr}
     </div>`;
   };
+  const rateCell = (act, tgt, active, total) => {
+    const p   = tgt > 0 ? Math.round(act / tgt * 100) : null;
+    const col = p === null ? 'var(--ink3)' : p >= 100 ? '#2a7a4b' : p >= 70 ? '#c8860a' : '#c8381a';
+    return `<div style="font-family:var(--mono);font-size:10px;padding:5px 6px;text-align:center;
+      border-right:1px solid var(--border);border-bottom:1px solid var(--border);line-height:1.4;">
+      <div><span style="color:${col};font-weight:600;">${act}%</span></div>
+      <div><span style="color:var(--ink3);font-size:9px;">/${tgt}%</span>${p !== null ? `<span style="color:${col};font-size:8px;"> ${p}%</span>` : ''}</div>
+      <div style="font-size:8px;color:var(--ink3);">${fi(active)}/${fi(total)}</div>
+    </div>`;
+  };
   const cell = (val, color='') =>
     `<div style="font-family:var(--mono);font-size:10px;padding:7px 6px;text-align:center;
       border-right:1px solid var(--border);border-bottom:1px solid var(--border);${color}">${val}</div>`;
@@ -1499,7 +1509,7 @@ async function renderMonthlySummary() {
       ${atCell(vipAct, vipTgt)}
       ${atCell(reactAct, reactTgt)}
       ${atCell(newSkuAct, newSkuTgt)}
-      ${atCell(rateAct, rateTgt, true)}
+      ${rateCell(rateAct, rateTgt, dc.active_count||0, dc.total_debtors||0)}
       ${cell(txn)}
       ${cell(wdays)}
       ${cell(avgTxn.toFixed(1))}
