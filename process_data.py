@@ -206,17 +206,6 @@ def merge_agent_config(targets, cur_month, agent):
         monthly_sub = monthly.get(jsonb_key, {}) or {}
         # Merge: general first, monthly overrides per-key
         merged_sub = {**general_sub, **monthly_sub}
-        if jsonb_key == "brand_commission":
-            for brand, general_brand in general_sub.items():
-                if not isinstance(general_brand, dict):
-                    continue
-                # Admin manual penetration targets are saved on the general agent
-                # config. Do not let an older monthly snapshot overwrite them.
-                if general_brand.get("pen_auto") is False and "penetration_target" in general_brand:
-                    merged_brand = dict(merged_sub.get(brand, {}) or {})
-                    merged_brand["penetration_target"] = general_brand.get("penetration_target")
-                    merged_brand["pen_auto"] = False
-                    merged_sub[brand] = merged_brand
         if merged_sub:
             merged[jsonb_key] = merged_sub
 
@@ -2861,19 +2850,28 @@ def main():
             "inherit_from_month": ag_cfg.get("inherit_from_month", None),
         }
 
-    # ── Supabase KPI manual scores fetch ────────────────────────────
+    # ── Supabase KPI manual scores fetch (from kpi_manual table) ────
     try:
         import requests as _req
         _SB_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co'
         _SB_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw'
         _resp = _req.get(
-            f"{_SB_URL}/rest/v1/kpi_scores",
-            params={"select": "agent,scores", "month": f"eq.{cur_month}"},
+            f"{_SB_URL}/rest/v1/kpi_manual",
+            params={"select": "*", "month": f"eq.{cur_month}"},
             headers={"apikey": _SB_KEY, "Authorization": f"Bearer {_SB_KEY}"},
             timeout=10
         )
         if _resp.ok:
-            _sb_kpi = {r['agent']: r['scores'] for r in _resp.json()}
+            # Build lookup: agent -> {new_accounts: N, vip_count: N, ...}
+            _sb_kpi = {}
+            for r in _resp.json():
+                _ag = (r.get('agent') or '').upper()
+                if _ag:
+                    _sb_kpi[_ag] = {
+                        'new_accounts': r.get('new_accounts', 0) or 0,
+                        'vip_count':    r.get('vip_count', 0) or 0,
+                        'event':        r.get('event_count', 0) or 0,
+                    }
             _applied = 0
             for _agent, _adata in output.get('agents', {}).items():
                 _items = _adata.get('kpi', {}).get('items', {})
@@ -2900,7 +2898,7 @@ def main():
                     _kpi['grand_pct'] = round(_kpi['grand_total'] / _max_total * 100, 1) if _max_total else 0
                     _kpi['total_pct'] = round(_kpi['total_abc'] / _max_abc * 100, 1) if _max_abc else 0
                 _applied += 1
-            log(f"   [Supabase KPI] Applied scores for {_applied} agents")
+            log(f"   [Supabase KPI] Applied manual scores for {_applied} agents")
         else:
             log(f"   [Supabase KPI] Fetch failed: {_resp.status_code}")
     except Exception as _e:
