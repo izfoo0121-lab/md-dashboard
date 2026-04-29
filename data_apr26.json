@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-29 11:38:58",
+  "generated_at": "2026-04-29 12:38:55",
   "current_month": "Apr 26",
   "working_days": {
     "date": "2026-04-29",
@@ -27258,11 +27258,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 0,
+            "actual": 15,
             "target": 10,
-            "score": 0.0,
+            "score": 1.0,
             "max_score": 1.0,
-            "pct": 0,
+            "pct": 150,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -27412,10 +27412,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 50.555,
+        "grand_total": 51.55,
         "max_total": 100.0,
-        "grand_pct": 50.6,
-        "kpi_month": "Apr 26"
+        "grand_pct": 51.5,
+        "kpi_month": "Apr 26",
+        "total_abc": 51.55,
+        "total_pct": 65.3
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -53314,11 +53316,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 0,
+            "actual": 9,
             "target": 7,
-            "score": 0.0,
+            "score": 1.0,
             "max_score": 1.0,
-            "pct": 0,
+            "pct": 129,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -53468,10 +53470,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 53.444,
+        "grand_total": 54.44,
         "max_total": 100.0,
-        "grand_pct": 53.4,
-        "kpi_month": "Apr 26"
+        "grand_pct": 54.4,
+        "kpi_month": "Apr 26",
+        "total_abc": 54.44,
+        "total_pct": 68.9
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -86099,11 +86103,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 0,
+            "actual": 10,
             "target": 10,
-            "score": 0.0,
+            "score": 1.0,
             "max_score": 1.0,
-            "pct": 0,
+            "pct": 100,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -86253,10 +86257,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 52.947,
+        "grand_total": 53.95,
         "max_total": 100.0,
-        "grand_pct": 52.9,
-        "kpi_month": "Apr 26"
+        "grand_pct": 53.9,
+        "kpi_month": "Apr 26",
+        "total_abc": 53.95,
+        "total_pct": 68.3
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -127852,11 +127858,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 0,
+            "actual": 1,
             "target": 0,
-            "score": 0.0,
+            "score": 1.0,
             "max_score": 1.0,
-            "pct": 0,
+            "pct": 100,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -128006,10 +128012,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 35.645,
+        "grand_total": 36.64,
         "max_total": 100.0,
-        "grand_pct": 35.6,
-        "kpi_month": "Apr 26"
+        "grand_pct": 36.6,
+        "kpi_month": "Apr 26",
+        "total_abc": 36.64,
+        "total_pct": 46.4
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -155131,11 +155139,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 0,
+            "actual": 8,
             "target": 9,
-            "score": 0.0,
+            "score": 0.89,
             "max_score": 1.0,
-            "pct": 0,
+            "pct": 89,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -155285,10 +155293,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 57.787,
+        "grand_total": 58.68,
         "max_total": 100.0,
-        "grand_pct": 57.8,
-        "kpi_month": "Apr 26"
+        "grand_pct": 58.7,
+        "kpi_month": "Apr 26",
+        "total_abc": 58.68,
+        "total_pct": 74.3
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -178856,11 +178866,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 0,
+            "actual": 10,
             "target": 7,
-            "score": 0.0,
+            "score": 1.0,
             "max_score": 1.0,
-            "pct": 0,
+            "pct": 143,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -179010,10 +179020,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 59.295,
+        "grand_total": 60.3,
         "max_total": 100.0,
-        "grand_pct": 59.3,
-        "kpi_month": "Apr 26"
+        "grand_pct": 60.3,
+        "kpi_month": "Apr 26",
+        "total_abc": 60.3,
+        "total_pct": 76.3
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -200059,11 +200071,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 0,
+            "actual": 7,
             "target": 6,
-            "score": 0.0,
+            "score": 1.0,
             "max_score": 1.0,
-            "pct": 0,
+            "pct": 117,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -200213,10 +200225,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 52.73,
+        "grand_total": 53.73,
         "max_total": 100.0,
-        "grand_pct": 52.7,
-        "kpi_month": "Apr 26"
+        "grand_pct": 53.7,
+        "kpi_month": "Apr 26",
+        "total_abc": 53.73,
+        "total_pct": 68.0
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -232736,11 +232750,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 0,
+            "actual": 3,
             "target": 3,
-            "score": 0.0,
+            "score": 1.0,
             "max_score": 1.0,
-            "pct": 0,
+            "pct": 100,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -232890,10 +232904,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 55.141,
+        "grand_total": 56.14,
         "max_total": 100.0,
-        "grand_pct": 55.1,
-        "kpi_month": "Apr 26"
+        "grand_pct": 56.1,
+        "kpi_month": "Apr 26",
+        "total_abc": 56.14,
+        "total_pct": 71.1
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -269144,11 +269160,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 0,
+            "actual": 5,
             "target": 9,
-            "score": 0.0,
+            "score": 0.56,
             "max_score": 1.0,
-            "pct": 0,
+            "pct": 56,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -269298,10 +269314,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 50.204,
+        "grand_total": 50.76,
         "max_total": 100.0,
-        "grand_pct": 50.2,
-        "kpi_month": "Apr 26"
+        "grand_pct": 50.8,
+        "kpi_month": "Apr 26",
+        "total_abc": 50.76,
+        "total_pct": 64.3
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -294639,11 +294657,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 0,
+            "actual": 9,
             "target": 9,
-            "score": 0.0,
+            "score": 1.0,
             "max_score": 1.0,
-            "pct": 0,
+            "pct": 100,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -294793,10 +294811,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 51.599,
+        "grand_total": 52.6,
         "max_total": 100.0,
-        "grand_pct": 51.6,
-        "kpi_month": "Apr 26"
+        "grand_pct": 52.6,
+        "kpi_month": "Apr 26",
+        "total_abc": 52.6,
+        "total_pct": 66.6
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -323499,11 +323519,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 0,
+            "actual": 3,
             "target": 3,
-            "score": 0.0,
+            "score": 1.0,
             "max_score": 1.0,
-            "pct": 0,
+            "pct": 100,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -323653,10 +323673,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 55.75,
+        "grand_total": 56.75,
         "max_total": 100.0,
-        "grand_pct": 55.8,
-        "kpi_month": "Apr 26"
+        "grand_pct": 56.8,
+        "kpi_month": "Apr 26",
+        "total_abc": 56.75,
+        "total_pct": 71.8
       },
       "inherited_from": null,
       "inherit_from_month": null
