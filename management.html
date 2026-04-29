@@ -74,6 +74,24 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 .h-agent{font-weight:600;font-size:11px;padding:7px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;cursor:pointer;color:var(--blue);}
 .h-cell{border-bottom:1px solid var(--border);border-left:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:500;padding:6px 2px;}
 .hc-g{background:#d4ede1;color:#1a5c38;}.hc-o{background:#fef9c3;color:#854d0e;}.hc-r{background:#fde8e4;color:#8f1a0a;}
+/* Activity Map */
+.activity-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;}
+.activity-nav{display:flex;align-items:center;gap:8px;}
+.activity-btn{border:1px solid var(--border);background:var(--surface);color:var(--ink);border-radius:8px;padding:4px 9px;font-family:var(--mono);font-size:10px;cursor:pointer;}
+.activity-month{font-family:var(--display);font-size:18px;letter-spacing:.05em;min-width:82px;text-align:center;}
+.activity-grid{display:grid;min-width:max-content;border-top:1px solid var(--border);border-left:1px solid var(--border);}
+.activity-agent,.activity-date,.activity-cell{border-right:1px solid var(--border);border-bottom:1px solid var(--border);}
+.activity-agent{position:sticky;left:0;z-index:3;background:var(--surface);font-weight:700;font-size:11px;padding:9px 10px;color:var(--blue);min-width:70px;}
+.activity-date{background:var(--bg);font-family:var(--mono);font-size:8px;text-align:center;padding:6px 4px;color:var(--ink3);min-width:58px;position:sticky;top:0;z-index:2;}
+.activity-date:first-child{left:0;z-index:4;background:var(--surface);}
+.activity-cell{min-width:58px;min-height:48px;padding:5px 4px;background:#fff;font-family:var(--mono);font-size:9px;line-height:1.25;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--ink);}
+.activity-cell.zero,.activity-cell.off,.activity-cell.weekend{background:#f0eee9;color:var(--ink3);}
+.activity-cell.off,.activity-cell.weekend{font-size:14px;}
+.activity-pill{font-family:var(--mono);font-size:7px;border-radius:8px;padding:1px 5px;font-weight:700;line-height:1;}
+.activity-pill.al{background:var(--green-bg);color:var(--green);}
+.activity-pill.mc{background:var(--gold-bg);color:var(--gold);}
+.activity-pill.off{background:var(--blue-bg);color:var(--blue);}
+.activity-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-family:var(--mono);font-size:9px;color:var(--ink3);}
 /* Debtor summary table */
 .dt-wrap{min-width:340px;}
 .dt-hdr{display:grid;gap:0;border-bottom:2px solid var(--border);}
@@ -397,6 +415,31 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
       </div>
       <div class="card" style="padding:0;overflow:hidden;">
         <div id="dropping-debtors-list"></div>
+      </div>
+    </div>
+
+    <!-- 5e. Activity Map -->
+    <div id="activity-map-section">
+      <div class="sec-lbl">活动地图 / Activity Map</div>
+      <div class="card card-pad">
+        <div class="activity-toolbar">
+          <div>
+            <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;">Agent Daily Sales</div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">CTN and transaction count by date. Leave and rest days are overlaid.</div>
+          </div>
+          <div class="activity-nav">
+            <button class="activity-btn" onclick="changeActivityMonth(-1)">‹</button>
+            <div class="activity-month" id="activity-month-label">—</div>
+            <button class="activity-btn" onclick="changeActivityMonth(1)">›</button>
+          </div>
+        </div>
+        <div class="heat-scroll"><div id="activity-map-grid"></div></div>
+        <div class="activity-legend">
+          <span><span class="activity-pill al">AL</span> Annual leave</span>
+          <span><span class="activity-pill mc">MC</span> Medical leave</span>
+          <span><span class="activity-pill off">OFF</span> Day off</span>
+          <span>Grey cell = no sales / rest day / weekend</span>
+        </div>
       </div>
     </div>
 
@@ -813,6 +856,131 @@ async function loadData() {
 const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
 
+const ACTIVITY_AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','YI'];
+let activityMonthOffset = 0;
+
+function _activityMonthDate() {
+  const D = CURRENT_DATA || DATA || {};
+  const label = D.current_month || new Date().toLocaleDateString('en-US', {month:'short', year:'2-digit'});
+  const [mon, yy] = label.split(' ');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const idx = Math.max(0, months.indexOf(mon));
+  const year = 2000 + (parseInt(yy, 10) || parseInt(String(new Date().getFullYear()).slice(-2), 10));
+  return new Date(year, idx + activityMonthOffset, 1);
+}
+
+function _dateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function _activityMonthBounds() {
+  const start = _activityMonthDate();
+  const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+  return { start, end, startKey: _dateKey(start), endKey: _dateKey(end) };
+}
+
+async function _activitySupabase(path) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+  });
+  if (!r.ok) throw new Error(await r.text());
+  const text = await r.text();
+  return text ? JSON.parse(text) : null;
+}
+
+async function _loadActivityCalendarMeta(startKey, endKey) {
+  const empty = { leaveByAgentDate: {}, offByAgent: {}, workdaysByAgent: {} };
+  try {
+    const [leaveRows, offRows, workRows] = await Promise.all([
+      _activitySupabase('agent_leave?select=*'),
+      _activitySupabase('agent_offdays?select=agent_name,off_days,default_day,exceptions'),
+      _activitySupabase(`agent_workdays?select=agent_name,month,working_days&month=eq.${startKey}`)
+    ]);
+    const leaveByAgentDate = {};
+    (leaveRows || []).forEach(r => {
+      const agent = (r.agent || r.agent_name || r.name_raw || '').toUpperCase();
+      const day = r.date || r.leave_date;
+      if (!agent || !day) return;
+      if (day < startKey || day > endKey) return;
+      leaveByAgentDate[`${agent}|${day}`] = (r.leave_type || 'OFF').toUpperCase();
+    });
+    const offByAgent = {};
+    (offRows || []).forEach(r => {
+      offByAgent[(r.agent_name || '').toUpperCase()] = {
+        default_day: r.default_day || (r.off_days || [])[0] || '',
+        off_days: r.off_days || [],
+        exceptions: r.exceptions || [],
+      };
+    });
+    const workdaysByAgent = {};
+    (workRows || []).forEach(r => { workdaysByAgent[(r.agent_name || '').toUpperCase()] = r.working_days; });
+    return { leaveByAgentDate, offByAgent, workdaysByAgent };
+  } catch (e) {
+    console.warn('[activity-map] calendar meta load failed:', e.message);
+    return empty;
+  }
+}
+
+function changeActivityMonth(delta) {
+  activityMonthOffset += delta;
+  renderActivityMap();
+}
+
+async function renderActivityMap() {
+  const el = document.getElementById('activity-map-grid');
+  if (!el) return;
+  const D = CURRENT_DATA || DATA || {};
+  const activity = D.agent_activity_daily || {};
+  const { start, end, startKey, endKey } = _activityMonthBounds();
+  const monthLabel = `${start.toLocaleString('en-US', {month:'short'})} ${String(start.getFullYear()).slice(-2)}`;
+  const label = document.getElementById('activity-month-label');
+  if (label) label.textContent = monthLabel.toUpperCase();
+
+  const days = [];
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) days.push(new Date(d));
+  el.style.gridTemplateColumns = `70px repeat(${days.length}, 58px)`;
+  el.innerHTML = '<div class="activity-date" style="position:sticky;left:0;z-index:5;">Agent</div>' +
+    days.map(d => `<div class="activity-date">${d.getDate()}<br>${d.toLocaleDateString('en-US', {weekday:'short'})}</div>`).join('') +
+    ACTIVITY_AGENTS.map(agent => `<div class="activity-agent">${agent}</div>` +
+      days.map(() => '<div class="activity-cell zero">...</div>').join('')).join('');
+
+  const { leaveByAgentDate, offByAgent } = await _loadActivityCalendarMeta(startKey, endKey);
+  el.innerHTML = '<div class="activity-date" style="position:sticky;left:0;z-index:5;">Agent</div>' +
+    days.map(d => `<div class="activity-date">${d.getDate()}<br>${d.toLocaleDateString('en-US', {weekday:'short'})}</div>`).join('') +
+    ACTIVITY_AGENTS.map(agent => {
+      const row = days.map(d => {
+        const key = _dateKey(d);
+        const dow = d.toLocaleDateString('en-US', {weekday:'short'});
+        const dowLong = d.toLocaleDateString('en-US', {weekday:'long'});
+        const sales = activity[agent]?.[key] || {ctn:0, txn:0};
+        const ctn = Math.round(Number(sales.ctn || 0));
+        const txn = Number(sales.txn || 0);
+        const leave = leaveByAgentDate[`${agent}|${key}`];
+        const weekend = d.getDay() === 0 || d.getDay() === 6;
+        const offCfg = offByAgent[agent] || {};
+        const exceptions = offCfg.exceptions || [];
+        const defaultDay = offCfg.default_day || '';
+        const legacyDays = offCfg.off_days || [];
+        const defaultOff = defaultDay === dowLong ||
+          (defaultDay === 'Sunday + Monday' && (dowLong === 'Sunday' || dowLong === 'Monday')) ||
+          legacyDays.includes(dowLong) || legacyDays.includes(dow);
+        const offDay = defaultOff && !exceptions.includes(key);
+        if (!leave && (weekend || offDay)) {
+          return `<div class="activity-cell ${weekend ? 'weekend' : 'off'}">—</div>`;
+        }
+        const zero = ctn === 0 && txn === 0;
+        const leaveClass = leave === 'AL' ? 'al' : leave === 'MC' ? 'mc' : 'off';
+        const pill = leave ? `<span class="activity-pill ${leaveClass}">${leave}</span>` : '';
+        return `<div class="activity-cell ${zero && !leave ? 'zero' : ''}">
+          <div>${ctn} CTN</div>
+          <div>${txn} 单</div>
+          ${pill}
+        </div>`;
+      }).join('');
+      return `<div class="activity-agent">${agent}</div>${row}`;
+    }).join('');
+}
+
 // ── SupabaseKpiSync Module ───────────────────────────────────────────────────
 // Fetches admin-entered kpi_manual values (new_accounts, vip_count, event_count)
 // from Supabase and overrides DATA.agents[*].kpi.items[*] + recomputes totals.
@@ -1101,6 +1269,7 @@ function renderOverview() {
   renderBrandSkuStatus();
   renderBrandVolumeAlert();
   renderDroppingDebtors();
+  renderActivityMap();
   renderNewbieProgress();
   renderAgingOverview();
   renderMonthlySummary();
@@ -2567,6 +2736,9 @@ function renderBrandSkuStatus() {
     </thead>
     <tbody>`;
 
+  const totals = {};
+  BRANDS.forEach(brand => { totals[brand] = { nonBuyers:0, target:0, actual:0 }; });
+
   agents.forEach((agent, ri) => {
     const bc  = D.agents[agent]?.brand_commission || {};
     const bg  = ri % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.02)';
@@ -2581,6 +2753,9 @@ function renderBrandSkuStatus() {
         const pctVal     = target !== '—' && target > 0 ? Math.min(actual/target*100,100) : 0;
         const col        = hit ? '#2a7a4b' : pctVal >= 60 ? '#c8860a' : '#c8381a';
         const isAuto     = AUTO_B.has(brand);
+        totals[brand].nonBuyers += Number(nonBuyers) || 0;
+        totals[brand].target    += Number(target) || 0;
+        totals[brand].actual    += Number(actual) || 0;
 
         return `<td style="padding:6px 8px;text-align:center;border-left:1px solid rgba(255,255,255,.06);color:#c8381a;">${nonBuyers}</td>
           <td style="padding:6px 8px;text-align:center;${isAuto?'color:var(--blue)':'color:var(--ink3);'};">${target}</td>
@@ -2590,6 +2765,18 @@ function renderBrandSkuStatus() {
       }).join('')}
     </tr>`;
   });
+
+  html += `<tr style="background:var(--color-background-secondary,var(--bg));border-top:2px solid var(--color-border-secondary,var(--border));font-weight:500;">
+    <td style="padding:8px 12px;font-weight:700;white-space:nowrap;">合计</td>
+    ${BRANDS.map(brand => {
+      const t = totals[brand];
+      const hit = t.target > 0 && t.actual >= t.target;
+      const isAuto = AUTO_B.has(brand);
+      return `<td style="padding:6px 8px;text-align:center;border-left:1px solid rgba(255,255,255,.06);color:#c8381a;">${t.nonBuyers}</td>
+        <td style="padding:6px 8px;text-align:center;${isAuto?'color:var(--blue)':'color:var(--ink3);'};">${t.target}</td>
+        <td style="padding:6px 8px;text-align:center;font-weight:500;color:${hit ? '#2a7a4b' : 'var(--ink)'};">${t.actual}${hit?'✓':''}</td>`;
+    }).join('')}
+  </tr>`;
 
   html += `</tbody></table>`;
   el.innerHTML = html;
