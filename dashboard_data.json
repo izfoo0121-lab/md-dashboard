@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-29 19:50:30",
+  "generated_at": "2026-04-29 19:58:24",
   "current_month": "Apr 26",
   "working_days": {
     "date": "2026-04-29",
@@ -2336,9 +2336,9 @@
         "EVO": {
           "penetration": {
             "count": 3,
-            "target": 8,
+            "target": 5,
             "hit": false,
-            "pct": 37.5
+            "pct": 60.0
           },
           "ctn": {
             "sold": 315.0,
@@ -27033,11 +27033,11 @@
             "label": "做Event / PSR",
             "section": "B",
             "weight": 0.03,
-            "actual": 0,
+            "actual": 27,
             "target": 16.0,
-            "score": 0.0,
+            "score": 3.0,
             "max_score": 3.0,
-            "pct": 0,
+            "pct": 169,
             "source": "manual_agent",
             "excluded": false,
             "input_role": "admin",
@@ -27048,11 +27048,11 @@
             "label": "开户口 (新户口)",
             "section": "B",
             "weight": 0.03,
-            "actual": 0,
+            "actual": 2,
             "target": 4.0,
-            "score": 0.0,
+            "score": 1.5,
             "max_score": 3.0,
-            "pct": 0,
+            "pct": 50,
             "source": "manual_mgmt",
             "excluded": false,
             "input_role": "admin",
@@ -27163,10 +27163,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 3,
-            "target": 8,
-            "score": 0.562,
+            "target": 5,
+            "score": 0.9,
             "max_score": 1.5,
-            "pct": 37.5,
+            "pct": 60.0,
             "source": "auto",
             "excluded": false
           },
@@ -27258,11 +27258,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 15,
+            "actual": 0,
             "target": 10,
-            "score": 1.0,
+            "score": 0.0,
             "max_score": 1.0,
-            "pct": 150,
+            "pct": 0,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -27396,7 +27396,7 @@
             "max_score": 37.0
           },
           "B": {
-            "score": 18.064,
+            "score": 18.402,
             "max_score": 39.0
           },
           "C": {
@@ -27412,12 +27412,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 51.22,
+        "grand_total": 55.05,
         "max_total": 100.0,
-        "grand_pct": 51.2,
+        "grand_pct": 55.0,
         "kpi_month": "Apr 26",
-        "total_abc": 51.22,
-        "total_pct": 64.8
+        "total_abc": 55.05,
+        "total_pct": 69.7
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -27801,9 +27801,9 @@
         "EVO": {
           "penetration": {
             "count": 6,
-            "target": 5,
+            "target": 6,
             "hit": true,
-            "pct": 120.0
+            "pct": 100.0
           },
           "ctn": {
             "sold": 1273.0,
@@ -53106,11 +53106,11 @@
             "label": "开户口 (新户口)",
             "section": "B",
             "weight": 0.03,
-            "actual": 0,
+            "actual": 10,
             "target": 3.0,
-            "score": 0.0,
+            "score": 3.0,
             "max_score": 3.0,
-            "pct": 0,
+            "pct": 333,
             "source": "manual_mgmt",
             "excluded": false,
             "input_role": "admin",
@@ -53221,10 +53221,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 6,
-            "target": 5,
+            "target": 6,
             "score": 1.5,
             "max_score": 1.5,
-            "pct": 120.0,
+            "pct": 100.0,
             "source": "auto",
             "excluded": false
           },
@@ -53316,11 +53316,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 9,
+            "actual": 0,
             "target": 7,
-            "score": 1.0,
+            "score": 0.0,
             "max_score": 1.0,
-            "pct": 129,
+            "pct": 0,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -53470,12 +53470,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 54.44,
+        "grand_total": 56.44,
         "max_total": 100.0,
-        "grand_pct": 54.4,
+        "grand_pct": 56.4,
         "kpi_month": "Apr 26",
-        "total_abc": 54.44,
-        "total_pct": 68.9
+        "total_abc": 56.44,
+        "total_pct": 71.4
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -53859,9 +53859,9 @@
         "EVO": {
           "penetration": {
             "count": 4,
-            "target": 6,
+            "target": 5,
             "hit": false,
-            "pct": 66.7
+            "pct": 80.0
           },
           "ctn": {
             "sold": 59.0,
@@ -76879,11 +76879,11 @@
             "label": "做Event / PSR",
             "section": "B",
             "weight": 0.03,
-            "actual": 0,
+            "actual": 17,
             "target": 16.0,
-            "score": 0.0,
+            "score": 3.0,
             "max_score": 3.0,
-            "pct": 0,
+            "pct": 106,
             "source": "manual_agent",
             "excluded": false,
             "input_role": "admin",
@@ -76894,11 +76894,11 @@
             "label": "开户口 (新户口)",
             "section": "B",
             "weight": 0.03,
-            "actual": 0,
+            "actual": 2,
             "target": 4.0,
-            "score": 0.0,
+            "score": 1.5,
             "max_score": 3.0,
-            "pct": 0,
+            "pct": 50,
             "source": "manual_mgmt",
             "excluded": false,
             "input_role": "admin",
@@ -76909,11 +76909,11 @@
             "label": "VIP 招聘",
             "section": "B",
             "weight": 0.01,
-            "actual": 0,
+            "actual": 2,
             "target": 4.0,
-            "score": 0.0,
+            "score": 0.5,
             "max_score": 1.0,
-            "pct": 0,
+            "pct": 50,
             "source": "manual_mgmt",
             "excluded": false,
             "input_role": "admin",
@@ -77009,10 +77009,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 4,
-            "target": 6,
-            "score": 1.0,
+            "target": 5,
+            "score": 1.2,
             "max_score": 1.5,
-            "pct": 66.7,
+            "pct": 80.0,
             "source": "auto",
             "excluded": false
           },
@@ -77242,7 +77242,7 @@
             "max_score": 37.0
           },
           "B": {
-            "score": 21.276,
+            "score": 21.476,
             "max_score": 39.0
           },
           "C": {
@@ -77258,10 +77258,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 56.685,
+        "grand_total": 61.89,
         "max_total": 100.0,
-        "grand_pct": 56.7,
-        "kpi_month": "Apr 26"
+        "grand_pct": 61.9,
+        "kpi_month": "Apr 26",
+        "total_abc": 61.89,
+        "total_pct": 78.3
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -104173,11 +104175,11 @@
             "label": "开户口 (新户口)",
             "section": "B",
             "weight": 0.03,
-            "actual": 0,
+            "actual": 3,
             "target": 3.0,
-            "score": 0.0,
+            "score": 3.0,
             "max_score": 3.0,
-            "pct": 0,
+            "pct": 100,
             "source": "manual_mgmt",
             "excluded": false,
             "input_role": "admin",
@@ -104188,11 +104190,11 @@
             "label": "VIP 招聘",
             "section": "B",
             "weight": 0.01,
-            "actual": 0,
+            "actual": 3,
             "target": 11.0,
-            "score": 0.0,
+            "score": 0.27,
             "max_score": 1.0,
-            "pct": 0,
+            "pct": 27,
             "source": "manual_mgmt",
             "excluded": false,
             "input_role": "admin",
@@ -104383,11 +104385,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 8,
+            "actual": 0,
             "target": 9,
-            "score": 0.89,
+            "score": 0.0,
             "max_score": 1.0,
-            "pct": 89,
+            "pct": 0,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -104537,12 +104539,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 58.68,
+        "grand_total": 61.06,
         "max_total": 100.0,
-        "grand_pct": 58.7,
+        "grand_pct": 61.1,
         "kpi_month": "Apr 26",
-        "total_abc": 58.68,
-        "total_pct": 74.3
+        "total_abc": 61.06,
+        "total_pct": 77.3
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -127885,11 +127887,11 @@
             "label": "做Event / PSR",
             "section": "B",
             "weight": 0.03,
-            "actual": 0,
+            "actual": 1,
             "target": 16.0,
-            "score": 0.0,
+            "score": 0.19,
             "max_score": 3.0,
-            "pct": 0,
+            "pct": 6,
             "source": "manual_agent",
             "excluded": false,
             "input_role": "admin",
@@ -127915,11 +127917,11 @@
             "label": "VIP 招聘",
             "section": "B",
             "weight": 0.01,
-            "actual": 0,
+            "actual": 2,
             "target": 2.0,
-            "score": 0.0,
+            "score": 1.0,
             "max_score": 1.0,
-            "pct": 0,
+            "pct": 100,
             "source": "manual_mgmt",
             "excluded": false,
             "input_role": "admin",
@@ -128110,11 +128112,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 10,
+            "actual": 0,
             "target": 7,
-            "score": 1.0,
+            "score": 0.0,
             "max_score": 1.0,
-            "pct": 143,
+            "pct": 0,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -128264,12 +128266,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 60.3,
+        "grand_total": 60.48,
         "max_total": 100.0,
-        "grand_pct": 60.3,
+        "grand_pct": 60.5,
         "kpi_month": "Apr 26",
-        "total_abc": 60.3,
-        "total_pct": 76.3
+        "total_abc": 60.48,
+        "total_pct": 76.6
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -128653,9 +128655,9 @@
         "EVO": {
           "penetration": {
             "count": 6,
-            "target": 5,
+            "target": 6,
             "hit": true,
-            "pct": 120.0
+            "pct": 100.0
           },
           "ctn": {
             "sold": 1057.0,
@@ -128763,9 +128765,9 @@
         "LAM+LWM": {
           "penetration": {
             "count": 4,
-            "target": 6,
+            "target": 7,
             "hit": false,
-            "pct": 66.7
+            "pct": 57.1
           },
           "ctn": {
             "sold": 15.0,
@@ -149090,11 +149092,11 @@
             "label": "做Event / PSR",
             "section": "B",
             "weight": 0.03,
-            "actual": 0,
+            "actual": 2,
             "target": 16.0,
-            "score": 0.0,
+            "score": 0.38,
             "max_score": 3.0,
-            "pct": 0,
+            "pct": 12,
             "source": "manual_agent",
             "excluded": false,
             "input_role": "admin",
@@ -149105,11 +149107,11 @@
             "label": "开户口 (新户口)",
             "section": "B",
             "weight": 0.03,
-            "actual": 0,
+            "actual": 2,
             "target": 2.0,
-            "score": 0.0,
+            "score": 3.0,
             "max_score": 3.0,
-            "pct": 0,
+            "pct": 100,
             "source": "manual_mgmt",
             "excluded": false,
             "input_role": "admin",
@@ -149120,11 +149122,11 @@
             "label": "VIP 招聘",
             "section": "B",
             "weight": 0.01,
-            "actual": 0,
+            "actual": 1,
             "target": 8.0,
-            "score": 0.0,
+            "score": 0.12,
             "max_score": 1.0,
-            "pct": 0,
+            "pct": 12,
             "source": "manual_mgmt",
             "excluded": false,
             "input_role": "admin",
@@ -149220,10 +149222,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 6,
-            "target": 5,
+            "target": 6,
             "score": 1.5,
             "max_score": 1.5,
-            "pct": 120.0,
+            "pct": 100.0,
             "source": "auto",
             "excluded": false
           },
@@ -149292,10 +149294,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 4,
-            "target": 6,
-            "score": 1.0,
+            "target": 7,
+            "score": 0.857,
             "max_score": 1.5,
-            "pct": 66.7,
+            "pct": 57.1,
             "source": "auto",
             "excluded": false
           },
@@ -149315,11 +149317,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 7,
+            "actual": 0,
             "target": 6,
-            "score": 1.0,
+            "score": 0.0,
             "max_score": 1.0,
-            "pct": 117,
+            "pct": 0,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -149453,7 +149455,7 @@
             "max_score": 37.0
           },
           "B": {
-            "score": 20.276,
+            "score": 20.133,
             "max_score": 39.0
           },
           "C": {
@@ -149469,12 +149471,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 53.87,
+        "grand_total": 56.23,
         "max_total": 100.0,
-        "grand_pct": 53.9,
+        "grand_pct": 56.2,
         "kpi_month": "Apr 26",
-        "total_abc": 53.87,
-        "total_pct": 68.2
+        "total_abc": 56.23,
+        "total_pct": 71.2
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -181877,11 +181879,11 @@
             "label": "做Event / PSR",
             "section": "B",
             "weight": 0.03,
-            "actual": 0,
+            "actual": 2,
             "target": 16.0,
-            "score": 0.0,
+            "score": 0.38,
             "max_score": 3.0,
-            "pct": 0,
+            "pct": 12,
             "source": "manual_agent",
             "excluded": false,
             "input_role": "admin",
@@ -181892,11 +181894,11 @@
             "label": "开户口 (新户口)",
             "section": "B",
             "weight": 0.03,
-            "actual": 0,
+            "actual": 2,
             "target": 2.0,
-            "score": 0.0,
+            "score": 3.0,
             "max_score": 3.0,
-            "pct": 0,
+            "pct": 100,
             "source": "manual_mgmt",
             "excluded": false,
             "input_role": "admin",
@@ -181907,11 +181909,11 @@
             "label": "VIP 招聘",
             "section": "B",
             "weight": 0.01,
-            "actual": 0,
+            "actual": 1,
             "target": 14.0,
-            "score": 0.0,
+            "score": 0.07,
             "max_score": 1.0,
-            "pct": 0,
+            "pct": 7,
             "source": "manual_mgmt",
             "excluded": false,
             "input_role": "admin",
@@ -182102,11 +182104,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 10,
+            "actual": 0,
             "target": 10,
-            "score": 1.0,
+            "score": 0.0,
             "max_score": 1.0,
-            "pct": 100,
+            "pct": 0,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -182256,12 +182258,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 53.95,
+        "grand_total": 56.4,
         "max_total": 100.0,
-        "grand_pct": 53.9,
+        "grand_pct": 56.4,
         "kpi_month": "Apr 26",
-        "total_abc": 53.95,
-        "total_pct": 68.3
+        "total_abc": 56.4,
+        "total_pct": 71.4
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -182645,9 +182647,9 @@
         "EVO": {
           "penetration": {
             "count": 2,
-            "target": 6,
+            "target": 5,
             "hit": false,
-            "pct": 33.3
+            "pct": 40.0
           },
           "ctn": {
             "sold": 26.0,
@@ -182755,7 +182757,7 @@
         "LAM+LWM": {
           "penetration": {
             "count": 0,
-            "target": 6,
+            "target": 5,
             "hit": false,
             "pct": 0.0
           },
@@ -199976,10 +199978,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 2,
-            "target": 6,
-            "score": 0.5,
+            "target": 5,
+            "score": 0.6,
             "max_score": 1.5,
-            "pct": 33.3,
+            "pct": 40.0,
             "source": "auto",
             "excluded": false
           },
@@ -200048,7 +200050,7 @@
             "section": "B",
             "weight": 0.015,
             "actual": 0,
-            "target": 6,
+            "target": 5,
             "score": 0.0,
             "max_score": 1.5,
             "pct": 0.0,
@@ -200071,11 +200073,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 1,
+            "actual": 0,
             "target": 0,
-            "score": 1.0,
+            "score": 0.0,
             "max_score": 1.0,
-            "pct": 100,
+            "pct": 0,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -200209,7 +200211,7 @@
             "max_score": 37.0
           },
           "B": {
-            "score": 11.421,
+            "score": 11.521,
             "max_score": 39.0
           },
           "C": {
@@ -200225,12 +200227,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 36.54,
+        "grand_total": 35.64,
         "max_total": 100.0,
-        "grand_pct": 36.5,
+        "grand_pct": 35.6,
         "kpi_month": "Apr 26",
-        "total_abc": 36.54,
-        "total_pct": 46.3
+        "total_abc": 35.64,
+        "total_pct": 45.1
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -232540,11 +232542,11 @@
             "label": "开户口 (新户口)",
             "section": "B",
             "weight": 0.03,
-            "actual": 0,
+            "actual": 2,
             "target": 1.0,
-            "score": 0.0,
+            "score": 3.0,
             "max_score": 3.0,
-            "pct": 0,
+            "pct": 200,
             "source": "manual_mgmt",
             "excluded": false,
             "input_role": "admin",
@@ -232555,11 +232557,11 @@
             "label": "VIP 招聘",
             "section": "B",
             "weight": 0.01,
-            "actual": 0,
+            "actual": 1,
             "target": 21.0,
-            "score": 0.0,
+            "score": 0.05,
             "max_score": 1.0,
-            "pct": 0,
+            "pct": 5,
             "source": "manual_mgmt",
             "excluded": false,
             "input_role": "admin",
@@ -232750,11 +232752,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 3,
+            "actual": 0,
             "target": 3,
-            "score": 1.0,
+            "score": 0.0,
             "max_score": 1.0,
-            "pct": 100,
+            "pct": 0,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -232904,12 +232906,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 56.14,
+        "grand_total": 58.19,
         "max_total": 100.0,
-        "grand_pct": 56.1,
+        "grand_pct": 58.2,
         "kpi_month": "Apr 26",
-        "total_abc": 56.14,
-        "total_pct": 71.1
+        "total_abc": 58.19,
+        "total_pct": 73.7
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -242968,11 +242970,11 @@
             "label": "开户口 (新户口)",
             "section": "B",
             "weight": 0.03,
-            "actual": 0,
+            "actual": 1,
             "target": 3.0,
-            "score": 0.0,
+            "score": 1.0,
             "max_score": 3.0,
-            "pct": 0,
+            "pct": 33,
             "source": "manual_mgmt",
             "excluded": false,
             "input_role": "admin",
@@ -242983,11 +242985,11 @@
             "label": "VIP 招聘",
             "section": "B",
             "weight": 0.01,
-            "actual": 0,
+            "actual": 2,
             "target": 9.0,
-            "score": 0.0,
+            "score": 0.22,
             "max_score": 1.0,
-            "pct": 0,
+            "pct": 22,
             "source": "manual_mgmt",
             "excluded": false,
             "input_role": "admin",
@@ -243332,10 +243334,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 55.642,
+        "grand_total": 56.86,
         "max_total": 100.0,
-        "grand_pct": 55.6,
-        "kpi_month": "Apr 26"
+        "grand_pct": 56.9,
+        "kpi_month": "Apr 26",
+        "total_abc": 56.86,
+        "total_pct": 72.0
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -243713,9 +243717,9 @@
         "EVO": {
           "penetration": {
             "count": 2,
-            "target": 7,
+            "target": 5,
             "hit": false,
-            "pct": 28.6
+            "pct": 40.0
           },
           "ctn": {
             "sold": 517.0,
@@ -243823,9 +243827,9 @@
         "LAM+LWM": {
           "penetration": {
             "count": 16,
-            "target": 6,
+            "target": 9,
             "hit": true,
-            "pct": 266.7
+            "pct": 177.8
           },
           "ctn": {
             "sold": 55.0,
@@ -268935,11 +268939,11 @@
             "label": "做Event / PSR",
             "section": "B",
             "weight": 0.03,
-            "actual": 0,
+            "actual": 13,
             "target": 16.0,
-            "score": 0.0,
+            "score": 2.44,
             "max_score": 3.0,
-            "pct": 0,
+            "pct": 81,
             "source": "manual_agent",
             "excluded": false,
             "input_role": "admin",
@@ -268965,11 +268969,11 @@
             "label": "VIP 招聘",
             "section": "B",
             "weight": 0.01,
-            "actual": 0,
+            "actual": 2,
             "target": 12.0,
-            "score": 0.0,
+            "score": 0.17,
             "max_score": 1.0,
-            "pct": 0,
+            "pct": 17,
             "source": "manual_mgmt",
             "excluded": false,
             "input_role": "admin",
@@ -269065,10 +269069,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 2,
-            "target": 7,
-            "score": 0.429,
+            "target": 5,
+            "score": 0.6,
             "max_score": 1.5,
-            "pct": 28.6,
+            "pct": 40.0,
             "source": "auto",
             "excluded": false
           },
@@ -269137,10 +269141,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 16,
-            "target": 6,
+            "target": 9,
             "score": 1.5,
             "max_score": 1.5,
-            "pct": 266.7,
+            "pct": 177.8,
             "source": "auto",
             "excluded": false
           },
@@ -269160,11 +269164,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 5,
+            "actual": 0,
             "target": 9,
-            "score": 0.56,
+            "score": 0.0,
             "max_score": 1.0,
-            "pct": 56,
+            "pct": 0,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -269298,7 +269302,7 @@
             "max_score": 37.0
           },
           "B": {
-            "score": 18.916,
+            "score": 19.087,
             "max_score": 39.0
           },
           "C": {
@@ -269314,12 +269318,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 50.59,
+        "grand_total": 52.81,
         "max_total": 100.0,
-        "grand_pct": 50.6,
+        "grand_pct": 52.8,
         "kpi_month": "Apr 26",
-        "total_abc": 50.59,
-        "total_pct": 64.0
+        "total_abc": 52.81,
+        "total_pct": 66.8
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -294432,11 +294436,11 @@
             "label": "做Event / PSR",
             "section": "B",
             "weight": 0.03,
-            "actual": 0,
+            "actual": 14,
             "target": 16.0,
-            "score": 0.0,
+            "score": 2.62,
             "max_score": 3.0,
-            "pct": 0,
+            "pct": 88,
             "source": "manual_agent",
             "excluded": false,
             "input_role": "admin",
@@ -294447,11 +294451,11 @@
             "label": "开户口 (新户口)",
             "section": "B",
             "weight": 0.03,
-            "actual": 0,
+            "actual": 2,
             "target": 3.0,
-            "score": 0.0,
+            "score": 2.0,
             "max_score": 3.0,
-            "pct": 0,
+            "pct": 67,
             "source": "manual_mgmt",
             "excluded": false,
             "input_role": "admin",
@@ -294462,11 +294466,11 @@
             "label": "VIP 招聘",
             "section": "B",
             "weight": 0.01,
-            "actual": 0,
+            "actual": 1,
             "target": 3.0,
-            "score": 0.0,
+            "score": 0.33,
             "max_score": 1.0,
-            "pct": 0,
+            "pct": 33,
             "source": "manual_mgmt",
             "excluded": false,
             "input_role": "admin",
@@ -294657,11 +294661,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 9,
+            "actual": 0,
             "target": 9,
-            "score": 1.0,
+            "score": 0.0,
             "max_score": 1.0,
-            "pct": 100,
+            "pct": 0,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -294811,12 +294815,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 52.6,
+        "grand_total": 56.55,
         "max_total": 100.0,
-        "grand_pct": 52.6,
+        "grand_pct": 56.5,
         "kpi_month": "Apr 26",
-        "total_abc": 52.6,
-        "total_pct": 66.6
+        "total_abc": 56.55,
+        "total_pct": 71.6
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -295200,9 +295204,9 @@
         "EVO": {
           "penetration": {
             "count": 6,
-            "target": 8,
-            "hit": false,
-            "pct": 75.0
+            "target": 5,
+            "hit": true,
+            "pct": 120.0
           },
           "ctn": {
             "sold": 155.0,
@@ -295211,7 +295215,7 @@
             "gap": -3.0,
             "pct": 98.1
           },
-          "status": "none_hit",
+          "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false,
           "prev_buyers": 20,
@@ -323309,11 +323313,11 @@
             "label": "开户口 (新户口)",
             "section": "B",
             "weight": 0.03,
-            "actual": 0,
+            "actual": 2,
             "target": 4.0,
-            "score": 0.0,
+            "score": 1.5,
             "max_score": 3.0,
-            "pct": 0,
+            "pct": 50,
             "source": "manual_mgmt",
             "excluded": false,
             "input_role": "admin",
@@ -323424,10 +323428,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 6,
-            "target": 8,
-            "score": 1.125,
+            "target": 5,
+            "score": 1.5,
             "max_score": 1.5,
-            "pct": 75.0,
+            "pct": 120.0,
             "source": "auto",
             "excluded": false
           },
@@ -323519,11 +323523,11 @@
             "label": "生日礼物 Campaign",
             "section": "C",
             "weight": 0.01,
-            "actual": 3,
+            "actual": 0,
             "target": 3,
-            "score": 1.0,
+            "score": 0.0,
             "max_score": 1.0,
-            "pct": 100,
+            "pct": 0,
             "source": "auto_claims",
             "excluded": false,
             "input_role": "none",
@@ -323657,7 +323661,7 @@
             "max_score": 37.0
           },
           "B": {
-            "score": 21.409,
+            "score": 21.784,
             "max_score": 39.0
           },
           "C": {
@@ -323673,12 +323677,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 56.38,
+        "grand_total": 57.25,
         "max_total": 100.0,
-        "grand_pct": 56.4,
+        "grand_pct": 57.2,
         "kpi_month": "Apr 26",
-        "total_abc": 56.38,
-        "total_pct": 71.4
+        "total_abc": 57.25,
+        "total_pct": 72.5
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -323762,15 +323766,15 @@
           "KI-MI",
           "SAM",
           "JACKY",
-          "JAMES"
+          "JAMES",
+          "KEAN"
         ],
         "none_hit_agents": [
           "KEE",
           "CJ",
           "BEN",
           "YI",
-          "JW",
-          "KEAN"
+          "JW"
         ]
       },
       "BISON": {
