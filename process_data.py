@@ -206,6 +206,17 @@ def merge_agent_config(targets, cur_month, agent):
         monthly_sub = monthly.get(jsonb_key, {}) or {}
         # Merge: general first, monthly overrides per-key
         merged_sub = {**general_sub, **monthly_sub}
+        if jsonb_key == "brand_commission":
+            for brand, general_brand in general_sub.items():
+                if not isinstance(general_brand, dict):
+                    continue
+                # Admin manual penetration targets are saved on the general agent
+                # config. Do not let an older monthly snapshot overwrite them.
+                if general_brand.get("pen_auto") is False and "penetration_target" in general_brand:
+                    merged_brand = dict(merged_sub.get(brand, {}) or {})
+                    merged_brand["penetration_target"] = general_brand.get("penetration_target")
+                    merged_brand["pen_auto"] = False
+                    merged_sub[brand] = merged_brand
         if merged_sub:
             merged[jsonb_key] = merged_sub
 
