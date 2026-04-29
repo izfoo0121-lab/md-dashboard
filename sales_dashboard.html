@@ -985,7 +985,7 @@ async function loadData() {
 }
 
 // ── SupabaseKpiSync Module ───────────────────────────────────────────────────
-// Fetches admin-entered kpi_manual values (new_accounts, vip_count, event_count)
+// Fetches admin-entered kpi_manual values (new_accounts, vip_count, event_count, campaign_pct)
 // from Supabase and overrides DATA.agents[*].kpi.items[*].actual + recomputes
 // pct / score / section totals / grand totals.
 // Runs once at dashboard load, before init() renders KPI tab.
@@ -998,6 +998,7 @@ const SupabaseKpiSync = (() => {
     'new_accounts': 'new_accounts',
     'vip_count':    'vip_count',
     'event_count':  'event',
+    'campaign_pct': 'campaign_1',
   };
 
   function _scoreItem(actual, target, weight) {
@@ -1026,7 +1027,7 @@ const SupabaseKpiSync = (() => {
 
   function applyAgentOverride(agentData, row) {
     // agentData = DATA.agents[agent] object
-    // row      = supabase row for this agent (month, agent, new_accounts, vip_count, event_count)
+    // row      = supabase row for this agent (month, agent, new_accounts, vip_count, event_count, campaign_pct)
     if (!agentData || !agentData.kpi || !agentData.kpi.items) return;
     const items = agentData.kpi.items;
 

@@ -412,6 +412,40 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
       </div>
     </div>
 
+    <!-- 5e. Gaining Debtors -->
+    <div id="gaining-debtors-section" style="display:none;">
+      <div class="sec-lbl">📈 Gaining Debtors — Volume Up vs Last Month</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin:0 0 8px 2px;">Debtors who increased volume or bought a new SKU this month vs last month. Sorted by biggest gain first. P-Personal excluded.</div>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px;">
+        <span style="font-size:12px;color:var(--ink3);">Agent:</span>
+        <div style="position:relative;display:inline-block;" id="gain-agent-dropdown-wrap">
+          <div id="gain-agent-trigger" onclick="toggleGainAgentMenu()"
+            style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);font-size:12px;min-width:160px;justify-content:space-between;">
+            <span id="gain-agent-label">All agents</span>
+            <span style="font-size:9px;opacity:0.5;">▼</span>
+          </div>
+          <div id="gain-agent-panel" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:var(--card);border:1px solid var(--border);border-radius:6px;min-width:180px;padding:6px 0;">
+            <div style="padding:4px 10px 6px;border-bottom:1px solid var(--border);display:flex;gap:10px;margin-bottom:2px;">
+              <span onclick="gainAgentSelectAll()" style="font-size:11px;color:var(--accent);cursor:pointer;">All</span>
+              <span style="opacity:0.3;">·</span>
+              <span onclick="gainAgentClearAll()" style="font-size:11px;color:var(--ink3);cursor:pointer;">Clear</span>
+            </div>
+            <div id="gain-agent-list"></div>
+          </div>
+        </div>
+        <div id="gain-agent-pills" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;" id="gain-filter-row">
+        <button onclick="setGainFilter('all',this)" class="lb-btn active" style="background:var(--ink);color:#fff;border-radius:6px;padding:4px 10px;">All</button>
+        <button onclick="setGainFilter('newsku',this)" class="lb-btn" style="border-radius:6px;padding:4px 10px;">New SKU only</button>
+        <button onclick="setGainFilter('increased30',this)" class="lb-btn" style="border-radius:6px;padding:4px 10px;">Increased ≥30%</button>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;" id="gain-sku-filter-row"></div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div id="gaining-debtors-list"></div>
+      </div>
+    </div>
+
     <!-- 5e. Activity Map -->
     <div id="activity-map-section">
       <div class="sec-lbl">活动地图 / Activity Map</div>
@@ -1283,6 +1317,7 @@ function renderOverview() {
   renderBrandSkuStatus();
   renderBrandVolumeAlert();
   renderDroppingDebtors();
+  renderGainingDebtors();
   renderActivityMap();
   renderNewbieProgress();
   renderAgingOverview();
@@ -2945,6 +2980,254 @@ function renderBrandVolumeAlert() {
   }).join('');
 }
 
+// ── Gaining Debtors ────────────────────────────────────────────────────────
+let _gainFilter    = 'all';
+let _gainSkuFilter = 'all';
+let _gainAgentFilter = new Set();
+let GAINING_DEBTORS_PAGE = 0;
+let GAINING_DEBTORS_LIST = [];
+const GAINING_DEBTORS_PER_PAGE = 12;
+
+function setGainFilter(f, btn) {
+  _gainFilter = f;
+  document.querySelectorAll('#gain-filter-row .lb-btn').forEach(b => {
+    b.style.background = 'transparent'; b.style.color = 'var(--ink)';
+  });
+  if (btn) { btn.style.background = 'var(--ink)'; btn.style.color = '#fff'; }
+  renderGainingDebtors();
+}
+
+function setGainSkuFilter(f, btn) {
+  _gainSkuFilter = f;
+  document.querySelectorAll('#gain-sku-filter-row .lb-btn').forEach(b => {
+    b.style.background = 'transparent';
+    const orig = b.getAttribute('data-orig-color') || 'var(--ink)';
+    b.style.color = orig;
+  });
+  if (btn) {
+    if (!btn.getAttribute('data-orig-color')) btn.setAttribute('data-orig-color', btn.style.color);
+    btn.style.background = 'var(--ink)';
+    btn.style.color = '#fff';
+  }
+  renderGainingDebtors();
+}
+
+const GAIN_SKU_COLORS = {
+  IFACE:'#1a5c8f', SUKUN:'#6b3fa0', EVO:'#c8381a',
+  BISON:'#c8860a', TR20:'#2a7a4b', 'LAM+LWM':'#5a5550'
+};
+
+function renderGainSkuFilterButtons(skuOptions) {
+  const row = document.getElementById('gain-sku-filter-row');
+  if (!row) return;
+  const options = ['all', ...skuOptions];
+  row.innerHTML = options.map(sku => {
+    const active = sku === _gainSkuFilter;
+    const label = sku === 'all' ? 'All SKU' : sku;
+    const safeSku = String(sku).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const col = GAIN_SKU_COLORS[sku] || 'var(--ink)';
+    const borderCol = col.startsWith('#') ? `${col}33` : 'var(--border)';
+    return `<button onclick="setGainSkuFilter('${safeSku}',this)" class="lb-btn ${active?'active':''}" style="border-radius:6px;padding:3px 10px;font-size:9px;${active?'background:var(--ink);color:#fff;':`color:${col};border-color:${borderCol};`}">${label}</button>`;
+  }).join('');
+}
+
+function toggleGainAgentMenu() {
+  const p = document.getElementById('gain-agent-panel');
+  if (!p) return;
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+  if (p.style.display === 'block') renderGainAgentList();
+}
+
+function renderGainAgentList() {
+  const list = document.getElementById('gain-agent-list');
+  if (!list) return;
+  const D = CURRENT_DATA || DATA;
+  const agents = Object.keys(D?.agents || {}).sort();
+  list.innerHTML = agents.map(a => `
+    <div onclick="gainAgentToggle('${a}')" style="display:flex;align-items:center;gap:8px;padding:5px 10px;cursor:pointer;font-size:12px;">
+      <div style="width:13px;height:13px;border:1px solid var(--border);border-radius:3px;background:${_gainAgentFilter.size===0||_gainAgentFilter.has(a)?'var(--accent)':'var(--card)'};display:flex;align-items:center;justify-content:center;">
+        ${_gainAgentFilter.size===0||_gainAgentFilter.has(a)?'<span style="font-size:9px;color:#fff;">✓</span>':''}
+      </div>
+      ${a}
+    </div>`).join('');
+}
+
+function renderGainAgentPills() {
+  const label = document.getElementById('gain-agent-label');
+  const pills = document.getElementById('gain-agent-pills');
+  if (!label || !pills) return;
+  if (_gainAgentFilter.size === 0) {
+    label.textContent = 'All agents';
+    pills.innerHTML = '';
+  } else {
+    label.textContent = `${_gainAgentFilter.size} selected`;
+    pills.innerHTML = [..._gainAgentFilter].map(a => `
+      <span onclick="gainAgentToggle('${a}')" style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:rgba(61,220,132,.1);border-radius:5px;font-size:11px;color:var(--green);cursor:pointer;">
+        ${a} <span style="opacity:0.6;font-size:9px;">✕</span>
+      </span>`).join('');
+  }
+}
+
+function gainAgentToggle(a) {
+  if (_gainAgentFilter.has(a)) _gainAgentFilter.delete(a);
+  else _gainAgentFilter.add(a);
+  renderGainAgentList();
+  renderGainAgentPills();
+  renderGainingDebtors();
+}
+
+function gainAgentSelectAll() {
+  _gainAgentFilter.clear();
+  renderGainAgentList();
+  renderGainAgentPills();
+  renderGainingDebtors();
+}
+
+function gainAgentClearAll() {
+  _gainAgentFilter.clear();
+  renderGainAgentList();
+  renderGainAgentPills();
+  renderGainingDebtors();
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#gain-agent-dropdown-wrap')) {
+    const p = document.getElementById('gain-agent-panel');
+    if (p) p.style.display = 'none';
+  }
+});
+
+function getMgmtDebtorSkuGains(d) {
+  const D = CURRENT_DATA || DATA;
+  const curMth = D.current_month || '';
+  const mb     = d.month_breakdown || {};
+  const MLIST  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const months = Object.keys(mb).sort((a,b) => {
+    const [am,ay] = a.split(' '); const [bm,by] = b.split(' ');
+    return (parseInt(ay)||0) - (parseInt(by)||0) || MLIST.indexOf(am) - MLIST.indexOf(bm);
+  });
+  const prevMth   = [...months].reverse().find(m => m !== curMth) || '';
+  const prevItems = (mb[prevMth] || []).map(r => r.item).filter(Boolean);
+  const curItems  = (mb[curMth]  || []).map(r => r.item).filter(Boolean);
+  if (prevItems.length === 0 && curItems.length === 0) return { newsku: [], increased: [] };
+  const allSkus = [...new Set([...prevItems, ...curItems])];
+  const newsku = [], increased = [];
+  allSkus.forEach(sku => {
+    const prev = (mb[prevMth]||[]).filter(r=>r.item===sku).reduce((s,r)=>s+(r.ctn||0),0);
+    const cur  = (mb[curMth] ||[]).filter(r=>r.item===sku).reduce((s,r)=>s+(r.ctn||0),0);
+    if (cur > prev) {
+      prev === 0 ? newsku.push(sku) : increased.push(sku);
+    }
+  });
+  return { newsku, increased };
+}
+
+function renderGainingDebtorsPage() {
+  renderGainingDebtors(false);
+}
+
+function renderGainingDebtors(resetPage=true) {
+  const section = document.getElementById('gaining-debtors-section');
+  const list    = document.getElementById('gaining-debtors-list');
+  if (!section || !list) return;
+  const D      = CURRENT_DATA || DATA;
+  const agents = Object.keys(D.agents || {}).sort();
+  renderGainAgentPills();
+
+  const gains = [];
+  agents.forEach(agent => {
+    const debtors = D.agents[agent]?.debtor_cards?.debtors || [];
+    debtors.forEach(d => {
+      if (['P-PERSONAL','PERSONAL'].includes((d.debtor_type||'').toUpperCase())) return;
+      if (_gainAgentFilter.size > 0 && !_gainAgentFilter.has(agent)) return;
+      const prevCtn = d.ctn_prev1 || 0;
+      const curCtn  = d.ctn_cur   || 0;
+      if (curCtn <= prevCtn) return;
+      const isNew    = prevCtn === 0;
+      const gainPct  = isNew ? 100 : Math.round((curCtn - prevCtn) / prevCtn * 100);
+      if (_gainFilter === 'newsku'      && !isNew)         return;
+      if (_gainFilter === 'increased30' && (isNew || gainPct < 30)) return;
+      const { newsku: skuNew, increased: skuIncreased } = getMgmtDebtorSkuGains(d);
+      const gainSkus = [...new Set([...skuNew, ...skuIncreased])];
+      gains.push({ agent, ...d, isNew, gainPct, gainSkus, skuNew, skuIncreased });
+    });
+  });
+
+  if (!gains.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+
+  const skuOptions = [...new Set(gains.flatMap(d => d.gainSkus || []))].sort((a,b) => a.localeCompare(b));
+  if (_gainSkuFilter !== 'all' && !skuOptions.includes(_gainSkuFilter)) _gainSkuFilter = 'all';
+  renderGainSkuFilterButtons(skuOptions);
+
+  const filteredGains = _gainSkuFilter === 'all'
+    ? gains
+    : gains.filter(d => (d.gainSkus || []).includes(_gainSkuFilter));
+
+  filteredGains.sort((a, b) => ((b.ctn_cur||0) - (b.ctn_prev1||0)) - ((a.ctn_cur||0) - (a.ctn_prev1||0)));
+
+  GAINING_DEBTORS_LIST = filteredGains;
+  if (resetPage) GAINING_DEBTORS_PAGE = 0;
+  const totalPages = Math.max(1, Math.ceil(GAINING_DEBTORS_LIST.length / GAINING_DEBTORS_PER_PAGE));
+  GAINING_DEBTORS_PAGE = Math.min(Math.max(GAINING_DEBTORS_PAGE, 0), totalPages - 1);
+  const pageStart = GAINING_DEBTORS_PAGE * GAINING_DEBTORS_PER_PAGE;
+  const shown = GAINING_DEBTORS_LIST.slice(pageStart, pageStart + GAINING_DEBTORS_PER_PAGE);
+
+  list.innerHTML = shown.map((d, i) => {
+    const bg       = (pageStart + i) % 2 === 0 ? 'transparent' : 'rgba(0,0,0,.02)';
+    const prevCtn  = d.ctn_prev1 || 0;
+    const curCtn   = d.ctn_cur   || 0;
+    const pctLabel = d.isNew ? 'NEW' : `+${d.gainPct}%`;
+    const tagBg    = d.isNew ? 'rgba(61,220,132,.1)' : 'rgba(61,132,220,.1)';
+    const tagCol   = d.isNew ? 'var(--green)' : '#4da6ff';
+    const statusTag = `<span style="font-family:var(--mono);font-size:8px;background:${tagBg};color:${tagCol};padding:2px 7px;border-radius:8px;white-space:nowrap;">${pctLabel}</span>`;
+    const newPills = d.skuNew?.map(s =>
+      `<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:rgba(61,220,132,.15);color:var(--green);border:0.5px solid rgba(61,220,132,.3);font-family:var(--mono);white-space:nowrap;">${s}</span>`
+    ).join('') || '';
+    const incPills = d.skuIncreased?.map(s =>
+      `<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:rgba(61,132,220,.15);color:#4da6ff;border:0.5px solid rgba(61,132,220,.3);font-family:var(--mono);white-space:nowrap;">${s}</span>`
+    ).join('') || '';
+    const newHtml = d.skuNew?.length ? `<span style="font-size:9px;color:var(--green);margin-right:3px;">新增:</span>${newPills}` : '';
+    const incHtml = d.skuIncreased?.length ? `<span style="font-size:9px;color:#4da6ff;margin-left:${d.skuNew?.length?'6px':'0'};margin-right:3px;">增加:</span>${incPills}` : '';
+    const skuPills = (d.skuNew?.length || d.skuIncreased?.length)
+      ? newHtml + incHtml
+      : `<span style="font-family:var(--mono);font-size:8px;color:var(--ink3);">—</span>`;
+    return `
+    <div style="padding:9px 14px;border-bottom:1px solid var(--border);background:${bg};">
+      <div style="display:grid;grid-template-columns:56px 1fr 70px 64px;gap:8px;align-items:center;margin-bottom:5px;">
+        <div style="font-family:var(--display);font-size:13px;letter-spacing:.04em;color:var(--ink2);">${d.agent}</div>
+        <div>
+          <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.company_name||d.debtor_code}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">${d.debtor_code} · ${d.debtor_type||''}</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);">Prev → Now</div>
+          <div style="font-family:var(--mono);font-size:11px;font-weight:500;">
+            <span style="color:var(--ink2);">${prevCtn}</span>
+            <span style="color:var(--ink3);"> → </span>
+            <span style="color:var(--green);">${curCtn}</span>
+          </div>
+        </div>
+        <div style="text-align:right;">${statusTag}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-left:64px;">
+        <span style="font-family:var(--mono);font-size:8px;color:var(--ink3);white-space:nowrap;">条数上升:</span>
+        ${skuPills}
+      </div>
+    </div>`;
+  }).join('');
+
+  const prevDisabled = GAINING_DEBTORS_PAGE <= 0;
+  const nextDisabled = GAINING_DEBTORS_PAGE >= totalPages - 1;
+  const pager = totalPages > 1 ? `
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 14px;background:var(--card);">
+      <button class="activity-btn" onclick="if(GAINING_DEBTORS_PAGE>0){GAINING_DEBTORS_PAGE--;renderGainingDebtorsPage();}" ${prevDisabled?'disabled':''} style="${prevDisabled?'opacity:.35;cursor:not-allowed;':''}">‹ Prev</button>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">Page ${GAINING_DEBTORS_PAGE + 1} of ${totalPages}</div>
+      <button class="activity-btn" onclick="if(GAINING_DEBTORS_PAGE<${totalPages - 1}){GAINING_DEBTORS_PAGE++;renderGainingDebtorsPage();}" ${nextDisabled?'disabled':''} style="${nextDisabled?'opacity:.35;cursor:not-allowed;':''}">Next ›</button>
+    </div>` : '';
+  list.innerHTML += pager;
+}
+
 // ── Dropping Debtors ───────────────────────────────────────────────────────
 let _dropFilter    = 'all';
 let _dropSkuFilter = 'all';
@@ -3073,11 +3356,11 @@ function getMgmtDebtorSkuDrops(d) {
   const curMth  = D.current_month || '';
   const mb      = d.month_breakdown || {};
   const months  = Object.keys(mb).sort((a,b) => {
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const MLIST = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const [am,ay] = a.split(' '); const [bm,by] = b.split(' ');
-    return (parseInt(by)||0) - (parseInt(ay)||0) || months.indexOf(bm) - months.indexOf(am);
+    return (parseInt(ay)||0) - (parseInt(by)||0) || MLIST.indexOf(am) - MLIST.indexOf(bm);
   });
-  const prevMth = months.find(m => m !== curMth) || '';
+  const prevMth = [...months].reverse().find(m => m !== curMth) || '';
   const prevItems = (mb[prevMth] || []).map(r => r.item).filter(Boolean);
   const curItems  = (mb[curMth]  || []).map(r => r.item).filter(Boolean);
   if (prevItems.length === 0 && curItems.length === 0) return { stopped: [], reduced: [] };
@@ -3111,7 +3394,7 @@ function renderDroppingDebtors(resetPage=true) {
     const debtors = D.agents[agent]?.debtor_cards?.debtors || [];
     debtors.forEach(d => {
       // Exclude P-Personal accounts — not real shop debtors
-      if ((d.debtor_type || '').toUpperCase() === 'P-PERSONAL') return;
+      if (['P-PERSONAL','PERSONAL'].includes((d.debtor_type || '').toUpperCase())) return;
       if (_dropAgentFilter.size > 0 && !_dropAgentFilter.has(agent)) return;
 
       // Include if: stopped buying (ctn_cur=0, ctn_prev1>0) OR volume dropped ≥30%

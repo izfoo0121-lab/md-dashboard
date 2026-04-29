@@ -1037,6 +1037,7 @@ const DEFAULT_AGENT_PINS = {
 
 // ═══════════════════════════════════════════════════════════════════════
 // KPI Manual Entry (new_accounts + vip_count)
+// Supabase SQL: ALTER TABLE kpi_manual ADD COLUMN IF NOT EXISTS campaign_pct integer DEFAULT 0;
 // ═══════════════════════════════════════════════════════════════════════
 const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
@@ -1098,21 +1099,24 @@ async function loadKpiManual() {
 
   // Render form: one row per agent
   form.innerHTML = `
-    <div style="display:grid;grid-template-columns:100px 140px 140px 140px;gap:8px;align-items:center;padding:8px 0;border-bottom:2px solid var(--border);font-family:var(--mono);font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;">
+    <div style="display:grid;grid-template-columns:100px 130px 130px 130px 130px;gap:8px;align-items:center;padding:8px 0;border-bottom:2px solid var(--border);font-family:var(--mono);font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;">
       <div>Agent</div>
       <div>新户口 (new_accounts)</div>
       <div>VIP招聘 (vip_count)</div>
       <div>做Event/PSR (event_count)</div>
+      <div>Campaign % (0-100)</div>
     </div>
   ` + agents.map(agent => {
     const row = existing[agent] || {};
-    return `<div style="display:grid;grid-template-columns:100px 140px 140px 140px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+    return `<div style="display:grid;grid-template-columns:100px 130px 130px 130px 130px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
       <div style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink);">${agent}</div>
       <input type="number" id="kpi_m_new_${agent}" min="0" value="${row.new_accounts ?? 0}" step="1"
         style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--ink);font-family:var(--mono);font-size:13px;padding:6px 8px;text-align:center;">
       <input type="number" id="kpi_m_vip_${agent}" min="0" value="${row.vip_count ?? 0}" step="1"
         style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--ink);font-family:var(--mono);font-size:13px;padding:6px 8px;text-align:center;">
       <input type="number" id="kpi_m_event_${agent}" min="0" value="${row.event_count ?? 0}" step="1"
+        style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--ink);font-family:var(--mono);font-size:13px;padding:6px 8px;text-align:center;">
+      <input type="number" id="kpi_m_camp_${agent}" min="0" max="100" value="${row.campaign_pct ?? 0}" step="1"
         style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--ink);font-family:var(--mono);font-size:13px;padding:6px 8px;text-align:center;">
     </div>`;
   }).join('');
@@ -1127,14 +1131,16 @@ async function saveKpiManual() {
     const newAccInput = document.getElementById(`kpi_m_new_${agent}`);
     const vipInput    = document.getElementById(`kpi_m_vip_${agent}`);
     const eventInput  = document.getElementById(`kpi_m_event_${agent}`);
+    const campInput   = document.getElementById(`kpi_m_camp_${agent}`);
     if (!newAccInput || !vipInput) return null;
     return {
       month, agent,
-      new_accounts: parseInt(newAccInput.value) || 0,
-      vip_count:    parseInt(vipInput.value) || 0,
-      event_count:  parseInt(eventInput?.value) || 0,
-      updated_at:   new Date().toISOString(),
-      updated_by:   'admin_ui'
+      new_accounts:  parseInt(newAccInput.value) || 0,
+      vip_count:     parseInt(vipInput.value) || 0,
+      event_count:   parseInt(eventInput?.value) || 0,
+      campaign_pct:  Math.min(100, Math.max(0, parseInt(campInput?.value) || 0)),
+      updated_at:    new Date().toISOString(),
+      updated_by:    'admin_ui'
     };
   }).filter(Boolean);
 
@@ -1179,8 +1185,6 @@ async function renderPinForm() {
   // Try to load fresh PINs from Supabase first
   let pinsFromSupabase = null;
   try {
-    const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
     const r = await fetch(`${SUPABASE_URL}/rest/v1/agent_pins?select=agent,pin`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
     });
@@ -1229,8 +1233,6 @@ async function savePins() {
   if (Object.keys(pins).length === 0) { alert('No valid PINs to save'); return; }
 
   // Save to Supabase (primary, live)
-  const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
   const rows = Object.entries(pins).map(([agent, pin]) => ({
     agent, pin, updated_at: new Date().toISOString(), updated_by: 'admin_ui'
   }));
@@ -1890,8 +1892,6 @@ async function archiveSelectedMonth() {
   }
 
   // Upsert to Supabase
-  const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
 
   try {
     const r = await fetch(`${SUPABASE_URL}/rest/v1/agent_monthly_archive?on_conflict=month,agent`, {
@@ -1966,8 +1966,6 @@ function extractArchiveRow(agent, adata, month) {
 }
 
 async function renderArchiveList() {
-  const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
   const list = document.getElementById('archive-list');
   try {
     const r = await fetch(`${SUPABASE_URL}/rest/v1/agent_monthly_archive?select=month,agent,comm_total,captured_at,captured_method&order=month.desc,agent.asc`, {
@@ -2320,8 +2318,6 @@ setInterval(() => {
 
 // Saves all 7 target sections to Supabase tables.
 async function saveAllToSupabase() {
-  const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
   const headers = {
     'apikey': SUPABASE_KEY,
     'Authorization': 'Bearer ' + SUPABASE_KEY,
@@ -2476,8 +2472,6 @@ function exportJSON() {
 // Phase C: Load targets from Supabase into CONFIG.
 // Assembles all 7 tables into targets.json-shape object.
 async function loadConfigFromSupabase() {
-  const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
   const headers = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
 
   const fetchTable = async (table) => {
@@ -3218,7 +3212,7 @@ function renderAdminBrandSKU() {
   const el = document.getElementById('admin-brand-sku-status');
   if (!el) return;
 
-  const BRANDS   = ['iFACE','SUKUN','BISON','TR20','EVO','LAM+LWM'];
+  const BRANDS   = ['iFACE','SUKUN','EVO','BISON','TR20','LAM+LWM'];
   const AUTO_B   = new Set(['iFACE','SUKUN','BISON','TR20']);
   const agents   = Object.keys(CONFIG.agents || {}).sort();
 
@@ -3763,8 +3757,6 @@ function _validateCodes(codes, selectedAgent) {
 
 // Check Supabase: which (month, agent, camp_id, debtor_code) already exist as delivered
 async function _fetchExistingClaims(month, campId, agents, codes) {
-  const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
 
   // Query: all delivered claims for this month+camp where agent IN (...) AND debtor_code IN (...)
   const agentsFilter = agents.map(a => `"${a}"`).join(',');
@@ -3937,8 +3929,6 @@ async function confirmBulkMark() {
   }
 
   // Actually write to Supabase
-  const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
   const now = new Date();
   // Supabase `ts` column is timestamptz — needs ISO format, not display format
   const ts = now.toISOString();
@@ -4038,8 +4028,6 @@ document.getElementById('pw-input').addEventListener('keydown', e => {
 const GistSync = (() => {
 
   // ── Configuration ────────────────────────────────────────────────────
-  const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
 
   const CACHE_KEY    = 'md_gist_cache';
   const CACHE_TS_KEY = 'md_gist_cache_ts';
