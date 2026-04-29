@@ -954,7 +954,7 @@ async function renderActivityMap() {
         const ctn = Math.round(Number(sales.ctn || 0));
         const txn = Number(sales.txn || 0);
         const leave = leaveByAgentDate[`${agent}|${key}`];
-        const weekend = d.getDay() === 0 || d.getDay() === 6;
+        const weekend = d.getDay() === 0;
         const offCfg = offByAgent[agent] || {};
         const exceptions = offCfg.exceptions || [];
         const defaultDay = offCfg.default_day || '';
@@ -963,7 +963,8 @@ async function renderActivityMap() {
           (defaultDay === 'Sunday + Monday' && (dowLong === 'Sunday' || dowLong === 'Monday')) ||
           legacyDays.includes(dowLong) || legacyDays.includes(dow);
         const offDay = defaultOff && !exceptions.includes(key);
-        if (!leave && (weekend || offDay)) {
+        const hasSales = ctn > 0 || txn > 0;
+        if (!leave && !hasSales && (weekend || offDay)) {
           return `<td class="activity-cell ${weekend ? 'weekend' : 'off'}">—</td>`;
         }
         const zero = ctn === 0 && txn === 0;
