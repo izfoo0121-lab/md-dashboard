@@ -92,6 +92,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 .activity-pill.al{background:var(--green-bg);color:var(--green);}
 .activity-pill.mc{background:var(--gold-bg);color:var(--gold);}
 .activity-pill.off{background:var(--blue-bg);color:var(--blue);}
+.activity-pill.ph{background:#e7e2d9;color:var(--ink3);}
 .activity-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-family:var(--mono);font-size:9px;color:var(--ink3);}
 /* Debtor summary table */
 .dt-wrap{min-width:340px;}
@@ -882,12 +883,13 @@ async function _activitySupabase(path) {
 }
 
 async function _loadActivityCalendarMeta(startKey, endKey) {
-  const empty = { leaveByAgentDate: {}, offByAgent: {}, workdaysByAgent: {} };
+  const empty = { leaveByAgentDate: {}, offByAgent: {}, workdaysByAgent: {}, publicHolidayDates: new Set() };
   try {
-    const [leaveRows, offRows, workRows] = await Promise.all([
+    const [leaveRows, offRows, workRows, holidayRows] = await Promise.all([
       _activitySupabase('agent_leave?select=*'),
       _activitySupabase('agent_offdays?select=agent_name,off_days,default_day,exceptions'),
-      _activitySupabase(`agent_workdays?select=agent_name,month,working_days&month=eq.${startKey}`)
+      _activitySupabase(`agent_workdays?select=agent_name,month,working_days&month=eq.${startKey}`),
+      _activitySupabase('targets_static?select=value&key=eq.public_holidays')
     ]);
     const leaveByAgentDate = {};
     (leaveRows || []).forEach(r => {
@@ -907,7 +909,13 @@ async function _loadActivityCalendarMeta(startKey, endKey) {
     });
     const workdaysByAgent = {};
     (workRows || []).forEach(r => { workdaysByAgent[(r.agent_name || '').toUpperCase()] = r.working_days; });
-    return { leaveByAgentDate, offByAgent, workdaysByAgent };
+    const publicHolidayDates = new Set();
+    const rawHolidays = (holidayRows || []).flatMap(r => Array.isArray(r.value) ? r.value : []);
+    rawHolidays.forEach(h => {
+      const date = h?.date || h;
+      if (date && date >= startKey && date <= endKey) publicHolidayDates.add(date);
+    });
+    return { leaveByAgentDate, offByAgent, workdaysByAgent, publicHolidayDates };
   } catch (e) {
     console.warn('[activity-map] calendar meta load failed:', e.message);
     return empty;
@@ -939,7 +947,10 @@ async function renderActivityMap() {
     <tbody>${ACTIVITY_AGENTS.map(agent => `<tr><th class="activity-agent">${agent}</th>${days.map(() => '<td class="activity-cell zero">...</td>').join('')}</tr>`).join('')}</tbody>
   </table>`;
 
-  const { leaveByAgentDate, offByAgent } = await _loadActivityCalendarMeta(startKey, endKey);
+  const { leaveByAgentDate, offByAgent, publicHolidayDates } = await _loadActivityCalendarMeta(startKey, endKey);
+  (D.working_days?.public_holidays || []).forEach(date => {
+    if (date && date >= startKey && date <= endKey) publicHolidayDates.add(date);
+  });
   el.innerHTML = `<table class="activity-table">
     <thead><tr>
       <th class="activity-date activity-corner">Agent</th>
@@ -964,6 +975,10 @@ async function renderActivityMap() {
           legacyDays.includes(dowLong) || legacyDays.includes(dow);
         const offDay = defaultOff && !exceptions.includes(key);
         const hasSales = ctn > 0 || txn > 0;
+        const publicHoliday = publicHolidayDates.has(key);
+        if (publicHoliday && !hasSales) {
+          return `<td class="activity-cell off"><span class="activity-pill ph">PH</span></td>`;
+        }
         if (!leave && !hasSales && (weekend || offDay)) {
           return `<td class="activity-cell ${weekend ? 'weekend' : 'off'}">—</td>`;
         }
