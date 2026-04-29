@@ -1386,12 +1386,33 @@ function renderAnnualProgress() {
     </div>
   `;
 }
-function renderMonthlySummary() {
+async function renderMonthlySummary() {
   const D = CURRENT_DATA || DATA;
   const agents = Object.keys(D.agents||{}).sort();
   const el = document.getElementById('monthly-summary-table');
   document.getElementById('monthly-month-label').textContent =
     `${D.current_month || ''} · Day ${D.working_days?.elapsed_working_days||'?'} of ${D.working_days?.total_working_days||'?'}`;
+
+  // ── Fetch per-agent workdays from Supabase agent_workdays ──────────────────
+  // month key format matches agent_workdays.month column (e.g. "2025-04-01")
+  let workdaysByAgent = {};
+  try {
+    const label = D.current_month || ''; // e.g. "Apr 26"
+    const [mon, yy] = label.split(' ');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const mIdx = months.indexOf(mon);
+    if (mIdx >= 0 && yy) {
+      const year = 2000 + parseInt(yy, 10);
+      const monthKey = `${year}-${String(mIdx+1).padStart(2,'0')}-01`;
+      const wdRows = await _activitySupabase(
+        `agent_workdays?select=agent_name,working_days&month=eq.${monthKey}`
+      );
+      (wdRows || []).forEach(r => {
+        workdaysByAgent[(r.agent_name || '').toUpperCase()] = Number(r.working_days);
+      });
+    }
+  } catch(e) { console.warn('[monthlySummary] workdays fetch failed:', e.message); }
+  const fallbackWdays = D.working_days?.elapsed_working_days || 0;
 
   // col layout: Agent | Normal(act/tgt/%) | MA(act/tgt/%) | 开新户口(act/tgt) | VIP(act/tgt) | 激活户口(act/tgt) | 加SKU(act/tgt) | 光顾率(act/tgt%) | 交易 | 工作日 | 平均交易 | KPI A+B
   const cols = '68px 110px 110px 80px 70px 80px 80px 90px 55px 45px 55px 60px';
@@ -1471,8 +1492,8 @@ function renderMonthlySummary() {
     const rateTgt = kpiItems.activation_rate?.target || 80;
 
     const txn    = sp.txn_count || 0;
-    const wdays  = sp.elapsed_working_days || D.working_days?.elapsed_working_days || 0;
-    const avgTxn = sp.avg_txn_per_day || 0;
+    const wdays  = workdaysByAgent[agent] ?? sp.elapsed_working_days ?? fallbackWdays;
+    const avgTxn = wdays > 0 ? (txn / wdays) : (sp.avg_txn_per_day || 0);
 
     // KPI score — merge live event/birthday from md_scores
     let kpiScore = kpi.total_abc ?? kpi.grand_total ?? 0;
@@ -1495,28 +1516,50 @@ function renderMonthlySummary() {
   });
 
   // TOTAL row
-  const totNormal = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.normal_ctn||0),0);
+  const totNormal  = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.normal_ctn||0),0);
   const totNormTgt = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.tiers?.normal_t1?.target||0),0);
-  const totMA    = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.ma_ctn||0),0);
-  const totMATgt = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.tiers?.ma?.target||0),0);
-  const totNew   = agents.reduce((s,a)=>s+(D.agents[a]?.debtor_cards?.debtors?.filter(d=>d.is_new).length||0),0);
-  const totTxn   = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.txn_count||0),0);
-  const totKpi   = agents.reduce((s,a)=>s+(D.agents[a]?.kpi?.total_abc ?? D.agents[a]?.kpi?.grand_total ?? 0),0);
-  const avgKpi   = agents.length ? (totKpi/agents.length).toFixed(1) : '—';
+  const totMA      = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.ma_ctn||0),0);
+  const totMATgt   = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.tiers?.ma?.target||0),0);
+  // 开新户口 — use Supabase-overridden value (same source as per-agent row)
+  const totNew     = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.new_accounts?.actual ?? D.agents[a]?.debtor_cards?.debtors?.filter(d=>d.is_new).length ?? 0)||0),0);
+  const totNewTgt  = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.new_accounts?.target)||0),0);
+  // VIP
+  const totVip     = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.vip_count?.actual ?? D.agents[a]?.debtor_cards?.debtors?.filter(d=>d.vip&&d.status==='active').length ?? 0)||0),0);
+  const totVipTgt  = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.vip_count?.target)||0),0);
+  // 激活户口
+  const totReact   = agents.reduce((s,a)=>s+(Number(D.agents[a]?.debtor_cards?.reactivation_count)||0),0);
+  const totReactTgt= agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.reactivation?.target)||0),0);
+  // 加SKU
+  const totSku     = agents.reduce((s,a)=>s+(Number(D.agents[a]?.debtor_cards?.total_new_sku)||0),0);
+  const totSkuTgt  = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.new_sku?.target)||0),0);
+  // 光顾率 — team-level: sum active / sum total non-personal
+  const totActive  = agents.reduce((s,a)=>s+(D.agents[a]?.debtor_cards?.active_count||0),0);
+  const totDebtors = agents.reduce((s,a)=>s+(D.agents[a]?.debtor_cards?.total_debtors||0),0);
+  const totRatePct = totDebtors > 0 ? Math.round(totActive/totDebtors*100) : 0;
+  const totRateCol = totRatePct>=80?'#5de89a':totRatePct>=70?'#ffc94d':'#ff6b6b';
+  // 交易次数
+  const totTxn     = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.txn_count||0),0);
+  // KPI avg
+  const totKpi     = agents.reduce((s,a)=>s+(D.agents[a]?.kpi?.total_abc ?? D.agents[a]?.kpi?.grand_total ?? 0),0);
+  const avgKpi     = agents.length ? (totKpi/agents.length).toFixed(1) : '—';
 
-  html += `<div style="display:grid;grid-template-columns:${cols};gap:0;background:var(--ink);border-top:2px solid var(--border);">
+  const totCell = (val, tgt=0, col='#fff') => `<div style="font-family:var(--mono);font-size:10px;font-weight:700;
+    padding:7px 6px;text-align:center;border-right:1px solid rgba(255,255,255,.1);color:${col};">
+    ${fi(Number(val)||0)}${Number(tgt) > 0 ? `<span style="color:rgba(255,255,255,.3);font-size:9px;">/${fi(Number(tgt)||0)}</span>` : ''}
+  </div>`;
+
+  html += `<div data-row="monthly-total" style="display:grid;grid-template-columns:${cols};gap:0;background:var(--ink);border-top:2px solid var(--border);">
     <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:7px 8px;border-right:1px solid rgba(255,255,255,.1);color:#fff;">TOTAL</div>
-    <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:7px 6px;text-align:center;border-right:1px solid rgba(255,255,255,.1);color:#ffc94d;">
-      ${fi(totNormal)}<span style="color:rgba(255,255,255,.4);font-size:9px;">/${fi(totNormTgt)}</span>
+    ${totCell(totNormal, totNormTgt, '#ffc94d')}
+    ${totCell(totMA, totMATgt, '#a78bfa')}
+    ${totCell(totNew, totNewTgt)}
+    ${totCell(totVip, totVipTgt)}
+    ${totCell(totReact, totReactTgt)}
+    ${totCell(totSku, totSkuTgt)}
+    <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:7px 6px;text-align:center;
+      border-right:1px solid rgba(255,255,255,.1);color:${totRateCol};">${totRatePct}%
+      <div style="font-size:8px;color:rgba(255,255,255,.3);">${totActive}/${totDebtors}</div>
     </div>
-    <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:7px 6px;text-align:center;border-right:1px solid rgba(255,255,255,.1);color:#a78bfa;">
-      ${fi(totMA)}<span style="color:rgba(255,255,255,.4);font-size:9px;">/${fi(totMATgt)}</span>
-    </div>
-    <div style="font-family:var(--mono);font-size:10px;padding:7px 6px;text-align:center;border-right:1px solid rgba(255,255,255,.1);color:#fff;">${totNew}</div>
-    <div style="border-right:1px solid rgba(255,255,255,.1);"></div>
-    <div style="border-right:1px solid rgba(255,255,255,.1);"></div>
-    <div style="border-right:1px solid rgba(255,255,255,.1);"></div>
-    <div style="border-right:1px solid rgba(255,255,255,.1);"></div>
     <div style="font-family:var(--mono);font-size:10px;padding:7px 6px;text-align:center;border-right:1px solid rgba(255,255,255,.1);color:#fff;">${totTxn}</div>
     <div style="border-right:1px solid rgba(255,255,255,.1);"></div>
     <div style="border-right:1px solid rgba(255,255,255,.1);"></div>
