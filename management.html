@@ -405,15 +405,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
         <button onclick="setDropFilter('stopped',this)" class="lb-btn" style="border-radius:6px;padding:4px 10px;">Stopped buying</button>
         <button onclick="setDropFilter('reduced',this)" class="lb-btn" style="border-radius:6px;padding:4px 10px;">Reduced ≥30%</button>
       </div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;" id="drop-sku-filter-row">
-        <button onclick="setDropSkuFilter('all',this)" class="lb-btn active" style="background:var(--ink);color:#fff;border-radius:6px;padding:3px 10px;font-size:9px;">All SKU</button>
-        <button onclick="setDropSkuFilter('IFACE',this)" class="lb-btn" style="border-radius:6px;padding:3px 10px;font-size:9px;color:#1a5c8f;border-color:#1a5c8f33;">iFACE</button>
-        <button onclick="setDropSkuFilter('SUKUN',this)" class="lb-btn" style="border-radius:6px;padding:3px 10px;font-size:9px;color:#6b3fa0;border-color:#6b3fa033;">SUKUN</button>
-        <button onclick="setDropSkuFilter('EVO',this)" class="lb-btn" style="border-radius:6px;padding:3px 10px;font-size:9px;color:#c8381a;border-color:#c8381a33;">EVO</button>
-        <button onclick="setDropSkuFilter('BISON',this)" class="lb-btn" style="border-radius:6px;padding:3px 10px;font-size:9px;color:#c8860a;border-color:#c8860a33;">BISON</button>
-        <button onclick="setDropSkuFilter('TR20',this)" class="lb-btn" style="border-radius:6px;padding:3px 10px;font-size:9px;color:#2a7a4b;border-color:#2a7a4b33;">TR20</button>
-        <button onclick="setDropSkuFilter('LAM+LWM',this)" class="lb-btn" style="border-radius:6px;padding:3px 10px;font-size:9px;color:#5a5550;border-color:#5a555033;">LAM+LWM</button>
-      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;" id="drop-sku-filter-row"></div>
       <div class="card" style="padding:0;overflow:hidden;">
         <div id="dropping-debtors-list"></div>
       </div>
@@ -2961,6 +2953,25 @@ function setDropSkuFilter(f, btn) {
   renderDroppingDebtors();
 }
 
+const DROP_SKU_COLORS = {
+  IFACE:'#1a5c8f', SUKUN:'#6b3fa0', EVO:'#c8381a',
+  BISON:'#c8860a', TR20:'#2a7a4b', 'LAM+LWM':'#5a5550'
+};
+
+function renderDropSkuFilterButtons(skuOptions) {
+  const row = document.getElementById('drop-sku-filter-row');
+  if (!row) return;
+  const options = ['all', ...skuOptions];
+  row.innerHTML = options.map(sku => {
+    const active = sku === _dropSkuFilter;
+    const label = sku === 'all' ? 'All SKU' : sku;
+    const safeSku = String(sku).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const col = DROP_SKU_COLORS[sku] || 'var(--ink)';
+    const borderCol = col.startsWith('#') ? `${col}33` : 'var(--border)';
+    return `<button onclick="setDropSkuFilter('${safeSku}',this)" class="lb-btn ${active?'active':''}" style="border-radius:6px;padding:3px 10px;font-size:9px;${active?'background:var(--ink);color:#fff;':`color:${col};border-color:${borderCol};`}">${label}</button>`;
+  }).join('');
+}
+
 function getDropAgents() {
   const D = CURRENT_DATA || DATA;
   return Object.keys(D?.agents || {}).sort();
@@ -3088,9 +3099,7 @@ function renderDroppingDebtors(resetPage=true) {
       const { stopped: skuStopped, reduced: skuReduced } = getMgmtDebtorSkuDrops(d);
       const lapsedSkus = [...new Set([...skuStopped, ...skuReduced])];
 
-      // Apply SKU brand filter — only show if selected brand is lapsed for this debtor
-      if (_dropSkuFilter !== 'all' && !lapsedSkus.includes(_dropSkuFilter)) return;
-
+      // SKU filter options are built from these derived lapsed item-code arrays.
       drops.push({ agent, ...d, stopped, reduced, lapsedSkus, skuStopped, skuReduced });
     });
   });
@@ -3098,10 +3107,19 @@ function renderDroppingDebtors(resetPage=true) {
   if (!drops.length) { section.style.display = 'none'; return; }
   section.style.display = 'block';
 
-  // Sort: by prev month CTN highest first (biggest accounts that dropped matter most)
-  drops.sort((a, b) => (b.ctn_prev1 || 0) - (a.ctn_prev1 || 0));
+  const skuOptions = [...new Set(drops.flatMap(d => d.lapsedSkus || []))]
+    .sort((a, b) => a.localeCompare(b));
+  if (_dropSkuFilter !== 'all' && !skuOptions.includes(_dropSkuFilter)) _dropSkuFilter = 'all';
+  renderDropSkuFilterButtons(skuOptions);
 
-  DROPPING_DEBTORS_LIST = drops;
+  const filteredDrops = _dropSkuFilter === 'all'
+    ? drops
+    : drops.filter(d => (d.lapsedSkus || []).includes(_dropSkuFilter));
+
+  // Sort: by prev month CTN highest first (biggest accounts that dropped matter most)
+  filteredDrops.sort((a, b) => (b.ctn_prev1 || 0) - (a.ctn_prev1 || 0));
+
+  DROPPING_DEBTORS_LIST = filteredDrops;
   if (resetPage) DROPPING_DEBTORS_PAGE = 0;
   const totalPages = Math.max(1, Math.ceil(DROPPING_DEBTORS_LIST.length / DROPPING_DEBTORS_PER_PAGE));
   DROPPING_DEBTORS_PAGE = Math.min(Math.max(DROPPING_DEBTORS_PAGE, 0), totalPages - 1);
