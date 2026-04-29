@@ -79,14 +79,15 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 .activity-nav{display:flex;align-items:center;gap:8px;}
 .activity-btn{border:1px solid var(--border);background:var(--surface);color:var(--ink);border-radius:8px;padding:4px 9px;font-family:var(--mono);font-size:10px;cursor:pointer;}
 .activity-month{font-family:var(--display);font-size:18px;letter-spacing:.05em;min-width:82px;text-align:center;}
-.activity-grid{display:grid;min-width:max-content;border-top:1px solid var(--border);border-left:1px solid var(--border);}
+.activity-table{border-collapse:separate;border-spacing:0;min-width:max-content;border-top:1px solid var(--border);border-left:1px solid var(--border);}
 .activity-agent,.activity-date,.activity-cell{border-right:1px solid var(--border);border-bottom:1px solid var(--border);}
-.activity-agent{position:sticky;left:0;z-index:3;background:var(--surface);font-weight:700;font-size:11px;padding:9px 10px;color:var(--blue);min-width:70px;}
-.activity-date{background:var(--bg);font-family:var(--mono);font-size:8px;text-align:center;padding:6px 4px;color:var(--ink3);min-width:58px;position:sticky;top:0;z-index:2;}
-.activity-date:first-child{left:0;z-index:4;background:var(--surface);}
-.activity-cell{min-width:58px;min-height:48px;padding:5px 4px;background:#fff;font-family:var(--mono);font-size:9px;line-height:1.25;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--ink);}
-.activity-cell.zero,.activity-cell.off,.activity-cell.weekend{background:#f0eee9;color:var(--ink3);}
-.activity-cell.off,.activity-cell.weekend{font-size:14px;}
+.activity-agent{position:sticky;left:0;z-index:3;background:var(--surface);font-weight:700;font-size:11px;padding:9px 10px;color:var(--blue);min-width:70px;width:70px;text-align:left;}
+.activity-date{background:var(--bg);font-family:var(--mono);font-size:8px;text-align:center;padding:6px 4px;color:var(--ink3);min-width:52px;width:52px;position:sticky;top:0;z-index:2;}
+.activity-date.activity-corner{left:0;z-index:4;background:var(--surface);}
+.activity-cell{min-width:52px;width:52px;height:48px;padding:5px 4px;background:#fff;font-family:var(--mono);font-size:9px;line-height:1.25;text-align:center;vertical-align:middle;color:var(--ink);}
+.activity-cell.zero{background:#fff;color:var(--ink3);}
+.activity-cell.off,.activity-cell.weekend{background:#f0eee9;color:var(--ink3);font-size:14px;}
+.activity-txn{font-size:8px;color:var(--ink3);margin-top:2px;}
 .activity-pill{font-family:var(--mono);font-size:7px;border-radius:8px;padding:1px 5px;font-weight:700;line-height:1;}
 .activity-pill.al{background:var(--green-bg);color:var(--green);}
 .activity-pill.mc{background:var(--gold-bg);color:var(--gold);}
@@ -938,16 +939,21 @@ async function renderActivityMap() {
 
   const days = [];
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) days.push(new Date(d));
-  el.style.gridTemplateColumns = `70px repeat(${days.length}, 58px)`;
-  el.innerHTML = '<div class="activity-date" style="position:sticky;left:0;z-index:5;">Agent</div>' +
-    days.map(d => `<div class="activity-date">${d.getDate()}<br>${d.toLocaleDateString('en-US', {weekday:'short'})}</div>`).join('') +
-    ACTIVITY_AGENTS.map(agent => `<div class="activity-agent">${agent}</div>` +
-      days.map(() => '<div class="activity-cell zero">...</div>').join('')).join('');
+  el.innerHTML = `<table class="activity-table">
+    <thead><tr>
+      <th class="activity-date activity-corner">Agent</th>
+      ${days.map(d => `<th class="activity-date"><b>${d.getDate()}</b><br>${d.toLocaleDateString('en-US', {weekday:'short'})}</th>`).join('')}
+    </tr></thead>
+    <tbody>${ACTIVITY_AGENTS.map(agent => `<tr><th class="activity-agent">${agent}</th>${days.map(() => '<td class="activity-cell zero">...</td>').join('')}</tr>`).join('')}</tbody>
+  </table>`;
 
   const { leaveByAgentDate, offByAgent } = await _loadActivityCalendarMeta(startKey, endKey);
-  el.innerHTML = '<div class="activity-date" style="position:sticky;left:0;z-index:5;">Agent</div>' +
-    days.map(d => `<div class="activity-date">${d.getDate()}<br>${d.toLocaleDateString('en-US', {weekday:'short'})}</div>`).join('') +
-    ACTIVITY_AGENTS.map(agent => {
+  el.innerHTML = `<table class="activity-table">
+    <thead><tr>
+      <th class="activity-date activity-corner">Agent</th>
+      ${days.map(d => `<th class="activity-date"><b>${d.getDate()}</b><br>${d.toLocaleDateString('en-US', {weekday:'short'})}</th>`).join('')}
+    </tr></thead>
+    <tbody>${ACTIVITY_AGENTS.map(agent => {
       const row = days.map(d => {
         const key = _dateKey(d);
         const dow = d.toLocaleDateString('en-US', {weekday:'short'});
@@ -966,19 +972,19 @@ async function renderActivityMap() {
           legacyDays.includes(dowLong) || legacyDays.includes(dow);
         const offDay = defaultOff && !exceptions.includes(key);
         if (!leave && (weekend || offDay)) {
-          return `<div class="activity-cell ${weekend ? 'weekend' : 'off'}">—</div>`;
+          return `<td class="activity-cell ${weekend ? 'weekend' : 'off'}">—</td>`;
         }
         const zero = ctn === 0 && txn === 0;
         const leaveClass = leave === 'AL' ? 'al' : leave === 'MC' ? 'mc' : 'off';
         const pill = leave ? `<span class="activity-pill ${leaveClass}">${leave}</span>` : '';
-        return `<div class="activity-cell ${zero && !leave ? 'zero' : ''}">
-          <div>${ctn} CTN</div>
-          <div>${txn} 单</div>
+        return `<td class="activity-cell ${zero && !leave ? 'zero' : ''}">
+          ${zero && !leave ? '' : `<div>${ctn} CTN</div><div class="activity-txn">${txn} 单</div>`}
           ${pill}
-        </div>`;
+        </td>`;
       }).join('');
-      return `<div class="activity-agent">${agent}</div>${row}`;
-    }).join('');
+      return `<tr><th class="activity-agent">${agent}</th>${row}</tr>`;
+    }).join('')}</tbody>
+  </table>`;
 }
 
 // ── SupabaseKpiSync Module ───────────────────────────────────────────────────
