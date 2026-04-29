@@ -610,6 +610,7 @@ function updateSyncStatus() {
     <button class="filter-chip" data-val="new" onclick="setSpecialFilter('new',this)">🆕 New</button>
     <button class="filter-chip" data-val="birthday" onclick="setSpecialFilter('birthday',this)">🎂 Birthday</button>
     <button class="filter-chip" data-val="drop" onclick="setSpecialFilter('drop',this)">📉 Drop</button>
+    <button class="filter-chip" data-val="gain" onclick="setSpecialFilter('gain',this)" style="border-color:rgba(61,220,132,.4);color:var(--green);">📈 Gain</button>
     <button class="filter-chip" data-val="unpurchased" onclick="setSpecialFilter('unpurchased',this)">🎯 未购买</button>
     <button class="filter-chip" data-val="nonvip" onclick="setSpecialFilter('nonvip',this)">⭐ 非VIP</button>
     <button class="filter-chip" data-val="newsku" onclick="setSpecialFilter('newsku',this)">✨ 新增SKU</button>
@@ -850,6 +851,8 @@ let currentPage = 1;
 const PAGE_SIZE = 12;
 let dropCtnFilter = 'all';
 let dropSkuFilter = 'all';
+let gainCtnFilter = 'all';
+let gainSkuFilter = 'all';
 let unpurchasedBrandFilter = 'IFACE';
 let unpurchasedTypeFilter  = 'all';
 let nonvipTypeFilter = 'all';
@@ -948,6 +951,8 @@ async function switchMonth(slug) {
       filters = { status:'all', special:null, type:'all', brand:'all' };
       dropCtnFilter = 'all';
       dropSkuFilter = 'all';
+      gainCtnFilter = 'all';
+      gainSkuFilter = 'all';
       unpurchasedBrandFilter = 'IFACE';
       unpurchasedTypeFilter  = 'all';
       nonvipTypeFilter = 'all';
@@ -1298,6 +1303,8 @@ function selectAgent(agent) {
   filters = { status:'all', special:null, type:'all', brand:'all' };
   dropCtnFilter = 'all';
   dropSkuFilter = 'all';
+  gainCtnFilter = 'all';
+  gainSkuFilter = 'all';
   unpurchasedBrandFilter = 'IFACE';
   unpurchasedTypeFilter  = 'all';
   nonvipTypeFilter = 'all';
@@ -1411,6 +1418,9 @@ function setSpecialFilter(val, el) {
     if (val === 'drop') {
       dropCtnFilter = 'all';
       dropSkuFilter = 'all';
+    } else if (val === 'gain') {
+      gainCtnFilter = 'all';
+      gainSkuFilter = 'all';
     }
     if (val === 'unpurchased') {
       unpurchasedBrandFilter = 'IFACE';
@@ -1591,6 +1601,136 @@ function renderDropMode(debtors) {
       </div>
     </div>
     ${dropHtml}`;
+}
+
+function buildGainingSkuRows(debtors, selectedSku = 'all') {
+  const curMth = DATA?.current_month || '';
+  const rows = [];
+  debtors.forEach(d => {
+    if (isPersonalDebtor(d)) return;
+    const prevMth = getPrevMonthKey(d, curMth);
+    const itemCodes = selectedSku === 'all' ? ['ALL SKU'] : [selectedSku];
+    itemCodes.forEach(itemCode => {
+      const prevCtn = itemCode === 'ALL SKU' ? (d.ctn_prev1 || 0) : sumItemCtn(d, prevMth, itemCode);
+      const curCtn  = itemCode === 'ALL SKU' ? (d.ctn_cur  || 0) : sumItemCtn(d, curMth,  itemCode);
+      if (curCtn > prevCtn) {
+        rows.push({
+          debtor_code: d.debtor_code,
+          company_name: d.company_name,
+          debtor_type: d.debtor_type,
+          sku: itemCode,
+          prev_ctn: prevCtn,
+          cur_ctn: curCtn,
+          gain_pct: prevCtn === 0 ? 100 : Math.round((curCtn - prevCtn) / prevCtn * 100),
+          is_new: prevCtn === 0,
+        });
+      }
+    });
+  });
+  return rows;
+}
+
+function getDebtorSkuGains(d) {
+  const curMth  = DATA?.current_month || '';
+  const prevMth = getPrevMonthKey(d, curMth);
+  const prevItems = (d.month_breakdown?.[prevMth] || []).map(r => r.item).filter(Boolean);
+  const curItems  = (d.month_breakdown?.[curMth]  || []).map(r => r.item).filter(Boolean);
+  if (prevItems.length === 0 && curItems.length === 0) return { newsku: [], increased: [] };
+  const allSkus = [...new Set([...prevItems, ...curItems])];
+  const newsku = [], increased = [];
+  allSkus.forEach(sku => {
+    const prev = sumItemCtn(d, prevMth, sku);
+    const cur  = sumItemCtn(d, curMth,  sku);
+    if (cur > prev) {
+      prev === 0 ? newsku.push(sku) : increased.push(sku);
+    }
+  });
+  return { newsku, increased };
+}
+
+function setGainCtnFilter(val, el) {
+  gainCtnFilter = val;
+  document.querySelectorAll('#gain-ctn-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
+  el?.classList.add('active');
+  currentPage = 1;
+  renderDebtors();
+}
+
+function setGainSkuFilter(val, el) {
+  gainSkuFilter = val;
+  document.querySelectorAll('#gain-sku-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
+  el?.classList.add('active');
+  currentPage = 1;
+  renderDebtors();
+}
+
+function renderGainMode(debtors) {
+  const skuOptions = buildDropSkuOptions(debtors); // reuse same SKU list builder
+  let gainRows = buildGainingSkuRows(debtors, gainSkuFilter);
+  if (gainCtnFilter === 'newonly') gainRows = gainRows.filter(r => r.is_new);
+  if (gainCtnFilter === 'increased30') gainRows = gainRows.filter(r => !r.is_new && r.gain_pct >= 30);
+  gainRows.sort((a, b) => (b.cur_ctn - b.prev_ctn) - (a.cur_ctn - a.prev_ctn));
+  const shownRows = gainRows.slice(0, 100);
+
+  document.getElementById('page-info').textContent = `1-${shownRows.length} of ${gainRows.length}`;
+  document.getElementById('btn-prev').disabled = true;
+  document.getElementById('btn-next').disabled = true;
+
+  const skuButtons = ['all', ...skuOptions].map(sku => {
+    const label = sku === 'all' ? 'ALL SKU' : sku;
+    return `<button class="filter-chip ${sku === gainSkuFilter ? 'active' : ''}" onclick="setGainSkuFilter('${sku.replace(/'/g,"\\'")}',this)">${label}</button>`;
+  }).join('');
+
+  const gainHtml = shownRows.length ? shownRows.map(r => {
+    let skuPillsHtml = '';
+    if (gainSkuFilter === 'all') {
+      const orig = debtors.find(d => d.debtor_code === r.debtor_code);
+      if (orig) {
+        const { newsku, increased } = getDebtorSkuGains(orig);
+        const newPills = newsku.map(s =>
+          `<span style="font-size:11px;padding:2px 7px;border-radius:4px;background:rgba(61,220,132,.15);color:var(--green);border:0.5px solid rgba(61,220,132,.3);">${s}</span>`
+        ).join('');
+        const incPills = increased.map(s =>
+          `<span style="font-size:11px;padding:2px 7px;border-radius:4px;background:rgba(77,166,255,.15);color:var(--blue);border:0.5px solid rgba(77,166,255,.3);">${s}</span>`
+        ).join('');
+        const newHtml = newsku.length ? `<span style="font-size:10px;color:var(--green);margin-right:3px;">新增:</span>${newPills}` : '';
+        const incHtml = increased.length ? `<span style="font-size:10px;color:var(--blue);margin-left:${newsku.length?'8px':'0'};margin-right:3px;">增加:</span>${incPills}` : '';
+        if (newsku.length || increased.length) {
+          skuPillsHtml = `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:6px;">${newHtml}${incHtml}</div>`;
+        }
+      }
+    }
+    const pctLabel = r.is_new ? 'NEW' : `+${r.gain_pct}%`;
+    const pctColor = r.is_new ? 'var(--green)' : 'var(--blue)';
+    const pctBg    = r.is_new ? 'rgba(61,220,132,.15)' : 'rgba(77,166,255,.15)';
+    return `
+    <div class="debtor-card" style="padding:12px 14px;">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
+        <div style="min-width:0;">
+          <div class="debtor-name">${r.company_name || ''}</div>
+          <div class="debtor-meta">${r.debtor_code || ''} · ${r.debtor_type || ''}</div>
+          ${skuPillsHtml}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+          <span class="status-inline" style="background:rgba(77,166,255,.15);color:var(--blue);">${r.sku}</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--text);white-space:nowrap;">${r.prev_ctn} → ${r.cur_ctn}</span>
+          <span class="status-inline" style="background:${pctBg};color:${pctColor};">${pctLabel}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('') : `<div class="empty-state">No gaining SKU rows</div>`;
+
+  document.getElementById('debtor-list').innerHTML = `
+    <div style="margin:8px 0 10px;">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">条数上升:</div>
+      <div id="gain-sku-filter-row" class="filter-row" style="display:flex;overflow-x:auto;gap:8px;white-space:nowrap;padding-bottom:4px;margin-bottom:8px;">${skuButtons}</div>
+      <div id="gain-ctn-filter-row" class="filter-row" style="display:flex;overflow-x:auto;gap:8px;white-space:nowrap;padding-bottom:4px;">
+        <button class="filter-chip ${gainCtnFilter === 'all' ? 'active' : ''}" onclick="setGainCtnFilter('all',this)">ALL</button>
+        <button class="filter-chip ${gainCtnFilter === 'newonly' ? 'active' : ''}" onclick="setGainCtnFilter('newonly',this)">NEW SKU ONLY</button>
+        <button class="filter-chip ${gainCtnFilter === 'increased30' ? 'active' : ''}" onclick="setGainCtnFilter('increased30',this)">INCREASED ≥30%</button>
+      </div>
+    </div>
+    ${gainHtml}`;
 }
 
 function renderUnpurchasedMode(debtors) {
@@ -2056,6 +2196,10 @@ function renderDebtors() {
     renderDropMode(debtors);
     return;
   }
+  if (filters.special === 'gain') {
+    renderGainMode(debtors);
+    return;
+  }
   if (filters.special === 'unpurchased') {
     renderUnpurchasedMode(debtors);
     return;
@@ -2086,6 +2230,7 @@ function renderDebtors() {
       if (!matchBday) return false;
     }
     if (filters.special === 'drop'     && !d.volume_drop_pct)    return false;
+    if (filters.special === 'gain' && !((d.ctn_cur || 0) > (d.ctn_prev1 || 0))) return false;
     if (filters.special === 'newsku'   && !(d.new_sku_count > 0)) return false;
     if (filters.special === 'flagged'   && !getFlag(currentAgent, d.debtor_code)) return false;
     if (filters.special === 'campaign'  && !(d.campaigns||[]).length) return false;
@@ -2137,6 +2282,13 @@ function renderDebtors() {
       const dropA = (a.ctn_prev1 || 0) - (a.ctn_cur || 0);
       const dropB = (b.ctn_prev1 || 0) - (b.ctn_cur || 0);
       return dropB - dropA;
+    });
+  }
+  if (filters.special === 'gain') {
+    filtered.sort((a, b) => {
+      const gainA = (a.ctn_cur || 0) - (a.ctn_prev1 || 0);
+      const gainB = (b.ctn_cur || 0) - (b.ctn_prev1 || 0);
+      return gainB - gainA;
     });
   }
   const totalF = filtered.length;
