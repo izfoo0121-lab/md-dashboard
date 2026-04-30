@@ -1159,16 +1159,16 @@ async function loadKpiManual() {
 
   // Render form: one row per agent
   form.innerHTML = `
-    <div style="display:grid;grid-template-columns:100px 130px 130px 130px 130px;gap:8px;align-items:center;padding:8px 0;border-bottom:2px solid var(--border);font-family:var(--mono);font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;">
+    <div style="display:grid;grid-template-columns:90px repeat(4, minmax(140px, 1fr));gap:8px;align-items:center;padding:8px 0;border-bottom:2px solid var(--border);font-family:var(--mono);font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;">
       <div>Agent</div>
       <div>新户口 (new_accounts)</div>
       <div>VIP招聘 (vip_count)</div>
       <div>做Event/PSR (event_count)</div>
       <div>Campaign % (0-100)</div>
     </div>
-  ` + agents.map(agent => {
+  ` + [...agents].sort((a, b) => a.localeCompare(b)).map(agent => {
     const row = existing[agent] || {};
-    return `<div style="display:grid;grid-template-columns:100px 130px 130px 130px 130px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+    return `<div style="display:grid;grid-template-columns:90px repeat(4, minmax(140px, 1fr));gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
       <div style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink);">${agent}</div>
       <input type="number" id="kpi_m_new_${agent}" min="0" value="${row.new_accounts ?? 0}" step="1"
         style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--ink);font-family:var(--mono);font-size:13px;padding:6px 8px;text-align:center;">
