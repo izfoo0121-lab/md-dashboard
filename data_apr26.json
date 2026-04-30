@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-30 18:08:50",
+  "generated_at": "2026-04-30 18:51:15",
   "current_month": "Apr 26",
   "working_days": {
     "date": "2026-04-30",
@@ -204118,11 +204118,11 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 36.86,
+        "grand_total": 36.87,
         "max_total": 100.0,
         "grand_pct": 36.9,
         "kpi_month": "Apr 26",
-        "total_abc": 36.86,
+        "total_abc": 36.87,
         "total_pct": 46.7
       },
       "inherited_from": null,
