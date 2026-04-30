@@ -1813,6 +1813,7 @@ def calc_birthday_campaign(debtor_cards, targets, cur_month=None):
 
             if (birthday_matches
                     and is_vip
+                    and d.get("has_bonus_point", False)
                     and not is_personal
                     and not is_new
                     and overrides.get(code) != "remove"):
