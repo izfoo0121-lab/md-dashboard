@@ -590,7 +590,7 @@ function updateSyncStatus() {
       <div class="lbl">⚑ Flagged</div>
     </div>
   </div>
-  <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:2px 2px 6px;"> * 持续光顾率 excludes P-Personal</div>
+  <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:2px 2px 6px;"> * 持续光顾率 excludes P-Personal — denominator frozen at month start</div>
   <div style="position:relative;">
     <input class="search-bar" id="debtor-search"
       placeholder="Search debtor name or code across all agents..."
@@ -1030,6 +1030,13 @@ const SupabaseKpiSync = (() => {
     // row      = supabase row for this agent (month, agent, new_accounts, vip_count, event_count, campaign_pct)
     if (!agentData || !agentData.kpi || !agentData.kpi.items) return;
     const items = agentData.kpi.items;
+    agentData.kpi_manual_overrides = {
+      new_accounts: Number(row.new_accounts ?? 0) || 0,
+      vip_count:    Number(row.vip_count ?? 0) || 0,
+      event:        Number(row.event_count ?? 0) || 0,
+      campaign_1:   Number(row.campaign_pct ?? 0) || 0,
+      has_override: true,
+    };
 
     Object.entries(FIELD_MAP).forEach(([col, itemKey]) => {
       const item = items[itemKey];
@@ -1050,14 +1057,18 @@ const SupabaseKpiSync = (() => {
     const nb = agentData.newbie_scheme;
     if (nb && nb.is_newbie) {
       const adminNewAcc = Number(row.new_accounts ?? 0) || 0;
-      nb.new_accounts = adminNewAcc;
+      const autoNewAcc = Number(nb.new_accounts_auto ?? nb.new_accounts ?? 0) || 0;
+      const overrideActive = adminNewAcc > 0;
+      nb.new_accounts_auto = autoNewAcc;
+      nb.new_accounts_override_active = overrideActive;
+      nb.new_accounts = overrideActive ? adminNewAcc : autoNewAcc;
       // Recompute bonus tier hit
       const tiers = nb.account_tiers || [];
       let hitCount = null;
       let hitReward = 0;
       // Sort tiers ascending by count, pick highest hit
       [...tiers].sort((a, b) => a.count - b.count).forEach(t => {
-        if (adminNewAcc >= t.count) {
+        if (nb.new_accounts >= t.count) {
           hitCount = t.count;
           hitReward = t.reward;
         }
@@ -2179,15 +2190,48 @@ function renderDebtors() {
   const inactive = agData.inactive_count || 0;  // 待激活 = not bought in 2+ months
   const reactiv = agData.reactivation_count || 0;  // KPI: reactivated this month
   const rate    = agData.activation_rate ?? 0;
-  const npTotal = agData.activation_base   ?? total;
-  const npActive= agData.activation_active ?? active;
+  const npTotalLive   = agData.activation_base_live ?? total;
+  const npTotalFrozen = agData.activation_base ?? npTotalLive;
+  const isFrozen      = agData.activation_base_frozen === true;
+  const isBaselinePending = agData.activation_base_frozen === false;
+  const snapDate      = agData.activation_snapshot_date || null;
+  const delta         = isFrozen ? Math.max(0, npTotalLive - npTotalFrozen) : 0;
+  const npActive      = agData.activation_active ?? active;
 
-  document.getElementById('sum-total').textContent   = total;
+  const sumTotalEl = document.getElementById('sum-total');
+  sumTotalEl.textContent = npTotalFrozen;
+  let deltaEl = document.getElementById('sum-total-delta');
+  if (!deltaEl) {
+    deltaEl = document.createElement('div');
+    deltaEl.id = 'sum-total-delta';
+    deltaEl.style.cssText = 'font-family:var(--mono);font-size:9px;color:var(--green);margin-top:2px;line-height:1;';
+    sumTotalEl.parentNode.appendChild(deltaEl);
+  }
+  if (isFrozen && delta > 0) {
+    deltaEl.textContent = `+${delta} 新增`;
+    deltaEl.style.color = 'var(--green)';
+    deltaEl.style.display = '';
+  } else if (isBaselinePending) {
+    deltaEl.textContent = 'Baseline pending';
+    deltaEl.style.color = 'var(--orange)';
+    deltaEl.style.display = '';
+  } else {
+    deltaEl.style.display = 'none';
+  }
+  const sumTotalBox = sumTotalEl.closest('.summary-box');
+  if (sumTotalBox) {
+    sumTotalBox.title = isFrozen && snapDate
+      ? `Total accounts frozen at month start (${snapDate}). New onboards count toward next month's denominator.`
+      : isBaselinePending
+        ? `Live count — baseline will be locked on next business day.`
+        : `Live active non-Personal account count.`;
+  }
   document.getElementById('sum-active').textContent  = active;
   document.getElementById('sum-reactiv').textContent = inactive;  // show 待激活 count
   const rateEl = document.getElementById('sum-rate');
   rateEl.textContent = rate + '%';
-  rateEl.title = `${npActive} / ${npTotal} (excl. Personal)`;
+  const baseLabel = isFrozen && snapDate ? `frozen baseline ${snapDate}` : 'live count';
+  rateEl.title = `${npActive} / ${npTotalFrozen} (${baseLabel}, excl. Personal)`;
   document.getElementById('sum-newsku') && (document.getElementById('sum-newsku').textContent = agData.total_new_sku ?? '—');
   // Flag count
   const flagCount = getAgentFlagCount(currentAgent);
@@ -2410,6 +2454,8 @@ function renderMonthlyPersonalCard(sp) {
   const dc   = DATA.agents[currentAgent]?.debtor_cards || {};
   const kpi  = DATA.agents[currentAgent]?.kpi || {};
   const wd   = DATA.working_days || {};
+  const dcActivationBase = dc.activation_base ?? dc.activation_base_live ?? dc.total_debtors ?? 0;
+  const dcActivationActive = dc.activation_active ?? dc.active_count ?? 0;
 
   // Projected end-of-month CTN based on current pace
   const elapsed = sp.elapsed_working_days || 0;
@@ -2437,8 +2483,40 @@ function renderMonthlyPersonalCard(sp) {
     {lbl:'VIP',          val:dc.debtors?.filter(d=>d.vip).length||0, sub:'VIP debtors',              color:'var(--accent)'},
     {lbl:'激活户口',      val:dc.reactivation_count||0, sub:'reactivated this month',                color:'var(--orange)'},
     {lbl:'加SKU',        val:dc.total_new_sku||0,     sub:'new SKU debtors',                         color:'var(--purple)'},
-    {lbl:'光顾率',        val:(dc.activation_rate||0)+'%', sub:'active debtors (excl Personal)',     color:pctToColor(dc.activation_rate)},
+    {lbl:'光顾率',        val:(dc.activation_rate||0)+'%', sub: dc.activation_base_frozen ? `${dcActivationActive}/${dcActivationBase} (frozen)` : `${dcActivationActive}/${dcActivationBase} (live)`, color:pctToColor(dc.activation_rate)},
   ];
+
+  // New account override display
+  const newAccountStatIdx = stats.findIndex(s => s.sub === 'new accounts (excl Personal)' && s.color === 'var(--green)');
+  if (newAccountStatIdx >= 0) {
+    const auto = dc.debtors?.filter(d=>d.is_new && d.debtor_type!=='P-Personal').length || 0;
+    const overrides = DATA.agents[currentAgent]?.kpi_manual_overrides || {};
+    const hasOverride = overrides.has_override === true && (overrides.new_accounts ?? 0) > 0;
+    const override = hasOverride ? Number(overrides.new_accounts || 0) : auto;
+    const delta = override - auto;
+    let valDisplay, subDisplay;
+    if (hasOverride) {
+      if (delta === 0) {
+        valDisplay = String(override);
+        subDisplay = `auto: ${auto} (matches admin)`;
+      } else if (delta > 0) {
+        valDisplay = `${auto} + ${delta} = ${override}`;
+        subDisplay = 'auto + admin override';
+      } else {
+        valDisplay = `${auto} − ${Math.abs(delta)} = ${override}`;
+        subDisplay = '⚠ admin override below auto';
+      }
+    } else {
+      valDisplay = String(auto);
+      subDisplay = 'new accounts (excl Personal)';
+    }
+    stats[newAccountStatIdx] = {
+      lbl: stats[newAccountStatIdx].lbl,
+      val: valDisplay,
+      sub: subDisplay,
+      color: 'var(--green)',
+    };
+  }
 
   // KPI scores — all sections
   const kpiItems = kpi.items || {};

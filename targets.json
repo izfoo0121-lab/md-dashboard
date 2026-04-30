@@ -1,6 +1,6 @@
 {
   "_comment": "MD Sales Dashboard — loaded from Supabase",
-  "_loaded_at": "2026-04-29T19:54:10.326441",
+  "_loaded_at": "2026-04-30T16:43:52.007254",
   "agents": {
     "KEE": {
       "is_newbie": false,
@@ -3463,6 +3463,68 @@
       }
     ]
   },
+  "public_holidays": [
+    {
+      "date": "2026-01-01",
+      "name": "New Year"
+    },
+    {
+      "date": "2026-02-16",
+      "name": "Chinese New Year (Day 1)"
+    },
+    {
+      "date": "2026-02-17",
+      "name": "Chinese New Year (Day 2)"
+    },
+    {
+      "date": "2026-02-18",
+      "name": "Chinese New Year (Day 3)"
+    },
+    {
+      "date": "2026-02-19",
+      "name": "Chinese New Year (Day 4)"
+    },
+    {
+      "date": "2026-02-25",
+      "name": "CNY 9th Day"
+    },
+    {
+      "date": "2026-03-13",
+      "name": "Company Training (Day 1)"
+    },
+    {
+      "date": "2026-03-14",
+      "name": "Company Training (Day 2)"
+    },
+    {
+      "date": "2026-03-20",
+      "name": "Hari Raya (Day 1)"
+    },
+    {
+      "date": "2026-03-21",
+      "name": "Hari Raya (Day 2)"
+    },
+    {
+      "date": "2026-05-01",
+      "name": "Labour Day"
+    },
+    {
+      "date": "2026-05-27",
+      "name": "Hari Raya Haji"
+    },
+    {
+      "date": "2026-08-31",
+      "name": "Merdeka Day"
+    },
+    {
+      "date": "2026-09-16",
+      "name": "Malaysia Day"
+    },
+    {
+      "date": "2026-12-25",
+      "name": "Christmas Day"
+    }
+  ],
   "monthly_snapshots": {
     "Apr 26": {
       "CJ": {

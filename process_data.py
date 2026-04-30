@@ -24,11 +24,168 @@ Column reference (MD Sales Report):
 import json
 import os
 import sys
+import urllib.parse
+import urllib.request
 from datetime import datetime, date, timedelta
 from pathlib import Path
 
 import pandas as pd
 import openpyxl
+
+# ── Supabase config (read-only fetches for campaigns) ─────────────────────────
+SUPABASE_URL = "https://rqitgmydcbyiygqjssrb.supabase.co"
+SUPABASE_KEY = "sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw"  # publishable key, safe in source
+
+def _supabase_get(path):
+    """GET from Supabase REST API. Returns parsed JSON list. Raises on HTTP error."""
+    url = f"{SUPABASE_URL}/rest/v1/{path}"
+    out = []
+    page_size = 1000
+    start = 0
+    while True:
+        req = urllib.request.Request(url, headers={
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Accept": "application/json",
+            "Range": f"{start}-{start + page_size - 1}",
+        })
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            batch = json.loads(resp.read().decode("utf-8"))
+        if not isinstance(batch, list):
+            return batch
+        out.extend(batch)
+        if len(batch) < page_size:
+            return out
+        start += page_size
+
+def _supabase_post(path, rows, prefer="return=representation"):
+    """POST/upsert to Supabase REST API. Requires SUPABASE_SERVICE_KEY for writes."""
+    key = os.environ.get("SUPABASE_SERVICE_KEY")
+    if not key:
+        raise RuntimeError("SUPABASE_SERVICE_KEY missing")
+    url = f"{(os.environ.get('SUPABASE_URL') or SUPABASE_URL).rstrip('/')}/rest/v1/{path}"
+    data = json.dumps(rows).encode("utf-8")
+    req = urllib.request.Request(url, data=data, method="POST", headers={
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "Prefer": prefer,
+    })
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        body = resp.read().decode("utf-8")
+        return json.loads(body) if body else None
+
+def fetch_kpi_manual_overrides(cur_month):
+    """Fetch kpi_manual rows once for KPI scoring, dashboard tiles, and newbie scheme."""
+    try:
+        month_q = urllib.parse.quote(str(cur_month), safe="")
+        rows = _supabase_get(f"kpi_manual?select=*&month=eq.{month_q}")
+        overrides = {}
+        for r in rows or []:
+            agent = (r.get("agent") or "").upper()
+            if not agent:
+                continue
+            overrides[agent] = {
+                "new_accounts": r.get("new_accounts", 0) or 0,
+                "vip_count":    r.get("vip_count", 0) or 0,
+                "event":        r.get("event_count", 0) or 0,
+                "campaign_1":   r.get("campaign_pct", 0) or 0,
+            }
+        log(f"   [Supabase KPI] Loaded manual rows for {len(overrides)} agents")
+        return overrides
+    except Exception as e:
+        log(f"   [Supabase KPI] Skipped: {e}")
+        return {}
+
+def _load_public_holidays():
+    """Fetch public holidays from Supabase targets_static. Empty set on error."""
+    try:
+        rows = _supabase_get("targets_static?select=value&key=eq.public_holidays")
+        if not rows or not rows[0].get("value"):
+            return set()
+        raw = rows[0]["value"]
+        if isinstance(raw, str):
+            try:
+                raw = json.loads(raw)
+            except Exception:
+                raw = []
+        from dateutil.parser import parse as dparse
+        out = set()
+        for item in raw:
+            d = item.get("date", "") if isinstance(item, dict) else str(item)
+            try:
+                out.add(dparse(d).date())
+            except Exception:
+                continue
+        return out
+    except Exception as e:
+        log(f"WARNING: Could not load public_holidays from Supabase: {e}")
+        return set()
+
+def _is_first_business_day(today, holidays):
+    """Return True if today is the first business day of its month. Mon-Sat count."""
+    d = date(today.year, today.month, 1)
+    while True:
+        if d.weekday() != 6 and d not in holidays:
+            return d == today
+        d = d + timedelta(days=1)
+
+def _maybe_take_patronage_snapshot(today, debtor_info, agents_list):
+    """Take monthly patronage opening snapshot on the first business day only."""
+    holidays = _load_public_holidays()
+    if not _is_first_business_day(today, holidays):
+        return False
+
+    if not os.environ.get("SUPABASE_SERVICE_KEY"):
+        log("WARNING: SUPABASE_SERVICE_KEY missing; skipping patronage snapshot")
+        return False
+
+    cur_month = today.strftime("%Y-%m")
+    try:
+        existing = _supabase_get(f"patronage_history?select=month&month=eq.{cur_month}&limit=1")
+        if existing:
+            log(f"  Patronage snapshot for {cur_month} already exists - skipping")
+            return False
+    except Exception as e:
+        log(f"WARNING: Could not check existing patronage snapshot: {e}")
+        return False
+
+    counts = {}
+    agents_set = {a for a in agents_list if a}
+    for _, info in debtor_info.items():
+        if not info.get("dm_active", True):
+            continue
+        dtype = (info.get("type", "") or "").strip()
+        if not dtype or dtype in {"P-Personal", "P-PERSONAL", "personal", "Personal", "PERSONAL"}:
+            continue
+        agent = (info.get("agent", "") or "").strip()
+        if not agent or (agents_set and agent not in agents_set):
+            continue
+        counts[agent] = counts.get(agent, 0) + 1
+
+    if not counts:
+        log(f"WARNING: No agents found for {cur_month} patronage snapshot - aborting")
+        return False
+
+    rows = [{
+        "month": cur_month,
+        "agent": agent,
+        "opening_total": total,
+        "snapshot_date": today.isoformat(),
+        "notes": f"AUTO-SNAPSHOT: taken {today.isoformat()} (first business day of {cur_month})",
+    } for agent, total in sorted(counts.items())]
+
+    try:
+        _supabase_post(
+            "patronage_history?on_conflict=month,agent",
+            rows,
+            prefer="resolution=merge-duplicates,return=representation",
+        )
+        log(f"  Patronage snapshot taken for {cur_month}: {len(rows)} agents, total {sum(counts.values())} debtors")
+        return True
+    except Exception as e:
+        log(f"WARNING: Failed to write patronage snapshot: {e}")
+        return False
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
@@ -696,7 +853,7 @@ def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_con
 
 # ── Module 3: Newbie Scheme ───────────────────────────────────────────────────
 
-def calc_newbie_scheme(df, targets, agents, cur_month, debtor_info=None):
+def calc_newbie_scheme(df, targets, agents, cur_month, debtor_info=None, manual_overrides=None):
     """
     For agents flagged as newbie:
       - CTN tiers: per-agent thresholds and rewards (from agent.newbie_tiers)
@@ -704,7 +861,7 @@ def calc_newbie_scheme(df, targets, agents, cur_month, debtor_info=None):
 
     new_accounts = debtors where open_date falls in cur_month (from Debtor Maintenance),
                    filtered to this agent, excluding Personal/empty-type, Active=Checked only.
-    Frontend may override with kpi_manual value if supervisor entered one.
+    Admin kpi_manual.new_accounts may override the auto count as an absolute value.
     """
     log("Calculating Newbie Scheme...")
     if debtor_info is None:
@@ -791,6 +948,13 @@ def calc_newbie_scheme(df, targets, agents, cur_month, debtor_info=None):
 
         # Account bonus tier — per-agent override with global fallback
         # If agent has "newbie_account_tiers" set, use that; else use global account_tiers
+        new_acc_count_auto = new_acc_count
+        override = (manual_overrides or {}).get(agent.upper(), {}).get("new_accounts")
+        override_active = override is not None and override > 0
+        if override_active:
+            new_acc_count = int(override)
+            log(f"  Newbie scheme {agent}: new_accounts auto={new_acc_count_auto} -> override={new_acc_count}")
+
         agent_acc_tiers = ag_info.get("newbie_account_tiers")
         use_tiers = agent_acc_tiers if agent_acc_tiers else account_tiers
 
@@ -808,6 +972,8 @@ def calc_newbie_scheme(df, targets, agents, cur_month, debtor_info=None):
             "ctn_tier_hit":    ctn_tier_hit,
             "ctn_reward":      ctn_reward,
             "new_accounts":    new_acc_count,
+            "new_accounts_auto": new_acc_count_auto,
+            "new_accounts_override_active": override_active,
             "new_account_codes": new_acc_codes,  # NEW: list of which debtor codes counted
             "account_tiers":   use_tiers,       # per-agent or global (effective)
             "account_tiers_custom": bool(agent_acc_tiers),  # flag: is override active?
@@ -1040,7 +1206,7 @@ def build_debtor_info(debtor_df):
     """Build debtor lookup dict from Debtor Maintenance DataFrame.
     Extracted from calc_debtor_cards() so it can be shared with calc_brand_commission
     and calc_newbie_scheme.
-    Returns: {debtor_code: {name, phone, vip, birth_date, open_date, type, agent, dm_active}}
+    Returns: {debtor_code: {name, phone, vip, birth_date, open_date, type, agent, dm_active, has_bonus_point}}
     """
     debtor_info = {}
     if debtor_df.empty:
@@ -1058,6 +1224,7 @@ def build_debtor_info(debtor_df):
     BIRTH_COL  = next((c for c in cols if 'Birth' in c), None)
     AGENT_COL  = next((c for c in cols if c.strip() == 'Agent'), None)
     ACTIVE_COL = next((c for c in cols if c.strip() == 'Active'), None)
+    BONUS_POINT_COL = next((c for c in cols if c.strip() == 'Has Bonus Point'), None)
 
     for _, row in debtor_df.iterrows():
         code = str(row.get(CODE_COL, '') if CODE_COL else '').strip()
@@ -1078,6 +1245,11 @@ def build_debtor_info(debtor_df):
             av = str(row.get(ACTIVE_COL, '')).strip().lower()
             dm_active = av not in ('unchecked','false','0','n','no','inactive','nan','none','')
 
+        has_bonus_point = False
+        if BONUS_POINT_COL:
+            bp = str(row.get(BONUS_POINT_COL, '')).strip().lower()
+            has_bonus_point = bp not in ('unchecked','false','0','n','no','nan','none','')
+
         debtor_info[code] = {
             "name":       str(row.get(NAME_COL, code) if NAME_COL else code).strip(),
             "phone":      phone_raw,
@@ -1087,6 +1259,7 @@ def build_debtor_info(debtor_df):
             "type":       type_raw,
             "agent":      agent_raw,
             "dm_active":  dm_active,
+            "has_bonus_point": has_bonus_point,
         }
 
     return debtor_info
@@ -1121,6 +1294,25 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
         months.append(d.strftime("%b %y"))
         d = (d - timedelta(days=1)).replace(day=1)
     cur_m, prev1_m, prev2_m, prev3_m = months[0], months[1], months[2], months[3]
+
+    # Fetch frozen patronage baselines for current month (used as activation_base).
+    patronage_baselines = {}
+    patronage_snapshot_date = None
+    try:
+        from dateutil.parser import parse as dparse
+        patronage_month = dparse("01 " + cur_month).strftime("%Y-%m")
+        rows = _supabase_get(
+            f"patronage_history?select=agent,opening_total,snapshot_date&month=eq.{patronage_month}"
+        )
+        for r in rows or []:
+            patronage_baselines[r["agent"]] = int(r["opening_total"])
+            patronage_snapshot_date = r.get("snapshot_date")
+        if patronage_baselines:
+            log(f"  Patronage baselines loaded for {patronage_month}: {len(patronage_baselines)} agents, total {sum(patronage_baselines.values())}")
+        else:
+            log(f"  WARNING: No patronage baseline for {patronage_month} - using LIVE counts (fallback)")
+    except Exception as e:
+        log(f"WARNING: Could not fetch patronage baselines: {e}")
 
     # Canggih paid transactions
     canggih_paid = df[
@@ -1377,6 +1569,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 "phone":              info.get("phone", ""),
                 "debtor_type":        info.get("type", ""),
                 "vip":                info.get("vip", False),
+                "has_bonus_point":    info.get("has_bonus_point", False),
                 "is_new":             is_new,
                 "birthday_this_month": birthday_this_month,
                 "birth_date_raw":     str(_parse_birth_date(birth_date)) if birth_date and pd.notnull(birth_date) and _parse_birth_date(birth_date) is not None else None,
@@ -1417,6 +1610,13 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                     or d.get("debtor_type","") in PERSONAL_TYPES)
         non_personal   = [d for d in debtor_cards if not _is_personal(d)]
         personal_count = len(debtor_cards) - len(non_personal)
+        dm_non_personal_live = [
+            code for code in dm_debtor_codes
+            if not _is_personal({
+                "type": debtor_info.get(code, {}).get("type", ""),
+                "debtor_type": debtor_info.get(code, {}).get("type", ""),
+            })
+        ]
 
         # Summary counts — ALL exclude Personal
         active_count   = sum(1 for d in non_personal if d["status"] == "active")
@@ -1436,7 +1636,9 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             and not d.get("is_new", False)
         )
 
-        np_total        = len(non_personal)
+        np_total_live   = len(dm_non_personal_live) if dm_debtor_codes else len(non_personal)
+        np_total        = patronage_baselines.get(agent, np_total_live)
+        np_total_uses_baseline = agent in patronage_baselines
         np_active       = active_count
         activation_rate = round(np_active / np_total * 100, 1) if np_total > 0 else 0
         total_new_sku   = sum(d.get("new_sku_count", 0) for d in non_personal)
@@ -1452,6 +1654,9 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             "inactive_count":     inactive_count,
             "activation_rate":    activation_rate,
             "activation_base":    np_total,
+            "activation_base_live": np_total_live,
+            "activation_base_frozen": np_total_uses_baseline,
+            "activation_snapshot_date": patronage_snapshot_date if np_total_uses_baseline else None,
             "activation_active":  np_active,
             "pending_activation": inactive_count,
             "total_new_sku":      total_new_sku,
@@ -2488,80 +2693,164 @@ def main():
 
     log(f"Current month: {cur_month}  |  Lookback: {prev_months}")
 
-    # Load campaigns.json — build debtor→campaigns lookup + area_groups
+    # Load campaigns — build debtor→campaigns lookup + area_groups
     campaign_map = {}  # debtor_code → [campaign info with progress fields]
     area_groups  = {}  # area_code → group (MVP/MI/SS/SBG)
     camp_data_global = {}
+
+    # TODO: migrate area_groups to its own Supabase table or config file.
     if CAMPAIGNS_FILE.exists():
         try:
             with open(CAMPAIGNS_FILE, encoding="utf-8") as f:
                 camp_data_global = json.load(f)
             area_groups = camp_data_global.get("area_groups", {})
-            for camp in camp_data_global.get("campaigns", []):
-                if not camp.get("active", True): continue
-                # ── Month filter — only show campaigns active in cur_month ──
-                # start_date must be <= cur_month, deadline must be >= cur_month
-                # Fall back to created_at if start_date missing
-                camp_start    = camp.get("start_date") or camp.get("created_at", "")
-                camp_deadline = camp.get("deadline", "")
-                try:
-                    from dateutil.parser import parse as dparse
-                    cm_date = dparse("01 " + cur_month)
-                    cm_str  = cm_date.strftime("%Y-%m")
-                    if camp_start:
-                        sd_str = dparse(str(camp_start)).strftime("%Y-%m")
-                        if sd_str > cm_str: continue  # campaign not started yet
-                    if camp_deadline:
-                        dl_str = dparse(str(camp_deadline)).strftime("%Y-%m")
-                        if dl_str < cm_str: continue  # campaign already ended
-                except Exception:
-                    pass  # if date parsing fails, include campaign
-                cat_rules = camp.get("cat_rules", {})
-                for d in camp.get("debtors", []):
-                    code = d.get("code","") if isinstance(d, dict) else str(d)
-                    cat  = d.get("cat","") if isinstance(d, dict) else ""
-                    if not code: continue
-                    # Get CAT-specific rules — try full key first (e.g. "D2"), then first char (e.g. "D")
-                    cat_group = cat[0].upper() if cat else ""
-                    crule = cat_rules.get(cat) or cat_rules.get(cat_group) or {} if cat else {}
-                    if code not in campaign_map: campaign_map[code] = []
-                    campaign_map[code].append({
-                        "id":              camp.get("id",""),
-                        "name":            camp.get("name",""),
-                        "type":            camp.get("type","other"),
-                        "brand":           camp.get("brand",""),
-                        "cat":             cat,
-                        "start_date":      camp.get("start_date",""),
-                        "deadline":        camp.get("deadline",""),
-                        "approval_required": camp.get("approval_required", False),
-                        # CAT-level rules (fallback to campaign level)
-                        "promo_detail":    crule.get("promo_detail", camp.get("promo_detail","")),
-                        "redemption_type": crule.get("redemption_type", "free_goods"),
-                        "accumulation":    crule.get("accumulation", "per_transaction"),
-                        "redemption_limit":crule.get("redemption_limit", 0),
-                        "redemption_unit": crule.get("redemption_unit", "ctn"),
-                        "min_order_ctn":   crule.get("min_order_ctn", camp.get("min_order_ctn", 0)),
-                        "foc_per_ctn":     crule.get("foc_per_ctn", 0),
-                        "foc_per_threshold": crule.get("foc_per_threshold", 0),
-                        "foc_item":        crule.get("foc_item", ""),
-                        "foc_item_rule":   crule.get("foc_item_rule", {}),
-                        "foc_note":        crule.get("foc_note", ""),
-                        "voucher_amount":  crule.get("voucher_amount", 0),
-                        "voucher_tracking":crule.get("voucher_tracking", False),
-                        "eligible_sales_type": camp.get("eligible_sales_type", []),
-                        "eligible_types":  camp.get("eligible_types", []),
-                        "target_pct":      crule.get("target_pct", 0),
-                        "target_label":    crule.get("target_label", ""),
-                        # Progress fields — filled in calc_debtor_cards
-                        "ctn_this_month":  0,
-                        "foc_earned":      0,
-                        "qualified":       False,
-                        "group":           "",
-                        "foc_item_resolved": "",
-                    })
-            log(f"Campaigns: {len(camp_data_global.get('campaigns',[]))} loaded, {len(campaign_map)} debtors tagged")
+            if not area_groups:
+                log("WARNING: campaigns.json has no area_groups; defaulting to {}")
         except Exception as e:
-            log(f"⚠ Could not load campaigns.json: {e}")
+            area_groups = {}
+            log(f"WARNING: Could not load area_groups from campaigns.json: {e}")
+    else:
+        log("WARNING: campaigns.json missing; area_groups defaulting to {}")
+
+    def _campaign_active_in_month(camp):
+        # Month filter — only show campaigns active in cur_month.
+        # start_date must be <= cur_month, deadline must be >= cur_month.
+        # Fall back to created_at if start_date missing.
+        camp_start    = camp.get("start_date") or camp.get("created_at", "")
+        camp_deadline = camp.get("deadline", "")
+        try:
+            from dateutil.parser import parse as dparse
+            cm_date = dparse("01 " + cur_month)
+            cm_str  = cm_date.strftime("%Y-%m")
+            if camp_start:
+                sd_str = dparse(str(camp_start)).strftime("%Y-%m")
+                if sd_str > cm_str: return False
+            if camp_deadline:
+                dl_str = dparse(str(camp_deadline)).strftime("%Y-%m")
+                if dl_str < cm_str: return False
+        except Exception:
+            pass  # if date parsing fails, include campaign
+        return True
+
+    def _append_campaign_map_entry(camp, code, cat, cat_group, crule):
+        if not code: return
+        if code not in campaign_map: campaign_map[code] = []
+        # TODO: Supabase schema does not yet include redemption_type,
+        # accumulation, redemption_limit, redemption_unit, foc_per_ctn,
+        # foc_per_threshold, foc_item_rule, foc_note, voucher_amount,
+        # voucher_tracking, eligible_sales_type, eligible_types, or
+        # campaign-level approval_required; keep legacy-safe defaults.
+        campaign_map[code].append({
+            "id":              camp.get("id",""),
+            "name":            camp.get("name",""),
+            "type":            camp.get("type","other"),
+            "brand":           camp.get("brand",""),
+            "cat":             cat,
+            "start_date":      camp.get("start_date",""),
+            "deadline":        camp.get("deadline",""),
+            "approval_required": camp.get("approval_required", False),
+            # CAT-level rules (fallback to campaign level)
+            "promo_detail":    crule.get("promo_detail", camp.get("promo_detail","")),
+            "redemption_type": crule.get("redemption_type", "free_goods"),
+            "accumulation":    crule.get("accumulation", "per_transaction"),
+            "redemption_limit":crule.get("redemption_limit", 0),
+            "redemption_unit": crule.get("redemption_unit", "ctn"),
+            "min_order_ctn":   crule.get("min_order_ctn", camp.get("min_order_ctn", 0)),
+            "foc_per_ctn":     crule.get("foc_per_ctn", 0),
+            "foc_per_threshold": crule.get("foc_per_threshold", 0),
+            "foc_item":        crule.get("foc_item", ""),
+            "foc_item_rule":   crule.get("foc_item_rule", {}),
+            "foc_note":        crule.get("foc_note", ""),
+            "voucher_amount":  crule.get("voucher_amount", 0),
+            "voucher_tracking":crule.get("voucher_tracking", False),
+            "eligible_sales_type": camp.get("eligible_sales_type", []),
+            "eligible_types":  camp.get("eligible_types", []),
+            "target_pct":      crule.get("target_pct", 0),
+            "target_label":    crule.get("target_label", ""),
+            # Progress fields — filled in calc_debtor_cards
+            "ctn_this_month":  0,
+            "foc_earned":      0,
+            "qualified":       False,
+            "group":           "",
+            "foc_item_resolved": "",
+        })
+
+    def _load_campaigns_from_json():
+        loaded = 0
+        if not CAMPAIGNS_FILE.exists():
+            log("WARNING: campaigns.json missing; no campaign fallback available")
+            return loaded
+        with open(CAMPAIGNS_FILE, encoding="utf-8") as f:
+            data = json.load(f)
+        for camp in data.get("campaigns", []):
+            if not camp.get("active", True): continue
+            if not _campaign_active_in_month(camp): continue
+            loaded += 1
+            cat_rules = camp.get("cat_rules", {})
+            for d in camp.get("debtors", []):
+                code = d.get("code","") if isinstance(d, dict) else str(d)
+                cat  = d.get("cat","") if isinstance(d, dict) else ""
+                if not code: continue
+                # Get CAT-specific rules — try full key first (e.g. "D2"), then first char (e.g. "D")
+                cat_group = cat[0].upper() if cat else ""
+                crule = cat_rules.get(cat) or cat_rules.get(cat_group) or {} if cat else {}
+                _append_campaign_map_entry(camp, code, cat, cat_group, crule)
+        return loaded
+
+    try:
+        campaign_rows = _supabase_get("campaigns?select=*&active=eq.true")
+        rule_rows     = _supabase_get("campaign_cat_rules?select=*")
+        debtor_rows   = _supabase_get("campaign_debtors?select=*")
+
+        rules_by_key = {
+            (r.get("campaign_id"), r.get("cat_group")): {
+                "promo_detail": r.get("promo_detail") or "",
+                "min_order_ctn": r.get("min_order_ctn") or 0,
+                "foc_item": r.get("foc_item") or "",
+                "target_pct": r.get("target_pct") or 0,
+                "target_label": r.get("target_label") or "",
+            }
+            for r in (rule_rows or [])
+        }
+        debtors_by_campaign = {}
+        for d in debtor_rows or []:
+            debtors_by_campaign.setdefault(d.get("campaign_id"), []).append(d)
+
+        active_count = 0
+        for camp_row in campaign_rows or []:
+            brands = camp_row.get("brands") or []
+            camp = {
+                "id": camp_row.get("id",""),
+                "name": camp_row.get("name",""),
+                "type": camp_row.get("type","other"),
+                "brand": brands[0] if isinstance(brands, list) and brands else "",
+                "start_date": camp_row.get("start_date",""),
+                "deadline": camp_row.get("deadline",""),
+                "created_at": camp_row.get("created_at",""),
+                "min_order_ctn": camp_row.get("min_order_ctn", 0) or 0,
+                "promo_detail": camp_row.get("promo_detail","") or "",
+                "approval_required": False,
+                "eligible_sales_type": [],
+                "eligible_types": [],
+            }
+            if not _campaign_active_in_month(camp): continue
+            active_count += 1
+            for d in debtors_by_campaign.get(camp["id"], []):
+                code = d.get("debtor_code","")
+                cat  = d.get("cat","") or ""
+                cat_group = d.get("cat_group") or (cat[0].upper() if cat else "")
+                crule = rules_by_key.get((camp["id"], cat_group)) or {}
+                _append_campaign_map_entry(camp, code, cat, cat_group, crule)
+
+        log(f"Campaigns (Supabase): {active_count} active, {len(campaign_map)} debtors tagged")
+    except Exception as e:
+        log(f"WARNING: Supabase campaign fetch failed: {e} -> falling back to campaigns.json")
+        campaign_map = {}
+        try:
+            loaded = _load_campaigns_from_json()
+            log(f"Campaigns (JSON fallback): {loaded} active, {len(campaign_map)} debtors tagged")
+        except Exception as json_e:
+            log(f"WARNING: Could not load campaigns.json fallback: {json_e}")
 
     # ── Scope filter ───────────────────────────────────────────────
     df = filter_scope(df_raw)
@@ -2649,6 +2938,12 @@ def main():
     # Build shared debtor_info (used by multiple modules)
     debtor_info_shared = build_debtor_info(debtor_df)
     log(f"  Shared debtor_info built: {len(debtor_info_shared)} debtors")
+    bp_checked = sum(1 for v in debtor_info_shared.values() if v.get("has_bonus_point"))
+    log(f"  Has Bonus Point = Checked: {bp_checked} debtors")
+    _today = date.today()
+    agents_list = sorted({info.get("agent", "") for info in debtor_info_shared.values() if info.get("agent")})
+    _maybe_take_patronage_snapshot(_today, debtor_info_shared, agents_list)
+    _sb_kpi = fetch_kpi_manual_overrides(cur_month)
 
     # ── Run modules ─────────────────────────────────────────────────
     sales_prog  = calc_sales_progression(df, targets, all_agents, cur_month)
@@ -2656,7 +2951,7 @@ def main():
 
     # ── Auto-calculate penetration targets from non-buyer counts ─────────────
     targets = save_penetration_snapshot(brand_comm, targets, cur_month)
-    newbie      = calc_newbie_scheme(df, targets, agents, cur_month, debtor_info=debtor_info_shared)
+    newbie      = calc_newbie_scheme(df, targets, agents, cur_month, debtor_info=debtor_info_shared, manual_overrides=_sb_kpi)
     aging       = calc_aging(df, all_agents, cur_month)
     debtor_cards = calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map, area_groups)
 
@@ -2728,60 +3023,41 @@ def main():
             "inherit_from_month": ag_cfg.get("inherit_from_month", None),
         }
 
-    # ── Supabase KPI manual scores fetch (from kpi_manual table) ────
-    try:
-        import requests as _req
-        _SB_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co'
-        _SB_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw'
-        _resp = _req.get(
-            f"{_SB_URL}/rest/v1/kpi_manual",
-            params={"select": "*", "month": f"eq.{cur_month}"},
-            headers={"apikey": _SB_KEY, "Authorization": f"Bearer {_SB_KEY}"},
-            timeout=10
-        )
-        if _resp.ok:
-            # Build lookup: agent -> {new_accounts: N, vip_count: N, ...}
-            _sb_kpi = {}
-            for r in _resp.json():
-                _ag = (r.get('agent') or '').upper()
-                if _ag:
-                    _sb_kpi[_ag] = {
-                        'new_accounts': r.get('new_accounts', 0) or 0,
-                        'vip_count':    r.get('vip_count', 0) or 0,
-                        'event':        r.get('event_count', 0) or 0,
-                        'campaign_1':   r.get('campaign_pct', 0) or 0,
-                    }
-            _applied = 0
-            for _agent, _adata in output.get('agents', {}).items():
-                _items = _adata.get('kpi', {}).get('items', {})
-                _scores = _sb_kpi.get(_agent, {})
-                if not _scores:
-                    continue
-                for _key, _item in _items.items():
-                    if not _item.get('needs_supabase_fetch'):
-                        continue
-                    if _key in _scores:
-                        _item['actual'] = _scores[_key]
-                        _tgt = _item.get('target') or 1
-                        _max = _item.get('max_score') or 0
-                        _item['score'] = round(min(_item['actual'] / _tgt, 1) * _max, 2)
-                        _item['pct'] = round((_item['actual'] / _tgt) * 100) if _tgt else 0
-                # Recompute KPI totals for this agent
-                _kpi = _adata.get('kpi', {})
-                _all_items = _kpi.get('items', {})
-                if _all_items:
-                    _kpi['grand_total'] = round(sum(i.get('score', 0) for i in _all_items.values()), 2)
-                    _kpi['total_abc'] = round(sum(i.get('score', 0) for i in _all_items.values() if i.get('section') in ('A', 'B', 'C')), 2)
-                    _max_total = sum(i.get('max_score', 0) for i in _all_items.values())
-                    _max_abc = sum(i.get('max_score', 0) for i in _all_items.values() if i.get('section') in ('A', 'B', 'C'))
-                    _kpi['grand_pct'] = round(_kpi['grand_total'] / _max_total * 100, 1) if _max_total else 0
-                    _kpi['total_pct'] = round(_kpi['total_abc'] / _max_abc * 100, 1) if _max_abc else 0
-                _applied += 1
-            log(f"   [Supabase KPI] Applied manual scores for {_applied} agents")
-        else:
-            log(f"   [Supabase KPI] Fetch failed: {_resp.status_code}")
-    except Exception as _e:
-        log(f"   [Supabase KPI] Skipped: {_e}")
+    # ── Supabase KPI manual scores apply (from kpi_manual table) ────
+    # Surface and apply Supabase KPI manual scores loaded before module calculations.
+    _applied = 0
+    for _agent, _adata in output.get('agents', {}).items():
+        _items = _adata.get('kpi', {}).get('items', {})
+        _scores = _sb_kpi.get(_agent, {})
+        if not _scores:
+            continue
+        _adata['kpi_manual_overrides'] = {
+            'new_accounts': _scores.get('new_accounts', 0),
+            'vip_count':    _scores.get('vip_count', 0),
+            'event':        _scores.get('event', 0),
+            'campaign_1':   _scores.get('campaign_1', 0),
+            'has_override': True,
+        }
+        for _key, _item in _items.items():
+            if not _item.get('needs_supabase_fetch'):
+                continue
+            if _key in _scores:
+                _item['actual'] = _scores[_key]
+                _tgt = _item.get('target') or 1
+                _max = _item.get('max_score') or 0
+                _item['score'] = round(min(_item['actual'] / _tgt, 1) * _max, 2)
+                _item['pct'] = round((_item['actual'] / _tgt) * 100) if _tgt else 0
+        _kpi = _adata.get('kpi', {})
+        _all_items = _kpi.get('items', {})
+        if _all_items:
+            _kpi['grand_total'] = round(sum(i.get('score', 0) for i in _all_items.values()), 2)
+            _kpi['total_abc'] = round(sum(i.get('score', 0) for i in _all_items.values() if i.get('section') in ('A', 'B', 'C')), 2)
+            _max_total = sum(i.get('max_score', 0) for i in _all_items.values())
+            _max_abc = sum(i.get('max_score', 0) for i in _all_items.values() if i.get('section') in ('A', 'B', 'C'))
+            _kpi['grand_pct'] = round(_kpi['grand_total'] / _max_total * 100, 1) if _max_total else 0
+            _kpi['total_pct'] = round(_kpi['total_abc'] / _max_abc * 100, 1) if _max_abc else 0
+        _applied += 1
+    log(f"   [Supabase KPI] Applied manual scores for {_applied} agents")
     # ────────────────────────────────────────────────────────────────
 
     # ── Write JSON ──────────────────────────────────────────────────

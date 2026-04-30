@@ -160,10 +160,10 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
   <!-- Cross-page nav -->
   <div style="background:var(--bg);border-bottom:1px solid var(--border);padding:6px 16px;display:flex;gap:10px;align-items:center;overflow-x:auto;">
     <span style="font-family:var(--mono);font-size:8px;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;">Go to:</span>
-    <a href="https://izfoo0121-lab.github.io/md-dashboard/sales_dashboard.html" style="font-family:var(--mono);font-size:9px;color:#1a5c8f;text-decoration:none;padding:3px 8px;border:1px solid rgba(26,92,143,.3);border-radius:6px;white-space:nowrap;">👥 Agent</a>
-    <a href="https://izfoo0121-lab.github.io/md-dashboard/management.html" style="font-family:var(--mono);font-size:9px;color:#6b3fa0;text-decoration:none;padding:3px 8px;border:1px solid rgba(107,63,160,.3);border-radius:6px;white-space:nowrap;">📊 Management</a>
-    <a href="https://izfoo0121-lab.github.io/md-dashboard/campaign_audit.html" style="font-family:var(--mono);font-size:9px;color:#6b3fa0;text-decoration:none;padding:3px 8px;border:1px solid rgba(107,63,160,.3);border-radius:6px;white-space:nowrap;">🔍 Camp Audit</a>
-    <a href="https://izfoo0121-lab.github.io/md-dashboard/accounts.html" style="font-family:var(--mono);font-size:9px;color:#c85a1a;text-decoration:none;padding:3px 8px;border:1px solid rgba(200,90,26,.3);border-radius:6px;white-space:nowrap;">🏦 Accounts</a>
+    <a href="sales_dashboard.html" style="font-family:var(--mono);font-size:9px;color:#1a5c8f;text-decoration:none;padding:3px 8px;border:1px solid rgba(26,92,143,.3);border-radius:6px;white-space:nowrap;">👥 Agent</a>
+    <a href="management.html" style="font-family:var(--mono);font-size:9px;color:#6b3fa0;text-decoration:none;padding:3px 8px;border:1px solid rgba(107,63,160,.3);border-radius:6px;white-space:nowrap;">📊 Management</a>
+    <a href="campaign_audit.html" style="font-family:var(--mono);font-size:9px;color:#6b3fa0;text-decoration:none;padding:3px 8px;border:1px solid rgba(107,63,160,.3);border-radius:6px;white-space:nowrap;">🔍 Camp Audit</a>
+    <a href="accounts.html" style="font-family:var(--mono);font-size:9px;color:#c85a1a;text-decoration:none;padding:3px 8px;border:1px solid rgba(200,90,26,.3);border-radius:6px;white-space:nowrap;">🏦 Accounts</a>
   </div>
 
   <div class="tab-bar">
@@ -173,6 +173,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
     <button class="tab-btn" onclick="switchTab('sku',this)">SKU Config</button>
     <button class="tab-btn" onclick="switchTab('brand_sku',this)">🏷️ Brand SKU Status</button>
     <button class="tab-btn" onclick="switchTab('holidays',this)">📅 Holidays</button>
+    <button class="tab-btn" onclick="switchTab('leave_records',this)">请假记录 Leave Records</button>
     <button class="tab-btn" onclick="switchTab('brand_camps',this)">🔥 Brand Promo</button>
     <button class="tab-btn" onclick="switchTab('campaigns',this)">📢 Campaigns</button>
     <button class="tab-btn" onclick="switchTab('kpi_weights',this)">⚖️ KPI Weights</button>
@@ -475,7 +476,68 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
       <div class="sec-divider">Current Holiday List</div>
       <div id="ph-list"></div>
 
+      <div class="sec-divider">Agent 工作日 Override</div>
+      <div class="sec-sub" style="margin-bottom:8px;">Set per-agent working days for the selected month. Saves to Supabase agent_workdays.</div>
+      <div class="admin-card" style="overflow-x:auto;">
+        <div id="agent-workdays-table"></div>
+      </div>
+
+      <div class="sec-divider">Agent 休息日 Selector</div>
+      <div class="sec-sub" style="margin-bottom:8px;">Choose weekly rest days per agent. Each agent may have 1 or 2 rest days.</div>
+      <div class="admin-card" style="overflow-x:auto;">
+        <div id="agent-offdays-table"></div>
+      </div>
+
       <div class="save-toast" id="save-toast-ph">✓ Holiday added</div>
+    </div>
+  </div>
+
+  <!-- ── Tab: Leave Records ── -->
+  <div id="tab-leave_records" class="tab-content">
+    <div class="page-body">
+      <div class="sec-header">请假记录 / Leave Records</div>
+      <div class="sec-sub">Manual leave entry for Activity Map overlays. Types: AL, MC, RL, OFF.</div>
+
+      <div class="admin-card" style="margin-bottom:10px;">
+        <div class="sec-divider" style="margin-top:0;">Add Leave</div>
+        <div class="input-row">
+          <div class="field-wrap">
+            <div class="field-lbl">Agent</div>
+            <select id="leave-agent"></select>
+          </div>
+          <div class="field-wrap">
+            <div class="field-lbl">Date</div>
+            <input type="date" id="leave-date">
+          </div>
+          <div class="field-wrap">
+            <div class="field-lbl">Leave Type</div>
+            <select id="leave-type">
+              <option value="AL">AL</option>
+              <option value="MC">MC</option>
+              <option value="RL">RL</option>
+              <option value="OFF">OFF</option>
+            </select>
+          </div>
+        </div>
+        <div class="input-group">
+          <div class="input-label">Note (optional)</div>
+          <input type="text" id="leave-note" placeholder="Short note">
+        </div>
+        <button class="save-btn" onclick="saveLeaveRecord()" style="margin-top:8px;">Save Leave</button>
+      </div>
+
+      <div class="sec-divider">Existing Records</div>
+      <div class="admin-card" style="margin-bottom:10px;">
+        <div class="input-row" style="align-items:flex-end;">
+          <div class="field-wrap">
+            <div class="field-lbl">Month</div>
+            <input type="month" id="leave-month" onchange="loadLeaveRecords()">
+          </div>
+        </div>
+      </div>
+      <div class="admin-card" style="overflow-x:auto;">
+        <div id="leave-records-table"></div>
+      </div>
     </div>
   </div>
 
@@ -608,7 +670,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
           </div>
           <div style="display:flex;gap:10px;align-items:flex-start;">
             <span style="font-family:var(--display);font-size:18px;color:rgba(255,255,255,.5);flex-shrink:0;">3</span>
-            <div style="font-family:var(--mono);font-size:10px;">Click <b>⬇ DOWNLOAD CAMPAIGNS.JSON</b> → replace file in md-dashboard folder → run bat file</div>
+            <div style="font-family:var(--mono);font-size:10px;">Campaigns are saved live to Supabase. Use JSON export only as an optional backup/audit copy.</div>
           </div>
           <div style="display:flex;gap:10px;align-items:flex-start;">
             <span style="font-family:var(--display);font-size:18px;color:rgba(255,255,255,.5);flex-shrink:0;">4</span>
@@ -811,13 +873,11 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
       </div>
 
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-top:12px;">
-        <div style="font-family:var(--display);font-size:16px;letter-spacing:.05em;margin-bottom:6px;">After creating campaigns:</div>
+        <div style="font-family:var(--display);font-size:16px;letter-spacing:.05em;margin-bottom:6px;">Campaign backup:</div>
         <div style="font-family:var(--mono);font-size:10px;color:#555;margin-bottom:10px;">
-          1. Click the button below to download<br>
-          2. Replace <b>campaigns.json</b> in your md-dashboard folder<br>
-          3. Run <b>update_dashboard.bat</b> → agents see campaigns immediately
+          Optional backup. Campaigns are now saved live to Supabase — no JSON download needed for normal operation.
         </div>
-        <button class="save-btn" onclick="saveCampaignsJSON()" style="background:#2a7a4b;width:100%;font-size:16px;">⬇ DOWNLOAD CAMPAIGNS.JSON</button>
+        <button class="save-btn" onclick="saveCampaignsJSON()" style="background:#2a7a4b;width:100%;font-size:16px;">⬇ EXPORT BACKUP (JSON)</button>
       </div>
       <div class="save-toast" id="save-toast-camp">✓ Campaign created</div>
     </div>
@@ -941,7 +1001,7 @@ let CONFIG = null;
 let DASH_DATA = {};
 
 const BRANDS = ['iFACE','SUKUN','EVO','BISON','TR20','LAM+LWM'];
-const AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','YI'];
+const AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','YI'];
 
 // ── Gist Setup Functions ──────────────────────────────────────────────────
 function renderSyncStatus() {
@@ -1073,7 +1133,7 @@ async function loadKpiManual() {
   // Fetch all agents from CONFIG
   const agents = Object.keys(CONFIG.agents || {}).filter(a =>
     !CONFIG.agents[a]?.archived        // skip archived
-  ).sort();
+  );
   if (!agents.length) {
     form.innerHTML = '<div style="color:var(--muted);font-family:var(--mono);font-size:11px;">No agents configured. Add agents in Agent Targets tab first.</div>';
     statusEl.textContent = '';
@@ -1126,7 +1186,7 @@ async function saveKpiManual() {
   const month = document.getElementById('kpi-manual-month').value;
   if (!month) { alert('Select a month first'); return; }
 
-  const agents = Object.keys(CONFIG.agents || {}).filter(a => !CONFIG.agents[a]?.archived).sort();
+  const agents = Object.keys(CONFIG.agents || {}).filter(a => !CONFIG.agents[a]?.archived);
   const payload = agents.map(agent => {
     const newAccInput = document.getElementById(`kpi_m_new_${agent}`);
     const vipInput    = document.getElementById(`kpi_m_vip_${agent}`);
@@ -1337,6 +1397,7 @@ async function initAdmin() {
   loadGroupSpOverride();
   renderSKUForms();
   renderHolidayList();
+  await loadAgentCalendarSettings();
   renderBirthdayCampList();
   renderBrandCampList();
   renderAdminBrandSKU();
@@ -1391,6 +1452,7 @@ function switchTab(tab, el) {
   el.classList.add('active');
   if (tab === 'pins') renderPinForm();
   if (tab === 'kpi_manual') loadKpiManual();
+  if (tab === 'leave_records') initLeaveRecordsTab();
   if (tab === 'archive') refreshArchiveList();
   if (tab === 'sync') {
     const cfg = typeof GistSync !== 'undefined' ? GistSync.getConfig() : {};
@@ -2910,6 +2972,7 @@ function importExcel(input) {
         } else {
           CAMPAIGNS_DATA.campaigns.push(campObj);
         }
+        // TODO: push imported campaigns to Supabase
         saveCampaignsData();
         imported.push(`✓ Campaign "${campObj.name}" (${debtors.length} debtors)`);
       }
@@ -3325,6 +3388,317 @@ function removeHoliday(idx) {
   renderHolidayList();
 }
 
+function _adminCurrentMonthDate() {
+  const label = DASH_DATA?.current_month || new Date().toLocaleDateString('en-US', {month:'short', year:'2-digit'});
+  const [mon, yy] = label.split(' ');
+  const idx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(mon);
+  const year = 2000 + parseInt(yy || String(new Date().getFullYear()).slice(-2), 10);
+  return `${year}-${String(idx + 1).padStart(2,'0')}-01`;
+}
+
+async function _adminSupabaseFetch(path, opts = {}) {
+  const headers = Object.assign({
+    apikey: SUPABASE_KEY,
+    Authorization: `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+  }, opts.headers || {});
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, Object.assign({}, opts, { headers }));
+  if (!r.ok) throw new Error(await r.text());
+  if (r.status === 204) return null;
+  const text = await r.text();
+  return text ? JSON.parse(text) : null;
+}
+
+let AGENT_WORKDAYS_CACHE = {};
+let AGENT_OFFDAYS_CACHE = {};
+
+async function loadAgentCalendarSettings() {
+  await Promise.all([loadAgentWorkdays(), loadAgentOffdays()]);
+}
+
+async function loadAgentWorkdays() {
+  const month = _adminCurrentMonthDate();
+  try {
+    const rows = await _adminSupabaseFetch(`agent_workdays?select=agent_name,month,working_days&month=eq.${encodeURIComponent(month)}`);
+    AGENT_WORKDAYS_CACHE = {};
+    (rows || []).forEach(r => { AGENT_WORKDAYS_CACHE[r.agent_name] = r; });
+  } catch (e) {
+    console.warn('[agent_workdays] load failed:', e.message);
+    AGENT_WORKDAYS_CACHE = {};
+  }
+  renderAgentWorkdaysTable();
+}
+
+function renderAgentWorkdaysTable() {
+  const el = document.getElementById('agent-workdays-table');
+  if (!el) return;
+  const month = _adminCurrentMonthDate();
+  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px;min-width:520px;">
+    <thead><tr>
+      <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">Agent</th>
+      <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">Month</th>
+      <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">工作日</th>
+      <th style="padding:7px;border-bottom:1px solid var(--border);"></th>
+    </tr></thead>
+    <tbody>${AGENTS.map(agent => {
+      const saved = AGENT_WORKDAYS_CACHE[agent]?.working_days ?? '';
+      return `<tr>
+        <td style="padding:7px;border-bottom:1px solid var(--border);font-weight:700;">${agent}</td>
+        <td style="padding:7px;border-bottom:1px solid var(--border);">${month}</td>
+        <td style="padding:7px;border-bottom:1px solid var(--border);"><input id="wd-${agent}" type="number" min="0" max="31" step="1" value="${saved}" placeholder="e.g. 24" style="width:90px;"></td>
+        <td style="padding:7px;border-bottom:1px solid var(--border);text-align:right;"><button onclick="saveAgentWorkday('${agent}')" style="font-family:var(--mono);font-size:9px;padding:5px 9px;border-radius:6px;border:1px solid var(--border);background:var(--ink);color:#fff;cursor:pointer;">Save</button></td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+}
+
+async function saveAgentWorkday(agent) {
+  const month = _adminCurrentMonthDate();
+  const val = parseInt(document.getElementById(`wd-${agent}`).value, 10);
+  if (!Number.isFinite(val) || val < 0) { alert('Enter a valid working day number'); return; }
+  await _adminSupabaseFetch('agent_workdays?on_conflict=agent_name,month', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
+    body: JSON.stringify([{agent_name: agent, month, working_days: val, updated_at: new Date().toISOString()}])
+  });
+  AGENT_WORKDAYS_CACHE[agent] = {agent_name: agent, month, working_days: val};
+  alert(`Saved ${agent} 工作日`);
+}
+
+async function loadAgentOffdays() {
+  try {
+    const rows = await _adminSupabaseFetch('agent_offdays?select=agent_name,off_days,default_day,exceptions');
+    AGENT_OFFDAYS_CACHE = {};
+    (rows || []).forEach(r => {
+      AGENT_OFFDAYS_CACHE[r.agent_name] = {
+        default_day: r.default_day || (r.off_days || [])[0] || 'Sunday',
+        exceptions: r.exceptions || [],
+        off_days: r.off_days || [],
+      };
+    });
+  } catch (e) {
+    console.warn('[agent_offdays] load failed:', e.message);
+    AGENT_OFFDAYS_CACHE = {};
+  }
+  renderAgentOffdaysTable();
+}
+
+function _adminMonthDatesForDefault(defaultDay) {
+  if (!defaultDay || defaultDay === 'None') return [];
+  const start = new Date(_adminCurrentMonthDate() + 'T00:00:00');
+  const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+  const out = [];
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const weekday = d.toLocaleDateString('en-US', {weekday:'long'});
+    const match = defaultDay === weekday ||
+      (defaultDay === 'Sunday + Monday' && (weekday === 'Sunday' || weekday === 'Monday'));
+    if (match) {
+      out.push({
+        key: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`,
+        label: `${d.getDate()} ${d.toLocaleDateString('en-US', {weekday:'short'})}`,
+      });
+    }
+  }
+  return out;
+}
+
+function setAgentDefaultOffday(agent, value) {
+  const cur = AGENT_OFFDAYS_CACHE[agent] || {};
+  AGENT_OFFDAYS_CACHE[agent] = { ...cur, default_day: value, exceptions: [] };
+  renderAgentOffdaysTable();
+}
+
+function toggleAgentOffdayException(agent, dateKey) {
+  const cur = AGENT_OFFDAYS_CACHE[agent] || { default_day:'Sunday', exceptions:[] };
+  const set = new Set(cur.exceptions || []);
+  if (set.has(dateKey)) set.delete(dateKey);
+  else set.add(dateKey);
+  AGENT_OFFDAYS_CACHE[agent] = { ...cur, exceptions: [...set].sort() };
+  const el = document.getElementById(`exc-${agent}-${dateKey}`);
+  if (el) {
+    const isOn = set.has(dateKey);
+    el.style.background = isOn ? '#FCEBEB' : 'var(--bg)';
+    el.style.color = isOn ? '#A32D2D' : 'var(--ink3)';
+    el.style.borderColor = isOn ? '#F7C1C1' : 'var(--border)';
+  }
+}
+
+function renderAgentOffdaysTable() {
+  const el = document.getElementById('agent-offdays-table');
+  if (!el) return;
+  const options = ['Sunday','Monday','Saturday','Sunday + Monday','None'];
+  const month = _adminCurrentMonthDate().slice(0, 7);
+  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px;min-width:820px;">
+    <thead><tr>
+      <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">Agent</th>
+      <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">Default 休息日</th>
+      <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">${month} exceptions</th>
+      <th style="padding:7px;border-bottom:1px solid var(--border);"></th>
+    </tr></thead>
+    <tbody>${AGENTS.map(agent => {
+      const cfg = AGENT_OFFDAYS_CACHE[agent] || { default_day:'Sunday', exceptions:[] };
+      const defaultDay = cfg.default_day || 'Sunday';
+      const exceptions = new Set(cfg.exceptions || []);
+      const select = `<select id="offday-default-${agent}" onchange="setAgentDefaultOffday('${agent}',this.value)" style="font-family:var(--mono);font-size:10px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);">
+        ${options.map(o => `<option value="${o}" ${o===defaultDay?'selected':''}>${o}</option>`).join('')}
+      </select>`;
+      const tags = _adminMonthDatesForDefault(defaultDay).map(d => {
+        const on = exceptions.has(d.key);
+        return `<span id="exc-${agent}-${d.key}" onclick="toggleAgentOffdayException('${agent}','${d.key}')"
+          title="Click to mark this default rest date as exception"
+          style="display:inline-flex;margin:2px 4px 2px 0;padding:3px 7px;border-radius:7px;cursor:pointer;font-size:9px;border:0.5px solid ${on?'#F7C1C1':'var(--border)'};background:${on?'#FCEBEB':'var(--bg)'};color:${on?'#A32D2D':'var(--ink3)'};white-space:nowrap;">${d.label}</span>`;
+      }).join('') || `<span style="color:var(--ink3);">No default off-day dates</span>`;
+      return `<tr>
+        <td style="padding:7px;border-bottom:1px solid var(--border);font-weight:700;">${agent}</td>
+        <td style="padding:7px;border-bottom:1px solid var(--border);">${select}</td>
+        <td style="padding:7px;border-bottom:1px solid var(--border);">${tags}</td>
+        <td style="padding:7px;border-bottom:1px solid var(--border);text-align:right;"><button onclick="saveAgentOffdays('${agent}')" style="font-family:var(--mono);font-size:9px;padding:5px 9px;border-radius:6px;border:1px solid var(--border);background:var(--ink);color:#fff;cursor:pointer;">Save</button></td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+}
+
+async function saveAgentOffdays(agent) {
+  const cfg = AGENT_OFFDAYS_CACHE[agent] || {};
+  const defaultDay = document.getElementById(`offday-default-${agent}`)?.value || cfg.default_day || 'Sunday';
+  const exceptions = cfg.exceptions || [];
+  const offDays = defaultDay === 'None'
+    ? []
+    : defaultDay === 'Sunday + Monday' ? ['Sunday','Monday'] : [defaultDay];
+  await _adminSupabaseFetch('agent_offdays?on_conflict=agent_name', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
+    body: JSON.stringify([{
+      agent_name: agent,
+      off_days: offDays,
+      default_day: defaultDay,
+      exceptions,
+      updated_at: new Date().toISOString()
+    }])
+  });
+  AGENT_OFFDAYS_CACHE[agent] = { default_day: defaultDay, exceptions, off_days: offDays };
+  alert(`Saved ${agent} 休息日`);
+}
+
+let LEAVE_SCHEMA = null;
+let LEAVE_TAB_READY = false;
+
+function _adminMonthStartEnd(monthValue) {
+  const [year, month] = monthValue.split('-').map(Number);
+  const start = `${year}-${String(month).padStart(2,'0')}-01`;
+  const endDate = new Date(year, month, 0);
+  const end = `${year}-${String(month).padStart(2,'0')}-${String(endDate.getDate()).padStart(2,'0')}`;
+  return { start, end };
+}
+
+function _leaveTypePill(type) {
+  const colors = {
+    AL:  ['#E6F1FB', '#185FA5'],
+    MC:  ['#FAEEDA', '#854F0B'],
+    RL:  ['#EEEDFE', '#534AB7'],
+    OFF: ['#F1EFE8', '#5F5E5A'],
+  };
+  const [bg, fg] = colors[type] || colors.OFF;
+  return `<span style="display:inline-flex;padding:2px 8px;border-radius:10px;background:${bg};color:${fg};font-family:var(--mono);font-size:10px;font-weight:700;">${type || '?'}</span>`;
+}
+
+async function detectLeaveSchema() {
+  if (LEAVE_SCHEMA) return LEAVE_SCHEMA;
+  try {
+    await _adminSupabaseFetch('agent_leave?select=id,agent_name,leave_date,leave_type,notes,recorded_at&limit=1');
+    LEAVE_SCHEMA = { agent:'agent_name', date:'leave_date', note:'notes', recorded:'recorded_at' };
+  } catch (e) {
+    try {
+      await _adminSupabaseFetch('agent_leave?select=id,agent,date,leave_type,reason,logged_at&limit=1');
+      LEAVE_SCHEMA = { agent:'agent', date:'date', note:'reason', recorded:'logged_at' };
+    } catch (_) {
+      LEAVE_SCHEMA = { agent:'agent_name', date:'leave_date', note:null, recorded:null };
+    }
+  }
+  return LEAVE_SCHEMA;
+}
+
+async function initLeaveRecordsTab() {
+  if (!LEAVE_TAB_READY) {
+    const agentEl = document.getElementById('leave-agent');
+    if (agentEl) agentEl.innerHTML = AGENTS.map(a => `<option value="${a}">${a}</option>`).join('');
+    const today = new Date();
+    const monthEl = document.getElementById('leave-month');
+    const dateEl = document.getElementById('leave-date');
+    const monthValue = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+    if (monthEl && !monthEl.value) monthEl.value = monthValue;
+    if (dateEl && !dateEl.value) dateEl.value = `${monthValue}-${String(today.getDate()).padStart(2,'0')}`;
+    await detectLeaveSchema();
+    LEAVE_TAB_READY = true;
+  }
+  await loadLeaveRecords();
+}
+
+async function loadLeaveRecords() {
+  const el = document.getElementById('leave-records-table');
+  const monthEl = document.getElementById('leave-month');
+  if (!el || !monthEl?.value) return;
+  const schema = await detectLeaveSchema();
+  const { start, end } = _adminMonthStartEnd(monthEl.value);
+  el.innerHTML = '<div style="padding:10px;font-family:var(--mono);font-size:10px;color:var(--ink3);">Loading leave records...</div>';
+  try {
+    const rows = await _adminSupabaseFetch(`agent_leave?select=*&${schema.date}=gte.${start}&${schema.date}=lte.${end}&order=${schema.date}.asc`);
+    if (!rows.length) {
+      el.innerHTML = '<div style="padding:10px;font-family:var(--mono);font-size:10px;color:var(--ink3);">No leave records for this month.</div>';
+      return;
+    }
+    el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px;min-width:640px;">
+      <thead><tr>
+        <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">Agent</th>
+        <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">Date</th>
+        <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">Type</th>
+        <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">Note</th>
+        <th style="padding:7px;border-bottom:1px solid var(--border);"></th>
+      </tr></thead>
+      <tbody>${rows.map(r => `
+        <tr>
+          <td style="padding:7px;border-bottom:1px solid var(--border);font-weight:700;">${r.agent_name || r.agent || ''}</td>
+          <td style="padding:7px;border-bottom:1px solid var(--border);">${r.leave_date || r.date || ''}</td>
+          <td style="padding:7px;border-bottom:1px solid var(--border);">${_leaveTypePill(r.leave_type)}</td>
+          <td style="padding:7px;border-bottom:1px solid var(--border);color:var(--ink3);">${r.notes || r.reason || ''}</td>
+          <td style="padding:7px;border-bottom:1px solid var(--border);text-align:right;"><button onclick="deleteLeaveRecord(${r.id})" style="font-family:var(--mono);font-size:9px;padding:5px 9px;border-radius:6px;border:1px solid rgba(200,56,26,.3);background:var(--red-bg);color:var(--accent);cursor:pointer;">Delete</button></td>
+        </tr>`).join('')}</tbody></table>`;
+  } catch (e) {
+    el.innerHTML = `<div style="padding:10px;font-family:var(--mono);font-size:10px;color:var(--accent);">Failed to load: ${e.message}</div>`;
+  }
+}
+
+async function saveLeaveRecord() {
+  const schema = await detectLeaveSchema();
+  const agent = document.getElementById('leave-agent')?.value;
+  const date = document.getElementById('leave-date')?.value;
+  const type = document.getElementById('leave-type')?.value;
+  const note = (document.getElementById('leave-note')?.value || '').trim();
+  if (!agent || !date || !type) { alert('Please choose agent, date, and leave type.'); return; }
+  const row = { leave_type: type };
+  row[schema.agent] = agent;
+  row[schema.date] = date;
+  if (schema.note && note) row[schema.note] = note;
+  if (schema.recorded) row[schema.recorded] = new Date().toISOString();
+  await _adminSupabaseFetch('agent_leave', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','Prefer':'return=minimal'},
+    body: JSON.stringify([row])
+  });
+  document.getElementById('leave-note').value = '';
+  const monthEl = document.getElementById('leave-month');
+  if (monthEl) monthEl.value = date.slice(0, 7);
+  await loadLeaveRecords();
+  alert('Leave saved');
+}
+
+async function deleteLeaveRecord(id) {
+  if (!confirm('Delete this leave record?')) return;
+  await _adminSupabaseFetch(`agent_leave?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: {'Prefer':'return=minimal'}
+  });
+  await loadLeaveRecords();
+}
+
 function downloadSampleDebtorList() {
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet([
@@ -3389,29 +3763,249 @@ function bdayExcludeDebtor(code) {
 let CAMPAIGNS_DATA = { campaigns: [] };
 let _campFileDebtors = [];
 
-async function loadCampaignsData() {
-  // Load from campaigns.json (source of truth) then fall back to localStorage
+function _campNumOrNull(v) {
+  if (v === undefined || v === null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function _campTextOrNull(v) {
+  const s = String(v ?? '').trim();
+  return s ? s : null;
+}
+
+function _campGroupBy(rows, key) {
+  return (rows || []).reduce((acc, row) => {
+    const k = row?.[key];
+    if (!k) return acc;
+    (acc[k] ||= []).push(row);
+    return acc;
+  }, {});
+}
+
+function _campParseRuleNotes(notes) {
+  if (!notes) return {};
   try {
-    const r = await fetch('campaigns.json?v=' + Date.now());
-    if (r.ok) {
-      const fromFile = await r.json();
-      // Merge: file wins, but keep any localStorage-only campaigns not in file
-      const fileIds = new Set((fromFile.campaigns||[]).map(c=>c.id));
-      const lsRaw   = localStorage.getItem('touro_campaigns');
-      const lsData  = lsRaw ? JSON.parse(lsRaw) : { campaigns: [] };
-      const lsOnly  = (lsData.campaigns||[]).filter(c => !fileIds.has(c.id));
-      CAMPAIGNS_DATA = { ...fromFile, campaigns: [...(fromFile.campaigns||[]), ...lsOnly] };
-      localStorage.setItem('touro_campaigns', JSON.stringify(CAMPAIGNS_DATA));
-      renderCampaignsList();
-      return;
+    const parsed = JSON.parse(notes);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : { notes };
+  } catch {
+    return { notes };
+  }
+}
+
+function _campRuleNotes(rule) {
+  const notes = {};
+  if (rule?.max_redempt !== undefined && rule.max_redempt !== '') notes.max_redempt = rule.max_redempt;
+  if (rule?.accumulative !== undefined && rule.accumulative !== '') notes.accumulative = !!rule.accumulative;
+  return Object.keys(notes).length ? JSON.stringify(notes) : _campTextOrNull(rule?.notes);
+}
+
+function _campRuleFromDb(row) {
+  const extra = _campParseRuleNotes(row.notes);
+  return {
+    promo: row.promo_detail || '',
+    promo_detail: row.promo_detail || '',
+    min_ctn: row.min_order_ctn ?? '',
+    min_order_ctn: row.min_order_ctn ?? null,
+    foc_item: row.foc_item ?? '',
+    foc_qty: row.foc_qty ?? '',
+    foc_unit: row.foc_unit ?? '',
+    foc_type: row.foc_type ?? '',
+    cap: row.cap ?? null,
+    target_pct: row.target_pct ?? null,
+    target_label: row.target_label ?? '',
+    ...extra
+  };
+}
+
+function _campFromDb(row, rulesByCampaign, debtorsByCampaign) {
+  const brands = Array.isArray(row.brands) ? row.brands : (row.brands ? [row.brands] : []);
+  const catRules = {};
+  (rulesByCampaign[row.id] || []).forEach(rule => {
+    if (rule.cat_group) catRules[rule.cat_group] = _campRuleFromDb(rule);
+  });
+  const debtors = (debtorsByCampaign[row.id] || []).map(d => ({
+    code: d.debtor_code || '',
+    debtor_code: d.debtor_code || '',
+    name: d.debtor_name || '',
+    debtor_name: d.debtor_name || '',
+    agent: d.agent || '',
+    cat: d.cat || '',
+    cat_group: d.cat_group || '',
+    debtor_type: d.debtor_type || '',
+    foc_item: d.foc_item || '',
+    foc_qty: d.foc_qty ?? '',
+    foc_unit: d.foc_unit || '',
+    foc_type: d.foc_type || '',
+    rebate: d.rebate ?? null,
+    foc_item2: d.foc_item_2 || '',
+    foc_qty2: d.foc_qty_2 ?? '',
+    foc_item_2: d.foc_item_2 || '',
+    foc_qty_2: d.foc_qty_2 ?? '',
+    foc_unit_2: d.foc_unit_2 || '',
+    avg_ctn: d.avg_ctn ?? null,
+    promo_logic: d.promo_logic || '',
+    approval: !!d.approval,
+    approval_note: d.approval_note || '',
+    notes: d.notes || ''
+  }));
+  return {
+    id: row.id,
+    name: row.name || '',
+    type: row.type || 'other',
+    brand: brands.length === 1 ? brands[0] : '',
+    brands,
+    description: row.description || '',
+    promo_detail: row.promo_detail || '',
+    min_order_ctn: row.min_order_ctn ?? null,
+    cat_rules: catRules,
+    default_foc_item: row.default_foc_item || '',
+    default_foc_qty: row.default_foc_qty ?? '',
+    default_foc_unit: row.default_foc_unit || '',
+    default_foc_type: row.default_foc_type || '',
+    default_foc_item_2: row.default_foc_item_2 || '',
+    default_foc_qty_2: row.default_foc_qty_2 ?? '',
+    default_foc_unit_2: row.default_foc_unit_2 || '',
+    foc_note: row.foc_note || '',
+    festive_occasion: row.festive_occasion || '',
+    conditions: row.conditions || [],
+    no_cap: !!row.no_cap,
+    active: row.active !== false,
+    start_date: row.start_date || null,
+    deadline: row.deadline || '',
+    created_at: row.created_at || '',
+    updated_at: row.updated_at || '',
+    debtors
+  };
+}
+
+function _campCampaignToDb(camp) {
+  const brands = Array.isArray(camp.brands) ? camp.brands : (camp.brand ? [camp.brand] : []);
+  return {
+    id: camp.id,
+    name: camp.name,
+    type: camp.type || 'other',
+    brands,
+    description: camp.description || null,
+    promo_detail: camp.promo_detail || null,
+    foc_note: camp.foc_note || null,
+    conditions: Array.isArray(camp.conditions) ? camp.conditions : [],
+    festive_occasion: camp.festive_occasion || null,
+    min_order_ctn: _campNumOrNull(camp.min_order_ctn),
+    default_foc_item: _campTextOrNull(camp.default_foc_item),
+    default_foc_qty: _campNumOrNull(camp.default_foc_qty),
+    default_foc_unit: _campTextOrNull(camp.default_foc_unit),
+    default_foc_type: _campTextOrNull(camp.default_foc_type),
+    default_foc_item_2: _campTextOrNull(camp.default_foc_item_2 || camp.foc_item2),
+    default_foc_qty_2: _campNumOrNull(camp.default_foc_qty_2 || camp.foc_qty2),
+    default_foc_unit_2: _campTextOrNull(camp.default_foc_unit_2 || camp.foc_unit2),
+    no_cap: !!camp.no_cap,
+    active: camp.active !== false,
+    start_date: camp.start_date || null,
+    deadline: camp.deadline || null,
+    updated_at: new Date().toISOString()
+  };
+}
+
+function _campRuleToDb(campaignId, catGroup, rule) {
+  return {
+    campaign_id: campaignId,
+    cat_group: catGroup,
+    min_order_ctn: _campNumOrNull(rule?.min_order_ctn ?? rule?.min_ctn),
+    foc_item: _campTextOrNull(rule?.foc_item),
+    foc_qty: _campNumOrNull(rule?.foc_qty),
+    foc_unit: _campTextOrNull(rule?.foc_unit),
+    foc_type: _campTextOrNull(rule?.foc_type),
+    promo_detail: rule?.promo_detail || rule?.promo || null,
+    cap: _campNumOrNull(rule?.cap),
+    target_pct: _campNumOrNull(rule?.target_pct),
+    target_label: _campTextOrNull(rule?.target_label),
+    notes: _campRuleNotes(rule)
+  };
+}
+
+function _campDebtorToDb(campaignId, debtor) {
+  const cat = debtor.cat || '';
+  const catGroup = debtor.cat_group || (cat ? String(cat).trim().charAt(0).toUpperCase() : null);
+  return {
+    campaign_id: campaignId,
+    debtor_code: debtor.code || debtor.debtor_code || '',
+    debtor_name: debtor.name || debtor.debtor_name || null,
+    agent: debtor.agent || null,
+    cat: debtor.cat || null,
+    cat_group: catGroup || null,
+    debtor_type: debtor.debtor_type || null,
+    foc_item: _campTextOrNull(debtor.foc_item),
+    foc_qty: _campNumOrNull(debtor.foc_qty),
+    foc_unit: _campTextOrNull(debtor.foc_unit),
+    foc_type: _campTextOrNull(debtor.foc_type),
+    rebate: _campNumOrNull(debtor.rebate),
+    foc_item_2: _campTextOrNull(debtor.foc_item_2 || debtor.foc_item2),
+    foc_qty_2: _campNumOrNull(debtor.foc_qty_2 || debtor.foc_qty2),
+    foc_unit_2: _campTextOrNull(debtor.foc_unit_2 || debtor.foc_unit2),
+    avg_ctn: _campNumOrNull(debtor.avg_ctn),
+    promo_logic: _campTextOrNull(debtor.promo_logic),
+    approval: !!debtor.approval,
+    approval_note: debtor.approval_note || null,
+    notes: debtor.notes || null
+  };
+}
+
+async function _campPostRows(table, rows) {
+  if (!rows.length) return;
+  for (let i = 0; i < rows.length; i += 500) {
+    await _adminSupabaseFetch(table, {
+      method: 'POST',
+      headers: { 'Prefer': 'return=minimal' },
+      body: JSON.stringify(rows.slice(i, i + 500))
+    });
+  }
+}
+
+async function _campPatchCampaign(id, payload) {
+  return _adminSupabaseFetch(`campaigns?id=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ ...payload, updated_at: new Date().toISOString() })
+  });
+}
+
+async function _campDeleteCampaign(id) {
+  return _adminSupabaseFetch(`campaigns?id=eq.${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { 'Prefer': 'return=minimal' }
+  });
+}
+
+async function loadCampaignsData() {
+  try {
+    const [campaignRows, ruleRows, debtorRows] = await Promise.all([
+      _adminSupabaseFetch('campaigns?select=*&order=created_at.desc'),
+      _adminSupabaseFetch('campaign_cat_rules?select=*'),
+      _adminSupabaseFetch('campaign_debtors?select=*&order=debtor_code.asc')
+    ]);
+    const rulesByCampaign = _campGroupBy(ruleRows || [], 'campaign_id');
+    const debtorsByCampaign = _campGroupBy(debtorRows || [], 'campaign_id');
+    CAMPAIGNS_DATA = { campaigns: (campaignRows || []).map(row => _campFromDb(row, rulesByCampaign, debtorsByCampaign)) };
+    localStorage.setItem('touro_campaigns', JSON.stringify(CAMPAIGNS_DATA));
+  } catch(e) {
+    console.warn('Supabase campaign load failed; using local fallback', e);
+    try { CAMPAIGNS_DATA = JSON.parse(localStorage.getItem('touro_campaigns')||'{"campaigns":[]}'); }
+    catch(err) { CAMPAIGNS_DATA = { campaigns: [] }; }
+    if (!(CAMPAIGNS_DATA.campaigns || []).length) {
+      try {
+        const r = await fetch('campaigns.json?v=' + Date.now());
+        if (r.ok) CAMPAIGNS_DATA = await r.json();
+      } catch(err) { console.warn('campaigns.json fallback failed', err); }
     }
-  } catch(e) { /* fallback */ }
-  try { CAMPAIGNS_DATA = JSON.parse(localStorage.getItem('touro_campaigns')||'{"campaigns":[]}'); }
-  catch(e) { CAMPAIGNS_DATA = { campaigns: [] }; }
+  }
+  renderCampaignsList();
+  populateBulkCampSelect();
 }
 function saveCampaignsData() {
   localStorage.setItem('touro_campaigns', JSON.stringify(CAMPAIGNS_DATA));
   renderCampaignsList();
+  populateBulkCampSelect();
 }
 
 function renderCatRules(cats) {
@@ -3470,7 +4064,7 @@ function clearCampFile() {
   _campFileDebtors = [];
 }
 
-function createCampaign() {
+async function createCampaign() {
   const name     = document.getElementById('new-camp-name').value.trim();
   const type     = document.getElementById('new-camp-type').value;
   const desc     = document.getElementById('new-camp-desc').value.trim();
@@ -3492,7 +4086,7 @@ function createCampaign() {
   const focNote  = document.getElementById('new-camp-foc-note')?.value?.trim()||'';
   const festive  = document.getElementById('new-camp-festive')?.value||'';
 
-  CAMPAIGNS_DATA.campaigns.push({
+  const camp = {
     id:'camp_'+Date.now(), name, type, description:desc,
     brands, promo_detail:promo, min_order_ctn:minOrder,
     cat_rules: catRules,
@@ -3504,7 +4098,34 @@ function createCampaign() {
     festive_occasion:  festive,
     created_at:new Date().toISOString().split('T')[0],
     deadline, active:true, debtors:_campFileDebtors,
-  });
+  };
+
+  let insertedCampaign = false;
+  try {
+    await _adminSupabaseFetch('campaigns', {
+      method: 'POST',
+      headers: { 'Prefer': 'return=representation' },
+      body: JSON.stringify(_campCampaignToDb(camp))
+    });
+    insertedCampaign = true;
+
+    const ruleRows = Object.entries(camp.cat_rules || {})
+      .map(([catGroup, rule]) => _campRuleToDb(camp.id, catGroup, rule));
+    await _campPostRows('campaign_cat_rules', ruleRows);
+
+    const debtorRows = (camp.debtors || []).map(d => _campDebtorToDb(camp.id, d));
+    await _campPostRows('campaign_debtors', debtorRows);
+  } catch (e) {
+    if (insertedCampaign) {
+      try { await _campDeleteCampaign(camp.id); }
+      catch (rollbackErr) { console.error('Campaign rollback failed', rollbackErr); }
+    }
+    console.error('Campaign create failed', e);
+    alert('Failed to save campaign to Supabase. No campaign was kept locally.');
+    return;
+  }
+
+  CAMPAIGNS_DATA.campaigns.push(camp);
   saveCampaignsData();
 
   // Reset form
@@ -3609,9 +4230,17 @@ function toggleBrandFields(type) {
     type === 'festive_gift' ? 'block' : 'none';
 }
 
-function closeCampaign(id) {
+async function closeCampaign(id) {
   const c=CAMPAIGNS_DATA.campaigns.find(x=>x.id===id);
-  if(c&&confirm(`Close campaign "${c.name}"?`)){c.active=false;saveCampaignsData();}
+  if(!c || !confirm(`Close campaign "${c.name}"?`)) return;
+  try {
+    await _campPatchCampaign(id, { active: false });
+    c.active=false;
+    saveCampaignsData();
+  } catch(e) {
+    console.error('Close campaign failed', e);
+    alert('Failed to close campaign in Supabase.');
+  }
 }
 
 function renderCampaignsList() {
@@ -3649,7 +4278,7 @@ function renderCampaignsList() {
         </div>
         <div style="display:flex;gap:6px;margin-left:8px;flex-shrink:0;">
           <button onclick="editCampaign('${c.id}')" style="background:none;border:1px solid var(--border);color:var(--blue);font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">✏ Edit</button>
-          ${!isInactive?`<button onclick="closeCampaign('${c.id}')" style="background:none;border:1px solid #ddd;color:#888;font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">Close</button>`:`<button onclick="reopenCampaign('${c.id}')" style="background:none;border:1px solid var(--green);color:var(--green);font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">Reopen</button>`}
+          ${!isInactive?`<button onclick="closeCampaign('${c.id}')" style="background:none;border:1px solid #ddd;color:#888;font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">Close</button>`:`<button onclick="reopenCampaign('${c.id}')" style="background:none;border:1px solid var(--green);color:var(--green);font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">Reopen</button><button onclick="hardDeleteCampaign('${c.id}')" style="background:none;border:1px solid rgba(255,90,90,.45);color:#ff5a5a;font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">Delete forever</button>`}
         </div>
       </div>
       <div style="font-family:var(--mono);font-size:10px;color:#555;">📋 ${c.debtors?.length||0} debtors &nbsp;·&nbsp; ⏰ ${c.deadline||'no deadline'} &nbsp;·&nbsp; 📅 Start: ${c.start_date||c.created_at||'—'}</div>
@@ -3676,24 +4305,62 @@ function cancelCampEdit(id) {
   if (promoDisp) promoDisp.style.display = 'block';
 }
 
-function saveCampEdit(id) {
+async function saveCampEdit(id) {
   const camp = CAMPAIGNS_DATA.campaigns.find(c=>c.id===id);
   if (!camp) return;
   const name     = document.getElementById('camp-edit-name-'+id)?.value?.trim();
   const desc     = document.getElementById('camp-edit-desc-'+id)?.value?.trim();
   const promo    = document.getElementById('camp-edit-promo-'+id)?.value?.trim();
   const deadline = document.getElementById('camp-edit-deadline-'+id)?.value;
-  if (name)     camp.name         = name;
-  if (desc !== undefined) camp.description  = desc;
-  if (promo !== undefined) camp.promo_detail = promo;
-  if (deadline) camp.deadline     = deadline;
-  saveCampaignsData();
-  renderCampaignsList();
+  const payload = {
+    name: name || camp.name,
+    description: desc ?? '',
+    promo_detail: promo ?? '',
+    deadline: deadline || camp.deadline || null
+  };
+  try {
+    await _campPatchCampaign(id, payload);
+    camp.name         = payload.name;
+    camp.description  = payload.description || '';
+    camp.promo_detail = payload.promo_detail || '';
+    camp.deadline     = payload.deadline || '';
+    saveCampaignsData();
+    renderCampaignsList();
+  } catch(e) {
+    console.error('Save campaign edit failed', e);
+    alert('Failed to save campaign edit to Supabase.');
+  }
 }
 
-function reopenCampaign(id) {
+async function reopenCampaign(id) {
   const c = CAMPAIGNS_DATA.campaigns.find(x=>x.id===id);
-  if (c) { c.active = true; saveCampaignsData(); renderCampaignsList(); }
+  if (!c) return;
+  try {
+    await _campPatchCampaign(id, { active: true });
+    c.active = true;
+    saveCampaignsData();
+    renderCampaignsList();
+  } catch(e) {
+    console.error('Reopen campaign failed', e);
+    alert('Failed to reopen campaign in Supabase.');
+  }
+}
+
+async function hardDeleteCampaign(id) {
+  const c = CAMPAIGNS_DATA.campaigns.find(x=>x.id===id);
+  if (!c) return;
+  if (!confirm(`Delete campaign "${c.name}" forever? This removes its rules and debtor rows from Supabase.`)) return;
+  const typed = prompt(`Type the campaign name exactly to confirm permanent deletion:\n${c.name}`);
+  if (typed !== c.name) { alert('Campaign name did not match. Delete cancelled.'); return; }
+  try {
+    await _campDeleteCampaign(id);
+    CAMPAIGNS_DATA.campaigns = CAMPAIGNS_DATA.campaigns.filter(x=>x.id!==id);
+    saveCampaignsData();
+    renderCampaignsList();
+  } catch(e) {
+    console.error('Hard delete campaign failed', e);
+    alert('Failed to delete campaign from Supabase.');
+  }
 }
 
 function populateBulkCampSelect() {
