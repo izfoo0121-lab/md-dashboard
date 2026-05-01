@@ -2458,17 +2458,50 @@ async function saveAllToSupabase() {
 
   // ── 4. BIRTHDAY OVERRIDES ─────────────────────────────
   const bday = CONFIG.birthday_overrides || {};
-  const bdayRows = Object.entries(bday).map(([code, info]) => {
-    if (typeof info === 'object' && info !== null) {
-      return {
+  const bdayRows = [];
+  Object.entries(bday).forEach(([month, codeMap]) => {
+    if (!month || typeof codeMap !== 'object' || codeMap === null) return;
+    Object.entries(codeMap).forEach(([code, action]) => {
+      if (!code || (action !== 'add' && action !== 'remove')) return;
+      bdayRows.push({
         debtor_code: code,
-        birth_date: info.birth_date || info.date || '',
-        birth_month: info.birth_month || info.month || null,
-      };
-    }
-    return { debtor_code: code, birth_date: String(info || '') };
+        month: month,
+        action: action,
+        birth_date: action,   // legacy column - kept for backward compat
+      });
+    });
   });
-  await upsert('targets_birthday_overrides', bdayRows, 'debtor_code');
+
+  try {
+    const inMemoryMonths = Object.keys(bday).filter(m => bday[m] && Object.keys(bday[m]).length > 0);
+    for (const month of inMemoryMonths) {
+      const inMemoryCodes = Object.keys(bday[month] || {});
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/targets_birthday_overrides?select=debtor_code&month=eq.${encodeURIComponent(month)}`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      if (!r.ok) {
+        console.warn('Birthday override orphan fetch failed', month, await r.text());
+        continue;
+      }
+      const supabaseRows = await r.json();
+      const supabaseCodes = supabaseRows.map(x => x.debtor_code);
+      const orphans = supabaseCodes.filter(c => !inMemoryCodes.includes(c));
+      console.log('Birthday override orphan cleanup', { month, supabaseCount: supabaseCodes.length, inMemoryCount: inMemoryCodes.length, orphanCount: orphans.length, orphans });
+      for (const code of orphans) {
+        const del = await fetch(`${SUPABASE_URL}/rest/v1/targets_birthday_overrides?month=eq.${encodeURIComponent(month)}&debtor_code=eq.${encodeURIComponent(code)}`, {
+          method: 'DELETE',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }
+        });
+        if (!del.ok) console.warn('Birthday override orphan delete failed', month, code, await del.text());
+      }
+    }
+  } catch (e) {
+    console.warn('Birthday override orphan cleanup skipped', e);
+  }
+
+  if (bdayRows.length > 0) {
+    await upsert('targets_birthday_overrides', bdayRows, 'month,debtor_code');
+  }
 
   // ── 5. GROUP BRAND TARGETS ────────────────────────────
   const gbt = CONFIG.group_brand_targets || {};
@@ -2595,10 +2628,11 @@ async function loadConfigFromSupabase() {
     // 4. Birthday overrides
     cfg.birthday_overrides = {};
     bday.forEach(r => {
-      cfg.birthday_overrides[r.debtor_code] = {
-        birth_date: r.birth_date || '',
-        ...(r.birth_month ? { birth_month: r.birth_month } : {}),
-      };
+      const month = r.month || '';
+      const action = r.action || '';
+      if (!month || !action) return;
+      if (!cfg.birthday_overrides[month]) cfg.birthday_overrides[month] = {};
+      cfg.birthday_overrides[month][r.debtor_code] = action;
     });
 
     // 5. Group brand targets
@@ -3715,17 +3749,26 @@ function downloadSampleDebtorList() {
 }
 
 // ── Birthday Campaign Override ─────────────────────────────────────────────
+function getBirthdayCurrentMonth() {
+  return _adminCurrentMonthDate().slice(0, 7);
+}
+
 function renderBirthdayCampList() {
   const el = document.getElementById('birthday-camp-list');
   if (!el) return;
-  const overrides = CONFIG.birthday_overrides || {};
+  const allOverrides = CONFIG.birthday_overrides || {};
+  const currentMonth = getBirthdayCurrentMonth();
+  const overrides = allOverrides[currentMonth] || {};
   const entries   = Object.entries(overrides);
+  const addCount = entries.filter(([_, a]) => a === 'add').length;
+  const removeCount = entries.filter(([_, a]) => a === 'remove').length;
+  const headerHtml = `<div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-bottom:6px;">Overrides for ${currentMonth} &middot; ${addCount} added, ${removeCount} removed</div>`;
 
   if (!entries.length) {
-    el.innerHTML = '<div style="font-family:var(--mono);font-size:10px;color:#888;padding:6px 0;">No overrides — auto-list from birth dates only.</div>';
+    el.innerHTML = headerHtml + '<div style="font-family:var(--mono);font-size:10px;color:#888;padding:6px 0;">No overrides for this month - auto-list from birth dates only.</div>';
     return;
   }
-  el.innerHTML = entries.map(([code, action]) => `
+  el.innerHTML = headerHtml + entries.map(([code, action]) => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--bg);border-radius:8px;margin-bottom:4px;border:1px solid var(--border);">
       <div>
         <span style="font-family:var(--mono);font-size:11px;font-weight:600;">${code}</span>
@@ -3738,23 +3781,28 @@ function renderBirthdayCampList() {
 function bdayAddDebtor() {
   const code = document.getElementById('bday-add-code').value.trim().toUpperCase();
   if (!code) return;
+  const month = getBirthdayCurrentMonth();
   if (!CONFIG.birthday_overrides) CONFIG.birthday_overrides = {};
-  CONFIG.birthday_overrides[code] = 'add';
+  if (!CONFIG.birthday_overrides[month]) CONFIG.birthday_overrides[month] = {};
+  CONFIG.birthday_overrides[month][code] = 'add';
   document.getElementById('bday-add-code').value = '';
   updateRawJSON();
   renderBirthdayCampList();
 }
 
 function bdayRemoveOverride(code) {
-  if (!CONFIG.birthday_overrides) return;
-  delete CONFIG.birthday_overrides[code];
+  const month = getBirthdayCurrentMonth();
+  if (!CONFIG.birthday_overrides || !CONFIG.birthday_overrides[month]) return;
+  delete CONFIG.birthday_overrides[month][code];
   updateRawJSON();
   renderBirthdayCampList();
 }
 
 function bdayExcludeDebtor(code) {
+  const month = getBirthdayCurrentMonth();
   if (!CONFIG.birthday_overrides) CONFIG.birthday_overrides = {};
-  CONFIG.birthday_overrides[code] = 'remove';
+  if (!CONFIG.birthday_overrides[month]) CONFIG.birthday_overrides[month] = {};
+  CONFIG.birthday_overrides[month][code] = 'remove';
   updateRawJSON();
   renderBirthdayCampList();
 }

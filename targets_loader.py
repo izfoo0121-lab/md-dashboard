@@ -100,16 +100,12 @@ def load_targets_from_supabase():
         rows = sb.table("targets_birthday_overrides").select("*").execute().data
         bday = {}
         for r in rows:
-            birth_date_val = r.get("birth_date", "")
-            # Preserve "add" / "remove" action strings as plain strings
-            # so process_data.py can use action == "add" / "remove" checks directly
-            if birth_date_val in ("add", "remove"):
-                bday[r["debtor_code"]] = birth_date_val
-            else:
-                info = {"birth_date": birth_date_val}
-                if r.get("birth_month"):
-                    info["birth_month"] = r["birth_month"]
-                bday[r["debtor_code"]] = info
+            month = r.get("month")
+            code = r.get("debtor_code")
+            action = r.get("action") or r.get("birth_date")
+            if not month or not code or action not in ("add", "remove"):
+                continue
+            bday.setdefault(month, {})[code] = action
         targets["birthday_overrides"] = bday
 
         # 5. Group brand targets
@@ -267,16 +263,19 @@ def sync_to_supabase(targets):
     bday = targets.get("birthday_overrides", {})
     if bday:
         rows = []
-        for code, info in bday.items():
-            if isinstance(info, dict):
-                rows.append({
-                    "debtor_code": code,
-                    "birth_date": info.get("birth_date") or info.get("date") or "",
-                    "birth_month": info.get("birth_month") or info.get("month"),
-                })
-            else:
-                rows.append({"debtor_code": code, "birth_date": str(info)})
-        sb.table("targets_birthday_overrides").upsert(rows).execute()
+        for month, code_map in bday.items():
+            if isinstance(code_map, dict) and len(str(month)) == 7 and str(month)[4] == "-":
+                for code, action in code_map.items():
+                    if action not in ("add", "remove"):
+                        continue
+                    rows.append({
+                        "month": month,
+                        "debtor_code": code,
+                        "action": action,
+                        "birth_date": action,
+                    })
+        if rows:
+            sb.table("targets_birthday_overrides").upsert(rows, on_conflict="month,debtor_code").execute()
 
     # 7. Snapshots
     for month, snap in targets.get("monthly_snapshots", {}).items():

@@ -1758,6 +1758,53 @@ def save_debtor_snapshot(debtor_cards, targets, cur_month):
 
 
 
+def _birthday_override_action(value):
+    if value in ("add", "remove"):
+        return value
+    if isinstance(value, dict):
+        action = value.get("action") or value.get("birth_date") or value.get("date")
+        if action in ("add", "remove"):
+            return action
+    return None
+
+
+def _birthday_overrides_for_month(targets, cur_month):
+    raw = targets.get("birthday_overrides", {}) or {}
+    iso_month = ""
+    try:
+        from dateutil.parser import parse as dparse
+        iso_month = dparse("01 " + cur_month).strftime("%Y-%m") if cur_month else date.today().strftime("%Y-%m")
+    except Exception:
+        iso_month = date.today().strftime("%Y-%m")
+
+    if any(isinstance(k, str) and len(k) == 7 and k[4] == "-" for k in raw.keys()):
+        month_raw = raw.get(iso_month) or {}
+        if not month_raw:
+            log(f"Birthday overrides for {iso_month}: none found (auto-list only)")
+            return {}, iso_month
+        out = {
+            code: action
+            for code, value in month_raw.items()
+            for action in [_birthday_override_action(value)]
+            if action in ("add", "remove")
+        }
+    else:
+        out = {
+            code: action
+            for code, value in raw.items()
+            for action in [_birthday_override_action(value)]
+            if action in ("add", "remove")
+        }
+
+    add_count = sum(1 for action in out.values() if action == "add")
+    remove_count = sum(1 for action in out.values() if action == "remove")
+    if add_count or remove_count:
+        log(f"Birthday overrides loaded for {iso_month}: {add_count} add, {remove_count} remove")
+    else:
+        log(f"Birthday overrides for {iso_month}: none found (auto-list only)")
+    return out, iso_month
+
+
 def calc_birthday_campaign(debtor_cards, targets, cur_month=None):
     """
     Auto-generate birthday gift list:
@@ -1769,7 +1816,7 @@ def calc_birthday_campaign(debtor_cards, targets, cur_month=None):
     """
     log("Generating birthday campaign list...")
     today      = date.today()
-    overrides  = targets.get("birthday_overrides", {})
+    overrides, iso_month = _birthday_overrides_for_month(targets, cur_month)
 
     # Determine which month to use for birthday matching
     MONTH_ORDER_BD = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
