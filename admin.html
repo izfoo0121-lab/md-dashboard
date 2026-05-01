@@ -341,7 +341,8 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
         <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);margin-bottom:8px;line-height:1.7;">
           • <strong>新户口</strong>: verified count of new accounts opened this month (excl. Personal)<br>
           • <strong>VIP招聘</strong>: verified count of NEW VIP members recruited this month<br>
-          • Both feed directly into KPI Section B calculation
+          • <strong>Birthday</strong>: defaults to the auto birthday list count; enter a value only when management overrides it<br>
+          • Birthday gift debtor management has moved to <a href="campaign_audit.html" target="_blank" style="color:var(--accent);">campaign_audit.html</a>
         </div>
         <div id="kpi-manual-form"></div>
         <button class="save-btn" onclick="saveKpiManual()" style="margin-top:14px;">💾 SAVE ALL TO SUPABASE</button>
@@ -351,10 +352,8 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
       <div class="admin-card" style="margin-top:12px;">
         <div class="sec-divider">🎂 生日礼物 Campaign (auto-counted)</div>
         <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);line-height:1.7;">
-          Birthday KPI is <strong>NOT entered here</strong>. It is auto-counted from:<br>
-          &nbsp;&nbsp;• Agent clicks "Delivered" on birthday claims in Camps tab<br>
-          &nbsp;&nbsp;• Admin verifies claims in <a href="campaign_audit.html" target="_blank" style="color:var(--accent);">campaign_audit.html</a><br>
-          &nbsp;&nbsp;• KPI actual = count of VERIFIED delivered claims (Both 'birthday_gift_auto' + 'camp_birthday_*')
+          Birthday KPI defaults from the generated birthday list and can be overridden above when management needs a final count.<br>
+          Birthday gift debtor management has moved to <a href="campaign_audit.html" target="_blank" style="color:var(--accent);">campaign_audit.html</a>.
         </div>
       </div>
     </div>
@@ -679,21 +678,6 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
         </div>
         <div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.2);font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.6);">
           💡 Debtor list format: Excel (.xlsx) or CSV. One debtor per row. Debtor code e.g. 300-JS005
-        </div>
-      </div>
-
-      <div class="sec-divider">🎂 Birthday Campaign (Auto-generated)</div>
-      <div style="font-family:var(--mono);font-size:9px;color:#888;margin-bottom:8px;">
-        Auto-generates from debtor birth dates. Add or remove debtors to override.
-      </div>
-      <div id="birthday-camp-list" style="max-height:180px;overflow-y:auto;margin-bottom:8px;"></div>
-      <div class="input-row" style="margin-bottom:10px;">
-        <div class="field-wrap">
-          <div class="field-lbl">Manually Add Debtor Code</div>
-          <input type="text" id="bday-add-code" placeholder="e.g. 300-JS005" style="text-transform:uppercase;">
-        </div>
-        <div class="field-wrap" style="display:flex;align-items:flex-end;">
-          <button class="save-btn" onclick="bdayAddDebtor()" style="margin-bottom:0;padding:8px 14px;">+ Add</button>
         </div>
       </div>
 
@@ -1096,8 +1080,9 @@ const DEFAULT_AGENT_PINS = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════
-// KPI Manual Entry (new_accounts + vip_count)
+// KPI Manual Entry (new_accounts + vip_count + event + campaign + birthday)
 // Supabase SQL: ALTER TABLE kpi_manual ADD COLUMN IF NOT EXISTS campaign_pct integer DEFAULT 0;
+// Supabase SQL: ALTER TABLE kpi_manual ADD COLUMN IF NOT EXISTS birthday_count integer;
 // ═══════════════════════════════════════════════════════════════════════
 const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
@@ -1159,16 +1144,34 @@ async function loadKpiManual() {
 
   // Render form: one row per agent
   form.innerHTML = `
-    <div style="display:grid;grid-template-columns:90px repeat(4, minmax(140px, 1fr));gap:8px;align-items:center;padding:8px 0;border-bottom:2px solid var(--border);font-family:var(--mono);font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;">
+    <div style="display:grid;grid-template-columns:90px repeat(5, minmax(120px, 1fr));gap:8px;align-items:center;padding:8px 0;border-bottom:2px solid var(--border);font-family:var(--mono);font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;">
       <div>Agent</div>
       <div>新户口 (new_accounts)</div>
       <div>VIP招聘 (vip_count)</div>
       <div>做Event/PSR (event_count)</div>
       <div>Campaign % (0-100)</div>
+      <div>Birthday</div>
     </div>
   ` + [...agents].sort((a, b) => a.localeCompare(b)).map(agent => {
     const row = existing[agent] || {};
-    return `<div style="display:grid;grid-template-columns:90px repeat(4, minmax(140px, 1fr));gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+    const birthdayAuto = Number(DASH_DATA?.birthday_campaign?.by_agent?.[agent] || 0);
+    const hasBirthdayOverride = row.birthday_count !== null && row.birthday_count !== undefined;
+    const birthdayValue = hasBirthdayOverride ? Number(row.birthday_count) : birthdayAuto;
+    const birthdayDelta = birthdayValue - birthdayAuto;
+    let birthdayBreakdown;
+    let birthdayBreakdownColor = 'var(--ink3)';
+    if (!hasBirthdayOverride) {
+      birthdayBreakdown = `auto ${birthdayAuto}`;
+    } else if (birthdayDelta === 0) {
+      birthdayBreakdown = `auto ${birthdayAuto} (matches)`;
+    } else if (birthdayDelta > 0) {
+      birthdayBreakdown = `${birthdayAuto} + ${birthdayDelta} = ${birthdayValue}`;
+      birthdayBreakdownColor = 'var(--green)';
+    } else {
+      birthdayBreakdown = `${birthdayAuto} − ${Math.abs(birthdayDelta)} = ${birthdayValue}`;
+      birthdayBreakdownColor = 'var(--accent)';
+    }
+    return `<div style="display:grid;grid-template-columns:90px repeat(5, minmax(120px, 1fr));gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
       <div style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink);">${agent}</div>
       <input type="number" id="kpi_m_new_${agent}" min="0" value="${row.new_accounts ?? 0}" step="1"
         style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--ink);font-family:var(--mono);font-size:13px;padding:6px 8px;text-align:center;">
@@ -1178,6 +1181,11 @@ async function loadKpiManual() {
         style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--ink);font-family:var(--mono);font-size:13px;padding:6px 8px;text-align:center;">
       <input type="number" id="kpi_m_camp_${agent}" min="0" max="100" value="${row.campaign_pct ?? 0}" step="1"
         style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--ink);font-family:var(--mono);font-size:13px;padding:6px 8px;text-align:center;">
+      <div>
+        <input type="number" id="kpi_m_bday_${agent}" min="0" value="${hasBirthdayOverride ? row.birthday_count : ''}" placeholder="${birthdayAuto}" step="1"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--ink);font-family:var(--mono);font-size:13px;padding:6px 8px;text-align:center;">
+        <div style="font-family:var(--mono);font-size:8px;color:${birthdayBreakdownColor};margin-top:3px;text-align:center;">${birthdayBreakdown}</div>
+      </div>
     </div>`;
   }).join('');
 }
@@ -1192,6 +1200,7 @@ async function saveKpiManual() {
     const vipInput    = document.getElementById(`kpi_m_vip_${agent}`);
     const eventInput  = document.getElementById(`kpi_m_event_${agent}`);
     const campInput   = document.getElementById(`kpi_m_camp_${agent}`);
+    const bdayInput   = document.getElementById(`kpi_m_bday_${agent}`);
     if (!newAccInput || !vipInput) return null;
     return {
       month, agent,
@@ -1199,6 +1208,7 @@ async function saveKpiManual() {
       vip_count:     parseInt(vipInput.value) || 0,
       event_count:   parseInt(eventInput?.value) || 0,
       campaign_pct:  Math.min(100, Math.max(0, parseInt(campInput?.value) || 0)),
+      birthday_count: bdayInput?.value === '' ? null : (parseInt(bdayInput?.value) || 0),
       updated_at:    new Date().toISOString(),
       updated_by:    'admin_ui'
     };

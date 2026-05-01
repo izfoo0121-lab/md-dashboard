@@ -406,9 +406,10 @@ async function loadAuditData() {
 
 // ── Campaign tabs ──────────────────────────────────────────────────────────
 function buildCampTabs() {
-  const camps = CAMP_DATA?.campaigns?.filter(c=>c.active) || [];
+  const camps = CAMP_DATA?.campaigns?.filter(c => c.active && c.id !== 'birthday_gift_auto') || [];
   const tabs  = document.getElementById('camp-tabs');
   tabs.innerHTML = `<button class="camp-tab ${activeCampId==='ALL'?'active':''}" onclick="switchCamp('ALL',this)">ALL</button>`
+    + `<button class="camp-tab ${activeCampId==='BDAY_LIST'?'active':''}" onclick="switchCamp('BDAY_LIST',this)">🎂 Birthday List</button>`
     + camps.map(c => `<button class="camp-tab ${activeCampId===c.id?'active':''}" onclick="switchCamp('${c.id}',this)">${CAMP_EMOJI[c.type]||'📋'} ${c.name}</button>`).join('');
 }
 
@@ -426,6 +427,11 @@ function renderAudit() {
   const month     = document.getElementById('month-select').value;
   const agentSel  = document.getElementById('agent-select').value;
   const allCamps  = (CAMP_DATA?.campaigns||[]);
+
+  if (activeCampId === 'BDAY_LIST') {
+    renderBirthdayDebtorList(month, agentSel);
+    return;
+  }
 
   // Build a lookup of debtor_code → debtor object (per agent)
   // so we can show company names
@@ -558,6 +564,216 @@ function renderAudit() {
       <div class="claims-body" id="claims-${agent}">${rows}</div>
     </div>`;
   }).join('');
+}
+
+// ── Birthday debtor list management ────────────────────────────────────────
+function auditMonthToIso(month) {
+  const [mon, yy] = String(month || '').split(' ');
+  const idx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(mon);
+  if (idx < 0) return '';
+  return `${2000 + parseInt(yy || '0', 10)}-${String(idx + 1).padStart(2, '0')}`;
+}
+
+function auditBirthdayMonthLabel(month) {
+  const [mon, yy] = String(month || '').split(' ');
+  return `${mon || ''} ${2000 + parseInt(yy || '0', 10)}`.trim();
+}
+
+function auditHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+function auditJs(s) {
+  return String(s ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+function buildAuditDebtorLookup() {
+  const byCode = {};
+  AGENTS.forEach(agent => {
+    const list = DASH_DATA?.agents?.[agent]?.debtor_cards?.debtors || [];
+    list.forEach(d => {
+      const code = (d.debtor_code || '').toUpperCase();
+      if (!code) return;
+      byCode[code] = {
+        code,
+        name: d.company_name || d.name || code,
+        agent,
+        type: d.debtor_type || '',
+        phone: d.phone || d.mobile || d.contact || ''
+      };
+    });
+  });
+  return byCode;
+}
+
+async function fetchBirthdayOverridesForMonth(month) {
+  const iso = auditMonthToIso(month);
+  if (!iso) return {};
+  const url = `${SUPABASE_URL}/rest/v1/targets_birthday_overrides?select=debtor_code,action&month=eq.${encodeURIComponent(iso)}`;
+  try {
+    const r = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    });
+    if (!r.ok) throw new Error(`Supabase ${r.status}`);
+    const rows = await r.json();
+    const out = {};
+    rows.forEach(row => {
+      const code = (row.debtor_code || '').toUpperCase();
+      if (code && (row.action === 'add' || row.action === 'remove')) out[code] = row.action;
+    });
+    return out;
+  } catch (e) {
+    console.warn('[birthday-audit] override fetch failed', e);
+    showToast('Birthday override fetch failed');
+    return {};
+  }
+}
+
+async function saveBirthdayOverride(month, code, action) {
+  const iso = auditMonthToIso(month);
+  const cleanCode = String(code || '').trim().toUpperCase();
+  if (!iso || !cleanCode || !['add','remove'].includes(action)) return false;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/targets_birthday_overrides?on_conflict=month,debtor_code`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates,return=minimal'
+      },
+      body: JSON.stringify({
+        month: iso,
+        debtor_code: cleanCode,
+        action,
+        birth_date: action
+      })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    return true;
+  } catch (e) {
+    console.warn('[birthday-audit] override save failed', e);
+    showToast('Birthday override save failed');
+    return false;
+  }
+}
+
+async function birthdayAuditRemove(month, code) {
+  if (!confirm(`Remove ${code} from this month's birthday list?`)) return;
+  if (await saveBirthdayOverride(month, code, 'remove')) {
+    showToast('Birthday debtor removed');
+    renderBirthdayDebtorList(month, document.getElementById('agent-select').value);
+  }
+}
+
+async function birthdayAuditAdd(month, presetCode) {
+  const raw = presetCode || prompt('Debtor code to add to this month birthday list:');
+  const code = String(raw || '').trim().toUpperCase();
+  if (!code) return;
+  if (await saveBirthdayOverride(month, code, 'add')) {
+    showToast('Birthday debtor added');
+    renderBirthdayDebtorList(month, document.getElementById('agent-select').value);
+  }
+}
+
+async function renderBirthdayDebtorList(month, agentSel) {
+  const contentEl = document.getElementById('audit-content');
+  const summaryEl = document.getElementById('summary-row');
+  contentEl.innerHTML = '<div class="empty">⏳ Loading birthday list...</div>';
+
+  const overrides = await fetchBirthdayOverridesForMonth(month);
+  const lookup = buildAuditDebtorLookup();
+  const finalRows = (DASH_DATA?.birthday_campaign?.debtors || []).map(d => {
+    const code = (d.code || d.debtor_code || '').toUpperCase();
+    const fallback = lookup[code] || {};
+    return {
+      code,
+      name: d.name || d.company_name || fallback.name || code,
+      agent: d.agent || fallback.agent || '',
+      type: d.type || d.debtor_type || fallback.type || '',
+      phone: d.phone || fallback.phone || '',
+      source: d.source || 'auto',
+      status: d.source === 'manual' ? 'added' : 'auto'
+    };
+  }).filter(d => d.code);
+
+  const visibleCodes = new Set(finalRows.map(d => d.code));
+  const removedRows = Object.entries(overrides)
+    .filter(([code, action]) => action === 'remove' && !visibleCodes.has(code))
+    .map(([code]) => {
+      const d = lookup[code] || {};
+      return {
+        code,
+        name: d.name || code,
+        agent: d.agent || '',
+        type: d.type || '',
+        phone: d.phone || '',
+        source: 'override',
+        status: 'removed'
+      };
+    });
+
+  const allRows = [...finalRows, ...removedRows]
+    .filter(d => agentSel === 'ALL' || d.agent === agentSel)
+    .sort((a, b) => (a.agent || 'ZZZ').localeCompare(b.agent || 'ZZZ') || a.status.localeCompare(b.status) || a.code.localeCompare(b.code));
+
+  const autoCount = finalRows.filter(d => d.source !== 'manual').length;
+  const addedCount = finalRows.filter(d => d.source === 'manual').length;
+  const removedCount = Object.values(overrides).filter(a => a === 'remove').length;
+  const finalCount = finalRows.length;
+  const monthLabel = auditBirthdayMonthLabel(month);
+
+  summaryEl.innerHTML = `
+    <div class="sum-card"><div class="sum-val b">${autoCount}</div><div class="sum-lbl">Auto</div></div>
+    <div class="sum-card"><div class="sum-val a">${addedCount}</div><div class="sum-lbl">Added</div></div>
+    <div class="sum-card"><div class="sum-val r">${removedCount}</div><div class="sum-lbl">Removed</div></div>
+    <div class="sum-card"><div class="sum-val g">${finalCount}</div><div class="sum-lbl">Active Final</div></div>
+    <div class="sum-card"><div class="sum-val b">${allRows.length}</div><div class="sum-lbl">${agentSel === 'ALL' ? 'Visible' : agentSel}</div></div>`;
+
+  const rowsHtml = allRows.map(d => {
+    const isRemoved = d.status === 'removed';
+    const isAdded = d.status === 'added';
+    const badge = isRemoved
+      ? '<span class="claim-status pending" style="color:#aaa;background:rgba(255,255,255,.08);">✗ REMOVED</span>'
+      : isAdded
+        ? '<span class="claim-status claimed" style="color:var(--accent);background:rgba(255,165,0,.12);">✓ ADDED</span>'
+        : '<span class="claim-status claimed">AUTO</span>';
+    const rowClass = isRemoved ? 'pending' : 'claimed';
+    const rowStyle = isRemoved ? 'opacity:.65;' : '';
+    const nameStyle = isRemoved ? 'text-decoration:line-through;color:var(--muted);' : '';
+    return `<div class="claim-row ${rowClass}" style="${rowStyle}">
+      <div class="claim-info">
+        <div class="claim-name" style="${nameStyle}">${auditHtml(d.name)}</div>
+        <div class="claim-code">${auditHtml(d.code)} · ${auditHtml(d.agent || 'Unknown agent')}${d.type ? ' · ' + auditHtml(d.type) : ''}${d.phone ? ' · ' + auditHtml(d.phone) : ''}</div>
+        <div class="claim-meta">${isRemoved ? 'Excluded by month-scoped birthday override' : isAdded ? 'Manually added in birthday overrides' : 'Auto-selected from birthday rules'}</div>
+      </div>
+      <div class="claim-actions">
+        ${badge}
+        ${isRemoved
+          ? `<button class="audit-btn verify" onclick="birthdayAuditAdd('${auditJs(month)}','${auditJs(d.code)}')">+ Add</button>`
+          : `<button class="audit-btn reject" onclick="birthdayAuditRemove('${auditJs(month)}','${auditJs(d.code)}')">✕</button>`}
+      </div>
+    </div>`;
+  }).join('');
+
+  contentEl.innerHTML = `
+    <div class="agent-section">
+      <div class="agent-hdr" style="cursor:default;">
+        <div>
+          <div class="agent-name">Birthday ${auditHtml(monthLabel)}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;">
+            Auto: ${autoCount} + Added: ${addedCount} = ${finalCount} active. Removed: ${removedCount} separately.
+          </div>
+        </div>
+        <div class="agent-stats">
+          <button class="audit-btn verify" onclick="birthdayAuditAdd('${auditJs(month)}')">+ Add debtor</button>
+        </div>
+      </div>
+      <div class="claims-body">${rowsHtml || `<div class="empty">No birthday debtors${agentSel !== 'ALL' ? ' for ' + auditHtml(agentSel) : ''}</div>`}</div>
+    </div>`;
 }
 
 function toggleAgentSection(hdr) {
