@@ -1,6 +1,6 @@
 {
   "_comment": "MD Sales Dashboard — loaded from Supabase",
-  "_loaded_at": "2026-04-30T18:06:48.493361",
+  "_loaded_at": "2026-05-01T12:22:20.205432",
   "agents": {
     "KEE": {
       "is_newbie": false,
@@ -3177,24 +3177,26 @@
     "GT138888": "0121"
   },
   "birthday_overrides": {
-    "300-KT193": "add",
-    "300-KT195": "add",
-    "300-KT200": "add",
-    "300-KT202": "add",
-    "300-D323": "add",
-    "300-KH292": "remove",
-    "300-KT206": "remove",
-    "300-WK079": "remove",
-    "300-WK084": "remove",
-    "300-KH261": "add",
-    "300-BR031": "remove",
-    "300-H030": "remove",
-    "300-WK015": "remove",
-    "300-WK027": "remove",
-    "300-WK081": "remove",
-    "300-D300": "remove",
-    "300-D070": "remove",
-    "300-D247": "remove"
+    "2026-04": {
+      "300-KT193": "add",
+      "300-KT195": "add",
+      "300-KT200": "add",
+      "300-KT202": "add",
+      "300-D323": "add",
+      "300-KH292": "remove",
+      "300-KT206": "remove",
+      "300-WK079": "remove",
+      "300-WK084": "remove",
+      "300-KH261": "add",
+      "300-BR031": "remove",
+      "300-H030": "remove",
+      "300-WK015": "remove",
+      "300-WK027": "remove",
+      "300-WK081": "remove",
+      "300-D300": "remove",
+      "300-D070": "remove",
+      "300-D247": "remove"
+    }
   },
   "group_brand_targets": {
     "SUKUN": 7800.0,
