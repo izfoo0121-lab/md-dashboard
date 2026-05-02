@@ -593,7 +593,7 @@ function updateSyncStatus() {
   <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:2px 2px 6px;"> * 持续光顾率 excludes P-Personal — denominator frozen at month start</div>
   <div style="position:relative;">
     <input class="search-bar" id="debtor-search"
-      placeholder="Search debtor name or code across all agents..."
+      placeholder="Search debtor name, code, or phone across all agents..."
       oninput="onSearchInput()"
       style="padding-right:36px;">
     <button onclick="clearSearch()" id="search-clear-btn"
@@ -1351,7 +1351,7 @@ function selectAgent(agent) {
   const searchEl = document.getElementById('debtor-search');
   if (searchEl) {
     searchEl.value = '';
-    searchEl.placeholder = 'Search debtor name or code...';
+    searchEl.placeholder = 'Search debtor name, code, or phone...';
     searchEl.style.opacity = '1';
     searchEl.style.cursor = 'text';
   }
@@ -2262,7 +2262,10 @@ function renderDebtors() {
   // Make sure debtor list is visible (not hidden by global search)
   document.getElementById('debtor-list').style.display = '';
   let filtered = debtors.filter(d => {
-    if (search && !d.company_name.toLowerCase().includes(search) && !d.debtor_code.toLowerCase().includes(search)) return false;
+    if (search && 
+        !d.company_name.toLowerCase().includes(search) && 
+        !d.debtor_code.toLowerCase().includes(search) && 
+        !(d.phone || '').toLowerCase().includes(search)) return false;
     if (filters.status !== 'all' && d.status !== filters.status) return false;
     if (filters.special === 'vip'      && !d.vip)                return false;
     if (filters.special === 'new'      && !d.is_new)             return false;
