@@ -938,14 +938,7 @@ async function switchMonth(slug) {
         const t = (d.debtor_type||'').trim();
         if (t && t.toLowerCase() !== 'nan') typeCounts[t] = (typeCounts[t]||0) + 1;
       });
-      const types = Object.keys(typeCounts).sort();
-      const typeRow = document.getElementById('type-filter-row');
-      if (typeRow) {
-        typeRow.innerHTML =
-          `<span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">Type:</span>
-           <button class="filter-chip active" onclick="setTypeFilter('all',this)">All (${debtors.length})</button>
-           ${types.map(t => `<button class="filter-chip" onclick="setTypeFilter('${t}',this)">${t} (${typeCounts[t]})</button>`).join('')}`;
-      }
+      buildTypeChipRow(typeCounts, debtors.length, filters?.type || 'all');
       renderAll();
     } else {
       currentAgent = '';
@@ -1376,13 +1369,7 @@ function selectAgent(agent) {
     const t = (d.debtor_type||'').trim();
     if (t && t.toLowerCase() !== 'nan') typeCounts[t] = (typeCounts[t]||0) + 1;
   });
-  const types = Object.keys(typeCounts).sort();
-
-  const typeRow = document.getElementById('type-filter-row');
-  typeRow.innerHTML =
-    `<span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">Type:</span>
-     <button class="filter-chip active" onclick="setTypeFilter('all',this)">All (${debtors.length})</button>
-     ${types.map(t => `<button class="filter-chip" onclick="setTypeFilter('${t}',this)">${t} (${typeCounts[t]})</button>`).join('')}`;
+  buildTypeChipRow(typeCounts, debtors.length, filters?.type || 'all');
 
   renderAll();
 }
@@ -1409,6 +1396,24 @@ function fmtNum(n) { return n == null ? '—' : parseFloat(n).toLocaleString('en
 function fmtPct(p) { return p == null ? '—' : p.toFixed(1) + '%'; }
 function fmtRM(n) { return 'RM ' + parseFloat(n||0).toFixed(2); }
 
+// Build/repaint the Type filter chip row.
+// typeCounts: { 'SH-SHOP': 33, 'D-DEALER/DISTRIBUTOR': 1, ... }
+// totalCount: number for the All chip
+// activeType: which type chip should have .active class ('all' or a type label)
+function buildTypeChipRow(typeCounts, totalCount, activeType) {
+  const types = Object.keys(typeCounts).sort();
+  const typeRow = document.getElementById('type-filter-row');
+  if (!typeRow) return;
+  const allClass = activeType === 'all' ? 'filter-chip active' : 'filter-chip';
+  typeRow.innerHTML =
+    `<span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">Type:</span>
+     <button class="${allClass}" data-type="all" onclick="setTypeFilter('all',this)">All (${totalCount})</button>
+     ${types.map(t => {
+       const cls = activeType === t ? 'filter-chip active' : 'filter-chip';
+       return `<button class="${cls}" data-type="${t}" onclick="setTypeFilter('${t}',this)">${t} (${typeCounts[t]||0})</button>`;
+     }).join('')}`;
+}
+
 // ── View 1: Debtors ────────────────────────────────────────────────────────
 function setFilter(type, val, el) {
   document.querySelectorAll('#status-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
@@ -1428,8 +1433,6 @@ function setSpecialFilter(val, el) {
   } else {
     el.classList.add('active');
     filters.special = val;
-    filters.status  = 'all';
-    filters.pending_activation = null;
     if (val === 'drop') {
       dropCtnFilter = 'all';
       dropSkuFilter = 'all';
@@ -1444,7 +1447,6 @@ function setSpecialFilter(val, el) {
     if (val === 'nonvip') {
       nonvipTypeFilter = 'all';
     }
-    document.querySelectorAll('#status-filter-row .filter-chip').forEach((c,i) => c.classList.toggle('active', i===0));
   }
   currentPage = 1;
   renderDebtors();
@@ -2397,6 +2399,66 @@ function renderDebtors() {
       return gainB - gainA;
     });
   }
+
+  // Compute type counts as if the type filter weren't applied.
+  // This gives users meaningful "if I switched type to this" counts even when
+  // a type filter is currently active. Predicates mirror the filter logic
+  // above EXCEPT for the final type check — keep in sync if filters change.
+  const allDebtors = DATA.agents[currentAgent]?.debtor_cards?.debtors || [];
+  const typeCountsDynamic = {};
+  let typeAllTotal = 0;
+  const _MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const _selMonth = DATA?.current_month || '';
+  const _selMonthNum = _MONTHS.indexOf((_selMonth.split(' ')[0]||'')) + 1;
+  allDebtors.forEach(d => {
+    const t = (d.debtor_type||'').trim();
+    if (t && t.toLowerCase() !== 'nan') typeCountsDynamic[t] = 0;
+  });
+  for (const d of allDebtors) {
+    // search box
+    if (search &&
+        !d.company_name.toLowerCase().includes(search) &&
+        !d.debtor_code.toLowerCase().includes(search) &&
+        !(d.phone || '').toLowerCase().includes(search)) continue;
+    // status / pending_activation
+    if (filters.status !== 'all' && d.status !== filters.status) continue;
+    if (filters.pending_activation === 'true' && !d.is_pending_activation) continue;
+    // special filters (single-valued)
+    if (filters.special === 'vip'  && !d.vip)    continue;
+    if (filters.special === 'new'  && !d.is_new) continue;
+    if (filters.special === 'birthday') {
+      const matchBday = _selMonthNum > 0 ? (d.birth_month === _selMonthNum) : d.birthday_this_month;
+      if (!matchBday) continue;
+    }
+    if (filters.special === 'drop'    && !d.volume_drop_pct) continue;
+    if (filters.special === 'gain'    && !((d.ctn_cur || 0) > (d.ctn_prev1 || 0))) continue;
+    if (filters.special === 'newsku'  && !(d.new_sku_count > 0)) continue;
+    if (filters.special === 'flagged' && !getFlag(currentAgent, d.debtor_code)) continue;
+    if (filters.special === 'campaign' && !(d.campaigns||[]).length) continue;
+    if (filters.special === 'overdue' && !d.has_overdue) continue;
+    if (filters.special === 'neartarget') {
+      const camps = d.campaigns || [];
+      const hasNearTarget = camps.some(c => {
+        const catRule = c.cat && c.cat_rules ? c.cat_rules[c.cat] : null;
+        const minCtn  = catRule?.min_ctn || c.min_order_ctn || 0;
+        const curCtn  = d.ctn_cur || 0;
+        return minCtn > 0 && curCtn > 0 && curCtn < minCtn;
+      });
+      const hasBrandNear = Object.values(d.brand_camp_tiers||{}).some(t => {
+        const minCtn = t.tier === 'A' ? 2 : t.tier === 'B' ? 5 : t.tier === 'C' ? 10 : 0;
+        return minCtn > 0 && (d.ctn_cur||0) > 0 && (d.ctn_cur||0) < minCtn;
+      });
+      if (!hasNearTarget && !hasBrandNear) continue;
+    }
+    // NOTE: type filter intentionally omitted — that's the dimension we're counting across.
+
+    typeAllTotal++;
+    const t = (d.debtor_type||'').trim();
+    if (!t || t.toLowerCase() === 'nan') continue;
+    typeCountsDynamic[t] = (typeCountsDynamic[t]||0) + 1;
+  }
+  buildTypeChipRow(typeCountsDynamic, typeAllTotal, filters.type || 'all');
+
   const totalF = filtered.length;
   const pages  = Math.max(1, Math.ceil(totalF / PAGE_SIZE));
   currentPage  = Math.min(currentPage, pages);
