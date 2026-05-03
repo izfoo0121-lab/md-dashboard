@@ -1210,7 +1210,7 @@ async function loadKpiManual() {
   // Fetch all agents from CONFIG
   const agents = Object.keys(CONFIG.agents || {}).filter(a =>
     !CONFIG.agents[a]?.archived        // skip archived
-  );
+  ).sort();
   if (!agents.length) {
     form.innerHTML = '<div style="color:var(--muted);font-family:var(--mono);font-size:11px;">No agents configured. Add agents in Agent Targets tab first.</div>';
     statusEl.textContent = '';
@@ -1359,7 +1359,7 @@ async function renderPinForm() {
 
   // Merge: Supabase (live) > CONFIG.agent_pins (targets.json) > DEFAULT
   const saved = Object.assign({}, DEFAULT_AGENT_PINS, CONFIG.agent_pins || {}, pinsFromSupabase || {});
-  const agents = Object.keys(CONFIG.agents || {});
+  const agents = Object.keys(CONFIG.agents || {}).sort();
   const allAgents = [...agents, 'GT138888'];
 
   container.innerHTML = `
@@ -1610,7 +1610,7 @@ function toggleAgentActive(agent, active) {
 
 function renderAgentForms() {
   const container = document.getElementById('agent-forms');
-  const agents = Object.keys(CONFIG.agents || {});
+  const agents = Object.keys(CONFIG.agents || {}).sort();
   if (!agents.length) { container.innerHTML = '<p style="color:var(--ink3);font-family:var(--mono);font-size:11px;">No agents in config</p>'; return; }
 
   container.innerHTML = agents.map(agent => {
