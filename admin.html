@@ -2376,11 +2376,16 @@ function saveKPIWeights() {
 }
 
 function copyKPIWeightsFromMonth() {
-  const months = ["Jan 26","Feb 26","Mar 26","Apr 26"];
+  const months = Object.keys(CONFIG?.kpi_weights || {});
   const current = document.getElementById('kpi-month-select').value;
+  const sources = months.filter(m => m !== current);
+  if (!sources.length) {
+    alert('No other months available to copy from.');
+    return;
+  }
   const from = prompt(`Copy weights from which month?
-${months.filter(m=>m!==current).join(' / ')}`);
-  if (!from || !months.includes(from)) return;
+${sources.join(' / ')}`);
+  if (!from || !sources.includes(from)) return;
   const srcWeights = getKPIWeights(from);
   KPI_ITEM_DEFS.forEach(([key]) => {
     const el = document.getElementById('kpiw_' + key);
@@ -2393,6 +2398,13 @@ ${months.filter(m=>m!==current).join(' / ')}`);
 // Phase C: saveAll now writes to Supabase (primary), file backup is user-toggled.
 
 async function saveAll() {
+  // Sync DOM -> CONFIG for sections whose form inputs aren't auto-bound to CONFIG.
+  // KPI Weights specifically needs this because renderKPIWeights renders inputs
+  // from a fallback when the month doesn't exist in CONFIG, but no oninput
+  // handler writes user edits back into CONFIG. saveKPIWeights() pulls the
+  // current input values into CONFIG.kpi_weights[selectedMonth].
+  try { saveKPIWeights(); } catch (e) { console.warn('saveKPIWeights skipped:', e); }
+
   updateRawJSON();
   updateSaveStatus('saving');
 
