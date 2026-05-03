@@ -603,7 +603,7 @@ function updateSyncStatus() {
     <button class="filter-chip active" data-val="all" onclick="setFilter('status','all',this)">全部 All</button>
     <button class="filter-chip" data-val="active" onclick="setFilter('status','active',this)">已激活</button>
     <button class="filter-chip" data-val="pending" onclick="setFilter('status','pending',this)">当月未开单</button>
-    <button class="filter-chip" data-val="need_reactivation" onclick="setFilter('status','need_reactivation',this)">待激活</button>
+    <button class="filter-chip" data-val="pending_activation" onclick="setFilter('pending_activation','true',this)">待激活</button>
   </div>
   <div class="filter-row" id="special-filter-row">
     <button class="filter-chip" data-val="vip" onclick="setSpecialFilter('vip',this)">⭐ VIP</button>
@@ -847,7 +847,7 @@ function updateSyncStatus() {
 let DATA = null;
 let currentAgent = null;
 let currentView = 'debtors';
-let filters = { status: 'all', special: null, type: 'all', brand: 'all' };
+let filters = { status: 'all', special: null, pending_activation: null, type: 'all', brand: 'all' };
 let currentPage = 1;
 const PAGE_SIZE = 12;
 let dropCtnFilter = 'all';
@@ -949,7 +949,7 @@ async function switchMonth(slug) {
       renderAll();
     } else {
       currentAgent = '';
-      filters = { status:'all', special:null, type:'all', brand:'all' };
+      filters = { status:'all', special:null, pending_activation:null, type:'all', brand:'all' };
       dropCtnFilter = 'all';
       dropSkuFilter = 'all';
       gainCtnFilter = 'all';
@@ -1313,7 +1313,7 @@ function jumpToAgent(agent, debtorCode) {
 function selectAgent(agent) {
   currentAgent = agent;
   currentPage  = 1;
-  filters = { status:'all', special:null, type:'all', brand:'all' };
+  filters = { status:'all', special:null, pending_activation:null, type:'all', brand:'all' };
   dropCtnFilter = 'all';
   dropSkuFilter = 'all';
   gainCtnFilter = 'all';
@@ -1413,7 +1413,8 @@ function fmtRM(n) { return 'RM ' + parseFloat(n||0).toFixed(2); }
 function setFilter(type, val, el) {
   document.querySelectorAll('#status-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
-  filters.status  = val;
+  filters.status  = type === 'status' ? val : 'all';
+  filters.pending_activation = type === 'pending_activation' ? val : null;
   filters.special = null;
   document.querySelectorAll('#special-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
   currentPage = 1;
@@ -1428,6 +1429,7 @@ function setSpecialFilter(val, el) {
     el.classList.add('active');
     filters.special = val;
     filters.status  = 'all';
+    filters.pending_activation = null;
     if (val === 'drop') {
       dropCtnFilter = 'all';
       dropSkuFilter = 'all';
@@ -1906,8 +1908,15 @@ function setNonVipType(type, el) {
 
 function renderDebtorCard(d, runNo) {
     // Status label — Chinese
-    const stCls = d.status==='active' ? 'si-active' : d.status==='pending' ? 'si-pending' : 'si-reactiv';
-    const stTxt = d.status==='active' ? '已激活' : d.status==='pending' ? '当月未开单' : '待激活';
+    // Chip rules:
+    //   is_pending_activation -> pending activation (new strict definition)
+    //   status==='active' -> active
+    //   status==='pending' -> no order this month
+    //   anything else -> no chip (displaced need_reactivation cards that bought recently)
+    let stCls = '', stTxt = '';
+    if (d.is_pending_activation)         { stCls = 'si-reactiv'; stTxt = '待激活'; }
+    else if (d.status === 'active')      { stCls = 'si-active';  stTxt = '已激活'; }
+    else if (d.status === 'pending')     { stCls = 'si-pending'; stTxt = '当月未开单'; }
 
     // Badges
     // Campaign badges — show category-specific promo if available
@@ -2051,7 +2060,7 @@ function renderDebtorCard(d, runNo) {
     ).join('');
 
     const badges = [
-      `<span class="status-inline ${stCls}">${stTxt}</span>`,
+      stTxt ? `<span class="status-inline ${stCls}">${stTxt}</span>` : '',
       d.vip             ? `<span class="status-inline" style="background:rgba(240,192,64,.2);color:var(--accent)">⭐ VIP</span>` : '',
       d.is_new          ? `<span class="status-inline" style="background:rgba(77,166,255,.15);color:var(--blue)">🆕 New</span>` : '',
       (() => {
@@ -2235,7 +2244,7 @@ function renderDebtors() {
   const total   = agData.total_debtors || 0;
   const active  = agData.active_count  || 0;
   const pending = agData.pending_count || 0;
-  const inactive = agData.inactive_count || 0;  // 待激活 = not bought in 2+ months
+  const inactive = agData.pending_activation ?? agData.inactive_count ?? 0;
   const reactiv = agData.reactivation_count || 0;  // KPI: reactivated this month
   const rate    = agData.activation_rate ?? 0;
   const npTotalLive   = agData.activation_base_live ?? total;
@@ -2315,6 +2324,7 @@ function renderDebtors() {
         !d.debtor_code.toLowerCase().includes(search) && 
         !(d.phone || '').toLowerCase().includes(search)) return false;
     if (filters.status !== 'all' && d.status !== filters.status) return false;
+    if (filters.pending_activation === 'true' && !d.is_pending_activation) return false;
     if (filters.special === 'vip'      && !d.vip)                return false;
     if (filters.special === 'new'      && !d.is_new)             return false;
     if (filters.special === 'birthday') {

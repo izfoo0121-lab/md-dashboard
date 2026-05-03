@@ -1658,6 +1658,12 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 "vip":                info.get("vip", False),
                 "has_bonus_point":    info.get("has_bonus_point", False),
                 "is_new":             is_new,
+                "is_pending_activation": (
+                    not _card_is_personal
+                    and not is_new
+                    and (ctn_prev1 or 0) == 0
+                    and (ctn_cur   or 0) == 0
+                ),
                 "birthday_this_month": birthday_this_month,
                 "birth_date_raw":     str(_parse_birth_date(birth_date)) if birth_date and pd.notnull(birth_date) and _parse_birth_date(birth_date) is not None else None,
                 "days_to_birthday":   days_to_bday,
@@ -1714,6 +1720,14 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             and (d.get("ctn_prev1", 0) or 0) == 0
             and (d.get("ctn_cur",   0) or 0) == 0
         )
+        # New pending activation definition: non-personal, not new,
+        # no previous-month transaction, and no current-month transaction.
+        pending_activation_count = sum(
+            1 for d in non_personal
+            if not d.get("is_new", False)
+            and (d.get("ctn_prev1", 0) or 0) == 0
+            and (d.get("ctn_cur",   0) or 0) == 0
+        )
         total          = len(non_personal)
         total_all      = len(debtor_cards)
         reactiv_count = sum(
@@ -1745,7 +1759,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             "activation_base_frozen": np_total_uses_baseline,
             "activation_snapshot_date": patronage_snapshot_date if np_total_uses_baseline else None,
             "activation_active":  np_active,
-            "pending_activation": inactive_count,
+            "pending_activation": pending_activation_count,
             "total_new_sku":      total_new_sku,
             "exclusion_note":     "Summary counts exclude P-Personal",
         }
