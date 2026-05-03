@@ -1914,6 +1914,53 @@ function renderDebtorCard(d, runNo) {
     const campEmoji = {free_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',voucher:'🎟️',conversion_tiered:'🎯',other:'📋'};
     const campBadges = (d.campaigns||[]).map(c => {
       const promoText  = c.promo_detail || c.name;
+
+      // ── conversion_tiered: tier display + conversion flag ────────────────
+      // No FOC tracking, no min_order_ctn progress bar, no claim button.
+      // Just historical tier context + whether they've converted in the campaign month.
+      if (c.type === 'conversion_tiered') {
+        const tierLabel   = c.tier_label || 'BASELINE';
+        const lookbackCtn = c.lookback_ctn ?? 0;
+        const currentCtn  = c.current_ctn ?? 0;
+        const converted   = !!c.converted;
+        const tierIdx     = c.tier_idx ?? 0;
+
+        // Tier chip color: muted for BASELINE, accent for TIER 1/2, green for TIER 3+
+        let tierColor;
+        if (tierIdx === 0)      tierColor = 'var(--muted)';
+        else if (tierIdx <= 2)  tierColor = 'var(--accent)';
+        else                    tierColor = 'var(--green)';
+
+        // Border + bg follow existing pattern: green when "qualified" (here = converted)
+        const cBorder = converted ? 'rgba(61,220,132,.4)' : 'rgba(255,255,255,.1)';
+        const cBg     = converted ? 'rgba(61,220,132,.08)' : 'rgba(255,255,255,.03)';
+
+        // Lookback summary line: e.g. "Feb-Apr: 0 CTN" or "Feb-Apr: 0 CTN  →  May: 5 CTN"
+        // Derive month label from the campaign notes lookback_months for accuracy
+        const lbMonths = (c.notes && c.notes.lookback_months) || [];
+        const lbLabel  = lbMonths.length >= 2 ? `${lbMonths[0]}-${lbMonths[lbMonths.length-1]}` : (lbMonths[0] || 'Lookback');
+        const summaryLine = converted
+          ? `${lbLabel}: ${lookbackCtn} CTN  →  Campaign: ${currentCtn} CTN`
+          : `${lbLabel}: ${lookbackCtn} CTN`;
+
+        const convertedChip = converted
+          ? `<span style="font-family:var(--mono);font-size:9px;color:var(--green);background:rgba(61,220,132,.15);padding:2px 6px;border-radius:4px;font-weight:600;">✓ CONVERTED</span>`
+          : '';
+
+        return `<div style="margin-top:4px;background:${cBg};border:1px solid ${cBorder};border-radius:8px;padding:6px 10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
+              <span style="font-family:var(--mono);font-size:10px;color:var(--green);font-weight:600;">🎯 ${c.name}</span>
+              <span style="font-family:var(--mono);font-size:9px;color:${tierColor};background:rgba(255,255,255,.05);padding:1px 6px;border-radius:4px;font-weight:600;">${tierLabel}</span>
+            </div>
+            ${convertedChip}
+          </div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:4px;">${promoText}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">${summaryLine}</div>
+        </div>`;
+      }
+      // ── end conversion_tiered branch ─────────────────────────────────────
+
       const minCtn     = c.min_order_ctn || 0;
       const curCtn     = c.ctn_this_month ?? 0;
       const focEarned  = c.foc_earned ?? 0;
@@ -3591,6 +3638,115 @@ function renderCamps() {
   }
 
   el.innerHTML = camps.map(c => {
+    // ── conversion_tiered: tier progress card (no delivery/claim flow) ───
+    if (c.type === 'conversion_tiered') {
+      // Pull rollup data from the agent block. Fall back to computing from
+      // c.debtors if rollup is missing (defensive — handles stale data).
+      const rollup = DATA.agents[currentAgent]?.conversion_campaigns?.[c.id];
+      let totalEnrolled, convertedCount, convertedTargets, convertedCtn, targetCount, conversionRate, tierOrder, tierDist;
+      if (rollup) {
+        totalEnrolled    = rollup.total_enrolled;
+        convertedCount   = rollup.converted_count;
+        convertedTargets = rollup.converted_targets;
+        convertedCtn     = rollup.converted_ctn;
+        targetCount      = rollup.target_count;
+        conversionRate   = rollup.conversion_rate_targets;
+        tierOrder        = rollup.tier_order;
+        tierDist         = rollup.tier_distribution;
+      } else {
+        // Fallback: derive from c.debtors directly
+        totalEnrolled = c.debtors.length;
+        convertedCount = c.debtors.filter(d => (d.campaigns||[]).some(cc => cc.id===c.id && cc.converted)).length;
+        convertedTargets = c.debtors.filter(d => {
+          const cc = (d.campaigns||[]).find(cc => cc.id===c.id);
+          return cc && cc.converted && (cc.tier_idx===0 || cc.tier_idx===1);
+        }).length;
+        convertedCtn = c.debtors.reduce((sum, d) => {
+          const cc = (d.campaigns||[]).find(cc => cc.id===c.id);
+          return cc && cc.converted ? sum + (cc.current_ctn||0) : sum;
+        }, 0);
+        targetCount = c.debtors.filter(d => {
+          const cc = (d.campaigns||[]).find(cc => cc.id===c.id);
+          return cc && (cc.tier_idx===0 || cc.tier_idx===1);
+        }).length;
+        conversionRate = targetCount > 0 ? convertedTargets/targetCount : 0;
+        // Build tier order/dist from per-debtor labels
+        const distMap = {};
+        c.debtors.forEach(d => {
+          const cc = (d.campaigns||[]).find(cc => cc.id===c.id);
+          if (cc) {
+            const tl = cc.tier_label || 'BASELINE';
+            distMap[tl] = (distMap[tl] || 0) + 1;
+          }
+        });
+        tierOrder = Object.keys(distMap);
+        tierDist = distMap;
+      }
+
+      // Conversion rate as percent
+      const ratePct = Math.round((conversionRate || 0) * 100);
+      const rateColor = ratePct >= 50 ? 'var(--green)' : ratePct >= 20 ? 'var(--accent)' : 'var(--muted)';
+
+      // Tier color helper (matches the per-debtor card chip logic)
+      const tierColor = (idx) => {
+        if (idx === 0)      return 'var(--muted)';
+        else if (idx <= 2)  return 'var(--accent)';
+        else                return 'var(--green)';
+      };
+
+      // Max count for proportional bar widths in tier distribution
+      const maxCount = Math.max(1, ...Object.values(tierDist));
+
+      // Tier distribution rows
+      const tierRows = tierOrder.map((tlabel, idx) => {
+        const count = tierDist[tlabel] || 0;
+        const widthPct = Math.round((count / maxCount) * 100);
+        const color = tierColor(idx);
+        return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-family:var(--mono);font-size:10px;">' +
+          '<div style="width:78px;color:' + color + ';font-weight:600;">' + tlabel + '</div>' +
+          '<div style="flex:1;height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;">' +
+          '<div style="height:100%;width:' + widthPct + '%;background:' + color + ';border-radius:4px;transition:width .4s;"></div>' +
+          '</div>' +
+          '<div style="width:32px;text-align:right;color:var(--muted);">' + count + '</div>' +
+          '</div>';
+      }).join('');
+
+      return '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;">' +
+        // Header section
+        '<div style="padding:14px 16px;border-bottom:1px solid var(--border);">' +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">' +
+            '<div>' +
+              '<div style="font-family:var(--display);font-size:16px;letter-spacing:.04em;">🎯 ' + c.name + '</div>' +
+              '<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;">Conversion · ' + totalEnrolled + ' enrolled · ' + targetCount + ' candidates</div>' +
+            '</div>' +
+            '<div style="text-align:right;">' +
+              '<div style="font-family:var(--display);font-size:22px;color:' + rateColor + ';">' + ratePct + '%</div>' +
+              '<div style="font-family:var(--mono);font-size:8px;color:var(--muted);">' + convertedTargets + '/' + targetCount + ' converted</div>' +
+            '</div>' +
+          '</div>' +
+          // Conversion progress bar
+          '<div style="height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;margin-bottom:8px;">' +
+            '<div style="height:100%;width:' + ratePct + '%;background:' + rateColor + ';border-radius:3px;transition:width .4s;"></div>' +
+          '</div>' +
+          // Stat chips: total ctn, all-tier conversions if different from target conversions
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
+            '<span style="font-family:var(--mono);font-size:8px;background:rgba(61,220,132,.15);color:var(--green);padding:2px 8px;border-radius:10px;">' +
+              convertedCtn.toFixed(1) + ' CTN @ ≥RM41' +
+            '</span>' +
+            (convertedCount > convertedTargets ?
+              '<span style="font-family:var(--mono);font-size:8px;background:rgba(255,255,255,.06);color:var(--muted);padding:2px 8px;border-radius:10px;">+' + (convertedCount - convertedTargets) + ' non-target conversions</span>'
+              : '') +
+          '</div>' +
+        '</div>' +
+        // Body: tier distribution
+        '<div style="padding:10px 16px 14px;">' +
+          '<div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Tier distribution</div>' +
+          tierRows +
+        '</div>' +
+      '</div>';
+    }
+    // ── end conversion_tiered branch ──────────────────────────────────────
+
     const total     = c.debtors.length;
     const claimByDebtor = c.debtors.reduce((acc, d) => {
       acc[d.debtor_code] = getCampClaims(currentAgent, c.id, d.debtor_code);

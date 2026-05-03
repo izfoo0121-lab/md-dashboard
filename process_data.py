@@ -1108,6 +1108,93 @@ def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups):
     for camp in camps:
         camp["group"] = group
 
+        # conversion_tiered campaigns use separate logic from the brand-based
+        # accumulation machinery. Historical tiers come from lookback months;
+        # conversion status comes from the current month.
+        if camp.get("type") == "conversion_tiered":
+            notes = camp.get("notes") or {}
+            tier_thresholds = notes.get("tier_thresholds") or []
+            tier_names      = notes.get("tier_names") or []
+            lookback_months = notes.get("lookback_months") or []
+            qual_group      = notes.get("qualifying_item_group") or ""
+
+            # Build lookback paid_on strings using the campaign deadline year
+            # (e.g. ["Feb 26", "Mar 26", "Apr 26"] for a 2026 campaign).
+            lookback_keys = []
+            try:
+                from dateutil.parser import parse as _dparse
+                deadline = camp.get("deadline") or ""
+                yy = _dparse(deadline).strftime("%y") if deadline else ""
+                lookback_keys = [f"{m} {yy}" for m in lookback_months] if yy else []
+            except Exception:
+                lookback_keys = []
+
+            # Derive the campaign's conversion month from its deadline.
+            # For EVO May 2026 (deadline 2026-05-31) this yields "May 26".
+            # NOTE: assumes single-month conversion windows. Multi-month
+            # campaigns would need a list of campaign-active months.
+            camp_month_key = ""
+            try:
+                from dateutil.parser import parse as _dparse2
+                deadline2 = camp.get("deadline") or ""
+                if deadline2:
+                    dl_dt = _dparse2(deadline2)
+                    camp_month_key = dl_dt.strftime("%b %y")  # e.g. "May 26"
+            except Exception:
+                camp_month_key = ""
+
+            # Filter by item_group, not item_code. item_code is SKU-level;
+            # item_group is the brand/group line used for this conversion.
+            if d_rows.empty or not qual_group or "item_group" not in d_rows.columns:
+                lookback_ctn = 0.0
+                current_ctn  = 0.0
+            else:
+                group_rows = d_rows[d_rows["item_group"] == qual_group]
+                lookback_rows = group_rows[group_rows["paid_on"].isin(lookback_keys)] if lookback_keys else group_rows.iloc[0:0]
+                current_rows  = group_rows[group_rows["paid_on"] == camp_month_key] if camp_month_key else group_rows.iloc[0:0]
+                # Price floor for conversion qualification (per-line).
+                # Only lines at >= RM 41/ctn count as conversions — excludes
+                # heavily discounted sales that don't represent real conversion.
+                # TODO: move PRICE_FLOOR to campaign config (notes.min_rm_per_ctn)
+                # so different conversion campaigns can have different thresholds.
+                PRICE_FLOOR = 41.0
+                if not current_rows.empty and "rm_ctn" in current_rows.columns:
+                    rm_num = pd.to_numeric(current_rows["rm_ctn"], errors="coerce")
+                    current_rows = current_rows[rm_num >= PRICE_FLOOR]
+                lookback_ctn = round(float(lookback_rows["qty_ctn"].sum()), 2)
+                current_ctn  = round(float(current_rows["qty_ctn"].sum()), 2)
+
+            # Thresholds are floors: [4,7,10,14] with 4 names creates 5
+            # buckets, the 5th being "TIER 3+" (>=14).
+            tier_idx = 0
+            for i, th in enumerate(tier_thresholds):
+                if lookback_ctn >= th:
+                    tier_idx = i + 1
+            if tier_idx == 0:
+                tier_label = tier_names[0] if tier_names else "BASELINE"
+            elif tier_idx <= len(tier_names) - 1:
+                tier_label = tier_names[tier_idx]
+            else:
+                top = tier_names[-1] if tier_names else "TIER"
+                tier_label = f"{top}+"
+
+            to_next = None
+            if tier_idx < len(tier_thresholds):
+                to_next = round(tier_thresholds[tier_idx] - lookback_ctn, 2)
+                if to_next < 0: to_next = 0
+
+            camp["lookback_ctn"]   = lookback_ctn
+            camp["current_ctn"]    = current_ctn
+            camp["tier_idx"]       = tier_idx
+            camp["tier_label"]     = tier_label
+            camp["to_next_tier"]   = to_next
+            camp["converted"]      = current_ctn > 0
+            camp["ctn_this_month"] = current_ctn
+            camp["foc_earned"]     = 0
+            camp["qualified"]      = camp["converted"]
+            camp["foc_item_resolved"] = ""
+            continue
+
         # Resolve FOC item based on group
         foc_rule = camp.get("foc_item_rule", {})
         if foc_rule and group:
@@ -2807,6 +2894,7 @@ def main():
             "start_date":      camp.get("start_date",""),
             "deadline":        camp.get("deadline",""),
             "approval_required": camp.get("approval_required", False),
+            "notes":           camp.get("notes") or {},
             # CAT-level rules (fallback to campaign level)
             "promo_detail":    crule.get("promo_detail", camp.get("promo_detail","")),
             "redemption_type": crule.get("redemption_type", "free_goods"),
@@ -2885,6 +2973,7 @@ def main():
                 "start_date": camp_row.get("start_date",""),
                 "deadline": camp_row.get("deadline",""),
                 "created_at": camp_row.get("created_at",""),
+                "notes": camp_row.get("notes"),
                 "min_order_ctn": camp_row.get("min_order_ctn", 0) or 0,
                 "promo_detail": camp_row.get("promo_detail","") or "",
                 "approval_required": False,
@@ -3046,6 +3135,82 @@ def main():
                     break
 
     # ── Assemble output ─────────────────────────────────────────────
+    # ── Aggregate conversion_tiered campaigns by agent ──────────────────────
+    # For each agent, count debtors per tier and conversion outcomes per
+    # conversion_tiered campaign. Pure aggregation over per-debtor data
+    # already populated by _calc_camp_progress.
+    # NOTE: "target_count" = BASELINE + TIER 1 only — the actual conversion
+    # candidates. Higher tiers are existing buyers, not conversion targets.
+    conversion_campaigns_by_agent = {}
+    TARGET_TIER_INDICES = {0, 1}  # BASELINE, TIER 1
+
+    for agent_code, agent_block in debtor_cards.items():
+        per_camp = {}  # campaign_id → rollup dict
+        for card in agent_block.get("debtors", []):
+            # Skip personal debtors (consistent with other campaign aggregations)
+            if card.get("debtor_type", "") in _PERSONAL:
+                continue
+            for camp in card.get("campaigns", []):
+                if camp.get("type") != "conversion_tiered":
+                    continue
+                cid = camp.get("id", "")
+                if not cid:
+                    continue
+                if cid not in per_camp:
+                    # Build tier_order from campaign notes; append "+" overflow
+                    # if thresholds exceed names (e.g. 4 thresholds, 4 names → 5 buckets)
+                    notes = camp.get("notes") or {}
+                    tier_names = list(notes.get("tier_names") or [])
+                    thresholds = notes.get("tier_thresholds") or []
+                    if thresholds and len(thresholds) >= len(tier_names):
+                        top = tier_names[-1] if tier_names else "TIER"
+                        tier_order = tier_names + [f"{top}+"]
+                    else:
+                        tier_order = tier_names or ["BASELINE"]
+                    per_camp[cid] = {
+                        "name":              camp.get("name", ""),
+                        "tier_order":        tier_order,
+                        "tier_distribution": {t: 0 for t in tier_order},
+                        "total_enrolled":    0,
+                        "converted_count":   0,
+                        "converted_targets": 0,
+                        "converted_ctn":     0.0,
+                        "target_count":      0,
+                    }
+                entry = per_camp[cid]
+                tlabel = camp.get("tier_label", "BASELINE")
+                # If tier_label isn't in the prebuilt distribution dict, add it
+                # (defensive — shouldn't happen in practice)
+                if tlabel not in entry["tier_distribution"]:
+                    entry["tier_distribution"][tlabel] = 0
+                    if tlabel not in entry["tier_order"]:
+                        entry["tier_order"].append(tlabel)
+                entry["tier_distribution"][tlabel] += 1
+                entry["total_enrolled"] += 1
+                tidx = camp.get("tier_idx", 0)
+                is_target = tidx in TARGET_TIER_INDICES
+                if is_target:
+                    entry["target_count"] += 1
+                if camp.get("converted"):
+                    entry["converted_count"] += 1
+                    entry["converted_ctn"] += float(camp.get("current_ctn", 0) or 0)
+                    if is_target:
+                        entry["converted_targets"] += 1
+
+        # Compute conversion rate after counts settle
+        for entry in per_camp.values():
+            tc = entry["target_count"]
+            entry["conversion_rate_targets"] = round(
+                entry["converted_targets"] / tc, 4
+            ) if tc > 0 else 0.0
+            entry["converted_ctn"] = round(entry["converted_ctn"], 2)
+
+        if per_camp:
+            conversion_campaigns_by_agent[agent_code] = per_camp
+
+    log(f"Conversion campaigns rollup: {len(conversion_campaigns_by_agent)} agents have enrolled debtors")
+    # ── end conversion campaigns rollup ─────────────────────────────────────
+
     output = {
         "generated_at":   datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "current_month":  cur_month,
@@ -3076,6 +3241,7 @@ def main():
             "newbie_scheme":      newbie.get(agent, None),
             "aging":              aging.get(agent, {}),
             "debtor_cards":       debtor_cards.get(agent, {}),
+            "conversion_campaigns": conversion_campaigns_by_agent.get(agent, {}),
             "kpi":                kpi.get(agent, {}),
             "inherited_from":     ag_cfg.get("inherits_from", None),
             "inherit_from_month": ag_cfg.get("inherit_from_month", None),
