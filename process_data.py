@@ -2761,21 +2761,31 @@ def main():
         log("WARNING: campaigns.json missing; area_groups defaulting to {}")
 
     def _campaign_active_in_month(camp):
-        # Month filter — only show campaigns active in cur_month.
-        # start_date must be <= cur_month, deadline must be >= cur_month.
-        # Fall back to created_at if start_date missing.
+        # Month filter — campaigns appear if they have STARTED in real-world time
+        # AND haven't ENDED in past dashboard months.
+        # Rationale: cur_month may auto-switch to a previous month if no current
+        # sales data exists yet (e.g., early in a new month). Campaigns that have
+        # started in real time should appear regardless, so agents see them on Day 1.
         camp_start    = camp.get("start_date") or camp.get("created_at", "")
         camp_deadline = camp.get("deadline", "")
         try:
             from dateutil.parser import parse as dparse
+            from datetime import date
+            today_str = date.today().strftime("%Y-%m")
             cm_date = dparse("01 " + cur_month)
             cm_str  = cm_date.strftime("%Y-%m")
+
+            # Start check: real-world today (not cur_month)
+            # → A campaign that started May 2 is visible May 3 even if dashboard shows April
             if camp_start:
                 sd_str = dparse(str(camp_start)).strftime("%Y-%m")
-                if sd_str > cm_str: return False
+                if sd_str > today_str: return False  # not started yet in real time
+
+            # Deadline check: cur_month (historical hide)
+            # → A campaign that ended in March should not appear when viewing March
             if camp_deadline:
                 dl_str = dparse(str(camp_deadline)).strftime("%Y-%m")
-                if dl_str < cm_str: return False
+                if dl_str < cm_str: return False  # already ended
         except Exception:
             pass  # if date parsing fails, include campaign
         return True

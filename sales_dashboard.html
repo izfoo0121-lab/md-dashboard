@@ -734,6 +734,7 @@ function updateSyncStatus() {
     <button onclick="setCampFilter('foc_sample',this)" class="filter-chip">🎁 FOC</button>
     <button onclick="setCampFilter('festive_gift',this)" class="filter-chip">🧧 FESTIVE</button>
     <button onclick="setCampFilter('birthday_gift',this)" class="filter-chip">🎂 BIRTHDAY</button>
+    <button onclick="setCampFilter('conversion_tiered',this)" class="filter-chip">🎯 CONVERSION</button>
   </div>
   <div id="camps-content">
     <div style="text-align:center;padding:30px;font-family:var(--mono);font-size:11px;color:var(--muted);">Select an agent to view campaigns</div>
@@ -1910,7 +1911,7 @@ function renderDebtorCard(d, runNo) {
 
     // Badges
     // Campaign badges — show category-specific promo if available
-    const campEmoji = {free_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',voucher:'🎟️',other:'📋'};
+    const campEmoji = {free_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',voucher:'🎟️',conversion_tiered:'🎯',other:'📋'};
     const campBadges = (d.campaigns||[]).map(c => {
       const promoText  = c.promo_detail || c.name;
       const minCtn     = c.min_order_ctn || 0;
@@ -3370,8 +3371,8 @@ function renderKPI() {
 }
 
 // ── Campaign Detail Popup ──────────────────────────────────────────────────
-const CAMP_EMOJI = {free_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',other:'📋'};
-const CAMP_LABEL = {free_sample:'Free Sample',birthday_gift:'Birthday Gift',promotion:'Brand Promotion',festive_gift:'Festive Gift',other:'Other'};
+const CAMP_EMOJI = {free_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',conversion_tiered:'🎯',other:'📋'};
+const CAMP_LABEL = {free_sample:'Free Sample',birthday_gift:'Birthday Gift',promotion:'Brand Promotion',festive_gift:'Festive Gift',conversion_tiered:'Conversion',other:'Other'};
 
 // ── Campaign Visit Status Storage ──────────────────────────────────────────
 // Key: camp_status_{month}_{agent}  Value: { "campId_debtorCode": { status, remark, ts } }

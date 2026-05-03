@@ -749,6 +749,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
             <option value="birthday_gift">🎂 Birthday Gift</option>
             <option value="promotion">📢 Brand Promotion / Offer</option>
             <option value="festive_gift">🧧 Festive Gift</option>
+            <option value="conversion_tiered">🎯 Conversion (Tiered)</option>
             <option value="other">📋 Other</option>
           </select>
         </div>
@@ -817,6 +818,52 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
           <div class="input-group">
             <div class="input-label">Min Order (CTN, optional)</div>
             <input type="number" id="new-camp-min-order" min="0" placeholder="e.g. 10">
+          </div>
+        </div>
+
+        <!-- Conversion-tiered fields — shown for conversion_tiered type -->
+        <div id="conversion-tiered-fields" style="display:none;">
+          <div class="sec-divider" style="margin-top:14px;">🎯 Conversion-Tiered Settings</div>
+
+          <div class="input-group">
+            <div class="input-label">Lookback Months (comma-separated, e.g. Feb,Mar,Apr)</div>
+            <input type="text" id="new-camp-lookback-months" placeholder="Feb,Mar,Apr" value="Feb,Mar,Apr"
+              style="text-transform:capitalize;">
+            <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:4px;">
+              Months to check for "did this debtor buy the qualifying item?"
+            </div>
+          </div>
+
+          <div class="input-group">
+            <div class="input-label">Qualifying Item Group</div>
+            <input type="text" id="new-camp-qualifying-item" placeholder="EVO" value="EVO"
+              style="text-transform:uppercase;">
+            <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:4px;">
+              Item group that counts as a "conversion" (e.g. EVO)
+            </div>
+          </div>
+
+          <div class="input-row">
+            <div class="field-wrap">
+              <div class="field-lbl">Baseline Threshold</div>
+              <input type="number" id="new-camp-tier0" min="1" placeholder="4" value="4">
+            </div>
+            <div class="field-wrap">
+              <div class="field-lbl">Tier 1 Threshold</div>
+              <input type="number" id="new-camp-tier1" min="1" placeholder="7" value="7">
+            </div>
+            <div class="field-wrap">
+              <div class="field-lbl">Tier 2 Threshold</div>
+              <input type="number" id="new-camp-tier2" min="1" placeholder="10" value="10">
+            </div>
+            <div class="field-wrap">
+              <div class="field-lbl">Tier 3 Threshold</div>
+              <input type="number" id="new-camp-tier3" min="1" placeholder="14" value="14">
+            </div>
+          </div>
+
+          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);line-height:1.6;margin-top:8px;">
+            Tier names are auto-set: Below baseline → "BELOW BASELINE" / Baseline → "BASELINE" / Tier 1 → "TIER 1" / Tier 2 → "TIER 2" / Tier 3 → "TIER 3"
           </div>
         </div>
 
@@ -3945,6 +3992,7 @@ function _campCampaignToDb(camp) {
     type: camp.type || 'other',
     brands,
     description: camp.description || null,
+    notes: camp.notes ?? null,
     promo_detail: camp.promo_detail || null,
     foc_note: camp.foc_note || null,
     conditions: Array.isArray(camp.conditions) ? camp.conditions : [],
@@ -4158,6 +4206,23 @@ async function createCampaign() {
     deadline, active:true, debtors:_campFileDebtors,
   };
 
+  if (type === 'conversion_tiered') {
+    const lookbackRaw = document.getElementById('new-camp-lookback-months')?.value || '';
+    const lookbackMonths = lookbackRaw.split(',').map(s => s.trim()).filter(Boolean);
+    const qualItem = document.getElementById('new-camp-qualifying-item')?.value.trim().toUpperCase() || 'EVO';
+    const t0 = parseInt(document.getElementById('new-camp-tier0')?.value) || 4;
+    const t1 = parseInt(document.getElementById('new-camp-tier1')?.value) || 7;
+    const t2 = parseInt(document.getElementById('new-camp-tier2')?.value) || 10;
+    const t3 = parseInt(document.getElementById('new-camp-tier3')?.value) || 14;
+
+    camp.notes = {
+      lookback_months: lookbackMonths,
+      qualifying_item_group: qualItem,
+      tier_thresholds: [t0, t1, t2, t3],
+      tier_names: ["BASELINE", "TIER 1", "TIER 2", "TIER 3"],
+    };
+  }
+
   let insertedCampaign = false;
   try {
     await _adminSupabaseFetch('campaigns', {
@@ -4286,6 +4351,10 @@ function toggleBrandFields(type) {
     (type === 'free_sample' || type === 'festive_gift') ? 'block' : 'none';
   document.getElementById('festive-camp-fields').style.display =
     type === 'festive_gift' ? 'block' : 'none';
+  const convFields = document.getElementById('conversion-tiered-fields');
+  if (convFields) {
+    convFields.style.display = type === 'conversion_tiered' ? 'block' : 'none';
+  }
 }
 
 async function closeCampaign(id) {
