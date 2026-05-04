@@ -726,15 +726,9 @@ function updateSyncStatus() {
 
 <!-- ── Campaigns View ── -->
 <div id="view-camps" class="view">
-  <!-- Campaign type filter -->
+  <!-- Campaign filter — chips populated dynamically per agent's running campaigns -->
   <div id="camps-filter-bar" style="display:none;padding:10px 14px 4px;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;white-space:nowrap;">
     <span style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-right:8px;">Filter:</span>
-    <button onclick="setCampFilter('all',this)" class="filter-chip active">ALL</button>
-    <button onclick="setCampFilter('promotion',this)" class="filter-chip">📢 PROMO</button>
-    <button onclick="setCampFilter('foc_sample',this)" class="filter-chip">🎁 FOC</button>
-    <button onclick="setCampFilter('festive_gift',this)" class="filter-chip">🧧 FESTIVE</button>
-    <button onclick="setCampFilter('birthday_gift',this)" class="filter-chip">🎂 BIRTHDAY</button>
-    <button onclick="setCampFilter('conversion_tiered',this)" class="filter-chip">🎯 CONVERSION</button>
   </div>
   <div id="camps-content">
     <div style="text-align:center;padding:30px;font-family:var(--mono);font-size:11px;color:var(--muted);">Select an agent to view campaigns</div>
@@ -1922,7 +1916,7 @@ function renderDebtorCard(d, runNo) {
 
     // Badges
     // Campaign badges — show category-specific promo if available
-    const campEmoji = {free_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',voucher:'🎟️',conversion_tiered:'🎯',other:'📋'};
+    const campEmoji = {free_sample:'🎁',foc_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',voucher:'🎟️',conversion_tiered:'🎯',other:'📋'};
     const campBadges = (d.campaigns||[]).map(c => {
       const promoText  = c.promo_detail || c.name;
 
@@ -3490,7 +3484,7 @@ function renderKPI() {
 }
 
 // ── Campaign Detail Popup ──────────────────────────────────────────────────
-const CAMP_EMOJI = {free_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',conversion_tiered:'🎯',other:'📋'};
+const CAMP_EMOJI = {free_sample:'🎁',foc_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',voucher:'🎟️',conversion_tiered:'🎯',other:'📋'};
 const CAMP_LABEL = {free_sample:'Free Sample',birthday_gift:'Birthday Gift',promotion:'Brand Promotion',festive_gift:'Festive Gift',conversion_tiered:'Conversion',other:'Other'};
 
 // ── Campaign Visit Status Storage ──────────────────────────────────────────
@@ -3643,6 +3637,9 @@ function renderCamps() {
   const fb = document.getElementById('camps-filter-bar');
   if (fb) fb.style.display = 'block';
 
+  // Rebuild filter chips based on this agent's actual running campaigns
+  renderCampFilterChips();
+
   const debtors  = DATA.agents[currentAgent]?.debtor_cards?.debtors || [];
   const statuses = getCampStatuses();
 
@@ -3650,7 +3647,7 @@ function renderCamps() {
   const campMap  = {};
   debtors.forEach(d => {
     (d.campaigns || []).forEach(c => {
-      if (_campFilter !== 'all' && c.type !== _campFilter) return;
+      if (_campFilter !== 'all' && c.id !== _campFilter) return;
       if (!campMap[c.id]) campMap[c.id] = { ...c, debtors: [] };
       const vs = statuses[`${c.id}_${d.debtor_code}`];
       campMap[c.id].debtors.push({ ...d, visit_status: vs });
@@ -3658,7 +3655,7 @@ function renderCamps() {
   });
 
   // ── Inject birthday campaign debtors ───────────────────────────────────
-  if (_campFilter === 'all' || _campFilter === 'birthday_gift') {
+  if (_campFilter === 'all' || _campFilter === '__birthday__') {
     const bdayCamp = DATA.birthday_campaign;
     if (bdayCamp) {
       const bdayId = 'birthday_gift_auto';
@@ -3970,6 +3967,69 @@ function removeCampClaim(agent, campId, debtorCode) {
 
 // ── Campaign filter state ─────────────────────────────────────────────────
 let _campFilter = 'all';
+
+// Build filter chips dynamically from the campaigns the current agent is running.
+// One chip per unique campaign id, plus an ALL chip and a Birthday chip if relevant.
+function renderCampFilterChips() {
+  const fb = document.getElementById('camps-filter-bar');
+  if (!fb || !currentAgent || !DATA) return;
+
+  // Preserve the leading "Filter:" label, then rebuild buttons after it
+  const label = fb.querySelector('span');
+  fb.innerHTML = '';
+  if (label) fb.appendChild(label);
+
+  // Collect unique campaigns from this agent's debtor cards
+  const debtors = DATA.agents[currentAgent]?.debtor_cards?.debtors || [];
+  const campMap = new Map(); // id -> { id, name, type }
+  debtors.forEach(d => {
+    (d.campaigns || []).forEach(c => {
+      if (c.id && !campMap.has(c.id)) {
+        campMap.set(c.id, { id: c.id, name: c.name || c.id, type: c.type || 'other' });
+      }
+    });
+  });
+
+  // Detect if there are birthday-eligible debtors this month (synthesized "campaign")
+  const hasBirthday = debtors.some(d => d.birthday_this_month);
+
+  // Helper to make a chip button
+  const makeChip = (id, label, isActive) => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-chip' + (isActive ? ' active' : '');
+    btn.textContent = label;
+    btn.onclick = (ev) => setCampFilter(id, ev.currentTarget);
+    return btn;
+  };
+
+  // ALL chip first
+  fb.appendChild(makeChip('all', 'ALL', _campFilter === 'all'));
+
+  // One chip per real campaign, ordered by campaign name for predictability
+  const sortedCamps = Array.from(campMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  for (const c of sortedCamps) {
+    const emoji = (CAMP_EMOJI && CAMP_EMOJI[c.type]) || '📋';
+    fb.appendChild(makeChip(c.id, `${emoji} ${c.name}`, _campFilter === c.id));
+  }
+
+  // Birthday chip last, only if this month has birthdays
+  if (hasBirthday) {
+    fb.appendChild(makeChip('__birthday__', '🎂 Birthday', _campFilter === '__birthday__'));
+  }
+
+  // If the previously-selected filter is no longer valid (e.g., agent switched
+  // and the campaign isn't in their list), reset to 'all'.
+  if (_campFilter !== 'all' && _campFilter !== '__birthday__' && !campMap.has(_campFilter)) {
+    _campFilter = 'all';
+    // Re-mark the ALL chip as active
+    const allBtn = fb.querySelector('button');
+    if (allBtn) {
+      fb.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      allBtn.classList.add('active');
+    }
+  }
+}
+
 function setCampFilter(type, btn) {
   _campFilter = type;
   document.querySelectorAll('#camps-filter-bar .filter-chip').forEach(b => b.classList.remove('active'));
