@@ -282,7 +282,51 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .view.active > *:nth-child(3){animation-delay:.1s;}
 .view.active > *:nth-child(4){animation-delay:.15s;}
 .view.active > *:nth-child(5){animation-delay:.2s;}
+
+/* Print mode - hide app chrome and print only the selected export target */
+@media print {
+  header, nav, .nav, .filter-chip, #camps-filter-bar, #camps-export-bar,
+  #month-selector-agent, #month-badge, .login-overlay, .pin-overlay,
+  button, .export-btn, #future-view-banner {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    font-family: -apple-system, sans-serif;
+  }
+
+  body.print-mode-unpurchased *,
+  body.print-mode-camps * {
+    visibility: hidden !important;
+  }
+
+  body.print-mode-unpurchased #debtor-list,
+  body.print-mode-unpurchased #debtor-list *,
+  body.print-mode-camps #camps-content,
+  body.print-mode-camps #camps-content * {
+    visibility: visible !important;
+    color: black !important;
+    background: white !important;
+    border-color: #ccc !important;
+  }
+
+  body.print-mode-unpurchased #debtor-list,
+  body.print-mode-camps #camps-content {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  @page {
+    margin: 1cm;
+  }
+}
 </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -734,6 +778,10 @@ function updateSyncStatus() {
   <div id="camps-filter-bar" style="display:none;padding:10px 14px 4px;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;white-space:nowrap;">
     <span style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-right:8px;">Filter:</span>
   </div>
+  <div id="camps-export-bar" style="display:none;padding:6px 14px 8px;background:var(--surface);border-bottom:1px solid var(--border);text-align:right;">
+    <button onclick="exportCampsExcel()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);border-radius:6px;color:var(--green);cursor:pointer;margin-left:6px;">📊 Export Excel</button>
+    <button onclick="exportCampsPDF()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:6px;color:var(--accent);cursor:pointer;margin-left:6px;">🖨️ Print / PDF</button>
+  </div>
   <div id="camps-content">
     <div style="text-align:center;padding:30px;font-family:var(--mono);font-size:11px;color:var(--muted);">Select an agent to view campaigns</div>
   </div>
@@ -856,6 +904,8 @@ let unpurchasedBrandFilter = 'IFACE';
 let unpurchasedTypeFilter  = 'all';
 let nonvipTypeFilter = 'all';
 let MONTHS_WITH_DATA = [];
+let _lastUnpurchasedExport = null;
+let _lastCampsExport = null;
 const UNPURCHASED_BRAND_ITEMS = {
   'IFACE':   ['IFACE B','IFACE DB','IFACE M','IFACE R'],
   'SUKUN':   ['SKNR','SKNW'],
@@ -1911,6 +1961,13 @@ function renderUnpurchasedMode(debtors) {
 
   shown.sort((a, b) => (a.company_name || '').localeCompare(b.company_name || ''));
 
+  // Bridge: capture export state for exportUnpurchasedExcel
+  _lastUnpurchasedExport = {
+    agent: currentAgent,
+    brand: unpurchasedBrandFilter,
+    debtors: selectedDebtors,
+  };
+
   const debtorHtml = shown.length
     ? shown.map((d, idx) => renderDebtorCard(d, idx + 1)).join('')
     : `<div class="empty-state">No debtors for ${unpurchasedBrandFilter}</div>`;
@@ -1920,6 +1977,10 @@ function renderUnpurchasedMode(debtors) {
   document.getElementById('btn-next').disabled = true;
 
   document.getElementById('debtor-list').innerHTML = `
+    <div style="display:flex;gap:6px;margin-bottom:10px;justify-content:flex-end;">
+      <button onclick="exportUnpurchasedExcel()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);border-radius:6px;color:var(--green);cursor:pointer;">📊 Export Excel</button>
+      <button onclick="exportUnpurchasedPDF()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:6px;color:var(--accent);cursor:pointer;">🖨️ Print / PDF</button>
+    </div>
     <div style="margin-bottom:10px;">
       <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">中两边 ZLB</div>
       <div style="display:flex;gap:6px;overflow-x:auto;white-space:nowrap;padding-bottom:4px;">
@@ -1949,6 +2010,141 @@ function setUnpurchasedType(type, el) {
   unpurchasedTypeFilter = type;
   const debtors = DATA?.agents?.[currentAgent]?.debtor_cards?.debtors || [];
   renderUnpurchasedMode(debtors);
+}
+
+// Export the currently-displayed 未购买 debtor list to Excel.
+// Uses the global selectedDebtors that renderUnpurchasedMode populated.
+function exportUnpurchasedExcel() {
+  if (typeof XLSX === 'undefined') {
+    alert('Excel export library not loaded yet. Try again in a moment.');
+    return;
+  }
+  if (!_lastUnpurchasedExport || !_lastUnpurchasedExport.debtors || !_lastUnpurchasedExport.debtors.length) {
+    alert('No debtors to export. Make sure 未购买 filter is active and a brand is selected.');
+    return;
+  }
+
+  const { agent, brand, debtors } = _lastUnpurchasedExport;
+
+  // Build rows with desired columns
+  const rows = debtors.map(d => ({
+    'Code': d.debtor_code || '',
+    'Name': d.company_name || '',
+    'Type': d.debtor_type || '',
+    'Phone': d.phone || '',
+    'Address': d.address || '',
+    'VIP': d.vip ? 'Y' : '',
+    'Last Visit': d.last_visit_date || '',
+    'Last Order': d.last_order_date || '',
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  // Set column widths for readability
+  ws['!cols'] = [
+    { wch: 14 }, { wch: 35 }, { wch: 16 }, { wch: 14 }, { wch: 40 }, { wch: 4 }, { wch: 12 }, { wch: 12 },
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, `未购买 ${brand}`);
+
+  // Filename: agent_未购买_brand_yyyy-mm-dd.xlsx
+  const today = new Date().toISOString().slice(0,10);
+  const safeAgent = (agent || 'all').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const safeBrand = brand.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `${safeAgent}_未购买_${safeBrand}_${today}.xlsx`;
+
+  XLSX.writeFile(wb, filename);
+}
+
+// Print the currently-displayed 未购买 debtor list. CSS @media print
+// hides everything except the #debtor-list section.
+function exportUnpurchasedPDF() {
+  if (!_lastUnpurchasedExport || !_lastUnpurchasedExport.debtors || !_lastUnpurchasedExport.debtors.length) {
+    alert('No debtors to print. Make sure 未购买 filter is active and a brand is selected.');
+    return;
+  }
+  document.body.classList.add('print-mode-unpurchased');
+  const cleanup = () => {
+    document.body.classList.remove('print-mode-unpurchased');
+    window.removeEventListener('afterprint', cleanup);
+  };
+  window.addEventListener('afterprint', cleanup);
+  // Use a small timeout so any DOM updates settle before print dialog
+  setTimeout(() => {
+    window.print();
+  }, 50);
+}
+
+// Build a Camps export workbook from the currently-rendered campMap.
+// One sheet per campaign, listing its debtors with claim status.
+function exportCampsExcel() {
+  if (typeof XLSX === 'undefined') {
+    alert('Excel export library not loaded yet. Try again in a moment.');
+    return;
+  }
+  if (!_lastCampsExport || !_lastCampsExport.campaigns || !_lastCampsExport.campaigns.length) {
+    alert('No campaigns to export. Switch to Camps view first.');
+    return;
+  }
+
+  const { agent, campaigns } = _lastCampsExport;
+  const wb = XLSX.utils.book_new();
+
+  campaigns.forEach(camp => {
+    const rows = (camp.debtors || []).map(d => {
+      const visitStatus = typeof d.visit_status === 'string'
+        ? d.visit_status
+        : (d.visit_status?.status || (d.source === 'manual' ? 'Manual Add' : ''));
+      return {
+        'Code': d.debtor_code || d.code || '',
+        'Name': d.company_name || d.name || '',
+        'Type': d.debtor_type || d.type || '',
+        'Phone': d.phone || '',
+        'Status': visitStatus,
+        'Address': d.address || '',
+      };
+    });
+
+    if (!rows.length) return;
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [
+      { wch: 14 }, { wch: 35 }, { wch: 16 }, { wch: 14 }, { wch: 18 }, { wch: 40 },
+    ];
+
+    // Sheet name: truncate to 31 chars and sanitize
+    let sheetName = (camp.name || camp.id || 'Campaign').replace(/[:\\\/\?\*\[\]]/g, '_');
+    if (sheetName.length > 31) sheetName = sheetName.slice(0, 28) + '...';
+
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  });
+
+  // Filename
+  const today = new Date().toISOString().slice(0,10);
+  const safeAgent = (agent || 'all').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `${safeAgent}_Campaigns_${today}.xlsx`;
+
+  if (wb.SheetNames.length === 0) {
+    alert('No campaign data to export.');
+    return;
+  }
+  XLSX.writeFile(wb, filename);
+}
+
+function exportCampsPDF() {
+  if (!_lastCampsExport || !_lastCampsExport.campaigns || !_lastCampsExport.campaigns.length) {
+    alert('No campaigns to print. Switch to Camps view first.');
+    return;
+  }
+  document.body.classList.add('print-mode-camps');
+  const cleanup = () => {
+    document.body.classList.remove('print-mode-camps');
+    window.removeEventListener('afterprint', cleanup);
+  };
+  window.addEventListener('afterprint', cleanup);
+  setTimeout(() => {
+    window.print();
+  }, 50);
 }
 
 function renderNonVipMode(debtors) {
@@ -3795,6 +3991,8 @@ function renderCamps() {
   // Show filter bar
   const fb = document.getElementById('camps-filter-bar');
   if (fb) fb.style.display = 'block';
+  const eb = document.getElementById('camps-export-bar');
+  if (eb) eb.style.display = 'block';
 
   // Rebuild filter chips based on this agent's actual running campaigns
   renderCampFilterChips();
@@ -3880,6 +4078,11 @@ function renderCamps() {
   }
 
   const camps = Object.values(campMap);
+  // Bridge: capture export state for exportCampsExcel/PDF
+  _lastCampsExport = {
+    agent: currentAgent,
+    campaigns: camps,
+  };
 
   if (!camps.length) {
     el.innerHTML = `<div style="text-align:center;padding:40px;font-family:var(--mono);font-size:11px;color:var(--muted);">
