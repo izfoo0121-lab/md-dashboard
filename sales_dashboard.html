@@ -286,6 +286,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 </head>
 <body>
 
+<div id="future-view-banner" style="display:none;padding:12px 16px;background:rgba(240,192,64,.15);border-bottom:2px solid var(--accent);font-family:var(--mono);font-size:12px;color:var(--accent);text-align:center;">
+  📅 Future view — <span id="future-view-month"></span> data not yet available. Forward-looking items only (campaigns, birthdays). Actions disabled.
+</div>
+
 <!-- ── Header ── -->
 <!-- ── Cross-page Nav ── -->
 <div style="background:rgba(255,255,255,.04);border-bottom:1px solid var(--border);padding:6px 16px;display:flex;gap:10px;align-items:center;overflow-x:auto;">
@@ -851,6 +855,7 @@ let gainSkuFilter = 'all';
 let unpurchasedBrandFilter = 'IFACE';
 let unpurchasedTypeFilter  = 'all';
 let nonvipTypeFilter = 'all';
+let MONTHS_WITH_DATA = [];
 const UNPURCHASED_BRAND_ITEMS = {
   'IFACE':   ['IFACE B','IFACE DB','IFACE M','IFACE R'],
   'SUKUN':   ['SKNR','SKNW'],
@@ -865,6 +870,68 @@ const BRAND_COLORS = {
   'BISON':'#f0c040','TR20':'#3ddc84','LAM+LWM':'#ff9a3c'
 };
 
+function monthSlug(monthLabel) {
+  return (monthLabel || '').replace(' ','').toLowerCase();
+}
+
+function monthLabelFromSlug(slug) {
+  const m = String(slug || '').match(/^([a-z]{3})(\d{2})$/i);
+  if (!m) return DATA?.current_month || '';
+  return `${m[1].charAt(0).toUpperCase()}${m[1].slice(1).toLowerCase()} ${m[2]}`;
+}
+
+// Mirrors process_data.py's _campaign_active_in_month for frontend filtering
+// when in future view.
+function isCampaignActiveInMonth(camp, monthStr) {
+  const MONTHS_C = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const today = new Date().toISOString().slice(0, 7); // "2026-05"
+  const start = camp.start_date || camp.created_at || '';
+  const deadline = camp.deadline || '';
+
+  // Real-world start gate: campaign must have actually started
+  if (start && String(start).slice(0,7) > today) return false;
+
+  // Selected month vs deadline: campaign must not have ended before this month
+  if (deadline && monthStr) {
+    const parts = monthStr.split(' ');
+    if (parts.length === 2) {
+      const m = MONTHS_C.indexOf(parts[0]) + 1;
+      const y = 2000 + parseInt(parts[1]);
+      if (m && y) {
+        const monthIso = `${y}-${String(m).padStart(2,'0')}`;
+        if (String(deadline).slice(0,7) < monthIso) return false;
+      }
+    }
+  }
+  return true;
+}
+
+function updateFutureViewBanner() {
+  const banner = document.getElementById('future-view-banner');
+  const monthEl = document.getElementById('future-view-month');
+  if (!banner) return;
+  if (DATA?.is_future_view) {
+    banner.style.display = 'block';
+    if (monthEl) monthEl.textContent = DATA.current_month || '';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function blockFutureViewAction() {
+  if (DATA?.is_future_view) {
+    alert('Read-only future view — actions disabled until ' + (DATA.current_month||'this month') + ' data is loaded.');
+    return true;
+  }
+  return false;
+}
+
+function futureViewEmptyHtml(label) {
+  return `<div style="padding:28px;text-align:center;font-family:var(--mono);color:var(--muted);font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:14px;">
+    ${label || 'This section'} is hidden in future view. Switch back to a loaded month for historical sales data.
+  </div>`;
+}
+
 // ── Month Selector ─────────────────────────────────────────────────────────
 let CURRENT_MONTH_FILE = 'dashboard_data.json'; // default
 let CURRENT_MONTH_SLUG = 'current'; // tracks selected month slug
@@ -874,13 +941,21 @@ async function loadMonthIndex() {
     const r = await fetch('months_index.json?v=' + Date.now());
     if (!r.ok) return;
     const months = await r.json();
+    MONTHS_WITH_DATA = (months || []).map(m => monthSlug(m));
     if (!months || months.length < 2) return; // only show if >1 month
+
+    // After loading months from index, append real-world current month
+    // if not already present, to enable future view.
+    const MONTHS_FV = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const today = new Date();
+    const realCurrent = `${MONTHS_FV[today.getMonth()]} ${String(today.getFullYear()).slice(-2)}`;
+    if (!months.includes(realCurrent)) months.push(realCurrent);
 
     const sel = document.getElementById('month-selector-agent');
     if (!sel) return;
-    const currentSlug = CURRENT_MONTH_SLUG || (DATA?.current_month||'').replace(' ','').toLowerCase();
+    const currentSlug = CURRENT_MONTH_SLUG || monthSlug(DATA?.current_month||'');
     sel.innerHTML = months.slice().reverse().map(m => {
-      const slug = m.replace(' ','').toLowerCase();
+      const slug = monthSlug(m);
       return `<option value="${slug}">${m.toUpperCase()}${slug===currentSlug?' ◀':''}</option>`;
     }).join('');
     sel.value = currentSlug;
@@ -892,15 +967,50 @@ async function switchMonth(slug) {
   // Read selected agent directly from DOM before anything changes
   const agSel = document.getElementById('agent-select');
   const prevAgent = (agSel && agSel.value) ? agSel.value : (currentAgent || '');
+  const requestedSlug = slug || 'current';
 
-  const url = slug === 'current' || !slug
+  // Future view: selected month has no generated data file yet.
+  // Reuse currently loaded DATA, override metadata, and render forward-looking items.
+  if (requestedSlug !== 'current' && !MONTHS_WITH_DATA.includes(requestedSlug) && DATA) {
+    DATA.current_month = monthLabelFromSlug(requestedSlug);
+    DATA.is_future_view = true;
+    CURRENT_MONTH_SLUG = requestedSlug;
+
+    document.getElementById('month-badge').textContent = (DATA.current_month||'').toUpperCase();
+    document.getElementById('day-prog').textContent = 'Future view · data pending';
+    const mSel = document.getElementById('month-selector-agent');
+    if (mSel) mSel.value = CURRENT_MONTH_SLUG;
+
+    renderGroupBrandTargets();
+    if (prevAgent && DATA.agents[prevAgent]) {
+      currentAgent = prevAgent;
+      const debtors = DATA.agents[prevAgent]?.debtor_cards?.debtors || [];
+      const typeCounts = {};
+      debtors.forEach(d => {
+        const t = (d.debtor_type||'').trim();
+        if (t && t.toLowerCase() !== 'nan') typeCounts[t] = (typeCounts[t]||0) + 1;
+      });
+      buildTypeChipRow(typeCounts, debtors.length, filters?.type || 'all');
+      renderAll();
+    } else {
+      currentAgent = '';
+      filters = { status:'all', special:null, pending_activation:null, type:'all', brand:'all' };
+      const listEl = document.getElementById('debtor-list');
+      if (listEl) listEl.innerHTML = '';
+    }
+    updateFutureViewBanner();
+    return;
+  }
+
+  const url = requestedSlug === 'current' || !requestedSlug
     ? 'dashboard_data.json?v=' + Date.now()
-    : `data_${slug}.json?v=` + Date.now();
+    : `data_${requestedSlug}.json?v=` + Date.now();
   try {
     const r = await fetch(url);
     if (!r.ok) throw new Error('Not found');
     DATA = await r.json();
-    CURRENT_MONTH_SLUG = slug || 'current';
+    DATA.is_future_view = false;
+    CURRENT_MONTH_SLUG = requestedSlug;
 
     // Rebuild agent dropdown, restore previous selection
     if (agSel) {
@@ -947,8 +1057,9 @@ async function switchMonth(slug) {
       const listEl = document.getElementById('debtor-list');
       if (listEl) listEl.innerHTML = '';
     }
+    updateFutureViewBanner();
   } catch(e) {
-    alert(`Could not load data for ${slug}: ${e.message}`);
+    alert(`Could not load data for ${requestedSlug}: ${e.message}`);
   }
 }
 
@@ -1117,6 +1228,7 @@ const SupabaseKpiSync = (() => {
 })();
 
 function init() {
+  updateFutureViewBanner();
   const wd = DATA.working_days || {};
   document.getElementById('month-badge').textContent = (DATA.current_month || '').toUpperCase();
   document.getElementById('day-prog').textContent =
@@ -2233,6 +2345,18 @@ function renderDebtorCard(d, runNo) {
 
 function renderDebtors() {
   if (!currentAgent || !DATA) return;
+  if (DATA.is_future_view) {
+    ['sum-total','sum-active','sum-reactiv','sum-rate','sum-flags'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = id === 'sum-flags' ? '0' : '—';
+    });
+    const deltaEl = document.getElementById('sum-total-delta');
+    if (deltaEl) deltaEl.style.display = 'none';
+    buildTypeChipRow({}, 0, 'all');
+    const listEl = document.getElementById('debtor-list');
+    if (listEl) listEl.innerHTML = futureViewEmptyHtml('Debtor list');
+    return;
+  }
   const agData  = DATA.agents[currentAgent]?.debtor_cards || {};
   const debtors = agData.debtors || [];
 
@@ -2486,6 +2610,17 @@ function toggleCard(key) {
 // ── View 2: Sales Progression ──────────────────────────────────────────────
 function renderSalesProgression() {
   if (!currentAgent || !DATA) return;
+  if (DATA.is_future_view) {
+    const pct = document.getElementById('prog-main-pct');
+    const meta = document.getElementById('prog-meta');
+    const gap = document.getElementById('prog-gap');
+    const tiers = document.getElementById('tier-cards');
+    if (pct) pct.innerHTML = `—<sup style="font-family:var(--mono);font-size:14px;color:var(--muted)"></sup>`;
+    if (meta) meta.textContent = 'Future view — sales progression pending data';
+    if (gap) gap.textContent = '';
+    if (tiers) tiers.innerHTML = futureViewEmptyHtml('Sales progression');
+    return;
+  }
   const sp = DATA.agents[currentAgent]?.sales_progression || {};
   const tiers = sp.tiers || {};
 
@@ -2775,6 +2910,13 @@ function renderSKUTrendTable(sp) {
 // ── View 3: Brand Commission ───────────────────────────────────────────────
 function renderBrandCommission() {
   if (!currentAgent || !DATA) return;
+  if (DATA.is_future_view) {
+    const total = document.getElementById('total-comm');
+    if (total) total.textContent = 'RM 0.00';
+    const el = document.getElementById('brand-cards');
+    if (el) el.innerHTML = futureViewEmptyHtml('Brand commission');
+    return;
+  }
   const bc = DATA.agents[currentAgent]?.brand_commission || {};
 
   if (!Object.keys(bc).length) {
@@ -2842,6 +2984,10 @@ function renderNewbie() {
   if (!currentAgent || !DATA) return;
   const nb = DATA.agents[currentAgent]?.newbie_scheme;
   const el = document.getElementById('newbie-content');
+  if (DATA.is_future_view) {
+    if (el) el.innerHTML = futureViewEmptyHtml('Newbie scheme');
+    return;
+  }
 
   if (!nb) {
     el.innerHTML = `<div class="card" style="text-align:center;padding:30px;">
@@ -2920,6 +3066,10 @@ function renderAging() {
   if (!currentAgent || !DATA) return;
   const ag = DATA.agents[currentAgent]?.aging || {};
   const el = document.getElementById('aging-content');
+  if (DATA.is_future_view) {
+    if (el) el.innerHTML = futureViewEmptyHtml('Aging');
+    return;
+  }
 
   const debtorList = ag.debtor_outstanding || [];
   const totalUnpaidCtn = ag.canggih_unpaid_ctn || 0;
@@ -3246,6 +3396,7 @@ function loadFlags() {
   catch(e) { return {}; }
 }
 function saveFlags(flags) {
+  if (blockFutureViewAction()) return;
   try { localStorage.setItem(FLAGS_KEY, JSON.stringify(flags)); } catch(e) {}
 }
 function getFlag(agent, debtorCode) {
@@ -3370,6 +3521,10 @@ function renderKPI() {
   if (!currentAgent || !DATA) return;
   const kpi = DATA.agents[currentAgent]?.kpi || {};
   const el  = document.getElementById('kpi-content');
+  if (DATA.is_future_view) {
+    if (el) el.innerHTML = futureViewEmptyHtml('KPI');
+    return;
+  }
 
   if (!Object.keys(kpi).length) {
     el.innerHTML = '<div style="padding:20px;text-align:center;font-family:var(--mono);color:var(--muted);font-size:11px;">No KPI data available</div>';
@@ -3505,6 +3660,7 @@ function getCampStatus(campId, debtorCode) {
 }
 
 function setCampStatus(campId, debtorCode, status) {
+  if (blockFutureViewAction()) return;
   const all    = getCampStatuses();
   const key    = `${campId}_${debtorCode}`;
   const remark = all[key]?.remark || '';   // preserve existing remark
@@ -3514,6 +3670,7 @@ function setCampStatus(campId, debtorCode, status) {
 }
 
 function saveCampRemark(campId, debtorCode) {
+  if (blockFutureViewAction()) return;
   const inp    = document.getElementById(`remark-${campId}`);
   if (!inp) return;
   const all    = getCampStatuses();
@@ -3614,6 +3771,7 @@ function showCampDetail(event, debtorCode, debtorName) {
 }
 
 function saveCampRemark(campId, debtorCode) {
+  if (blockFutureViewAction()) return;
   const inp = document.getElementById(`remark-${campId}`);
   if (!inp) return;
   const existing = getCampStatus(campId, debtorCode);
@@ -3647,6 +3805,8 @@ function renderCamps() {
   const campMap  = {};
   debtors.forEach(d => {
     (d.campaigns || []).forEach(c => {
+      // Future-view campaign visibility: hide campaigns whose deadline is before the future month
+      if (DATA.is_future_view && !isCampaignActiveInMonth(c, DATA.current_month)) return;
       if (_campFilter !== 'all' && c.id !== _campFilter) return;
       if (!campMap[c.id]) campMap[c.id] = { ...c, debtors: [] };
       const vs = statuses[`${c.id}_${d.debtor_code}`];
@@ -3665,7 +3825,28 @@ function renderCamps() {
         const parts = (DATA.current_month||'').split(' ');
         return parts.length ? MONS.indexOf(parts[0]) + 1 : 0;
       })();
-      const agentBdayDebtors = (bdayCamp.debtors || []).filter(d => {
+      const bdaySourceRows = DATA.is_future_view
+        ? debtors
+            .filter(d => {
+              const t = d.debtor_type || '';
+              const isPersonal = ['P-Personal','P-PERSONAL','personal','Personal','PERSONAL'].includes(t);
+              return d.birth_month
+                && selMonthNum
+                && parseInt(d.birth_month) === selMonthNum
+                && d.vip
+                && d.has_bonus_point
+                && !isPersonal
+                && !d.is_new;
+            })
+            .map(d => ({
+              code: d.debtor_code,
+              name: d.company_name,
+              agent: currentAgent,
+              type: d.debtor_type,
+              phone: d.phone,
+            }))
+        : (bdayCamp.debtors || []);
+      const agentBdayDebtors = bdaySourceRows.filter(d => {
         if (d.agent !== currentAgent) return false;
         // Re-verify birth_month matches selected month if available
         if (d.birth_month && selMonthNum) return parseInt(d.birth_month) === selMonthNum;
@@ -3949,6 +4130,7 @@ function getCampClaims(agent, campId, debtorCode) {
   try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; }
 }
 function saveCampClaim(agent, campId, debtorCode, claimData) {
+  if (blockFutureViewAction()) return;
   const key = getCampClaimKey(agent, campId, debtorCode);
   localStorage.setItem(key, JSON.stringify(claimData));
   // Also sync to Gist if configured
@@ -3957,6 +4139,7 @@ function saveCampClaim(agent, campId, debtorCode, claimData) {
   }
 }
 function removeCampClaim(agent, campId, debtorCode) {
+  if (blockFutureViewAction()) return;
   const key = getCampClaimKey(agent, campId, debtorCode);
   localStorage.removeItem(key);
   // Also remove from Gist if configured
@@ -3984,6 +4167,7 @@ function renderCampFilterChips() {
   const campMap = new Map(); // id -> { id, name, type }
   debtors.forEach(d => {
     (d.campaigns || []).forEach(c => {
+      if (DATA.is_future_view && !isCampaignActiveInMonth(c, DATA.current_month)) return;
       if (c.id && !campMap.has(c.id)) {
         campMap.set(c.id, { id: c.id, name: c.name || c.id, type: c.type || 'other' });
       }
@@ -3991,7 +4175,14 @@ function renderCampFilterChips() {
   });
 
   // Detect if there are birthday-eligible debtors this month (synthesized "campaign")
-  const hasBirthday = debtors.some(d => d.birthday_this_month);
+  const futureMonthNum = (() => {
+    const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const parts = (DATA.current_month||'').split(' ');
+    return parts.length ? MONS.indexOf(parts[0]) + 1 : 0;
+  })();
+  const hasBirthday = DATA.is_future_view
+    ? debtors.some(d => d.birth_month && futureMonthNum && parseInt(d.birth_month) === futureMonthNum)
+    : debtors.some(d => d.birthday_this_month);
 
   // Helper to make a chip button
   const makeChip = (id, label, isActive) => {
@@ -4039,6 +4230,7 @@ function setCampFilter(type, btn) {
 
 // ── Mark Claimed popup (for promotion type) ────────────────────────────────
 function toggleCampClaim(event, debtorCode, campId, debtorName, promoText, campType) {
+  if (blockFutureViewAction()) return;
   event.stopPropagation();
   const existing = getCampClaims(currentAgent, campId, debtorCode);
   const isFOC    = campType === 'foc_sample' || campType === 'free_sample' || campType === 'festive_gift' || campType === 'birthday_gift';
@@ -4258,6 +4450,7 @@ function toggleBdayGift(debtorCode, debtorName, event) {
 }
 
 function saveBdayGift(debtorCode, month, sent, btn) {
+  if (blockFutureViewAction()) return;
   const key = `bday_gift_${currentAgent}_${debtorCode}_${month}`;
   const noteKey = `bday_note_${currentAgent}_${debtorCode}_${month}`;
   const note = document.getElementById('bday-popup-note')?.value || '';
@@ -4325,6 +4518,7 @@ function closeBdaySheet(e) {
 }
 
 function saveBdayActual() {
+  if (blockFutureViewAction()) return;
   const val = parseInt(document.getElementById('bday-actual-input').value) || 0;
   // Save to Streamlit storage (same pattern as event)
   const key = `kpi_birthday_${currentAgent}`;
@@ -4362,6 +4556,7 @@ function closeEventSheet(e) {
 }
 
 async function saveEventCount() {
+  if (blockFutureViewAction()) return;
   const val = parseInt(document.getElementById('event-input').value) || 0;
   // Save to Streamlit storage
   const key = `kpi_event_${currentAgent}_${DATA.current_month}`;
@@ -4704,6 +4899,7 @@ const GistSync = (() => {
 
   // ── Single-claim upsert (sales_dashboard.html main path) ─────────────
   async function saveClaim(month, agent, campId, debtorCode, claimData) {
+    if (blockFutureViewAction()) return false;
     const slug  = _slug(month);
     const key   = `${agent}_${campId}_${debtorCode}`;
     const lsKey = `camp_claim_${slug}_${key}`;
@@ -4740,6 +4936,7 @@ const GistSync = (() => {
   }
 
   async function removeClaim(month, agent, campId, debtorCode) {
+    if (blockFutureViewAction()) return false;
     const slug = _slug(month);
     const key  = `${agent}_${campId}_${debtorCode}`;
     localStorage.removeItem(`camp_claim_${slug}_${key}`);
@@ -4758,6 +4955,7 @@ const GistSync = (() => {
 
   // ── Flags (per-agent bulk write) ─────────────────────────────────────
   async function saveFlags(month, agent, flags) {
+    if (blockFutureViewAction()) return false;
     const slug = _slug(month);
     localStorage.setItem(`touro_debtor_flags_${agent}`, JSON.stringify(flags));
 
@@ -4782,6 +4980,7 @@ const GistSync = (() => {
 
   // ── KPI scores (by month + agent) ────────────────────────────────────
   async function saveKPIScores(month, scores) {
+    if (blockFutureViewAction()) return false;
     const slug = _slug(month);
     localStorage.setItem(`md_scores_${slug}`, JSON.stringify(scores));
 
