@@ -1913,23 +1913,17 @@ def calc_birthday_campaign(debtor_cards, targets, cur_month=None):
     - Exclude P-Personal
     - Exclude new accounts opened this month
     - Target = total qualifying debtors (management audits agent's actual)
-    - Birthday matching uses cur_month (selected month), not today
+    - Birthday matching uses real-world today (calendar-driven, not data-driven)
     """
     log("Generating birthday campaign list...")
     today      = date.today()
     overrides, iso_month = _birthday_overrides_for_month(targets, cur_month)
 
-    # Determine which month to use for birthday matching
-    MONTH_ORDER_BD = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-    bday_month = today.month  # default to today
+    # Birthday list is calendar-driven, not data-driven. Always uses real-world
+    # today regardless of cur_month, so May 1 shows May birthdays even when no
+    # May sales data has rolled the dashboard forward yet.
+    bday_month = today.month
     bday_year  = today.year
-    if cur_month:
-        try:
-            parts = cur_month.split()
-            bday_month = MONTH_ORDER_BD.index(parts[0]) + 1
-            bday_year  = 2000 + int(parts[1])
-        except:
-            pass
     PERSONAL_TYPES = {"P-Personal","P-PERSONAL","personal","Personal","PERSONAL"}
 
     birthday_debtors = []
