@@ -110,6 +110,41 @@
       .summary-row{gap:8px;}
       .sum-card{min-width:90px;}
     }
+
+    @media print {
+      header, nav, .nav, .nav-pills, .camp-tabs, .controls, button, .login-overlay,
+      .pin-overlay, .filter-chip, .export-btn, #login-gate, #toast {
+        display: none !important;
+      }
+
+      body {
+        background: white !important;
+        color: black !important;
+      }
+
+      body.print-mode-audit * {
+        visibility: hidden !important;
+      }
+
+      body.print-mode-audit #audit-content,
+      body.print-mode-audit #audit-content * {
+        visibility: visible !important;
+        color: black !important;
+        background: white !important;
+        border-color: #ccc !important;
+      }
+
+      body.print-mode-audit #audit-content {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+      }
+
+      @page {
+        margin: 1cm;
+      }
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -192,6 +227,10 @@ window.addEventListener('DOMContentLoaded', () => {
 </div>
 
 <!-- Campaign type tabs -->
+<div style="display:flex;justify-content:flex-end;gap:6px;padding:6px 14px;background:var(--surface);border-bottom:1px solid var(--border);">
+  <button onclick="exportAuditExcel()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);border-radius:6px;color:var(--green);cursor:pointer;">📊 Export Excel</button>
+  <button onclick="exportAuditPDF()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:6px;color:var(--accent);cursor:pointer;">🖨️ Print / PDF</button>
+</div>
 <div class="camp-tabs" id="camp-tabs"></div>
 
 <!-- Bulk approve panel -->
@@ -226,6 +265,7 @@ const CAMP_LABEL = {free_sample:'FOC Sample',foc_sample:'FOC Sample',birthday_gi
 let DASH_DATA  = null;   // current month data
 let CAMP_DATA  = null;   // campaigns.json
 let activeCampId = 'ALL';
+let _lastAuditExport = null;  // populated by render functions, consumed by export
 
 // Supabase config (same as admin / sales_dashboard)
 const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
@@ -478,6 +518,30 @@ function renderAudit() {
   const rejected = records.filter(r=>r.audit?.status==='rejected').length;
   const pending  = claimed - verified - rejected;
   const pct      = total > 0 ? Math.round(claimed/total*100) : 0;
+  const rowsForExport = records.map(r => {
+    const isExcluded = r.claim.status === 'excluded';
+    const exportStatus = isExcluded ? 'excluded' : (r.audit?.status || 'pending');
+    return {
+      camp_id: r.camp.id || '',
+      camp_name: r.camp.name || r.camp.id || '',
+      debtor_code: r.debtor.debtor_code || '',
+      debtor_name: r.debtor.company_name || r.debtor.debtor_code || '',
+      agent: r.agent || '',
+      status: exportStatus,
+      claimed_at: r.claim.ts || '',
+      verified_by: r.audit?.by || r.audit?.auditor || '',
+      remark: isExcluded ? (r.claim.reason || r.claim.remark || '') : (r.claim.remark || r.audit?.reason || ''),
+    };
+  });
+
+  // Bridge: capture export state for regular audit views
+  _lastAuditExport = {
+    mode: 'audit',
+    campId: activeCampId,
+    month,
+    agent: agentSel,
+    rows: rowsForExport,
+  };
 
   document.getElementById('summary-row').innerHTML = `
     <div class="sum-card"><div class="sum-val b">${total}</div><div class="sum-lbl">Total Claims</div></div>
@@ -719,6 +783,15 @@ async function renderBirthdayDebtorList(month, agentSel) {
   const allRows = [...finalRows, ...removedRows]
     .filter(d => agentSel === 'ALL' || d.agent === agentSel)
     .sort((a, b) => (a.agent || 'ZZZ').localeCompare(b.agent || 'ZZZ') || a.status.localeCompare(b.status) || a.code.localeCompare(b.code));
+
+  // Bridge: capture export state for birthday view
+  _lastAuditExport = {
+    mode: 'birthday',
+    campId: 'BDAY_LIST',
+    month,
+    agent: agentSel,
+    rows: allRows,
+  };
 
   const autoCount = finalRows.filter(d => d.source !== 'manual').length;
   const addedCount = finalRows.filter(d => d.source === 'manual').length;
@@ -1063,6 +1136,72 @@ function exportAuditCSV() {
 }
 
 // ── Bulk Mark Delivered ────────────────────────────────────────────────────
+function exportAuditExcel() {
+  if (typeof XLSX === 'undefined') {
+    alert('Excel export library not loaded yet. Try again in a moment.');
+    return;
+  }
+  if (!_lastAuditExport || !_lastAuditExport.rows || !_lastAuditExport.rows.length) {
+    alert('No data to export. Select a campaign tab with rows.');
+    return;
+  }
+
+  const { mode, campId, month, agent, rows } = _lastAuditExport;
+  const wb = XLSX.utils.book_new();
+
+  if (mode === 'birthday') {
+    const exportRows = rows.map(d => ({
+      'Code': d.code || '',
+      'Name': d.name || '',
+      'Agent': d.agent || '',
+      'Type': d.type || '',
+      'Phone': d.phone || '',
+      'Source': d.status === 'removed' ? 'Removed' : d.source === 'manual' ? 'Manual Add' : 'Auto',
+    }));
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    ws['!cols'] = [{wch:14},{wch:35},{wch:10},{wch:16},{wch:14},{wch:14}];
+    XLSX.utils.book_append_sheet(wb, ws, `Birthday ${month||''}`.slice(0,31));
+  } else {
+    const exportRows = rows.map(r => ({
+      'Campaign': r.camp_name || r.campaign || campId || '',
+      'Code': r.debtor_code || r.code || '',
+      'Name': r.debtor_name || r.name || '',
+      'Agent': r.agent || '',
+      'Status': r.status || '',
+      'Claimed Date': r.claimed_at || r.timestamp || '',
+      'Verified By': r.verified_by || '',
+      'Remark': r.remark || '',
+    }));
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    ws['!cols'] = [{wch:30},{wch:14},{wch:30},{wch:10},{wch:12},{wch:18},{wch:14},{wch:30}];
+    let sheetName = `Audit ${campId || 'ALL'}`.replace(/[:\\\/\?\*\[\]]/g, '_');
+    if (sheetName.length > 31) sheetName = sheetName.slice(0,28) + '...';
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  }
+
+  const today = new Date().toISOString().slice(0,10);
+  const safeAgent = (agent || 'all').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const safeCamp = (campId || 'ALL').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `Audit_${safeCamp}_${safeAgent}_${today}.xlsx`;
+  XLSX.writeFile(wb, filename);
+}
+
+function exportAuditPDF() {
+  if (!_lastAuditExport || !_lastAuditExport.rows || !_lastAuditExport.rows.length) {
+    alert('No data to print. Select a campaign tab with rows.');
+    return;
+  }
+  document.body.classList.add('print-mode-audit');
+  const cleanup = () => {
+    document.body.classList.remove('print-mode-audit');
+    window.removeEventListener('afterprint', cleanup);
+  };
+  window.addEventListener('afterprint', cleanup);
+  setTimeout(() => {
+    window.print();
+  }, 50);
+}
+
 function showBulkMarkPanel() {
   const month  = document.getElementById('month-select').value;
   const camps  = (CAMP_DATA?.campaigns||[]).filter(c=>c.active);
