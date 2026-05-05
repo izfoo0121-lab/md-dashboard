@@ -1948,7 +1948,6 @@ def calc_birthday_for_month(debtor_cards, targets, bday_month_str):
     - VIP debtors only
     - has_bonus_point required
     - Exclude P-Personal
-    - Exclude is_new (new this month)
     - Apply month-keyed birthday_overrides (add/remove)
     """
     today      = date.today()
@@ -1974,7 +1973,6 @@ def calc_birthday_for_month(debtor_cards, targets, bday_month_str):
             db_type     = d.get("debtor_type", "")
             is_vip      = d.get("vip", False)
             is_personal = db_type in PERSONAL_TYPES
-            is_new      = d.get("is_new", False)
 
             # Recompute birthday match for selected month. Prefer the parsed
             # birth_month stored on debtor cards; birth_date_raw is a string and
@@ -1999,7 +1997,6 @@ def calc_birthday_for_month(debtor_cards, targets, bday_month_str):
                     and is_vip
                     and d.get("has_bonus_point", False)
                     and not is_personal
-                    and not is_new
                     and overrides.get(code) != "remove"):
                 birthday_debtors.append({
                     "code":   code,
@@ -2053,7 +2050,7 @@ def calc_birthday_campaign(debtor_cards, targets, cur_month=None):
     """
     log("Generating birthday campaign list...")
     result = calc_birthday_for_month(debtor_cards, targets, cur_month)
-    log(f"  Birthday campaign: {result['count']} VIP debtors ({result['month']}) - excl new & personal")
+    log(f"  Birthday campaign: {result['count']} VIP debtors ({result['month']}) - excl personal")
     return result
 
 
