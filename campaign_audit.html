@@ -257,7 +257,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 <script>
 const AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','YI'];
-const CAMP_EMOJI = {free_sample:'🎁',foc_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',other:'📋'};
+const CAMP_EMOJI = {free_sample:'🎁',foc_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',voucher:'🎟️',conversion_tiered:'🎯',other:'📋'};
 const CAMP_LABEL = {free_sample:'FOC Sample',foc_sample:'FOC Sample',birthday_gift:'Birthday Gift',promotion:'Brand Promo',festive_gift:'Festive Gift',other:'Other'};
 
 let DASH_DATA  = null;   // current month data
@@ -273,6 +273,36 @@ const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
 // Key format: `${agent}|${campId}|${debtorCode}`
 let CLAIMS_CACHE = {};  // value: claim row from Supabase
 let AUDIT_CACHE  = {};  // value: audit row derived from claim.status
+
+// Mirrors process_data.py's _campaign_active_in_month and the JS helper
+// already in sales_dashboard.html. Returns true if a campaign was active
+// (started before/in monthStr AND not yet ended by monthStr's start) for
+// a given month string like "May 26".
+function isCampaignActiveInMonth(camp, monthStr) {
+  if (!monthStr) return true;
+  const MONTHS_C = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const today = new Date().toISOString().slice(0, 7);
+  const start = camp.start_date || camp.created_at || '';
+  const deadline = camp.deadline || '';
+
+  // Real-world start gate: a campaign that hasn't started yet in real time
+  // shouldn't appear regardless of which month is selected.
+  if (start && start.slice(0,7) > today) return false;
+
+  // Selected month gate: campaign must have started by this month and
+  // must not have ended before the selected month begins.
+  const parts = monthStr.split(' ');
+  if (parts.length === 2) {
+    const m = MONTHS_C.indexOf(parts[0]) + 1;
+    const y = 2000 + parseInt(parts[1]);
+    if (m && y) {
+      const monthIso = `${y}-${String(m).padStart(2,'0')}`;
+      if (start && start.slice(0,7) > monthIso) return false;
+      if (deadline && deadline.slice(0,7) < monthIso) return false;
+    }
+  }
+  return true;
+}
 
 // Populate month-select with a rolling range of months.
 // Generates options from Jan 26 through (current real-world month + 6).
@@ -481,6 +511,16 @@ async function loadAuditData() {
     CAMP_DATA = await r2.json();
   } catch(e) { CAMP_DATA = null; }
 
+  // If the previously-selected campaign tab is no longer valid for this
+  // month, reset to ALL so the UI shows something rather than nothing.
+  if (activeCampId !== 'ALL' && activeCampId !== 'BDAY_LIST') {
+    const stillActive = (CAMP_DATA?.campaigns || [])
+      .some(c => c.id === activeCampId && c.active && isCampaignActiveInMonth(c, month));
+    if (!stillActive) {
+      activeCampId = 'ALL';
+    }
+  }
+
   // Pull claims + audit state from Supabase
   try {
     const rows = await fetchAllClaimsForMonth(month);
@@ -498,7 +538,10 @@ async function loadAuditData() {
 
 // ── Campaign tabs ──────────────────────────────────────────────────────────
 function buildCampTabs() {
-  const camps = CAMP_DATA?.campaigns?.filter(c => c.active && c.id !== 'birthday_gift_auto') || [];
+  const currentMonth = document.getElementById('month-select')?.value || '';
+  const camps = (CAMP_DATA?.campaigns || [])
+    .filter(c => c.active && c.id !== 'birthday_gift_auto')
+    .filter(c => isCampaignActiveInMonth(c, currentMonth));
   const tabs  = document.getElementById('camp-tabs');
   tabs.innerHTML = `<button class="camp-tab ${activeCampId==='ALL'?'active':''}" onclick="switchCamp('ALL',this)">ALL</button>`
     + `<button class="camp-tab ${activeCampId==='BDAY_LIST'?'active':''}" onclick="switchCamp('BDAY_LIST',this)">🎂 Birthday List</button>`
@@ -1096,7 +1139,7 @@ async function bulkApproveAgent(agent) {
 async function bulkApproveByCampaign() {
   const month    = document.getElementById('month-select').value;
   const statusEl = document.getElementById('bulk-approve-status');
-  const camps    = CAMP_DATA?.campaigns || [];
+  const camps    = (CAMP_DATA?.campaigns || []).filter(c => isCampaignActiveInMonth(c, month));
 
   // Build picker
   const campOptions = camps.map(c => {
@@ -1260,7 +1303,7 @@ function exportAuditPDF() {
 
 function showBulkMarkPanel() {
   const month  = document.getElementById('month-select').value;
-  const camps  = (CAMP_DATA?.campaigns||[]).filter(c=>c.active);
+  const camps  = (CAMP_DATA?.campaigns||[]).filter(c=>c.active).filter(c => isCampaignActiveInMonth(c, month));
   
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
