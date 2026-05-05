@@ -194,7 +194,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 .page>*{animation:slideUp .3s ease both;}
 #drill-view{animation:slideIn .25s ease both;}
 @media print {
-  header, nav, .nav-pills, button, .activity-nav, .filter-chip,
+  header, nav, .nav-pills, button, select, input, .activity-nav, .filter-chip,
   .login-overlay, .pin-overlay {
     display: none !important;
   }
@@ -205,30 +205,39 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
   body.print-mode-drop #dropping-debtors-list,
   body.print-mode-drop #dropping-debtors-list *,
   body.print-mode-gain #gaining-debtors-list,
-  body.print-mode-gain #gaining-debtors-list * {
+  body.print-mode-gain #gaining-debtors-list *,
+  body.print-mode-mgmt-unpurchased #unpurchased-overview-list,
+  body.print-mode-mgmt-unpurchased #unpurchased-overview-list * {
     visibility: visible;
     color: black !important;
     background: white !important;
     border-color: #ccc !important;
   }
   body.print-mode-drop > *:not(:has(#dropping-debtors-list)),
-  body.print-mode-gain > *:not(:has(#gaining-debtors-list)) {
+  body.print-mode-gain > *:not(:has(#gaining-debtors-list)),
+  body.print-mode-mgmt-unpurchased > *:not(:has(#unpurchased-overview-list)) {
     display: none !important;
   }
   body.print-mode-drop #main-app > *:not(#overview-view),
   body.print-mode-gain #main-app > *:not(#overview-view),
+  body.print-mode-mgmt-unpurchased #main-app > *:not(#overview-view),
   body.print-mode-drop #overview-view > .page > *:not(#debtor-movement-section),
   body.print-mode-gain #overview-view > .page > *:not(#debtor-movement-section),
+  body.print-mode-mgmt-unpurchased #overview-view > .page > *:not(#debtor-movement-section),
   body.print-mode-drop #debtor-movement-section > *:not(.card),
   body.print-mode-gain #debtor-movement-section > *:not(.card),
+  body.print-mode-mgmt-unpurchased #debtor-movement-section > *:not(.card),
   body.print-mode-drop #drop-export-bar,
-  body.print-mode-gain #drop-export-bar {
+  body.print-mode-gain #drop-export-bar,
+  body.print-mode-mgmt-unpurchased #drop-export-bar {
     display: none !important;
   }
   body.print-mode-drop #debtor-movement-section,
   body.print-mode-drop #debtor-movement-section .card,
   body.print-mode-gain #debtor-movement-section,
-  body.print-mode-gain #debtor-movement-section .card {
+  body.print-mode-gain #debtor-movement-section .card,
+  body.print-mode-mgmt-unpurchased #debtor-movement-section,
+  body.print-mode-mgmt-unpurchased #debtor-movement-section .card {
     display: block !important;
     width: 100% !important;
     background: white !important;
@@ -236,14 +245,18 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
   }
   body.print-mode-drop #main-app,
   body.print-mode-gain #main-app,
+  body.print-mode-mgmt-unpurchased #main-app,
   body.print-mode-drop .page,
   body.print-mode-gain .page,
+  body.print-mode-mgmt-unpurchased .page,
   body.print-mode-drop #overview-view,
   body.print-mode-gain #overview-view,
+  body.print-mode-mgmt-unpurchased #overview-view,
   body.print-mode-drop #dropping-debtors-list {
     width: 100% !important;
   }
-  body.print-mode-gain #gaining-debtors-list {
+  body.print-mode-gain #gaining-debtors-list,
+  body.print-mode-mgmt-unpurchased #unpurchased-overview-list {
     width: 100% !important;
   }
   @page { margin: 1cm; }
@@ -442,6 +455,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
       <div style="display:flex;gap:8px;padding:8px 0 12px;border-bottom:1px solid var(--border);margin-bottom:12px;">
         <button id="movement-chip-drop" onclick="setDropGainActive('drop')" class="filter-chip active" style="font-family:var(--mono);font-size:11px;padding:6px 14px;border-radius:18px;cursor:pointer;">📉 DROP</button>
         <button id="movement-chip-gain" onclick="setDropGainActive('gain')" class="filter-chip" style="font-family:var(--mono);font-size:11px;padding:6px 14px;border-radius:18px;cursor:pointer;">📈 GAIN</button>
+        <button id="movement-chip-unpurchased" onclick="setDropGainActive('unpurchased')" class="filter-chip" style="font-family:var(--mono);font-size:11px;padding:6px 14px;border-radius:18px;cursor:pointer;">🎯 未购买</button>
       </div>
 
       <div id="drop-filter-row" style="display:flex;gap:8px;padding-bottom:8px;font-size:11px;font-family:var(--mono);"></div>
@@ -455,6 +469,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
         </div>
         <div id="dropping-debtors-list"></div>
         <div id="gaining-debtors-list" style="display:none;"></div>
+        <div id="unpurchased-overview-list" style="display:none;"></div>
       </div>
     </div>
 
@@ -1832,13 +1847,69 @@ function exportGainPDF() {
 }
 
 function exportMovementExcel() {
+  if (_dropGainActive === 'unpurchased') return exportMgmtUnpurchasedExcel();
   if (_dropGainActive === 'drop') return exportDropExcel();
   return exportGainExcel();
 }
 
 function exportMovementPDF() {
+  if (_dropGainActive === 'unpurchased') return exportMgmtUnpurchasedPDF();
   if (_dropGainActive === 'drop') return exportDropPDF();
   return exportGainPDF();
+}
+
+function exportMgmtUnpurchasedExcel() {
+  if (typeof XLSX === 'undefined') { alert('Excel library not loaded.'); return; }
+  if (!_lastMgmtUnpurchasedExport?.rows?.length) {
+    alert('No unpurchased debtors to export.');
+    return;
+  }
+  const { month, brand, mode, rows } = _lastMgmtUnpurchasedExport;
+  const exportRows = rows.map(r => {
+    const d = r.debtor || {};
+    const stat = r.brandStats?.[brand] || {};
+    return {
+      'agent_name': r.agent || '',
+      'debtor_code': d.debtor_code || '',
+      'company_name': d.company_name || '',
+      'phone': d.phone || '',
+      'debtor_type': r.type || d.debtor_type || '',
+      'dm_active': d.dm_active === false ? 'N' : 'Y',
+      'brand': brand || '',
+      'brand_ctn_lookback': stat.total ?? 0,
+      'last_purchase_month': stat.lastMonth || '',
+      'months_since_last_purchase': stat.monthsSince ?? '',
+      'vip': d.vip ? 'Y' : '',
+      'address': d.address || '',
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(exportRows);
+  ws['!cols'] = [
+    {wch:10},{wch:14},{wch:35},{wch:14},{wch:18},{wch:9},
+    {wch:12},{wch:16},{wch:18},{wch:24},{wch:6},{wch:40}
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, mode === 'agent' ? 'By Agent' : 'All Combined');
+  const today = new Date().toISOString().slice(0,10);
+  const safeMonth = (month || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const safeBrand = (brand || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+  XLSX.writeFile(wb, `MD_Unpurchased_${safeBrand}_${safeMonth}_${today}.xlsx`);
+}
+
+function exportMgmtUnpurchasedPDF() {
+  if (!_lastMgmtUnpurchasedExport?.rows?.length) {
+    alert('No unpurchased debtors to print.');
+    return;
+  }
+  document.body.classList.add('print-mode-mgmt-unpurchased');
+  setTimeout(() => {
+    window.print();
+    const cleanup = () => {
+      document.body.classList.remove('print-mode-mgmt-unpurchased');
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+  }, 50);
 }
 
 function exportBrandNonbuyersExcel() {
@@ -3145,19 +3216,39 @@ function renderBrandVolumeAlert() {
 let _gainFilter    = 'all';
 let _gainSkuFilter = 'all';
 let _gainAgentFilter = new Set();
-let _dropGainActive = 'drop';  // 'drop' | 'gain'
+let _dropGainActive = 'drop';  // 'drop' | 'gain' | 'unpurchased'
 let GAINING_DEBTORS_PAGE = 0;
 let GAINING_DEBTORS_LIST = [];
 let DROPPING_DEBTORS_LIST = [];
 let _lastDropExport = null;
 let _lastGainExport = null;
+let _lastMgmtUnpurchasedExport = null;
 let _lastBrandExport = null;
 let _lastAnalyticsExport = null;
 const GAINING_DEBTORS_PER_PAGE = 12;
+const MGMT_UNPURCHASED_PAGE_SIZE = 12;
+let mgmtUnpurchasedMode = 'agent'; // 'agent' | 'combined'
+let mgmtUnpurchasedBrand = 'IFACE';
+let mgmtUnpurchasedType = 'all';
+let mgmtUnpurchasedAgent = 'all';
+let mgmtUnpurchasedSearch = '';
+let mgmtUnpurchasedCombinedPage = 1;
+let mgmtUnpurchasedExpandedAgent = '';
+let mgmtUnpurchasedAgentPages = {};
 
 const MOVEMENT_SKU_COLORS = {
   IFACE:'#1a5c8f', SUKUN:'#6b3fa0', EVO:'#c8381a',
   BISON:'#c8860a', TR20:'#2a7a4b', 'LAM+LWM':'#5a5550'
+};
+
+const MGMT_UNPURCHASED_BRAND_ITEMS = {
+  'IFACE':   ['IFACE B','IFACE DB','IFACE M','IFACE R'],
+  'SUKUN':   ['SKNR','SKNW'],
+  'EVO':     ['EVO','DPM EVO'],
+  'BISON':   ['BISON-G','BISON-M','BISON-R'],
+  'TR-002':  ['TR-002'],
+  'TR20':    ['TR20'],
+  'LAM+LWM': ['LAM','LWM'],
 };
 
 function movementChipHtml(label, active, onclick, color='var(--ink)') {
@@ -3199,23 +3290,287 @@ function renderDropSkuFilter() {
   }).join('');
 }
 
+function mgmtEsc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+
+function mgmtDebtorType(d) {
+  const t = String(d?.debtor_type || d?.type || d?.cust_type || d?.customer_type || '').trim();
+  return /^(unknown|nan|null|none)$/i.test(t) ? '' : t;
+}
+
+function mgmtIsPersonal(d) {
+  return /(^|-)personal/i.test(mgmtDebtorType(d));
+}
+
+function mgmtMonthIndex(label) {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const [mon, yy] = String(label || '').split(' ');
+  const idx = months.indexOf(mon);
+  const year = 2000 + (parseInt(yy, 10) || 0);
+  return idx < 0 ? null : year * 12 + idx;
+}
+
+function mgmtBrandPurchaseStats(d, brand) {
+  const items = MGMT_UNPURCHASED_BRAND_ITEMS[brand] || [];
+  const mb = d.month_breakdown || {};
+  const curIdx = mgmtMonthIndex((CURRENT_DATA || DATA)?.current_month || '');
+  let total = 0;
+  let lastMonth = '';
+  let lastIdx = null;
+  Object.entries(mb).forEach(([month, rows]) => {
+    (rows || []).forEach(r => {
+      if (!items.includes(r.item)) return;
+      const ctn = Number(r.ctn || 0);
+      if (ctn <= 0) return;
+      total += ctn;
+      const idx = mgmtMonthIndex(month);
+      if (idx != null && (lastIdx == null || idx > lastIdx)) {
+        lastIdx = idx;
+        lastMonth = month;
+      }
+    });
+  });
+  const monthsKnown = Math.max(4, Object.keys(mb).length || 4);
+  const monthsSince = (curIdx != null && lastIdx != null) ? Math.max(0, curIdx - lastIdx) : `${monthsKnown}+`;
+  return { total, lastMonth, monthsSince };
+}
+
+function mgmtGetAllUnpurchasedRows() {
+  const D = CURRENT_DATA || DATA;
+  const rows = [];
+  Object.entries(D?.agents || {}).forEach(([agent, block]) => {
+    const debtors = block?.debtor_cards?.debtors || [];
+    debtors.forEach(d => {
+      const type = mgmtDebtorType(d);
+      if (!type || mgmtIsPersonal(d) || d.dm_active === false) return;
+      const search = mgmtUnpurchasedSearch.trim().toLowerCase();
+      if (search &&
+          !String(d.company_name || '').toLowerCase().includes(search) &&
+          !String(d.debtor_code || '').toLowerCase().includes(search) &&
+          !String(d.phone || '').toLowerCase().includes(search)) return;
+      if (mgmtUnpurchasedAgent !== 'all' && agent !== mgmtUnpurchasedAgent) return;
+      const brandStats = {};
+      Object.keys(MGMT_UNPURCHASED_BRAND_ITEMS).forEach(brand => {
+        brandStats[brand] = mgmtBrandPurchaseStats(d, brand);
+      });
+      rows.push({ agent, type, debtor: d, brandStats });
+    });
+  });
+  return rows;
+}
+
+function mgmtCurrentUnpurchasedRows() {
+  const base = mgmtGetAllUnpurchasedRows();
+  const brandCounts = {};
+  Object.keys(MGMT_UNPURCHASED_BRAND_ITEMS).forEach(brand => {
+    brandCounts[brand] = base.filter(r => r.brandStats[brand]?.total === 0).length;
+  });
+
+  const selectedBrandRows = base.filter(r => r.brandStats[mgmtUnpurchasedBrand]?.total === 0);
+  const typeCounts = {};
+  selectedBrandRows.forEach(r => {
+    typeCounts[r.type] = (typeCounts[r.type] || 0) + 1;
+  });
+  const rows = mgmtUnpurchasedType === 'all'
+    ? selectedBrandRows
+    : selectedBrandRows.filter(r => r.type === mgmtUnpurchasedType);
+  rows.sort((a, b) => String(a.debtor.company_name || '').localeCompare(String(b.debtor.company_name || '')));
+  return { rows, brandCounts, typeCounts, selectedBrandRows };
+}
+
+function mgmtUnpurchasedCard(r, index, showAgent) {
+  const d = r.debtor;
+  const stat = r.brandStats[mgmtUnpurchasedBrand] || {};
+  return `<div style="padding:10px 12px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:${showAgent?'64px ':''}1fr 130px;gap:10px;align-items:center;">
+    ${showAgent ? `<div style="font-family:var(--display);font-size:13px;color:var(--accent);letter-spacing:.04em;">${mgmtEsc(r.agent)}</div>` : ''}
+    <div style="min-width:0;">
+      <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${index}. ${mgmtEsc(d.company_name || d.debtor_code)}</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">${mgmtEsc(d.debtor_code)} · ${mgmtEsc(r.type)}${d.phone ? ' · ' + mgmtEsc(d.phone) : ''}</div>
+    </div>
+    <div style="text-align:right;font-family:var(--mono);font-size:9px;color:var(--ink3);">
+      <div style="color:var(--accent);font-size:10px;">未购买 ${mgmtEsc(mgmtUnpurchasedBrand)}</div>
+      <div>last: ${mgmtEsc(stat.lastMonth || 'none in lookback')}</div>
+    </div>
+  </div>`;
+}
+
+function renderMgmtUnpurchasedOverview() {
+  const section = document.getElementById('debtor-movement-section');
+  const el = document.getElementById('unpurchased-overview-list');
+  if (!section || !el) return;
+  section.style.display = 'block';
+
+  const D = CURRENT_DATA || DATA;
+  const agents = Object.keys(D?.agents || {}).sort();
+  const { rows, brandCounts, typeCounts, selectedBrandRows } = mgmtCurrentUnpurchasedRows();
+  const activeAgents = new Set(rows.map(r => r.agent));
+  const brandButtons = Object.keys(MGMT_UNPURCHASED_BRAND_ITEMS).map(brand => {
+    const safe = brand.replace(/'/g, "\\'");
+    return `<button class="filter-chip ${brand === mgmtUnpurchasedBrand ? 'active' : ''}" onclick="setMgmtUnpurchasedBrand('${safe}')">${mgmtEsc(brand)} (${brandCounts[brand] || 0})</button>`;
+  }).join('');
+  const typeButtons = [
+    `<button class="filter-chip ${mgmtUnpurchasedType === 'all' ? 'active' : ''}" onclick="setMgmtUnpurchasedType('all')">ALL (${selectedBrandRows.length})</button>`,
+    ...Object.entries(typeCounts)
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([type, count]) => `<button class="filter-chip ${mgmtUnpurchasedType === type ? 'active' : ''}" onclick="setMgmtUnpurchasedType('${type.replace(/'/g, "\\'")}')">${mgmtEsc(type)} (${count})</button>`)
+  ].join('');
+  const agentOptions = ['<option value="all">All agents</option>']
+    .concat(agents.map(a => `<option value="${mgmtEsc(a)}"${mgmtUnpurchasedAgent === a ? ' selected' : ''}>${mgmtEsc(a)}</option>`))
+    .join('');
+
+  let bodyHtml = '';
+  if (mgmtUnpurchasedMode === 'combined') {
+    const totalPages = Math.max(1, Math.ceil(rows.length / MGMT_UNPURCHASED_PAGE_SIZE));
+    mgmtUnpurchasedCombinedPage = Math.min(Math.max(1, mgmtUnpurchasedCombinedPage), totalPages);
+    const start = (mgmtUnpurchasedCombinedPage - 1) * MGMT_UNPURCHASED_PAGE_SIZE;
+    const pageRows = rows.slice(start, start + MGMT_UNPURCHASED_PAGE_SIZE);
+    bodyHtml = pageRows.length
+      ? pageRows.map((r, i) => mgmtUnpurchasedCard(r, start + i + 1, true)).join('')
+      : `<div style="padding:18px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink3);">No matching debtors</div>`;
+    bodyHtml += `<div style="display:flex;justify-content:center;align-items:center;gap:10px;padding:10px 0;">
+      <button class="activity-btn" onclick="changeMgmtUnpurchasedCombinedPage(-1)" ${mgmtUnpurchasedCombinedPage <= 1 ? 'disabled' : ''}>‹ Prev</button>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">${rows.length ? start + 1 : 0}–${Math.min(start + MGMT_UNPURCHASED_PAGE_SIZE, rows.length)} of ${rows.length}</div>
+      <button class="activity-btn" onclick="changeMgmtUnpurchasedCombinedPage(1)" ${mgmtUnpurchasedCombinedPage >= totalPages ? 'disabled' : ''}>Next ›</button>
+    </div>`;
+  } else {
+    const groups = {};
+    rows.forEach(r => { (groups[r.agent] ||= []).push(r); });
+    const orderedAgents = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length || a.localeCompare(b));
+    if (!mgmtUnpurchasedExpandedAgent || !groups[mgmtUnpurchasedExpandedAgent]) {
+      mgmtUnpurchasedExpandedAgent = orderedAgents[0] || '';
+    }
+    bodyHtml = orderedAgents.length ? orderedAgents.map(agent => {
+      const groupRows = groups[agent];
+      const expanded = mgmtUnpurchasedExpandedAgent === agent;
+      const page = Math.min(Math.max(1, mgmtUnpurchasedAgentPages[agent] || 1), Math.max(1, Math.ceil(groupRows.length / MGMT_UNPURCHASED_PAGE_SIZE)));
+      mgmtUnpurchasedAgentPages[agent] = page;
+      const start = (page - 1) * MGMT_UNPURCHASED_PAGE_SIZE;
+      const pageRows = groupRows.slice(start, start + MGMT_UNPURCHASED_PAGE_SIZE);
+      const totalPages = Math.max(1, Math.ceil(groupRows.length / MGMT_UNPURCHASED_PAGE_SIZE));
+      return `<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:8px;background:var(--card);">
+        <div onclick="toggleMgmtUnpurchasedAgent('${agent.replace(/'/g, "\\'")}')" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;cursor:pointer;background:rgba(255,255,255,.03);">
+          <div style="font-family:var(--display);font-size:14px;letter-spacing:.05em;">${expanded ? '▾' : '▸'} ${mgmtEsc(agent)}</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--accent);">${groupRows.length} debtors</div>
+        </div>
+        ${expanded ? `
+          <div>${pageRows.map((r, i) => mgmtUnpurchasedCard(r, start + i + 1, false)).join('')}</div>
+          <div style="display:flex;justify-content:center;align-items:center;gap:10px;padding:10px 0;">
+            <button class="activity-btn" onclick="changeMgmtUnpurchasedAgentPage('${agent.replace(/'/g, "\\'")}',-1)" ${page <= 1 ? 'disabled' : ''}>‹ Prev</button>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">${groupRows.length ? start + 1 : 0}–${Math.min(start + MGMT_UNPURCHASED_PAGE_SIZE, groupRows.length)} of ${groupRows.length}</div>
+            <button class="activity-btn" onclick="changeMgmtUnpurchasedAgentPage('${agent.replace(/'/g, "\\'")}',1)" ${page >= totalPages ? 'disabled' : ''}>Next ›</button>
+          </div>` : ''}
+      </div>`;
+    }).join('') : `<div style="padding:18px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink3);">No matching debtors</div>`;
+  }
+
+  _lastMgmtUnpurchasedExport = {
+    month: D?.current_month || '',
+    brand: mgmtUnpurchasedBrand,
+    mode: mgmtUnpurchasedMode,
+    rows,
+  };
+
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);background:rgba(255,255,255,.04);border-left:2px solid var(--accent);padding:7px 10px;border-radius:6px;">
+        ${rows.length} 个客户从未购买 ${mgmtEsc(mgmtUnpurchasedBrand)} · 近4个月 · 不含Personal · across ${activeAgents.size} agents
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="filter-chip ${mgmtUnpurchasedMode === 'agent' ? 'active' : ''}" onclick="setMgmtUnpurchasedMode('agent')">👥 By Agent</button>
+        <button class="filter-chip ${mgmtUnpurchasedMode === 'combined' ? 'active' : ''}" onclick="setMgmtUnpurchasedMode('combined')">📋 All Combined</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">${brandButtons}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">${typeButtons}</div>
+    <div style="display:grid;grid-template-columns:minmax(120px,180px) 1fr;gap:8px;margin-bottom:10px;">
+      <select onchange="setMgmtUnpurchasedAgent(this.value)" style="font-family:var(--mono);font-size:11px;padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--ink);">${agentOptions}</select>
+      <input value="${mgmtEsc(mgmtUnpurchasedSearch)}" oninput="setMgmtUnpurchasedSearch(this.value)" placeholder="Search name / code / phone" style="font-family:var(--mono);font-size:11px;padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--ink);">
+    </div>
+    ${bodyHtml}`;
+}
+
+function setMgmtUnpurchasedMode(mode) {
+  mgmtUnpurchasedMode = mode;
+  mgmtUnpurchasedCombinedPage = 1;
+  renderMgmtUnpurchasedOverview();
+}
+
+function setMgmtUnpurchasedBrand(brand) {
+  mgmtUnpurchasedBrand = brand;
+  mgmtUnpurchasedType = 'all';
+  mgmtUnpurchasedCombinedPage = 1;
+  mgmtUnpurchasedAgentPages = {};
+  renderMgmtUnpurchasedOverview();
+}
+
+function setMgmtUnpurchasedType(type) {
+  mgmtUnpurchasedType = type;
+  mgmtUnpurchasedCombinedPage = 1;
+  mgmtUnpurchasedAgentPages = {};
+  renderMgmtUnpurchasedOverview();
+}
+
+function setMgmtUnpurchasedAgent(agent) {
+  mgmtUnpurchasedAgent = agent || 'all';
+  mgmtUnpurchasedCombinedPage = 1;
+  mgmtUnpurchasedAgentPages = {};
+  mgmtUnpurchasedExpandedAgent = '';
+  renderMgmtUnpurchasedOverview();
+}
+
+function setMgmtUnpurchasedSearch(value) {
+  mgmtUnpurchasedSearch = value || '';
+  mgmtUnpurchasedCombinedPage = 1;
+  mgmtUnpurchasedAgentPages = {};
+  renderMgmtUnpurchasedOverview();
+}
+
+function toggleMgmtUnpurchasedAgent(agent) {
+  mgmtUnpurchasedExpandedAgent = mgmtUnpurchasedExpandedAgent === agent ? '' : agent;
+  renderMgmtUnpurchasedOverview();
+}
+
+function changeMgmtUnpurchasedAgentPage(agent, dir) {
+  mgmtUnpurchasedAgentPages[agent] = (mgmtUnpurchasedAgentPages[agent] || 1) + dir;
+  renderMgmtUnpurchasedOverview();
+}
+
+function changeMgmtUnpurchasedCombinedPage(dir) {
+  mgmtUnpurchasedCombinedPage += dir;
+  renderMgmtUnpurchasedOverview();
+}
+
 function setDropGainActive(which) {
   _dropGainActive = which;
   document.getElementById('movement-chip-drop')?.classList.toggle('active', which === 'drop');
   document.getElementById('movement-chip-gain')?.classList.toggle('active', which === 'gain');
+  document.getElementById('movement-chip-unpurchased')?.classList.toggle('active', which === 'unpurchased');
   const dropList = document.getElementById('dropping-debtors-list');
   const gainList = document.getElementById('gaining-debtors-list');
+  const unpList = document.getElementById('unpurchased-overview-list');
+  const filterRow = document.getElementById('drop-filter-row');
+  const agentRow = document.getElementById('drop-agent-list');
+  const skuRow = document.getElementById('drop-sku-filter-row');
   if (dropList) dropList.style.display = (which === 'drop') ? 'block' : 'none';
   if (gainList) gainList.style.display = (which === 'gain') ? 'block' : 'none';
+  if (unpList) unpList.style.display = (which === 'unpurchased') ? 'block' : 'none';
+  if (filterRow) filterRow.style.display = (which === 'unpurchased') ? 'none' : 'flex';
+  if (agentRow) agentRow.style.display = (which === 'unpurchased') ? 'none' : 'flex';
+  if (skuRow) skuRow.style.display = (which === 'unpurchased') ? 'none' : 'flex';
   if (which === 'drop') {
     renderDropFilterRow();
     renderDropAgentList();
     renderDropSkuFilter();
     renderDroppingDebtors();
-  } else {
+  } else if (which === 'gain') {
     renderGainFilterRow();
     renderGainAgentList();
     renderGainingDebtors();
+  } else {
+    renderMgmtUnpurchasedOverview();
   }
 }
 
