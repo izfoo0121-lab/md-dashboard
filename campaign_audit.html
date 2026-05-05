@@ -175,6 +175,7 @@ function auditLogin() {
   if (AUDIT_PASSWORDS.includes(pw)) {
     document.getElementById('login-gate').style.display = 'none';
     sessionStorage.setItem('audit_auth', '1');
+    if (typeof populateAuditMonthDropdown === 'function') populateAuditMonthDropdown();
     loadAuditData();
   } else {
     document.getElementById('audit-pw-err').style.display = 'block';
@@ -187,6 +188,7 @@ function auditLogin() {
 window.addEventListener('DOMContentLoaded', () => {
   if (sessionStorage.getItem('audit_auth') === '1') {
     document.getElementById('login-gate').style.display = 'none';
+    if (typeof populateAuditMonthDropdown === 'function') populateAuditMonthDropdown();
     loadAuditData();
   } else {
     setTimeout(() => document.getElementById('audit-pw')?.focus(), 100);
@@ -212,10 +214,6 @@ window.addEventListener('DOMContentLoaded', () => {
 <div class="controls">
   <span class="ctrl-label">Month:</span>
   <select id="month-select" onchange="loadAuditData()">
-    <option value="Jan 26">Jan 26</option>
-    <option value="Feb 26">Feb 26</option>
-    <option value="Mar 26">Mar 26</option>
-    <option value="Apr 26" selected>Apr 26</option>
   </select>
   <span class="ctrl-label">Agent:</span>
   <select id="agent-select" onchange="renderAudit()">
@@ -275,6 +273,49 @@ const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
 // Key format: `${agent}|${campId}|${debtorCode}`
 let CLAIMS_CACHE = {};  // value: claim row from Supabase
 let AUDIT_CACHE  = {};  // value: audit row derived from claim.status
+
+// Populate month-select with a rolling range of months.
+// Generates options from Jan 26 through (current real-world month + 6).
+// Default-selects current real-world month if available, otherwise latest.
+// Mirrors the admin.html pattern (commit 738a40a / 5cfadda).
+function populateAuditMonthDropdown() {
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const START_YEAR = 2026;
+  const START_MONTH = 0;
+  const FUTURE_BUFFER = 6;
+
+  const today = new Date();
+  const tYear = today.getFullYear();
+  const tMonth = today.getMonth();
+
+  const opts = [];
+  let y = START_YEAR, m = START_MONTH;
+  while (y < tYear || (y === tYear && m <= tMonth + FUTURE_BUFFER)) {
+    opts.push(`${MONTHS[m]} ${String(y).slice(-2)}`);
+    m++;
+    if (m > 11) { m = 0; y++; }
+    if (opts.length > 200) break;
+  }
+
+  const todayLabel = `${MONTHS[tMonth]} ${String(tYear).slice(-2)}`;
+  const defaultSel = opts.includes(todayLabel) ? todayLabel : opts[opts.length - 1];
+
+  const el = document.getElementById('month-select');
+  if (!el) return;
+  const previouslySelected = el.value;
+  el.innerHTML = opts.map(o =>
+    `<option value="${o}"${o === defaultSel ? ' selected' : ''}>${o}</option>`
+  ).join('');
+  if (previouslySelected && opts.includes(previouslySelected)) {
+    el.value = previouslySelected;
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', populateAuditMonthDropdown);
+} else {
+  populateAuditMonthDropdown();
+}
 
 // ── Supabase fetch helpers ─────────────────────────────────────────────────
 async function fetchAllClaimsForMonth(month) {
