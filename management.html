@@ -2597,7 +2597,14 @@ function renderCampaignsMgmt() {
   function getCampaignPool(camp) {
     const isBday = camp.type === 'birthday_gift' || camp.id === 'birthday_gift_auto';
     if (isBday) {
-      return (DATA?.birthday_campaign?.debtors || []).map(d => ({
+      const D = CURRENT_DATA || DATA || {};
+      const month = D.current_month || DATA?.current_month || '';
+      const bdayRows = D?.birthday_by_month?.[month]?.debtors
+                    || D?.birthday_campaign?.debtors
+                    || DATA?.birthday_by_month?.[month]?.debtors
+                    || DATA?.birthday_campaign?.debtors
+                    || [];
+      return bdayRows.map(d => ({
         agent: d.agent,
         code:  (d.code || d.debtor_code || '').toUpperCase(),
         name:  d.name || d.company_name || d.code || '',

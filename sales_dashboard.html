@@ -1631,11 +1631,28 @@ function getDebtorType(d) {
   return /^(unknown|nan|null|none)$/i.test(t) ? '' : t;
 }
 
-function realWorldBirthdayMonthNum() {
-  return new Date().getMonth() + 1;
+function birthdayMonthNumFromLabel(monthLabel) {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const mon = String(monthLabel || '').split(' ')[0];
+  const idx = months.indexOf(mon);
+  return idx >= 0 ? idx + 1 : new Date().getMonth() + 1;
 }
 
-function isBirthdayGiftEligible(d, monthNum = realWorldBirthdayMonthNum()) {
+function selectedBirthdayMonthNum() {
+  return birthdayMonthNumFromLabel(DATA?.current_month || '');
+}
+
+function selectedBirthdayMonthKey() {
+  const label = DATA?.current_month || '';
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const [mon, yr] = label.split(' ');
+  const idx = months.indexOf(mon);
+  if (idx >= 0 && yr) return `${2000 + parseInt(yr, 10)}${String(idx + 1).padStart(2,'0')}`;
+  const now = new Date();
+  return `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}`;
+}
+
+function isBirthdayGiftEligible(d, monthNum = selectedBirthdayMonthNum()) {
   const type = getDebtorType(d);
   return !!type
     && !/(^|-)personal/i.test(type)
@@ -2431,8 +2448,7 @@ function renderDebtorCard(d, runNo) {
       d.is_new          ? `<span class="status-inline" style="background:rgba(77,166,255,.15);color:var(--blue)">🆕 New</span>` : '',
       (() => {
         if (!isBirthdayGiftEligible(d)) return '';
-        const now = new Date();
-        const bdayMonthKey = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}`;
+        const bdayMonthKey = selectedBirthdayMonthKey();
         const bdayKey = `bday_gift_${currentAgent}_${d.debtor_code}_${bdayMonthKey}`;
         const giftSent = localStorage.getItem(bdayKey) === '1';
         const BDAY_MTHS = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -4088,9 +4104,7 @@ function renderCamps() {
         return true;
       });
       if (agentBdayDebtors.length) {
-        const BDAY_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        const now = new Date();
-        const selMonth = `${BDAY_MONTHS[now.getMonth()]} ${String(now.getFullYear()).slice(-2)}`;
+        const selMonth = DATA.current_month || '';
         if (!campMap[bdayId]) campMap[bdayId] = {
           id: bdayId,
           name: '🎂 Birthday Gift — ' + selMonth,
