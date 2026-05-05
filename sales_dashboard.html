@@ -1631,6 +1631,19 @@ function getDebtorType(d) {
   return /^(unknown|nan|null|none)$/i.test(t) ? '' : t;
 }
 
+function realWorldBirthdayMonthNum() {
+  return new Date().getMonth() + 1;
+}
+
+function isBirthdayGiftEligible(d, monthNum = realWorldBirthdayMonthNum()) {
+  const type = getDebtorType(d);
+  return !!type
+    && !/(^|-)personal/i.test(type)
+    && d.vip === true
+    && d.has_bonus_point === true
+    && parseInt(d.birth_month || 0, 10) === monthNum;
+}
+
 function monthRows(d, monthKey) {
   return (d.month_breakdown || {})[monthKey] || [];
 }
@@ -2417,12 +2430,10 @@ function renderDebtorCard(d, runNo) {
       d.vip             ? `<span class="status-inline" style="background:rgba(240,192,64,.2);color:var(--accent)">⭐ VIP</span>` : '',
       d.is_new          ? `<span class="status-inline" style="background:rgba(77,166,255,.15);color:var(--blue)">🆕 New</span>` : '',
       (() => {
-        const selM = DATA?.current_month || '';
-        const MTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        const selMNum = MTHS.indexOf((selM.split(' ')[0]||'')) + 1;
-        const showBday = selMNum > 0 ? (d.birth_month === selMNum) : d.birthday_this_month;
-        if (!showBday) return '';
-        const bdayKey = `bday_gift_${currentAgent}_${d.debtor_code}_${(DATA?.current_month||'').replace(' ','')}`;
+        if (!isBirthdayGiftEligible(d)) return '';
+        const now = new Date();
+        const bdayMonthKey = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}`;
+        const bdayKey = `bday_gift_${currentAgent}_${d.debtor_code}_${bdayMonthKey}`;
         const giftSent = localStorage.getItem(bdayKey) === '1';
         const BDAY_MTHS = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         const bdayLabel = d.birth_day ? `${String(d.birth_day).padStart(2,'0')} ${BDAY_MTHS[d.birth_month]||''}` : '';
@@ -2693,12 +2704,7 @@ function renderDebtors() {
     if (filters.special === 'vip'      && !d.vip)                return false;
     if (filters.special === 'new'      && !d.is_new)             return false;
     if (filters.special === 'birthday') {
-      // Match birth_month to the selected month in DATA (not today)
-      const selMonth = DATA?.current_month || '';
-      const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      const selMonthNum = MONTHS.indexOf((selMonth.split(' ')[0]||'')) + 1;
-      const matchBday = selMonthNum > 0 ? (d.birth_month === selMonthNum) : d.birthday_this_month;
-      if (!matchBday) return false;
+      if (!isBirthdayGiftEligible(d)) return false;
     }
     if (filters.special === 'drop'     && !d.volume_drop_pct)    return false;
     if (filters.special === 'gain' && !((d.ctn_cur || 0) > (d.ctn_prev1 || 0))) return false;
@@ -2790,8 +2796,7 @@ function renderDebtors() {
     if (filters.special === 'vip'  && !d.vip)    continue;
     if (filters.special === 'new'  && !d.is_new) continue;
     if (filters.special === 'birthday') {
-      const matchBday = _selMonthNum > 0 ? (d.birth_month === _selMonthNum) : d.birthday_this_month;
-      if (!matchBday) continue;
+      if (!isBirthdayGiftEligible(d)) continue;
     }
     if (filters.special === 'drop'    && !d.volume_drop_pct) continue;
     if (filters.special === 'gain'    && !((d.ctn_cur || 0) > (d.ctn_prev1 || 0))) continue;
@@ -4068,42 +4073,24 @@ function renderCamps() {
     const bdayCamp = DATA.birthday_campaign;
     if (bdayCamp) {
       const bdayId = 'birthday_gift_auto';
-      // Filter by agent AND re-verify birth_month matches selected month
-      const selMonthNum = (() => {
-        const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        const parts = (DATA.current_month||'').split(' ');
-        return parts.length ? MONS.indexOf(parts[0]) + 1 : 0;
-      })();
-      const bdaySourceRows = DATA.is_future_view
-        ? debtors
-            .filter(d => {
-              const t = d.debtor_type || '';
-              const isPersonal = ['P-Personal','P-PERSONAL','personal','Personal','PERSONAL'].includes(t);
-              return d.birth_month
-                && selMonthNum
-                && parseInt(d.birth_month) === selMonthNum
-                && d.vip
-                && d.has_bonus_point
-                && !isPersonal
-                && !d.is_new;
-            })
-            .map(d => ({
-              code: d.debtor_code,
-              name: d.company_name,
-              agent: currentAgent,
-              type: d.debtor_type,
-              phone: d.phone,
-            }))
-        : (bdayCamp.debtors || []);
+      const bdaySourceRows = debtors
+        .filter(d => isBirthdayGiftEligible(d))
+        .map(d => ({
+          code: d.debtor_code,
+          name: d.company_name,
+          agent: currentAgent,
+          type: d.debtor_type,
+          phone: d.phone,
+          birth_month: d.birth_month,
+        }));
       const agentBdayDebtors = bdaySourceRows.filter(d => {
         if (d.agent !== currentAgent) return false;
-        // Re-verify birth_month matches selected month if available
-        if (d.birth_month && selMonthNum) return parseInt(d.birth_month) === selMonthNum;
-        return true; // fallback: trust the list
+        return true;
       });
       if (agentBdayDebtors.length) {
-        // Use selected month label, not bdayCamp.month (which may be from different run)
-        const selMonth = DATA.current_month || bdayCamp.month || 'This Month';
+        const BDAY_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const now = new Date();
+        const selMonth = `${BDAY_MONTHS[now.getMonth()]} ${String(now.getFullYear()).slice(-2)}`;
         if (!campMap[bdayId]) campMap[bdayId] = {
           id: bdayId,
           name: '🎂 Birthday Gift — ' + selMonth,
@@ -4537,15 +4524,8 @@ function renderCampFilterChips() {
     });
   });
 
-  // Detect if there are birthday-eligible debtors this month (synthesized "campaign")
-  const futureMonthNum = (() => {
-    const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const parts = (DATA.current_month||'').split(' ');
-    return parts.length ? MONS.indexOf(parts[0]) + 1 : 0;
-  })();
-  const hasBirthday = DATA.is_future_view
-    ? debtors.some(d => d.birth_month && futureMonthNum && parseInt(d.birth_month) === futureMonthNum)
-    : debtors.some(d => d.birthday_this_month);
+  // Detect real-world birthday-eligible debtors (synthesized "campaign")
+  const hasBirthday = debtors.some(d => isBirthdayGiftEligible(d));
 
   // Helper to make a chip button
   const makeChip = (id, label, isActive) => {
@@ -4785,7 +4765,8 @@ function unableReasonLabel(reasonValue) {
 
 function toggleBdayGift(debtorCode, debtorName, event) {
   event.stopPropagation();
-  const month = (DATA?.current_month||'').replace(' ','');
+  const now = new Date();
+  const month = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}`;
   const key = `bday_gift_${currentAgent}_${debtorCode}_${month}`;
   const noteKey = `bday_note_${currentAgent}_${debtorCode}_${month}`;
   const alreadySent = localStorage.getItem(key) === '1';
