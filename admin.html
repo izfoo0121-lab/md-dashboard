@@ -1581,6 +1581,7 @@ function addAgent() {
     sales_progression: {},
     brand_commission: bc,
     kpi_targets: {},
+    campaign_targets: {},
     kpi_overrides: {},
   };
   input.value = '';
@@ -2745,6 +2746,7 @@ async function saveAllToSupabase() {
     sales_progression: cfg.sales_progression || null,
     brand_commission: cfg.brand_commission || null,
     kpi_targets: cfg.kpi_targets || null,
+    campaign_targets: cfg.campaign_targets || {},
     kpi_auto_base: cfg.kpi_auto_base || null,
     newbie_tiers: cfg.newbie_tiers || null,
     newbie_account_tiers: cfg.newbie_account_tiers || null,
@@ -2937,7 +2939,7 @@ async function loadConfigFromSupabase() {
     cfg.agents = {};
     agents.forEach(r => {
       const c = { is_newbie: r.is_newbie, active: r.active, is_new_this_month: r.is_new_this_month };
-      ['sales_progression', 'brand_commission', 'kpi_targets', 'kpi_auto_base',
+      ['sales_progression', 'brand_commission', 'kpi_targets', 'campaign_targets', 'kpi_auto_base',
        'newbie_tiers', 'newbie_account_tiers'].forEach(k => {
         if (r[k] !== null && r[k] !== undefined) c[k] = r[k];
       });
@@ -3069,7 +3071,7 @@ function importExcel(input) {
           if (!CONFIG.agents[agent]) {
             const bc = {};
             BRANDS_LIST.forEach(b => { bc[b] = {penetration_target:0,ctn_target:0}; });
-            CONFIG.agents[agent] = {is_newbie:false,active:true,sales_progression:{},brand_commission:bc,kpi_targets:{},kpi_overrides:{}};
+            CONFIG.agents[agent] = {is_newbie:false,active:true,sales_progression:{},brand_commission:bc,kpi_targets:{},campaign_targets:{},kpi_overrides:{}};
           }
           // Columns: 0=Agent, 1=T1, 2=T2, 3=GA, 4=MA,
           //          5=iFACE Pen, 6=iFACE CTN, 7=SUKUN Pen, 8=SUKUN CTN,
@@ -5689,6 +5691,7 @@ function confirmArchive() {
       sales_progression: JSON.parse(JSON.stringify(old.sales_progression || {})),
       brand_commission:  JSON.parse(JSON.stringify(old.brand_commission  || {})),
       kpi_targets:       JSON.parse(JSON.stringify(old.kpi_targets       || {})),
+      campaign_targets:  JSON.parse(JSON.stringify(old.campaign_targets  || {})),
       kpi_overrides:     {},
     };
   } else {

@@ -339,6 +339,7 @@ def merge_agent_config(targets, cur_month, agent):
 
     For JSONB fields (sales_progression, brand_commission, kpi_targets, kpi_overrides),
     merges at one level deep: general + monthly → monthly wins on collision.
+    campaign_targets is intentionally agent-scoped only, so it stays on general config.
 
     Returns merged dict that can be used as ag_cfg/ag_tgts.
     """
@@ -2597,6 +2598,7 @@ def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_cam
         # Also check current agents for manual scores (kpi_manual is not stored monthly)
         ag_cfg_current = targets.get("agents", {}).get(agent, {})
         kpi_tgts = ag_cfg.get("kpi_targets", {})
+        camp_tgts = ag_cfg.get("campaign_targets", {})
         manual   = ag_cfg_current.get("kpi_manual", {})
         kpi_config["_birthday_camp"] = birthday_camp or {}
 

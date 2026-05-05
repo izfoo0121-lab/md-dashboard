@@ -60,7 +60,7 @@ def load_targets_from_supabase():
                 "is_new_this_month": r.get("is_new_this_month", False),
             }
             # Include non-null JSONB fields
-            for k in ["sales_progression", "brand_commission", "kpi_targets",
+            for k in ["sales_progression", "brand_commission", "kpi_targets", "campaign_targets",
                       "kpi_auto_base", "newbie_tiers", "newbie_account_tiers"]:
                 if r.get(k) is not None:
                     cfg[k] = r[k]
@@ -194,6 +194,7 @@ def sync_to_supabase(targets):
                 "sales_progression": cfg.get("sales_progression"),
                 "brand_commission": cfg.get("brand_commission"),
                 "kpi_targets": cfg.get("kpi_targets"),
+                "campaign_targets": cfg.get("campaign_targets") or {},
                 "kpi_auto_base": cfg.get("kpi_auto_base"),
                 "newbie_tiers": cfg.get("newbie_tiers"),
                 "newbie_account_tiers": cfg.get("newbie_account_tiers"),
