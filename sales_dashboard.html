@@ -896,6 +896,8 @@ let currentView = 'debtors';
 let filters = { status: 'all', special: null, pending_activation: null, type: 'all', brand: 'all' };
 let currentPage = 1;
 const PAGE_SIZE = 12;
+let unpurchasedPage = 1;
+let nonvipPage = 1;
 let dropCtnFilter = 'all';
 let dropSkuFilter = 'all';
 let gainCtnFilter = 'all';
@@ -1585,6 +1587,8 @@ function setFilter(type, val, el) {
 function setSpecialFilter(val, el) {
   const wasActive = el.classList.contains('active');
   document.querySelectorAll('#special-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
+  unpurchasedPage = 1;
+  nonvipPage = 1;
   if (wasActive) {
     filters.special = null;
   } else {
@@ -1616,7 +1620,12 @@ function setTypeFilter(val, el) {
   renderDebtors();
 }
 function isPersonalDebtor(d) {
-  return /(^|-)personal/i.test(d.debtor_type || '');
+  return /(^|-)personal/i.test(getDebtorType(d));
+}
+
+function getDebtorType(d) {
+  const t = String(d?.debtor_type || d?.type || d?.cust_type || d?.customer_type || '').trim();
+  return /^(unknown|nan|null|none)$/i.test(t) ? '' : t;
 }
 
 function monthRows(d, monthKey) {
@@ -1910,7 +1919,8 @@ function renderGainMode(debtors) {
 function renderUnpurchasedMode(debtors) {
   const PERSONAL = ['P-Personal','P-PERSONAL','personal','Personal','PERSONAL'];
   const eligible = debtors.filter(d =>
-    !PERSONAL.some(p => (d.debtor_type || '').includes(p)) &&
+    getDebtorType(d) &&
+    !PERSONAL.some(p => getDebtorType(d).includes(p)) &&
     d.dm_active !== false
   );
 
@@ -1938,7 +1948,7 @@ function renderUnpurchasedMode(debtors) {
   const selectedDebtors = brandNeverBought[unpurchasedBrandFilter] || [];
   const typeCounts = {};
   selectedDebtors.forEach(d => {
-    const t = d.debtor_type || 'Unknown';
+    const t = getDebtorType(d) || 'No Type';
     typeCounts[t] = (typeCounts[t] || 0) + 1;
   });
 
@@ -1957,24 +1967,33 @@ function renderUnpurchasedMode(debtors) {
 
   const shown = unpurchasedTypeFilter === 'all'
     ? selectedDebtors
-    : selectedDebtors.filter(d => d.debtor_type === unpurchasedTypeFilter);
+    : selectedDebtors.filter(d => (getDebtorType(d) || 'No Type') === unpurchasedTypeFilter);
 
   shown.sort((a, b) => (a.company_name || '').localeCompare(b.company_name || ''));
+  const totalShown = shown.length;
+  const pages = Math.max(1, Math.ceil(totalShown / PAGE_SIZE));
+  unpurchasedPage = Math.min(Math.max(1, unpurchasedPage), pages);
+  const start = (unpurchasedPage - 1) * PAGE_SIZE;
+  const pageItems = shown.slice(start, start + PAGE_SIZE);
+  const startDisplay = totalShown ? start + 1 : 0;
+  const endDisplay = Math.min(start + PAGE_SIZE, totalShown);
 
   // Bridge: capture export state for exportUnpurchasedExcel
   _lastUnpurchasedExport = {
     agent: currentAgent,
     brand: unpurchasedBrandFilter,
-    debtors: selectedDebtors,
+    debtors: shown,
   };
 
-  const debtorHtml = shown.length
-    ? shown.map((d, idx) => renderDebtorCard(d, idx + 1)).join('')
+  const debtorHtml = pageItems.length
+    ? pageItems.map((d, idx) => renderDebtorCard(d, start + idx + 1)).join('')
     : `<div class="empty-state">No debtors for ${unpurchasedBrandFilter}</div>`;
 
-  document.getElementById('page-info').textContent = `1-${shown.length} of ${selectedDebtors.length}`;
-  document.getElementById('btn-prev').disabled = true;
-  document.getElementById('btn-next').disabled = true;
+  document.getElementById('page-info').textContent = `${startDisplay}–${endDisplay} of ${totalShown}`;
+  document.getElementById('btn-prev').disabled = unpurchasedPage <= 1;
+  document.getElementById('btn-next').disabled = unpurchasedPage >= pages;
+  document.getElementById('btn-prev').onclick = () => changeUnpurchasedPage(-1);
+  document.getElementById('btn-next').onclick = () => changeUnpurchasedPage(1);
 
   document.getElementById('debtor-list').innerHTML = `
     <div style="display:flex;gap:6px;margin-bottom:10px;justify-content:flex-end;">
@@ -2002,12 +2021,20 @@ function renderUnpurchasedMode(debtors) {
 function setUnpurchasedBrand(brand, el) {
   unpurchasedBrandFilter = brand;
   unpurchasedTypeFilter  = 'all';
+  unpurchasedPage = 1;
   const debtors = DATA?.agents?.[currentAgent]?.debtor_cards?.debtors || [];
   renderUnpurchasedMode(debtors);
 }
 
 function setUnpurchasedType(type, el) {
   unpurchasedTypeFilter = type;
+  unpurchasedPage = 1;
+  const debtors = DATA?.agents?.[currentAgent]?.debtor_cards?.debtors || [];
+  renderUnpurchasedMode(debtors);
+}
+
+function changeUnpurchasedPage(dir) {
+  unpurchasedPage += dir;
   const debtors = DATA?.agents?.[currentAgent]?.debtor_cards?.debtors || [];
   renderUnpurchasedMode(debtors);
 }
@@ -2151,7 +2178,8 @@ function renderNonVipMode(debtors) {
   const PERSONAL = ['P-Personal','P-PERSONAL','personal','Personal','PERSONAL'];
   const eligible = debtors.filter(d =>
     !d.vip &&
-    !PERSONAL.some(p => (d.debtor_type || '').includes(p)) &&
+    getDebtorType(d) &&
+    !PERSONAL.some(p => getDebtorType(d).includes(p)) &&
     d.dm_active !== false
   );
 
@@ -2163,7 +2191,7 @@ function renderNonVipMode(debtors) {
 
   const typeCounts = {};
   eligible.forEach(d => {
-    const t = d.debtor_type || 'Unknown';
+    const t = getDebtorType(d) || 'No Type';
     typeCounts[t] = (typeCounts[t] || 0) + 1;
   });
 
@@ -2182,15 +2210,25 @@ function renderNonVipMode(debtors) {
 
   const shown = nonvipTypeFilter === 'all'
     ? eligible
-    : eligible.filter(d => d.debtor_type === nonvipTypeFilter);
+    : eligible.filter(d => (getDebtorType(d) || 'No Type') === nonvipTypeFilter);
 
-  const debtorHtml = shown.length
-    ? shown.map((d, idx) => renderDebtorCard(d, idx + 1)).join('')
+  const totalShown = shown.length;
+  const pages = Math.max(1, Math.ceil(totalShown / PAGE_SIZE));
+  nonvipPage = Math.min(Math.max(1, nonvipPage), pages);
+  const start = (nonvipPage - 1) * PAGE_SIZE;
+  const pageItems = shown.slice(start, start + PAGE_SIZE);
+  const startDisplay = totalShown ? start + 1 : 0;
+  const endDisplay = Math.min(start + PAGE_SIZE, totalShown);
+
+  const debtorHtml = pageItems.length
+    ? pageItems.map((d, idx) => renderDebtorCard(d, start + idx + 1)).join('')
     : `<div class="empty-state">No non-VIP debtors</div>`;
 
-  document.getElementById('page-info').textContent = `1-${shown.length} of ${eligible.length}`;
-  document.getElementById('btn-prev').disabled = true;
-  document.getElementById('btn-next').disabled = true;
+  document.getElementById('page-info').textContent = `${startDisplay}–${endDisplay} of ${totalShown}`;
+  document.getElementById('btn-prev').disabled = nonvipPage <= 1;
+  document.getElementById('btn-next').disabled = nonvipPage >= pages;
+  document.getElementById('btn-prev').onclick = () => changeNonVipPage(-1);
+  document.getElementById('btn-next').onclick = () => changeNonVipPage(1);
 
   document.getElementById('debtor-list').innerHTML = `
     <div style="margin-bottom:10px;">
@@ -2207,6 +2245,13 @@ function renderNonVipMode(debtors) {
 
 function setNonVipType(type, el) {
   nonvipTypeFilter = type;
+  nonvipPage = 1;
+  const debtors = DATA?.agents?.[currentAgent]?.debtor_cards?.debtors || [];
+  renderNonVipMode(debtors);
+}
+
+function changeNonVipPage(dir) {
+  nonvipPage += dir;
   const debtors = DATA?.agents?.[currentAgent]?.debtor_cards?.debtors || [];
   renderNonVipMode(debtors);
 }
@@ -2656,7 +2701,7 @@ function renderDebtors() {
     if (filters.special === 'gain' && !((d.ctn_cur || 0) > (d.ctn_prev1 || 0))) return false;
     if (filters.special === 'newsku'   && !(d.new_sku_count > 0)) return false;
     if (filters.special === 'flagged'   && !getFlag(currentAgent, d.debtor_code)) return false;
-    if (filters.special === 'campaign'  && !(d.campaigns||[]).length) return false;
+    if (filters.special === 'campaign'  && (!(d.campaigns||[]).length || !getDebtorType(d))) return false;
     if (filters.special === 'overdue'   && !d.has_overdue) return false;
     if (filters.special === 'neartarget') {
       // Has bought something this month but not yet hit any campaign threshold
@@ -2749,7 +2794,7 @@ function renderDebtors() {
     if (filters.special === 'gain'    && !((d.ctn_cur || 0) > (d.ctn_prev1 || 0))) continue;
     if (filters.special === 'newsku'  && !(d.new_sku_count > 0)) continue;
     if (filters.special === 'flagged' && !getFlag(currentAgent, d.debtor_code)) continue;
-    if (filters.special === 'campaign' && !(d.campaigns||[]).length) continue;
+    if (filters.special === 'campaign' && (!(d.campaigns||[]).length || !getDebtorType(d))) continue;
     if (filters.special === 'overdue' && !d.has_overdue) continue;
     if (filters.special === 'neartarget') {
       const camps = d.campaigns || [];
@@ -2783,6 +2828,8 @@ function renderDebtors() {
   document.getElementById('page-info').textContent  = `${start+1}–${Math.min(start+PAGE_SIZE,totalF)} of ${totalF}`;
   document.getElementById('btn-prev').disabled = currentPage <= 1;
   document.getElementById('btn-next').disabled = currentPage >= pages;
+  document.getElementById('btn-prev').onclick = () => changePage(-1);
+  document.getElementById('btn-next').onclick = () => changePage(1);
 
   // Render cards
   const html = items.map((d, idx) => renderDebtorCard(d, start + idx + 1)).join('');
