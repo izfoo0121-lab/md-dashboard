@@ -92,7 +92,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 .activity-pill.al{background:var(--green-bg);color:var(--green);}
 .activity-pill.mc{background:var(--gold-bg);color:var(--gold);}
 .activity-pill.off{background:var(--blue-bg);color:var(--blue);}
-.activity-pill.ph{background:#e7e2d9;color:var(--ink3);}
 .activity-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-family:var(--mono);font-size:9px;color:var(--ink3);}
 /* Debtor summary table */
 .dt-wrap{min-width:340px;}
@@ -194,6 +193,61 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 @keyframes slideIn{from{opacity:0;transform:translateX(16px);}to{opacity:1;transform:translateX(0);}}
 .page>*{animation:slideUp .3s ease both;}
 #drill-view{animation:slideIn .25s ease both;}
+@media print {
+  header, nav, .nav-pills, button, .activity-nav, .filter-chip,
+  .login-overlay, .pin-overlay {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  body.print-mode-drop #dropping-debtors-list,
+  body.print-mode-drop #dropping-debtors-list *,
+  body.print-mode-gain #gaining-debtors-list,
+  body.print-mode-gain #gaining-debtors-list * {
+    visibility: visible;
+    color: black !important;
+    background: white !important;
+    border-color: #ccc !important;
+  }
+  body.print-mode-drop > *:not(:has(#dropping-debtors-list)),
+  body.print-mode-gain > *:not(:has(#gaining-debtors-list)) {
+    display: none !important;
+  }
+  body.print-mode-drop #main-app > *:not(#overview-view),
+  body.print-mode-gain #main-app > *:not(#overview-view),
+  body.print-mode-drop #overview-view > .page > *:not(#dropping-debtors-section),
+  body.print-mode-gain #overview-view > .page > *:not(#gaining-debtors-section),
+  body.print-mode-drop #dropping-debtors-section > *:not(.card),
+  body.print-mode-gain #gaining-debtors-section > *:not(.card),
+  body.print-mode-drop #drop-export-bar,
+  body.print-mode-gain #gain-export-bar {
+    display: none !important;
+  }
+  body.print-mode-drop #dropping-debtors-section,
+  body.print-mode-drop #dropping-debtors-section .card,
+  body.print-mode-gain #gaining-debtors-section,
+  body.print-mode-gain #gaining-debtors-section .card {
+    display: block !important;
+    width: 100% !important;
+    background: white !important;
+    border: none !important;
+  }
+  body.print-mode-drop #main-app,
+  body.print-mode-gain #main-app,
+  body.print-mode-drop .page,
+  body.print-mode-gain .page,
+  body.print-mode-drop #overview-view,
+  body.print-mode-gain #overview-view,
+  body.print-mode-drop #dropping-debtors-list {
+    width: 100% !important;
+  }
+  body.print-mode-gain #gaining-debtors-list {
+    width: 100% !important;
+  }
+  @page { margin: 1cm; }
+}
 </style>
 </head>
 <body>
@@ -360,6 +414,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
       <span style="color:var(--green)">✓ Hit target</span>
     </div>
     <div class="card" style="overflow-x:auto;padding:0;">
+      <div id="brand-export-bar" style="display:flex;justify-content:flex-end;gap:6px;margin:8px 0;padding:0 10px;">
+        <button onclick="exportBrandNonbuyersExcel()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);border-radius:6px;color:var(--green);cursor:pointer;">📊 Export Excel</button>
+      </div>
       <div id="brand-sku-status" style="min-width:700px;"></div>
     </div>
 
@@ -406,8 +463,20 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
         <button onclick="setDropFilter('stopped',this)" class="lb-btn" style="border-radius:6px;padding:4px 10px;">Stopped buying</button>
         <button onclick="setDropFilter('reduced',this)" class="lb-btn" style="border-radius:6px;padding:4px 10px;">Reduced ≥30%</button>
       </div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;" id="drop-sku-filter-row"></div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;" id="drop-sku-filter-row">
+        <button onclick="setDropSkuFilter('all',this)" class="lb-btn active" style="background:var(--ink);color:#fff;border-radius:6px;padding:3px 10px;font-size:9px;">All SKU</button>
+        <button onclick="setDropSkuFilter('IFACE',this)" class="lb-btn" style="border-radius:6px;padding:3px 10px;font-size:9px;color:#1a5c8f;border-color:#1a5c8f33;">iFACE</button>
+        <button onclick="setDropSkuFilter('SUKUN',this)" class="lb-btn" style="border-radius:6px;padding:3px 10px;font-size:9px;color:#6b3fa0;border-color:#6b3fa033;">SUKUN</button>
+        <button onclick="setDropSkuFilter('EVO',this)" class="lb-btn" style="border-radius:6px;padding:3px 10px;font-size:9px;color:#c8381a;border-color:#c8381a33;">EVO</button>
+        <button onclick="setDropSkuFilter('BISON',this)" class="lb-btn" style="border-radius:6px;padding:3px 10px;font-size:9px;color:#c8860a;border-color:#c8860a33;">BISON</button>
+        <button onclick="setDropSkuFilter('TR20',this)" class="lb-btn" style="border-radius:6px;padding:3px 10px;font-size:9px;color:#2a7a4b;border-color:#2a7a4b33;">TR20</button>
+        <button onclick="setDropSkuFilter('LAM+LWM',this)" class="lb-btn" style="border-radius:6px;padding:3px 10px;font-size:9px;color:#5a5550;border-color:#5a555033;">LAM+LWM</button>
+      </div>
       <div class="card" style="padding:0;overflow:hidden;">
+        <div id="drop-export-bar" style="display:flex;justify-content:flex-end;gap:6px;margin:8px 0;padding:0 10px;">
+          <button onclick="exportDropExcel()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);border-radius:6px;color:var(--green);cursor:pointer;">📊 Export Excel</button>
+          <button onclick="exportDropPDF()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:6px;color:var(--accent);cursor:pointer;">🖨️ Print / PDF</button>
+        </div>
         <div id="dropping-debtors-list"></div>
       </div>
     </div>
@@ -442,6 +511,10 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
       </div>
       <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;" id="gain-sku-filter-row"></div>
       <div class="card" style="padding:0;overflow:hidden;">
+        <div id="gain-export-bar" style="display:flex;justify-content:flex-end;gap:6px;margin:8px 0;padding:0 10px;">
+          <button onclick="exportGainExcel()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);border-radius:6px;color:var(--green);cursor:pointer;">📊 Export Excel</button>
+          <button onclick="exportGainPDF()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:6px;color:var(--accent);cursor:pointer;">🖨️ Print / PDF</button>
+        </div>
         <div id="gaining-debtors-list"></div>
       </div>
     </div>
@@ -551,9 +624,12 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
         <div class="card-pad" style="padding-bottom:6px;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;">All Months · All Agents</div>
-            <select id="an-agent-filter" onchange="renderAnalytics()" style="background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:10px;padding:4px 8px;border-radius:6px;">
-              <option value="all">All Agents</option>
-            </select>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <button onclick="exportAnalyticsDetailExcel()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);border-radius:6px;color:var(--green);cursor:pointer;">📊 Export Excel</button>
+              <select id="an-agent-filter" onchange="renderAnalytics()" style="background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:10px;padding:4px 8px;border-radius:6px;">
+                <option value="all">All Agents</option>
+              </select>
+            </div>
           </div>
         </div>
         <div class="heat-scroll"><div id="an-detail-table"></div></div>
@@ -917,13 +993,12 @@ async function _activitySupabase(path) {
 }
 
 async function _loadActivityCalendarMeta(startKey, endKey) {
-  const empty = { leaveByAgentDate: {}, offByAgent: {}, workdaysByAgent: {}, publicHolidayDates: new Set() };
+  const empty = { leaveByAgentDate: {}, offByAgent: {}, workdaysByAgent: {} };
   try {
-    const [leaveRows, offRows, workRows, holidayRows] = await Promise.all([
+    const [leaveRows, offRows, workRows] = await Promise.all([
       _activitySupabase('agent_leave?select=*'),
       _activitySupabase('agent_offdays?select=agent_name,off_days,default_day,exceptions'),
-      _activitySupabase(`agent_workdays?select=agent_name,month,working_days&month=eq.${startKey}`),
-      _activitySupabase('targets_static?select=value&key=eq.public_holidays')
+      _activitySupabase(`agent_workdays?select=agent_name,month,working_days&month=eq.${startKey}`)
     ]);
     const leaveByAgentDate = {};
     (leaveRows || []).forEach(r => {
@@ -943,13 +1018,7 @@ async function _loadActivityCalendarMeta(startKey, endKey) {
     });
     const workdaysByAgent = {};
     (workRows || []).forEach(r => { workdaysByAgent[(r.agent_name || '').toUpperCase()] = r.working_days; });
-    const publicHolidayDates = new Set();
-    const rawHolidays = (holidayRows || []).flatMap(r => Array.isArray(r.value) ? r.value : []);
-    rawHolidays.forEach(h => {
-      const date = h?.date || h;
-      if (date && date >= startKey && date <= endKey) publicHolidayDates.add(date);
-    });
-    return { leaveByAgentDate, offByAgent, workdaysByAgent, publicHolidayDates };
+    return { leaveByAgentDate, offByAgent, workdaysByAgent };
   } catch (e) {
     console.warn('[activity-map] calendar meta load failed:', e.message);
     return empty;
@@ -981,10 +1050,7 @@ async function renderActivityMap() {
     <tbody>${ACTIVITY_AGENTS.map(agent => `<tr><th class="activity-agent">${agent}</th>${days.map(() => '<td class="activity-cell zero">...</td>').join('')}</tr>`).join('')}</tbody>
   </table>`;
 
-  const { leaveByAgentDate, offByAgent, publicHolidayDates } = await _loadActivityCalendarMeta(startKey, endKey);
-  (D.working_days?.public_holidays || []).forEach(date => {
-    if (date && date >= startKey && date <= endKey) publicHolidayDates.add(date);
-  });
+  const { leaveByAgentDate, offByAgent } = await _loadActivityCalendarMeta(startKey, endKey);
   el.innerHTML = `<table class="activity-table">
     <thead><tr>
       <th class="activity-date activity-corner">Agent</th>
@@ -999,7 +1065,7 @@ async function renderActivityMap() {
         const ctn = Math.round(Number(sales.ctn || 0));
         const txn = Number(sales.txn || 0);
         const leave = leaveByAgentDate[`${agent}|${key}`];
-        const weekend = d.getDay() === 0;
+        const weekend = d.getDay() === 0 || d.getDay() === 6;
         const offCfg = offByAgent[agent] || {};
         const exceptions = offCfg.exceptions || [];
         const defaultDay = offCfg.default_day || '';
@@ -1008,12 +1074,7 @@ async function renderActivityMap() {
           (defaultDay === 'Sunday + Monday' && (dowLong === 'Sunday' || dowLong === 'Monday')) ||
           legacyDays.includes(dowLong) || legacyDays.includes(dow);
         const offDay = defaultOff && !exceptions.includes(key);
-        const hasSales = ctn > 0 || txn > 0;
-        const publicHoliday = publicHolidayDates.has(key);
-        if (publicHoliday && !hasSales) {
-          return `<td class="activity-cell off"><span class="activity-pill ph">PH</span></td>`;
-        }
-        if (!leave && !hasSales && (weekend || offDay)) {
+        if (!leave && (weekend || offDay)) {
           return `<td class="activity-cell ${weekend ? 'weekend' : 'off'}">—</td>`;
         }
         const zero = ctn === 0 && txn === 0;
@@ -1488,16 +1549,6 @@ async function renderMonthlySummary() {
       ${pctStr}
     </div>`;
   };
-  const rateCell = (act, tgt, active, total) => {
-    const p   = tgt > 0 ? Math.round(act / tgt * 100) : null;
-    const col = p === null ? 'var(--ink3)' : p >= 100 ? '#2a7a4b' : p >= 70 ? '#c8860a' : '#c8381a';
-    return `<div style="font-family:var(--mono);font-size:10px;padding:5px 6px;text-align:center;
-      border-right:1px solid var(--border);border-bottom:1px solid var(--border);line-height:1.4;">
-      <div><span style="color:${col};font-weight:600;">${act}%</span></div>
-      <div><span style="color:var(--ink3);font-size:9px;">/${tgt}%</span>${p !== null ? `<span style="color:${col};font-size:8px;"> ${p}%</span>` : ''}</div>
-      <div style="font-size:8px;color:var(--ink3);">${fi(active)}/${fi(total)}</div>
-    </div>`;
-  };
   const cell = (val, color='') =>
     `<div style="font-family:var(--mono);font-size:10px;padding:7px 6px;text-align:center;
       border-right:1px solid var(--border);border-bottom:1px solid var(--border);${color}">${val}</div>`;
@@ -1560,7 +1611,7 @@ async function renderMonthlySummary() {
       ${atCell(vipAct, vipTgt)}
       ${atCell(reactAct, reactTgt)}
       ${atCell(newSkuAct, newSkuTgt)}
-      ${rateCell(rateAct, rateTgt, dc.active_count||0, dc.total_debtors||0)}
+      ${atCell(rateAct, rateTgt, true)}
       ${cell(txn)}
       ${cell(wdays)}
       ${cell(avgTxn.toFixed(1))}
@@ -1601,7 +1652,7 @@ async function renderMonthlySummary() {
     ${fi(Number(val)||0)}${Number(tgt) > 0 ? `<span style="color:rgba(255,255,255,.3);font-size:9px;">/${fi(Number(tgt)||0)}</span>` : ''}
   </div>`;
 
-  html += `<div data-row="monthly-total" style="display:grid;grid-template-columns:${cols};gap:0;background:var(--ink);border-top:2px solid var(--border);">
+  html += `<div style="display:grid;grid-template-columns:${cols};gap:0;background:var(--ink);border-top:2px solid var(--border);">
     <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:7px 8px;border-right:1px solid rgba(255,255,255,.1);color:#fff;">TOTAL</div>
     ${totCell(totNormal, totNormTgt, '#ffc94d')}
     ${totCell(totMA, totMATgt, '#a78bfa')}
@@ -1744,6 +1795,158 @@ function exportMonthlyExcel() {
   a.href = URL.createObjectURL(blob);
   a.download = `MD_Monthly_${month}.csv`;
   a.click();
+}
+
+function exportDropExcel() {
+  if (typeof XLSX === 'undefined') {
+    alert('Excel export library not loaded yet. Try again in a moment.');
+    return;
+  }
+  if (!_lastDropExport || !_lastDropExport.debtors || !_lastDropExport.debtors.length) {
+    alert('No dropping debtors to export. Switch to the Drop view and ensure data is loaded.');
+    return;
+  }
+  const { month, debtors } = _lastDropExport;
+
+  const rows = debtors.map(d => ({
+    'Agent': d.agent || '',
+    'Code': d.debtor_code || d.code || '',
+    'Name': d.company_name || d.name || '',
+    'Type': d.debtor_type || '',
+    'Phone': d.phone || '',
+    'Status': d.stopped ? 'Stopped' : d.reduced ? 'Reduced' : '',
+    'Lapsed SKUs': Array.isArray(d.lapsedSkus) ? d.lapsedSkus.join(', ') : (d.lapsedSkus || ''),
+    'SKUs Stopped': Array.isArray(d.skuStopped) ? d.skuStopped.join(', ') : (d.skuStopped || ''),
+    'SKUs Reduced': Array.isArray(d.skuReduced) ? d.skuReduced.join(', ') : (d.skuReduced || ''),
+    'Address': d.address || '',
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [
+    { wch: 10 }, { wch: 14 }, { wch: 35 }, { wch: 16 }, { wch: 14 }, { wch: 12 },
+    { wch: 30 }, { wch: 30 }, { wch: 30 }, { wch: 40 },
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Dropping Debtors');
+
+  const today = new Date().toISOString().slice(0, 10);
+  const safeMonth = (month || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+  XLSX.writeFile(wb, `MD_DropDebtors_${safeMonth}_${today}.xlsx`);
+}
+
+function exportDropPDF() {
+  if (!_lastDropExport || !_lastDropExport.debtors || !_lastDropExport.debtors.length) {
+    alert('No dropping debtors to print. Switch to the Drop view first.');
+    return;
+  }
+  document.body.classList.add('print-mode-drop');
+  setTimeout(() => {
+    window.print();
+    const cleanup = () => {
+      document.body.classList.remove('print-mode-drop');
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+  }, 50);
+}
+
+function exportGainExcel() {
+  if (typeof XLSX === 'undefined') { alert('Excel library not loaded.'); return; }
+  if (!_lastGainExport?.debtors?.length) {
+    alert('No gaining debtors to export. Switch to Gain view and ensure data is loaded.');
+    return;
+  }
+  const { month, debtors } = _lastGainExport;
+  const rows = debtors.map(d => ({
+    'Agent': d.agent || '',
+    'Code': d.debtor_code || d.code || '',
+    'Name': d.company_name || d.name || '',
+    'Type': d.debtor_type || '',
+    'Phone': d.phone || '',
+    'Is New': d.isNew ? 'Y' : '',
+    'Gain %': d.gainPct != null ? d.gainPct : '',
+    'Gain SKUs': Array.isArray(d.gainSkus) ? d.gainSkus.join(', ') : (d.gainSkus || ''),
+    'SKUs New': Array.isArray(d.skuNew) ? d.skuNew.join(', ') : (d.skuNew || ''),
+    'SKUs Increased': Array.isArray(d.skuIncreased) ? d.skuIncreased.join(', ') : (d.skuIncreased || ''),
+    'Address': d.address || '',
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:10},{wch:14},{wch:35},{wch:16},{wch:14},{wch:8},{wch:10},{wch:30},{wch:30},{wch:30},{wch:40}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Gaining Debtors');
+  const today = new Date().toISOString().slice(0,10);
+  const safeMonth = (month||'').replace(/[^a-zA-Z0-9_-]/g, '_');
+  XLSX.writeFile(wb, `MD_GainDebtors_${safeMonth}_${today}.xlsx`);
+}
+
+function exportGainPDF() {
+  if (!_lastGainExport?.debtors?.length) { alert('No gaining debtors to print.'); return; }
+  document.body.classList.add('print-mode-gain');
+  setTimeout(() => {
+    window.print();
+    const cleanup = () => {
+      document.body.classList.remove('print-mode-gain');
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+  }, 50);
+}
+
+function exportBrandNonbuyersExcel() {
+  if (typeof XLSX === 'undefined') { alert('Excel library not loaded.'); return; }
+  if (!_lastBrandExport?.rows?.length) {
+    alert('No brand non-buyers data to export.');
+    return;
+  }
+  const { month, brands, rows } = _lastBrandExport;
+
+  const header = ['Agent'];
+  brands.forEach(b => { header.push(`${b}_NotBought`, `${b}_Target`, `${b}_ThisMonth`); });
+  const data = [header];
+  rows.forEach(r => {
+    const row = [r.agent];
+    brands.forEach(b => {
+      const bd = r.brand_data?.[b] || {};
+      row.push(bd.notBought ?? '', bd.target ?? '', bd.thisMonth ?? '');
+    });
+    data.push(row);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Brand Non-buyers');
+  const today = new Date().toISOString().slice(0,10);
+  const safeMonth = (month||'').replace(/[^a-zA-Z0-9_-]/g, '_');
+  XLSX.writeFile(wb, `MD_BrandNonbuyers_${safeMonth}_${today}.xlsx`);
+}
+
+function exportAnalyticsDetailExcel() {
+  if (typeof XLSX === 'undefined') { alert('Excel library not loaded.'); return; }
+  if (!_lastAnalyticsExport?.rows?.length) {
+    alert('No analytics data to export.');
+    return;
+  }
+  const { rows, months } = _lastAnalyticsExport;
+  const metrics = ['Normal Actual','Normal %','GA Actual','MA Actual','Active','Activation Rate %','New Accounts','New SKU','KPI A+B+C Score','Total Comm RM'];
+  const labels = {'Normal Actual':'Normal CTN','Normal %':'Normal%','GA Actual':'GA CTN','MA Actual':'MA CTN','Active':'Active','Activation Rate %':'Activation Rate %','New Accounts':'New Accounts','New SKU':'New SKU','KPI A+B+C Score':'KPI Score','Total Comm RM':'Comm RM'};
+  const agents = [...new Set(rows.map(r => r.Agent))].sort();
+  const data = [['Agent', 'Metric', ...months]];
+  agents.forEach(agent => {
+    metrics.forEach(metric => {
+      const out = [agent, labels[metric] || metric];
+      months.forEach(m => {
+        const r = rows.find(row => row.Agent === agent && row.Month === m);
+        out.push(r ? (r[metric] ?? '') : '');
+      });
+      data.push(out);
+    });
+  });
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Analytics Detail');
+  const today = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `MD_AnalyticsDetail_${today}.xlsx`);
 }
 
 // ── Pending Actions (Flags) ────────────────────────────────────────────────
@@ -2840,10 +3043,12 @@ function renderBrandSkuStatus() {
 
   const totals = {};
   BRANDS.forEach(brand => { totals[brand] = { nonBuyers:0, target:0, actual:0 }; });
+  const brandRows = [];
 
   agents.forEach((agent, ri) => {
     const bc  = D.agents[agent]?.brand_commission || {};
     const bg  = ri % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.02)';
+    const brandData = {};
     html += `<tr style="background:${bg};border-bottom:1px solid rgba(255,255,255,.05);">
       <td style="padding:8px 12px;font-weight:600;white-space:nowrap;">${agent}</td>
       ${BRANDS.map(brand => {
@@ -2858,6 +3063,7 @@ function renderBrandSkuStatus() {
         totals[brand].nonBuyers += Number(nonBuyers) || 0;
         totals[brand].target    += Number(target) || 0;
         totals[brand].actual    += Number(actual) || 0;
+        brandData[brand] = { notBought: nonBuyers, target, thisMonth: actual };
 
         return `<td style="padding:6px 8px;text-align:center;border-left:1px solid rgba(255,255,255,.06);color:#c8381a;">${nonBuyers}</td>
           <td style="padding:6px 8px;text-align:center;${isAuto?'color:var(--blue)':'color:var(--ink3);'};">${target}</td>
@@ -2866,6 +3072,7 @@ function renderBrandSkuStatus() {
           </td>`;
       }).join('')}
     </tr>`;
+    brandRows.push({ agent, brand_data: brandData });
   });
 
   html += `<tr style="background:var(--color-background-secondary,var(--bg));border-top:2px solid var(--color-border-secondary,var(--border));font-weight:500;">
@@ -2882,6 +3089,12 @@ function renderBrandSkuStatus() {
 
   html += `</tbody></table>`;
   el.innerHTML = html;
+  // Bridge: capture brand non-buyers table for export
+  _lastBrandExport = {
+    month: CURRENT_DATA?.current_month || DATA?.current_month || '',
+    brands: BRANDS,
+    rows: brandRows,
+  };
 }
 
 // ── Debtor Summary ──
@@ -2986,6 +3199,11 @@ let _gainSkuFilter = 'all';
 let _gainAgentFilter = new Set();
 let GAINING_DEBTORS_PAGE = 0;
 let GAINING_DEBTORS_LIST = [];
+let DROPPING_DEBTORS_LIST = [];
+let _lastDropExport = null;
+let _lastGainExport = null;
+let _lastBrandExport = null;
+let _lastAnalyticsExport = null;
 const GAINING_DEBTORS_PER_PAGE = 12;
 
 function setGainFilter(f, btn) {
@@ -3153,7 +3371,15 @@ function renderGainingDebtors(resetPage=true) {
     });
   });
 
-  if (!gains.length) { section.style.display = 'none'; return; }
+  if (!gains.length) {
+    GAINING_DEBTORS_LIST = [];
+    _lastGainExport = {
+      month: CURRENT_DATA?.current_month || DATA?.current_month || '',
+      debtors: [],
+    };
+    section.style.display = 'none';
+    return;
+  }
   section.style.display = 'block';
 
   const skuOptions = [...new Set(gains.flatMap(d => d.gainSkus || []))].sort((a,b) => a.localeCompare(b));
@@ -3167,6 +3393,11 @@ function renderGainingDebtors(resetPage=true) {
   filteredGains.sort((a, b) => ((b.ctn_cur||0) - (b.ctn_prev1||0)) - ((a.ctn_cur||0) - (a.ctn_prev1||0)));
 
   GAINING_DEBTORS_LIST = filteredGains;
+  // Bridge: capture state for export
+  _lastGainExport = {
+    month: CURRENT_DATA?.current_month || DATA?.current_month || '',
+    debtors: filteredGains,
+  };
   if (resetPage) GAINING_DEBTORS_PAGE = 0;
   const totalPages = Math.max(1, Math.ceil(GAINING_DEBTORS_LIST.length / GAINING_DEBTORS_PER_PAGE));
   GAINING_DEBTORS_PAGE = Math.min(Math.max(GAINING_DEBTORS_PAGE, 0), totalPages - 1);
@@ -3232,9 +3463,6 @@ function renderGainingDebtors(resetPage=true) {
 let _dropFilter    = 'all';
 let _dropSkuFilter = 'all';
 let _dropAgentFilter = new Set(); // empty = all agents selected
-let DROPPING_DEBTORS_PAGE = 0;
-let DROPPING_DEBTORS_LIST = [];
-const DROPPING_DEBTORS_PER_PAGE = 12;
 
 function setDropFilter(f, btn) {
   _dropFilter = f;
@@ -3260,25 +3488,6 @@ function setDropSkuFilter(f, btn) {
     btn.style.color = '#fff';
   }
   renderDroppingDebtors();
-}
-
-const DROP_SKU_COLORS = {
-  IFACE:'#1a5c8f', SUKUN:'#6b3fa0', EVO:'#c8381a',
-  BISON:'#c8860a', TR20:'#2a7a4b', 'LAM+LWM':'#5a5550'
-};
-
-function renderDropSkuFilterButtons(skuOptions) {
-  const row = document.getElementById('drop-sku-filter-row');
-  if (!row) return;
-  const options = ['all', ...skuOptions];
-  row.innerHTML = options.map(sku => {
-    const active = sku === _dropSkuFilter;
-    const label = sku === 'all' ? 'All SKU' : sku;
-    const safeSku = String(sku).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    const col = DROP_SKU_COLORS[sku] || 'var(--ink)';
-    const borderCol = col.startsWith('#') ? `${col}33` : 'var(--border)';
-    return `<button onclick="setDropSkuFilter('${safeSku}',this)" class="lb-btn ${active?'active':''}" style="border-radius:6px;padding:3px 10px;font-size:9px;${active?'background:var(--ink);color:#fff;':`color:${col};border-color:${borderCol};`}">${label}</button>`;
-  }).join('');
 }
 
 function getDropAgents() {
@@ -3376,11 +3585,7 @@ function getMgmtDebtorSkuDrops(d) {
   return { stopped, reduced };
 }
 
-function renderDroppingDebtorsPage() {
-  renderDroppingDebtors(false);
-}
-
-function renderDroppingDebtors(resetPage=true) {
+function renderDroppingDebtors() {
   const section = document.getElementById('dropping-debtors-section');
   const list    = document.getElementById('dropping-debtors-list');
   if (!section || !list) return;
@@ -3408,32 +3613,36 @@ function renderDroppingDebtors(resetPage=true) {
       const { stopped: skuStopped, reduced: skuReduced } = getMgmtDebtorSkuDrops(d);
       const lapsedSkus = [...new Set([...skuStopped, ...skuReduced])];
 
-      // SKU filter options are built from these derived lapsed item-code arrays.
+      // Apply SKU brand filter — only show if selected brand is lapsed for this debtor
+      if (_dropSkuFilter !== 'all' && !lapsedSkus.includes(_dropSkuFilter)) return;
+
       drops.push({ agent, ...d, stopped, reduced, lapsedSkus, skuStopped, skuReduced });
     });
   });
 
-  if (!drops.length) { section.style.display = 'none'; return; }
+  if (!drops.length) {
+    DROPPING_DEBTORS_LIST = [];
+    _lastDropExport = {
+      month: CURRENT_DATA?.current_month || DATA?.current_month || '',
+      debtors: [],
+    };
+    section.style.display = 'none';
+    return;
+  }
   section.style.display = 'block';
 
-  const skuOptions = [...new Set(drops.flatMap(d => d.lapsedSkus || []))]
-    .sort((a, b) => a.localeCompare(b));
-  if (_dropSkuFilter !== 'all' && !skuOptions.includes(_dropSkuFilter)) _dropSkuFilter = 'all';
-  renderDropSkuFilterButtons(skuOptions);
-
-  const filteredDrops = _dropSkuFilter === 'all'
-    ? drops
-    : drops.filter(d => (d.lapsedSkus || []).includes(_dropSkuFilter));
-
   // Sort: by prev month CTN highest first (biggest accounts that dropped matter most)
-  filteredDrops.sort((a, b) => (b.ctn_prev1 || 0) - (a.ctn_prev1 || 0));
+  drops.sort((a, b) => (b.ctn_prev1 || 0) - (a.ctn_prev1 || 0));
 
-  DROPPING_DEBTORS_LIST = filteredDrops;
-  if (resetPage) DROPPING_DEBTORS_PAGE = 0;
-  const totalPages = Math.max(1, Math.ceil(DROPPING_DEBTORS_LIST.length / DROPPING_DEBTORS_PER_PAGE));
-  DROPPING_DEBTORS_PAGE = Math.min(Math.max(DROPPING_DEBTORS_PAGE, 0), totalPages - 1);
-  const pageStart = DROPPING_DEBTORS_PAGE * DROPPING_DEBTORS_PER_PAGE;
-  const shown = DROPPING_DEBTORS_LIST.slice(pageStart, pageStart + DROPPING_DEBTORS_PER_PAGE);
+  // Bridge: capture full filtered list for export (DOM only renders top 50)
+  DROPPING_DEBTORS_LIST = drops;
+  _lastDropExport = {
+    month: CURRENT_DATA?.current_month || DATA?.current_month || '',
+    debtors: drops,
+  };
+
+  // Cap at 50 rows for performance
+  const shown = drops.slice(0, 50);
 
   const SKU_COLS = {
     IFACE:'#1a5c8f', SUKUN:'#6b3fa0', EVO:'#c8381a',
@@ -3441,7 +3650,7 @@ function renderDroppingDebtors(resetPage=true) {
   };
 
   list.innerHTML = shown.map((d, i) => {
-    const bg      = (pageStart + i) % 2 === 0 ? 'transparent' : 'rgba(0,0,0,.02)';
+    const bg      = i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,.02)';
     const dropCol = d.stopped ? 'var(--accent)' : 'var(--gold)';
     const prevCtn = d.ctn_prev1 || 0;
     const curCtn  = d.ctn_cur  || 0;
@@ -3488,17 +3697,7 @@ function renderDroppingDebtors(resetPage=true) {
         ${skuPills}
       </div>
     </div>`;
-  }).join('');
-
-  const prevDisabled = DROPPING_DEBTORS_PAGE <= 0;
-  const nextDisabled = DROPPING_DEBTORS_PAGE >= totalPages - 1;
-  const pager = totalPages > 1 ? `
-    <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 14px;background:var(--card);">
-      <button class="activity-btn" onclick="if(DROPPING_DEBTORS_PAGE>0){DROPPING_DEBTORS_PAGE--;renderDroppingDebtorsPage();}" ${prevDisabled?'disabled':''} style="${prevDisabled?'opacity:.35;cursor:not-allowed;':''}">‹ Prev</button>
-      <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">Page ${DROPPING_DEBTORS_PAGE + 1} of ${totalPages}</div>
-      <button class="activity-btn" onclick="if(DROPPING_DEBTORS_PAGE<${totalPages - 1}){DROPPING_DEBTORS_PAGE++;renderDroppingDebtorsPage();}" ${nextDisabled?'disabled':''} style="${nextDisabled?'opacity:.35;cursor:not-allowed;':''}">Next ›</button>
-    </div>` : '';
-  list.innerHTML += pager;
+  }).join('') + (drops.length > 50 ? `<div style="padding:10px 14px;font-family:var(--mono);font-size:9px;color:var(--ink3);text-align:center;">Showing top 50 of ${drops.length} — use agent drill-down for full list</div>` : '');
 }
 
 // ── Newbie Progress ──
@@ -3843,6 +4042,8 @@ function renderAnKpiTrend(months) {
   });
   html+=`</div>`;document.getElementById('an-kpi-trend').innerHTML=html;}
 function renderAnDetailTable(rows,months) {
+  // Bridge: capture for export
+  _lastAnalyticsExport = { rows, months };
   const METRICS=['Normal Actual','Normal %','GA Actual','MA Actual','Active','Activation Rate %','New Accounts','New SKU','KPI A+B+C Score','Total Comm RM'];
   const LBLS={'Normal Actual':'Normal CTN','Normal %':'Normal%','GA Actual':'GA CTN','MA Actual':'MA CTN','Active':'已激活','Activation Rate %':'光顾率%','New Accounts':'开新户','New SKU':'加SKU','KPI A+B+C Score':'KPI Score','Total Comm RM':'Comm RM'};
   const agents=[...new Set(rows.map(r=>r.Agent))].sort();
