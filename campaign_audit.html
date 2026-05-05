@@ -463,8 +463,19 @@ async function loadAuditData() {
 
   try {
     const r = await fetch(`data_${slug}.json?v=${Date.now()}`);
+    if (!r.ok) throw new Error(`data_${slug}.json ${r.status}`);
     DASH_DATA = await r.json();
-  } catch(e) { DASH_DATA = null; }
+  } catch(e) {
+    // Future/current audit months may not have a data_<month>.json yet.
+    // Fall back to dashboard_data.json, which carries birthday_by_month.
+    try {
+      const fallback = await fetch(`dashboard_data.json?v=${Date.now()}`);
+      if (!fallback.ok) throw new Error(`dashboard_data.json ${fallback.status}`);
+      DASH_DATA = await fallback.json();
+    } catch(e2) {
+      DASH_DATA = null;
+    }
+  }
   try {
     const r2 = await fetch(`campaigns.json?v=${Date.now()}`);
     CAMP_DATA = await r2.json();
@@ -791,7 +802,11 @@ async function renderBirthdayDebtorList(month, agentSel) {
 
   const overrides = await fetchBirthdayOverridesForMonth(month);
   const lookup = buildAuditDebtorLookup();
-  const finalRows = (DASH_DATA?.birthday_campaign?.debtors || []).map(d => {
+  // Read per-month birthday list for the selected month, with backward-compat fallback
+  const monthList = DASH_DATA?.birthday_by_month?.[month]?.debtors
+                 ?? DASH_DATA?.birthday_campaign?.debtors
+                 ?? [];
+  const finalRows = monthList.map(d => {
     const code = (d.code || d.debtor_code || '').toUpperCase();
     const fallback = lookup[code] || {};
     return {

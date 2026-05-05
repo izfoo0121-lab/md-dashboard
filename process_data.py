@@ -1906,26 +1906,29 @@ def _birthday_overrides_for_month(targets, cur_month):
     return out, iso_month
 
 
-def calc_birthday_campaign(debtor_cards, targets, cur_month=None):
+def calc_birthday_for_month(debtor_cards, targets, bday_month_str):
     """
-    Auto-generate birthday gift list:
+    Build the birthday campaign list for a SPECIFIC month string (e.g. "May 26").
+    Used both by calc_birthday_campaign (for backward-compat current-month call)
+    and by calc_birthday_by_month (for per-month map serving audit dropdown).
+
+    Eligibility:
     - VIP debtors only
+    - has_bonus_point required
     - Exclude P-Personal
-    - Exclude new accounts opened this month
-    - Target = total qualifying debtors (management audits agent's actual)
-    - Birthday matching uses cur_month (selected month), not today
+    - Exclude is_new (new this month)
+    - Apply month-keyed birthday_overrides (add/remove)
     """
-    log("Generating birthday campaign list...")
     today      = date.today()
-    overrides, iso_month = _birthday_overrides_for_month(targets, cur_month)
+    overrides, iso_month = _birthday_overrides_for_month(targets, bday_month_str)
 
     # Determine which month to use for birthday matching
     MONTH_ORDER_BD = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
     bday_month = today.month  # default to today
     bday_year  = today.year
-    if cur_month:
+    if bday_month_str:
         try:
-            parts = cur_month.split()
+            parts = bday_month_str.split()
             bday_month = MONTH_ORDER_BD.index(parts[0]) + 1
             bday_year  = 2000 + int(parts[1])
         except:
@@ -1941,7 +1944,7 @@ def calc_birthday_campaign(debtor_cards, targets, cur_month=None):
             is_personal = db_type in PERSONAL_TYPES
             is_new      = d.get("is_new", False)
 
-            # Recompute birthday match for selected month (not today)
+            # Recompute birthday match for selected month
             birth_date = d.get("birth_date_raw") or None
             birthday_matches = False
             if birth_date:
@@ -2001,13 +2004,57 @@ def calc_birthday_campaign(debtor_cards, targets, cur_month=None):
 
     from datetime import date as _date
     bday_label = _date(bday_year, bday_month, 1).strftime("%B %Y")
-    log(f"  Birthday campaign: {len(result)} VIP debtors ({bday_label}) — excl new & personal")
     return {
         "month":    bday_label,
         "count":    len(result),
         "debtors":  result,
         "by_agent": {a: len(v) for a, v in by_agent.items()},
     }
+
+
+def calc_birthday_campaign(debtor_cards, targets, cur_month=None):
+    """
+    Backward-compat wrapper. Generates the birthday list for the dashboard's
+    current month (cur_month). For per-month audit lookup, see
+    calc_birthday_by_month below.
+    """
+    log("Generating birthday campaign list...")
+    result = calc_birthday_for_month(debtor_cards, targets, cur_month)
+    log(f"  Birthday campaign: {result['count']} VIP debtors ({result['month']}) - excl new & personal")
+    return result
+
+
+def calc_birthday_by_month(debtor_cards, targets, months_index, cur_month=None):
+    """
+    Build a {month_str: birthday_list} map for every month relevant to the
+    audit page. Includes:
+    - All months in months_index (loaded data months)
+    - Real-world current month (so May appears even before May data lands)
+    - One month ahead (light buffer for early planning)
+
+    Returns a dict keyed by month string ("Apr 26", "May 26", ...).
+    """
+    MONTH_ORDER_BD = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    today = date.today()
+    today_str = f"{MONTH_ORDER_BD[today.month - 1]} {str(today.year)[-2:]}"
+    # Compute next month
+    nm_month = today.month + 1
+    nm_year  = today.year
+    if nm_month > 12: nm_month = 1; nm_year += 1
+    next_str = f"{MONTH_ORDER_BD[nm_month - 1]} {str(nm_year)[-2:]}"
+
+    # Build set of months to compute, deduplicated
+    months_set = set(months_index or [])
+    if cur_month: months_set.add(cur_month)
+    months_set.add(today_str)
+    months_set.add(next_str)
+
+    log(f"Generating per-month birthday map for {len(months_set)} months: {sorted(months_set)}")
+    result = {}
+    for m in sorted(months_set):
+        result[m] = calc_birthday_for_month(debtor_cards, targets, m)
+        log(f"  {m}: {result[m]['count']} VIP debtors")
+    return result
 
 
 def save_penetration_snapshot(brand_comm, targets, cur_month):
@@ -3120,6 +3167,25 @@ def main():
     targets      = save_debtor_snapshot(debtor_cards, targets, cur_month)
     group_brands = calc_group_brand_targets(df, targets, cur_month, group_brand_config)
     birthday_camp = calc_birthday_campaign(debtor_cards, targets, cur_month)
+
+    # Per-month birthday map for audit page (lets users see May birthdays
+    # even when dashboard cur_month is still April).
+    import os, glob
+    _data_files = [os.path.basename(f) for f in glob.glob('data_*.json')]
+    _months_for_birthday = []
+    for f in _data_files:
+        # data_apr26.json -> "Apr 26"
+        stem = f[5:-5]  # strip "data_" and ".json"
+        # stem like "apr26" -> "Apr 26"
+        if len(stem) >= 5:
+            mon3 = stem[:3].capitalize()
+            year2 = stem[3:]
+            _months_for_birthday.append(f"{mon3} {year2}")
+
+    birthday_by_month = calc_birthday_by_month(
+        debtor_cards, targets, _months_for_birthday, cur_month
+    )
+
     kpi          = calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_camp, cur_month)
     team         = calc_team_summary(sales_prog, brand_comm, all_agents, targets, cur_month, df_raw, prev_months)
     working_days = calc_working_days(targets, cur_month)
@@ -3231,6 +3297,7 @@ def main():
         "working_days":        working_days,
         "group_brand_targets": group_brands,
         "birthday_campaign":   birthday_camp,
+        "birthday_by_month":   birthday_by_month,
         "brand_campaigns":     brand_camps,
         "agent_activity_daily": agent_activity_daily,
         "agents":         {},
