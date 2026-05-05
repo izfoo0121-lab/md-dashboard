@@ -908,6 +908,9 @@ let nonvipTypeFilter = 'all';
 let MONTHS_WITH_DATA = [];
 let _lastUnpurchasedExport = null;
 let _lastCampsExport = null;
+let expandedCampaigns = new Set();
+let campaignPages = {};
+const CAMPAIGN_DEBTOR_PAGE_SIZE = 12;
 const UNPURCHASED_BRAND_ITEMS = {
   'IFACE':   ['IFACE B','IFACE DB','IFACE M','IFACE R'],
   'SUKUN':   ['SKNR','SKNW'],
@@ -4244,6 +4247,7 @@ function renderCamps() {
           '<div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Tier distribution</div>' +
           tierRows +
         '</div>' +
+        renderCampaignDebtorPanel(c) +
       '</div>';
     }
     // ── end conversion_tiered branch ──────────────────────────────────────
@@ -4321,7 +4325,9 @@ function renderCamps() {
             '</div></div>';
         }).join('') + '</div>'
       ).join('') +
-      '</div></div>';
+      '</div>' +
+      renderCampaignDebtorPanel(c) +
+      '</div>';
   }).join('');
 }
 
@@ -4401,6 +4407,112 @@ function removeCampClaim(agent, campId, debtorCode) {
 
 // ── Campaign filter state ─────────────────────────────────────────────────
 let _campFilter = 'all';
+
+function campEsc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[ch]));
+}
+
+function campTierColor(idx) {
+  if (idx === 0) return 'var(--muted)';
+  if (idx <= 2) return 'var(--accent)';
+  return 'var(--green)';
+}
+
+function campTierLabel(idx, rawLabel) {
+  const label = String(rawLabel || '').trim();
+  if (/baseline/i.test(label) || idx === 0) return 'Baseline';
+  if (/tier\s*1/i.test(label) || idx === 1) return 'Tier 1';
+  if (/tier\s*2/i.test(label) || idx === 2) return 'Tier 2';
+  if (/tier\s*3\+/i.test(label) || idx > 3) return 'Tier 3+';
+  if (/tier\s*3/i.test(label) || idx === 3) return 'Tier 3';
+  return label || 'Baseline';
+}
+
+function campDebtorTierInfo(camp, debtor) {
+  const cc = (debtor.campaigns || []).find(x => x.id === camp.id) || {};
+  const idx = cc.tier_idx ?? 0;
+  const label = campTierLabel(idx, cc.tier_label);
+  const current = Number(cc.current_ctn ?? cc.ctn_this_month ?? cc.progress_ctn ?? debtor.ctn_cur ?? 0);
+  const thresholds = cc.notes?.tier_thresholds || camp.notes?.tier_thresholds || [];
+  const maxed = (cc.converted && idx >= thresholds.length - 1) || /tier\s*3\+/i.test(label);
+  let targetText = '—';
+  if (maxed) {
+    targetText = '✅ Maxed';
+  } else if (thresholds.length && idx < thresholds.length) {
+    targetText = `→ ${fmtNum(thresholds[idx])} CTN`;
+  } else if (cc.to_next_tier != null && Number(cc.to_next_tier) <= 0) {
+    targetText = '✅ Maxed';
+  } else if (cc.to_next_tier != null) {
+    targetText = `→ ${fmtNum(current + Number(cc.to_next_tier || 0))} CTN`;
+  } else if (camp.min_order_ctn) {
+    targetText = `→ ${fmtNum(camp.min_order_ctn)} CTN`;
+  }
+  return { idx, label, color: campTierColor(idx), current, targetText };
+}
+
+function toggleCampaignDebtors(campId) {
+  if (expandedCampaigns.has(campId)) expandedCampaigns.delete(campId);
+  else {
+    expandedCampaigns.add(campId);
+    if (!campaignPages[campId]) campaignPages[campId] = 1;
+  }
+  renderCamps();
+}
+
+function changeCampaignDebtorPage(campId, dir) {
+  campaignPages[campId] = (campaignPages[campId] || 1) + dir;
+  renderCamps();
+}
+
+function renderCampaignDebtorPanel(camp) {
+  const campId = camp.id || camp.name || 'campaign';
+  const debtors = (camp.debtors || []).slice()
+    .sort((a, b) => String(a.company_name || a.debtor_code || '').localeCompare(String(b.company_name || b.debtor_code || '')));
+  const total = debtors.length;
+  const expanded = expandedCampaigns.has(campId);
+  const toggleLabel = expanded ? `▲ Hide Debtors` : `▼ View Debtors (${total})`;
+  const toggle = `<div style="padding:8px 16px 12px;border-top:1px solid var(--border);">
+    <button onclick='toggleCampaignDebtors(${JSON.stringify(campId)})' style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:10px;padding:7px 10px;cursor:pointer;">${toggleLabel}</button>
+  </div>`;
+  if (!expanded) return toggle;
+
+  const pages = Math.max(1, Math.ceil(total / CAMPAIGN_DEBTOR_PAGE_SIZE));
+  campaignPages[campId] = Math.min(Math.max(1, campaignPages[campId] || 1), pages);
+  const page = campaignPages[campId];
+  const start = (page - 1) * CAMPAIGN_DEBTOR_PAGE_SIZE;
+  const shown = debtors.slice(start, start + CAMPAIGN_DEBTOR_PAGE_SIZE);
+  const rows = shown.map((d, i) => {
+    const t = campDebtorTierInfo(camp, d);
+    const rowBg = i % 2 ? 'rgba(255,255,255,.025)' : 'transparent';
+    return `<div style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 86px 86px 104px;gap:8px;align-items:center;padding:7px 8px;background:${rowBg};border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;">
+      <div style="font-family:var(--mono);color:var(--muted);">${start + i + 1}</div>
+      <div style="min-width:0;">
+        <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;">${campEsc(d.company_name || d.debtor_code)}</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">${campEsc(d.phone || '')}</div>
+      </div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">${campEsc(d.debtor_code || '')}</div>
+      <div><span style="font-family:var(--mono);font-size:8px;color:${t.color};background:rgba(255,255,255,.06);border:1px solid ${t.color};padding:2px 6px;border-radius:8px;white-space:nowrap;">${campEsc(t.label)}</span></div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text);text-align:right;">${fmtNum(t.current)} CTN</div>
+      <div style="font-family:var(--mono);font-size:10px;color:${t.targetText.includes('✅') ? 'var(--green)' : 'var(--muted)'};text-align:right;">${campEsc(t.targetText)}</div>
+    </div>`;
+  }).join('');
+  const pager = `<div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:9px 8px;">
+    <button class="page-btn" onclick='changeCampaignDebtorPage(${JSON.stringify(campId)},-1)' ${page <= 1 ? 'disabled' : ''}>← Prev</button>
+    <span class="page-info">${total ? start + 1 : 0}–${Math.min(start + CAMPAIGN_DEBTOR_PAGE_SIZE, total)} of ${total}</span>
+    <button class="page-btn" onclick='changeCampaignDebtorPage(${JSON.stringify(campId)},1)' ${page >= pages ? 'disabled' : ''}>Next →</button>
+  </div>`;
+  return toggle + `<div style="padding:0 16px 14px;">
+    <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:rgba(255,255,255,.025);">
+      <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 86px 86px 104px;gap:8px;padding:6px 8px;background:rgba(255,255,255,.045);font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">
+        <div>#</div><div>Company</div><div>Code</div><div>Tier</div><div style="text-align:right;">Current</div><div style="text-align:right;">Next Target</div>
+      </div>
+      ${rows || '<div style="padding:12px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--muted);">No enrolled debtors</div>'}
+      ${pager}
+    </div>
+  </div>`;
+}
 
 // Build filter chips dynamically from the campaigns the current agent is running.
 // One chip per unique campaign id, plus an ALL chip and a Birthday chip if relevant.
