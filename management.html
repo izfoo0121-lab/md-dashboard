@@ -217,18 +217,18 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
   }
   body.print-mode-drop #main-app > *:not(#overview-view),
   body.print-mode-gain #main-app > *:not(#overview-view),
-  body.print-mode-drop #overview-view > .page > *:not(#dropping-debtors-section),
-  body.print-mode-gain #overview-view > .page > *:not(#gaining-debtors-section),
-  body.print-mode-drop #dropping-debtors-section > *:not(.card),
-  body.print-mode-gain #gaining-debtors-section > *:not(.card),
+  body.print-mode-drop #overview-view > .page > *:not(#debtor-movement-section),
+  body.print-mode-gain #overview-view > .page > *:not(#debtor-movement-section),
+  body.print-mode-drop #debtor-movement-section > *:not(.card),
+  body.print-mode-gain #debtor-movement-section > *:not(.card),
   body.print-mode-drop #drop-export-bar,
-  body.print-mode-gain #gain-export-bar {
+  body.print-mode-gain #drop-export-bar {
     display: none !important;
   }
-  body.print-mode-drop #dropping-debtors-section,
-  body.print-mode-drop #dropping-debtors-section .card,
-  body.print-mode-gain #gaining-debtors-section,
-  body.print-mode-gain #gaining-debtors-section .card {
+  body.print-mode-drop #debtor-movement-section,
+  body.print-mode-drop #debtor-movement-section .card,
+  body.print-mode-gain #debtor-movement-section,
+  body.print-mode-gain #debtor-movement-section .card {
     display: block !important;
     width: 100% !important;
     background: white !important;
@@ -435,87 +435,26 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
       </div>
     </div>
 
-    <!-- 5d. Dropping Debtors -->
-    <div id="dropping-debtors-section" style="display:none;">
-      <div class="sec-lbl">📉 Dropping Debtors — Volume Down vs Last Month</div>
-      <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin:0 0 8px 2px;">Debtors who bought last month but reduced volume this month. Sorted by prev month CTN highest first. P-Personal excluded.</div>
-      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px;">
-        <span style="font-size:12px;color:var(--ink3);">Agent:</span>
-        <div style="position:relative;display:inline-block;" id="drop-agent-dropdown-wrap">
-          <div id="drop-agent-trigger" onclick="toggleDropAgentMenu()" 
-            style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);font-size:12px;min-width:160px;justify-content:space-between;">
-            <span id="drop-agent-label">All agents</span>
-            <span style="font-size:9px;opacity:0.5;">▼</span>
-          </div>
-          <div id="drop-agent-panel" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:var(--card);border:1px solid var(--border);border-radius:6px;min-width:180px;padding:6px 0;">
-            <div style="padding:4px 10px 6px;border-bottom:1px solid var(--border);display:flex;gap:10px;margin-bottom:2px;">
-              <span onclick="dropAgentSelectAll()" style="font-size:11px;color:var(--accent);cursor:pointer;">All</span>
-              <span style="opacity:0.3;">·</span>
-              <span onclick="dropAgentClearAll()" style="font-size:11px;color:var(--ink3);cursor:pointer;">Clear</span>
-            </div>
-            <div id="drop-agent-list"></div>
-          </div>
-        </div>
-        <div id="drop-agent-pills" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+    <!-- 5d. Debtor Movement (merged Drop + Gain) -->
+    <div id="debtor-movement-section" style="display:none;">
+      <div class="sec-lbl">📊 Debtor Movement — Volume Changes vs Last Month</div>
+
+      <div style="display:flex;gap:8px;padding:8px 0 12px;border-bottom:1px solid var(--border);margin-bottom:12px;">
+        <button id="movement-chip-drop" onclick="setDropGainActive('drop')" class="filter-chip active" style="font-family:var(--mono);font-size:11px;padding:6px 14px;border-radius:18px;cursor:pointer;">📉 DROP</button>
+        <button id="movement-chip-gain" onclick="setDropGainActive('gain')" class="filter-chip" style="font-family:var(--mono);font-size:11px;padding:6px 14px;border-radius:18px;cursor:pointer;">📈 GAIN</button>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;" id="drop-filter-row">
-        <button onclick="setDropFilter('all',this)" class="lb-btn active" style="background:var(--ink);color:#fff;border-radius:6px;padding:4px 10px;">All</button>
-        <button onclick="setDropFilter('stopped',this)" class="lb-btn" style="border-radius:6px;padding:4px 10px;">Stopped buying</button>
-        <button onclick="setDropFilter('reduced',this)" class="lb-btn" style="border-radius:6px;padding:4px 10px;">Reduced ≥30%</button>
-      </div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;" id="drop-sku-filter-row">
-        <button onclick="setDropSkuFilter('all',this)" class="lb-btn active" style="background:var(--ink);color:#fff;border-radius:6px;padding:3px 10px;font-size:9px;">All SKU</button>
-        <button onclick="setDropSkuFilter('IFACE',this)" class="lb-btn" style="border-radius:6px;padding:3px 10px;font-size:9px;color:#1a5c8f;border-color:#1a5c8f33;">iFACE</button>
-        <button onclick="setDropSkuFilter('SUKUN',this)" class="lb-btn" style="border-radius:6px;padding:3px 10px;font-size:9px;color:#6b3fa0;border-color:#6b3fa033;">SUKUN</button>
-        <button onclick="setDropSkuFilter('EVO',this)" class="lb-btn" style="border-radius:6px;padding:3px 10px;font-size:9px;color:#c8381a;border-color:#c8381a33;">EVO</button>
-        <button onclick="setDropSkuFilter('BISON',this)" class="lb-btn" style="border-radius:6px;padding:3px 10px;font-size:9px;color:#c8860a;border-color:#c8860a33;">BISON</button>
-        <button onclick="setDropSkuFilter('TR20',this)" class="lb-btn" style="border-radius:6px;padding:3px 10px;font-size:9px;color:#2a7a4b;border-color:#2a7a4b33;">TR20</button>
-        <button onclick="setDropSkuFilter('LAM+LWM',this)" class="lb-btn" style="border-radius:6px;padding:3px 10px;font-size:9px;color:#5a5550;border-color:#5a555033;">LAM+LWM</button>
-      </div>
-      <div class="card" style="padding:0;overflow:hidden;">
-        <div id="drop-export-bar" style="display:flex;justify-content:flex-end;gap:6px;margin:8px 0;padding:0 10px;">
-          <button onclick="exportDropExcel()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);border-radius:6px;color:var(--green);cursor:pointer;">📊 Export Excel</button>
-          <button onclick="exportDropPDF()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:6px;color:var(--accent);cursor:pointer;">🖨️ Print / PDF</button>
+
+      <div id="drop-filter-row" style="display:flex;gap:8px;padding-bottom:8px;font-size:11px;font-family:var(--mono);"></div>
+      <div id="drop-agent-list" style="display:flex;flex-wrap:wrap;gap:4px;padding-bottom:8px;"></div>
+      <div id="drop-sku-filter-row" style="display:flex;gap:8px;padding-bottom:8px;flex-wrap:wrap;"></div>
+
+      <div class="card" style="padding:12px;">
+        <div id="drop-export-bar" style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:8px;">
+          <button onclick="exportMovementExcel()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);border-radius:6px;color:var(--green);cursor:pointer;">📊 Export Excel</button>
+          <button onclick="exportMovementPDF()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:6px;color:var(--accent);cursor:pointer;">🖨️ Print / PDF</button>
         </div>
         <div id="dropping-debtors-list"></div>
-      </div>
-    </div>
-
-    <!-- 5e. Gaining Debtors -->
-    <div id="gaining-debtors-section" style="display:none;">
-      <div class="sec-lbl">📈 Gaining Debtors — Volume Up vs Last Month</div>
-      <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin:0 0 8px 2px;">Debtors who increased volume or bought a new SKU this month vs last month. Sorted by biggest gain first. P-Personal excluded.</div>
-      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px;">
-        <span style="font-size:12px;color:var(--ink3);">Agent:</span>
-        <div style="position:relative;display:inline-block;" id="gain-agent-dropdown-wrap">
-          <div id="gain-agent-trigger" onclick="toggleGainAgentMenu()"
-            style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);font-size:12px;min-width:160px;justify-content:space-between;">
-            <span id="gain-agent-label">All agents</span>
-            <span style="font-size:9px;opacity:0.5;">▼</span>
-          </div>
-          <div id="gain-agent-panel" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:var(--card);border:1px solid var(--border);border-radius:6px;min-width:180px;padding:6px 0;">
-            <div style="padding:4px 10px 6px;border-bottom:1px solid var(--border);display:flex;gap:10px;margin-bottom:2px;">
-              <span onclick="gainAgentSelectAll()" style="font-size:11px;color:var(--accent);cursor:pointer;">All</span>
-              <span style="opacity:0.3;">·</span>
-              <span onclick="gainAgentClearAll()" style="font-size:11px;color:var(--ink3);cursor:pointer;">Clear</span>
-            </div>
-            <div id="gain-agent-list"></div>
-          </div>
-        </div>
-        <div id="gain-agent-pills" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;" id="gain-filter-row">
-        <button onclick="setGainFilter('all',this)" class="lb-btn active" style="background:var(--ink);color:#fff;border-radius:6px;padding:4px 10px;">All</button>
-        <button onclick="setGainFilter('newsku',this)" class="lb-btn" style="border-radius:6px;padding:4px 10px;">New SKU only</button>
-        <button onclick="setGainFilter('increased30',this)" class="lb-btn" style="border-radius:6px;padding:4px 10px;">Increased ≥30%</button>
-      </div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;" id="gain-sku-filter-row"></div>
-      <div class="card" style="padding:0;overflow:hidden;">
-        <div id="gain-export-bar" style="display:flex;justify-content:flex-end;gap:6px;margin:8px 0;padding:0 10px;">
-          <button onclick="exportGainExcel()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);border-radius:6px;color:var(--green);cursor:pointer;">📊 Export Excel</button>
-          <button onclick="exportGainPDF()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:6px;color:var(--accent);cursor:pointer;">🖨️ Print / PDF</button>
-        </div>
-        <div id="gaining-debtors-list"></div>
+        <div id="gaining-debtors-list" style="display:none;"></div>
       </div>
     </div>
 
@@ -1377,8 +1316,7 @@ function renderOverview() {
   renderDebtorSummary();
   renderBrandSkuStatus();
   renderBrandVolumeAlert();
-  renderDroppingDebtors();
-  renderGainingDebtors();
+  setDropGainActive(_dropGainActive);
   renderActivityMap();
   renderNewbieProgress();
   renderAgingOverview();
@@ -1891,6 +1829,16 @@ function exportGainPDF() {
     };
     window.addEventListener('afterprint', cleanup);
   }, 50);
+}
+
+function exportMovementExcel() {
+  if (_dropGainActive === 'drop') return exportDropExcel();
+  return exportGainExcel();
+}
+
+function exportMovementPDF() {
+  if (_dropGainActive === 'drop') return exportDropPDF();
+  return exportGainPDF();
 }
 
 function exportBrandNonbuyersExcel() {
@@ -3197,6 +3145,7 @@ function renderBrandVolumeAlert() {
 let _gainFilter    = 'all';
 let _gainSkuFilter = 'all';
 let _gainAgentFilter = new Set();
+let _dropGainActive = 'drop';  // 'drop' | 'gain'
 let GAINING_DEBTORS_PAGE = 0;
 let GAINING_DEBTORS_LIST = [];
 let DROPPING_DEBTORS_LIST = [];
@@ -3206,27 +3155,85 @@ let _lastBrandExport = null;
 let _lastAnalyticsExport = null;
 const GAINING_DEBTORS_PER_PAGE = 12;
 
+const MOVEMENT_SKU_COLORS = {
+  IFACE:'#1a5c8f', SUKUN:'#6b3fa0', EVO:'#c8381a',
+  BISON:'#c8860a', TR20:'#2a7a4b', 'LAM+LWM':'#5a5550'
+};
+
+function movementChipHtml(label, active, onclick, color='var(--ink)') {
+  const style = active
+    ? 'background:var(--ink);color:#fff;'
+    : `background:transparent;color:${color};border-color:${color.startsWith('#') ? color + '33' : 'var(--border)'};`;
+  return `<button onclick="${onclick}" class="lb-btn ${active?'active':''}" style="border-radius:6px;padding:4px 10px;font-size:10px;${style}">${label}</button>`;
+}
+
+function renderDropFilterRow() {
+  const row = document.getElementById('drop-filter-row');
+  if (!row) return;
+  row.innerHTML = [
+    movementChipHtml('All', _dropFilter === 'all', "setDropFilter('all')"),
+    movementChipHtml('Stopped buying', _dropFilter === 'stopped', "setDropFilter('stopped')"),
+    movementChipHtml('Reduced ≥30%', _dropFilter === 'reduced', "setDropFilter('reduced')"),
+  ].join('');
+}
+
+function renderGainFilterRow() {
+  const row = document.getElementById('drop-filter-row');
+  if (!row) return;
+  row.innerHTML = [
+    movementChipHtml('All', _gainFilter === 'all', "setGainFilter('all')"),
+    movementChipHtml('New SKU only', _gainFilter === 'newsku', "setGainFilter('newsku')"),
+    movementChipHtml('Increased ≥30%', _gainFilter === 'increased30', "setGainFilter('increased30')"),
+  ].join('');
+}
+
+function renderDropSkuFilter() {
+  const row = document.getElementById('drop-sku-filter-row');
+  if (!row) return;
+  const options = ['all', 'IFACE', 'SUKUN', 'EVO', 'BISON', 'TR20', 'LAM+LWM'];
+  row.innerHTML = options.map(sku => {
+    const label = sku === 'all' ? 'All SKU' : sku;
+    const safeSku = String(sku).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const col = MOVEMENT_SKU_COLORS[sku] || 'var(--ink)';
+    return movementChipHtml(label, sku === _dropSkuFilter, `setDropSkuFilter('${safeSku}')`, col);
+  }).join('');
+}
+
+function setDropGainActive(which) {
+  _dropGainActive = which;
+  document.getElementById('movement-chip-drop')?.classList.toggle('active', which === 'drop');
+  document.getElementById('movement-chip-gain')?.classList.toggle('active', which === 'gain');
+  const dropList = document.getElementById('dropping-debtors-list');
+  const gainList = document.getElementById('gaining-debtors-list');
+  if (dropList) dropList.style.display = (which === 'drop') ? 'block' : 'none';
+  if (gainList) gainList.style.display = (which === 'gain') ? 'block' : 'none';
+  if (which === 'drop') {
+    renderDropFilterRow();
+    renderDropAgentList();
+    renderDropSkuFilter();
+    renderDroppingDebtors();
+  } else {
+    renderGainFilterRow();
+    renderGainAgentList();
+    renderGainingDebtors();
+  }
+}
+
+function syncMovementAgentFiltersFrom(source) {
+  const copy = new Set(source);
+  _dropAgentFilter = copy;
+  _gainAgentFilter = new Set(copy);
+}
+
 function setGainFilter(f, btn) {
   _gainFilter = f;
-  document.querySelectorAll('#gain-filter-row .lb-btn').forEach(b => {
-    b.style.background = 'transparent'; b.style.color = 'var(--ink)';
-  });
-  if (btn) { btn.style.background = 'var(--ink)'; btn.style.color = '#fff'; }
+  renderGainFilterRow();
   renderGainingDebtors();
 }
 
 function setGainSkuFilter(f, btn) {
   _gainSkuFilter = f;
-  document.querySelectorAll('#gain-sku-filter-row .lb-btn').forEach(b => {
-    b.style.background = 'transparent';
-    const orig = b.getAttribute('data-orig-color') || 'var(--ink)';
-    b.style.color = orig;
-  });
-  if (btn) {
-    if (!btn.getAttribute('data-orig-color')) btn.setAttribute('data-orig-color', btn.style.color);
-    btn.style.background = 'var(--ink)';
-    btn.style.color = '#fff';
-  }
+  _dropSkuFilter = f;
   renderGainingDebtors();
 }
 
@@ -3236,7 +3243,7 @@ const GAIN_SKU_COLORS = {
 };
 
 function renderGainSkuFilterButtons(skuOptions) {
-  const row = document.getElementById('gain-sku-filter-row');
+  const row = document.getElementById('drop-sku-filter-row');
   if (!row) return;
   const options = ['all', ...skuOptions];
   row.innerHTML = options.map(sku => {
@@ -3244,8 +3251,7 @@ function renderGainSkuFilterButtons(skuOptions) {
     const label = sku === 'all' ? 'All SKU' : sku;
     const safeSku = String(sku).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     const col = GAIN_SKU_COLORS[sku] || 'var(--ink)';
-    const borderCol = col.startsWith('#') ? `${col}33` : 'var(--border)';
-    return `<button onclick="setGainSkuFilter('${safeSku}',this)" class="lb-btn ${active?'active':''}" style="border-radius:6px;padding:3px 10px;font-size:9px;${active?'background:var(--ink);color:#fff;':`color:${col};border-color:${borderCol};`}">${label}</button>`;
+    return movementChipHtml(label, active, `setGainSkuFilter('${safeSku}')`, col);
   }).join('');
 }
 
@@ -3257,7 +3263,7 @@ function toggleGainAgentMenu() {
 }
 
 function renderGainAgentList() {
-  const list = document.getElementById('gain-agent-list');
+  const list = document.getElementById('drop-agent-list');
   if (!list) return;
   const D = CURRENT_DATA || DATA;
   const agents = Object.keys(D?.agents || {}).sort();
@@ -3289,23 +3295,26 @@ function renderGainAgentPills() {
 function gainAgentToggle(a) {
   if (_gainAgentFilter.has(a)) _gainAgentFilter.delete(a);
   else _gainAgentFilter.add(a);
-  renderGainAgentList();
-  renderGainAgentPills();
-  renderGainingDebtors();
+  syncMovementAgentFiltersFrom(_gainAgentFilter);
+  if (_dropGainActive === 'drop') {
+    renderDropAgentList();
+    renderDroppingDebtors();
+  } else {
+    renderGainAgentList();
+    renderGainingDebtors();
+  }
 }
 
 function gainAgentSelectAll() {
   _gainAgentFilter.clear();
-  renderGainAgentList();
-  renderGainAgentPills();
-  renderGainingDebtors();
+  syncMovementAgentFiltersFrom(_gainAgentFilter);
+  setDropGainActive(_dropGainActive);
 }
 
 function gainAgentClearAll() {
   _gainAgentFilter.clear();
-  renderGainAgentList();
-  renderGainAgentPills();
-  renderGainingDebtors();
+  syncMovementAgentFiltersFrom(_gainAgentFilter);
+  setDropGainActive(_dropGainActive);
 }
 
 document.addEventListener('click', e => {
@@ -3345,7 +3354,7 @@ function renderGainingDebtorsPage() {
 }
 
 function renderGainingDebtors(resetPage=true) {
-  const section = document.getElementById('gaining-debtors-section');
+  const section = document.getElementById('debtor-movement-section');
   const list    = document.getElementById('gaining-debtors-list');
   if (!section || !list) return;
   const D      = CURRENT_DATA || DATA;
@@ -3377,13 +3386,15 @@ function renderGainingDebtors(resetPage=true) {
       month: CURRENT_DATA?.current_month || DATA?.current_month || '',
       debtors: [],
     };
-    section.style.display = 'none';
+    list.innerHTML = '<div style="padding:12px 14px;font-family:var(--mono);font-size:10px;color:var(--ink3);text-align:center;">No gaining debtors for current filters</div>';
+    section.style.display = 'block';
     return;
   }
   section.style.display = 'block';
 
   const skuOptions = [...new Set(gains.flatMap(d => d.gainSkus || []))].sort((a,b) => a.localeCompare(b));
   if (_gainSkuFilter !== 'all' && !skuOptions.includes(_gainSkuFilter)) _gainSkuFilter = 'all';
+  _dropSkuFilter = _gainSkuFilter;
   renderGainSkuFilterButtons(skuOptions);
 
   const filteredGains = _gainSkuFilter === 'all'
@@ -3466,27 +3477,14 @@ let _dropAgentFilter = new Set(); // empty = all agents selected
 
 function setDropFilter(f, btn) {
   _dropFilter = f;
-  document.querySelectorAll('#drop-filter-row .lb-btn').forEach(b => {
-    b.style.background = 'transparent'; b.style.color = 'var(--ink)';
-  });
-  if (btn) { btn.style.background = 'var(--ink)'; btn.style.color = '#fff'; }
+  renderDropFilterRow();
   renderDroppingDebtors();
 }
 
 function setDropSkuFilter(f, btn) {
   _dropSkuFilter = f;
-  document.querySelectorAll('#drop-sku-filter-row .lb-btn').forEach(b => {
-    b.style.background = 'transparent';
-    // restore original brand colour on text
-    const orig = b.getAttribute('data-orig-color') || 'var(--ink)';
-    b.style.color = orig;
-  });
-  if (btn) {
-    const origColor = btn.style.color;
-    if (!btn.getAttribute('data-orig-color')) btn.setAttribute('data-orig-color', origColor);
-    btn.style.background = 'var(--ink)';
-    btn.style.color = '#fff';
-  }
+  _gainSkuFilter = f;
+  renderDropSkuFilter();
   renderDroppingDebtors();
 }
 
@@ -3534,23 +3532,26 @@ function renderDropAgentPills() {
 function dropAgentToggle(a) {
   if (_dropAgentFilter.has(a)) _dropAgentFilter.delete(a);
   else _dropAgentFilter.add(a);
-  renderDropAgentList();
-  renderDropAgentPills();
-  renderDroppingDebtors();
+  syncMovementAgentFiltersFrom(_dropAgentFilter);
+  if (_dropGainActive === 'drop') {
+    renderDropAgentList();
+    renderDroppingDebtors();
+  } else {
+    renderGainAgentList();
+    renderGainingDebtors();
+  }
 }
 
 function dropAgentSelectAll() {
   _dropAgentFilter.clear();
-  renderDropAgentList();
-  renderDropAgentPills();
-  renderDroppingDebtors();
+  syncMovementAgentFiltersFrom(_dropAgentFilter);
+  setDropGainActive(_dropGainActive);
 }
 
 function dropAgentClearAll() {
   _dropAgentFilter.clear();
-  renderDropAgentList();
-  renderDropAgentPills();
-  renderDroppingDebtors();
+  syncMovementAgentFiltersFrom(_dropAgentFilter);
+  setDropGainActive(_dropGainActive);
 }
 
 document.addEventListener('click', e => {
@@ -3586,7 +3587,7 @@ function getMgmtDebtorSkuDrops(d) {
 }
 
 function renderDroppingDebtors() {
-  const section = document.getElementById('dropping-debtors-section');
+  const section = document.getElementById('debtor-movement-section');
   const list    = document.getElementById('dropping-debtors-list');
   if (!section || !list) return;
   const D      = CURRENT_DATA || DATA;
@@ -3626,7 +3627,8 @@ function renderDroppingDebtors() {
       month: CURRENT_DATA?.current_month || DATA?.current_month || '',
       debtors: [],
     };
-    section.style.display = 'none';
+    list.innerHTML = '<div style="padding:12px 14px;font-family:var(--mono);font-size:10px;color:var(--ink3);text-align:center;">No dropping debtors for current filters</div>';
+    section.style.display = 'block';
     return;
   }
   section.style.display = 'block';
