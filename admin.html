@@ -1872,7 +1872,8 @@ function renderBulkImportSection() {
         Bulk Import Targets
       </summary>
       <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);line-height:1.6;margin:10px 0;">
-        Paste CSV with columns: <b>agent,field_type,field_key,value</b>. field_type is <b>kpi</b> or <b>campaign</b>.
+        Paste CSV with columns: <b>agent,field_type,field_key,value</b>. field_type supports <b>sales_prog</b>,
+        <b>brand_comm</b>, <b>kpi</b>, <b>campaign</b>, <b>newbie_ctn</b>, <b>newbie_acc</b>, and <b>flag</b>.
         Blank value clears the target. Current month: <b>${kpiAdminEscape(month || 'not selected')}</b>
         ${campCount ? `(${campCount} active campaign target column${campCount === 1 ? '' : 's'} available)` : '(no active campaign target rows for this month)'}.
       </div>
@@ -1915,9 +1916,65 @@ function normalizeImportAgent(agent) {
   return String(agent || '').trim().toUpperCase();
 }
 
+function getTargetsImportPath(row) {
+  const key = row.field_key || '';
+  if (row.field_type === 'kpi') return `kpi_targets.${key}`;
+  if (row.field_type === 'campaign') return `campaign_targets.${key}`;
+  if (row.field_type === 'sales_prog') return `sales_progression.${key}`;
+  if (row.field_type === 'brand_comm') {
+    const [brand, subField] = key.split(':');
+    return `brand_commission.${brand}.${subField}`;
+  }
+  if (row.field_type === 'newbie_ctn') {
+    const m = key.match(/^ctn_tier_([123])_(threshold|reward)$/);
+    return m ? `newbie_tiers[${parseInt(m[1], 10) - 1}].${m[2]}` : `newbie_tiers.${key}`;
+  }
+  if (row.field_type === 'newbie_acc') {
+    const m = key.match(/^acc_tier_([123])_(count|reward)$/);
+    return m ? `newbie_account_tiers[${parseInt(m[1], 10) - 1}].${m[2]}` : `newbie_account_tiers.${key}`;
+  }
+  if (row.field_type === 'flag') return key;
+  return `${row.field_type}.${key}`;
+}
+
+function getTargetsImportCurrent(agent, fieldType, fieldKey) {
+  const cfg = CONFIG.agents?.[agent] || {};
+  if (fieldType === 'kpi') return cfg.kpi_targets?.[fieldKey];
+  if (fieldType === 'campaign') return cfg.campaign_targets?.[fieldKey];
+  if (fieldType === 'sales_prog') return cfg.sales_progression?.[fieldKey];
+  if (fieldType === 'brand_comm') {
+    const [brand, subField] = fieldKey.split(':');
+    return cfg.brand_commission?.[brand]?.[subField];
+  }
+  if (fieldType === 'newbie_ctn') {
+    const m = fieldKey.match(/^ctn_tier_([123])_(threshold|reward)$/);
+    return m ? cfg.newbie_tiers?.[parseInt(m[1], 10) - 1]?.[m[2]] : undefined;
+  }
+  if (fieldType === 'newbie_acc') {
+    const m = fieldKey.match(/^acc_tier_([123])_(count|reward)$/);
+    return m ? cfg.newbie_account_tiers?.[parseInt(m[1], 10) - 1]?.[m[2]] : undefined;
+  }
+  if (fieldType === 'flag') return cfg[fieldKey];
+  return undefined;
+}
+
+function getAgentDataPresenceNote(agent) {
+  const adata = DASH_DATA?.agents?.[agent];
+  if (!adata) return '';
+  const bits = [];
+  if (Array.isArray(adata.debtors)) bits.push(`${adata.debtors.length} debtor cards`);
+  if (adata.kpi?.score != null) bits.push(`KPI score ${adata.kpi.score}`);
+  return bits.length ? ` — currently has ${bits.join(', ')}` : '';
+}
+
+function ensureTargetTierArray(agentCfg, key, defaults) {
+  if (!Array.isArray(agentCfg[key])) agentCfg[key] = defaults.map(x => ({...x}));
+  while (agentCfg[key].length < 3) agentCfg[key].push({...defaults[agentCfg[key].length]});
+}
+
 function parseTargetsCsv(text) {
   const lines = String(text || '').replace(/\r/g, '').split('\n').filter(l => l.trim());
-  const result = { rows: [], warnings: [], errors: [], total: 0, applyCount: 0, valid: false };
+  const result = { rows: [], warnings: [], errors: [], total: 0, applyCount: 0, valid: false, sectionCounts: {} };
   if (!lines.length) {
     result.errors.push('No CSV rows found.');
     return result;
@@ -1930,6 +1987,9 @@ function parseTargetsCsv(text) {
   const activeCampKeys = new Set(getBulkImportCampaignKeys(getBulkImportMonth()).map(c => c.key));
   const knownAgents = new Set(Object.keys(CONFIG?.agents || {}).map(a => a.toUpperCase()));
   const knownKpi = new Set(BULK_TARGET_KPI_KEYS);
+  const knownBrands = new Set(BRANDS);
+  const salesProgKeys = new Set(['normal_t1','normal_t2','ga','ma']);
+  const validFieldTypes = new Set(['kpi','campaign','sales_prog','brand_comm','newbie_ctn','newbie_acc','flag']);
   const inactiveCampWarnings = new Set();
 
   dataLines.forEach((line, idx) => {
@@ -1951,8 +2011,8 @@ function parseTargetsCsv(text) {
       result.errors.push(`Line ${lineNo}: unknown agent "${cols[0]}".`);
       return;
     }
-    if (fieldType !== 'kpi' && fieldType !== 'campaign') {
-      result.errors.push(`Line ${lineNo}: field_type must be kpi or campaign.`);
+    if (!validFieldTypes.has(fieldType)) {
+      result.errors.push(`Line ${lineNo}: unknown field_type "${cols[1]}".`);
       return;
     }
     if (fieldType === 'kpi' && !knownKpi.has(fieldKey)) {
@@ -1966,6 +2026,39 @@ function parseTargetsCsv(text) {
       }
       if (!activeCampKeys.has(fieldKey)) inactiveCampWarnings.add(fieldKey);
     }
+    if (fieldType === 'sales_prog' && !salesProgKeys.has(fieldKey)) {
+      result.errors.push(`Line ${lineNo}: sales_prog field_key must be normal_t1, normal_t2, ga, or ma.`);
+      return;
+    }
+    if (fieldType === 'brand_comm') {
+      const parts = fieldKey.split(':');
+      if (parts.length !== 2 || !['penetration_target','ctn_target'].includes(parts[1])) {
+        result.errors.push(`Line ${lineNo}: brand_comm field_key must be BRAND:penetration_target or BRAND:ctn_target.`);
+        return;
+      }
+      if (!knownBrands.has(parts[0])) {
+        result.errors.push(`Line ${lineNo}: unknown brand "${parts[0]}"; expected one of ${BRANDS.join(', ')}.`);
+        return;
+      }
+    }
+    if (fieldType === 'newbie_ctn' && !/^ctn_tier_[123]_(threshold|reward)$/.test(fieldKey)) {
+      result.errors.push(`Line ${lineNo}: newbie_ctn field_key must match ctn_tier_N_threshold or ctn_tier_N_reward.`);
+      return;
+    }
+    if (fieldType === 'newbie_acc' && !/^acc_tier_[123]_(count|reward)$/.test(fieldKey)) {
+      result.errors.push(`Line ${lineNo}: newbie_acc field_key must match acc_tier_N_count or acc_tier_N_reward.`);
+      return;
+    }
+    if (fieldType === 'flag') {
+      if (fieldKey !== 'active' && fieldKey !== 'is_newbie') {
+        result.errors.push(`Line ${lineNo}: flag field_key must be active or is_newbie.`);
+        return;
+      }
+      if (rawValue !== '' && rawValue !== '0' && rawValue !== '1') {
+        result.errors.push(`Line ${lineNo}: flag value must be 1, 0, or blank.`);
+        return;
+      }
+    }
 
     let value = null;
     if (rawValue !== '') {
@@ -1976,10 +2069,9 @@ function parseTargetsCsv(text) {
       }
     }
 
-    const current = fieldType === 'kpi'
-      ? CONFIG.agents[agent]?.kpi_targets?.[fieldKey]
-      : CONFIG.agents[agent]?.campaign_targets?.[fieldKey];
-    result.rows.push({ lineNo, agent, field_type: fieldType, field_key: fieldKey, value, current });
+    const current = getTargetsImportCurrent(agent, fieldType, fieldKey);
+    result.sectionCounts[fieldType] = (result.sectionCounts[fieldType] || 0) + 1;
+    result.rows.push({ lineNo, agent, field_type: fieldType, field_key: fieldKey, value, raw_value: rawValue, current });
   });
 
   if (inactiveCampWarnings.size) {
@@ -1994,13 +2086,25 @@ function parseTargetsCsv(text) {
 function previewTargetsImport(parsed) {
   const lines = parsed.rows.slice(0, 80).map(r => {
     const before = r.current ?? '';
-    const after = r.value ?? '';
-    return `<div>${kpiAdminEscape(r.agent)}: ${kpiAdminEscape(r.field_type)}.${kpiAdminEscape(r.field_key)} ${kpiAdminEscape(before)} &rarr; ${kpiAdminEscape(after)}</div>`;
+    const after = r.raw_value === '' ? '(blank)' : (r.field_type === 'flag' ? (r.value === 1 ? 'true' : 'false') : r.value);
+    const path = getTargetsImportPath(r);
+    const flagWarn = r.field_type === 'flag' ? ' ⚠️' : '';
+    const deactivateWarn = r.field_type === 'flag' && r.field_key === 'active' && r.current !== false && r.value === 0
+      ? ` <span style="color:var(--accent);font-weight:700;">⚠️ deactivation${kpiAdminEscape(getAgentDataPresenceNote(r.agent))}</span>`
+      : '';
+    const newbieWarn = r.field_type === 'flag' && r.field_key === 'is_newbie'
+      ? ` <span style="color:var(--accent);">⚠️ newbie toggle</span>`
+      : '';
+    return `<div>${flagWarn}${kpiAdminEscape(r.agent)}: ${kpiAdminEscape(path)} ${kpiAdminEscape(before)} &rarr; ${kpiAdminEscape(after)}${deactivateWarn}${newbieWarn}</div>`;
   }).join('');
   const more = parsed.rows.length > 80 ? `<div>...and ${parsed.rows.length - 80} more rows</div>` : '';
   const warnings = parsed.warnings.length ? `<div style="color:var(--accent);margin-top:6px;">Warnings:<br>${parsed.warnings.map(w => '- ' + kpiAdminEscape(w)).join('<br>')}</div>` : '';
   const errors = parsed.errors.length ? `<div style="color:#c8381a;margin-top:6px;">Rejected:<br>${parsed.errors.map(e => '- ' + kpiAdminEscape(e)).join('<br>')}</div>` : '';
-  return `<div style="font-weight:700;color:${parsed.errors.length ? '#c8381a' : 'var(--green)'};">Validated ${parsed.total} rows: ${parsed.applyCount} will apply, ${parsed.warnings.length} warnings, ${parsed.errors.length} rejected</div>${warnings}${errors}<div style="margin-top:6px;max-height:220px;overflow:auto;border-top:1px solid var(--border);padding-top:6px;">${lines || 'No applicable rows.'}${more}</div>`;
+  const sections = ['sales_prog','brand_comm','kpi','campaign','newbie_ctn','newbie_acc','flag']
+    .filter(k => parsed.sectionCounts?.[k])
+    .map(k => `${parsed.sectionCounts[k]} ${k}`)
+    .join(', ');
+  return `<div style="font-weight:700;color:${parsed.errors.length ? '#c8381a' : 'var(--green)'};">Validated ${parsed.total} rows${sections ? ': ' + kpiAdminEscape(sections) : ''} — ${parsed.applyCount} will apply, ${parsed.warnings.length} warnings, ${parsed.errors.length} rejected</div>${warnings}${errors}<div style="margin-top:6px;max-height:220px;overflow:auto;border-top:1px solid var(--border);padding-top:6px;">${lines || 'No applicable rows.'}${more}</div>`;
 }
 
 function validateTargetsImport() {
@@ -2027,9 +2131,35 @@ function applyTargetsImport() {
     if (r.field_type === 'kpi') {
       if (!agentCfg.kpi_targets) agentCfg.kpi_targets = {};
       agentCfg.kpi_targets[r.field_key] = r.value;
-    } else {
+    } else if (r.field_type === 'campaign') {
       if (!agentCfg.campaign_targets) agentCfg.campaign_targets = {};
       agentCfg.campaign_targets[r.field_key] = r.value;
+    } else if (r.field_type === 'sales_prog') {
+      if (!agentCfg.sales_progression) agentCfg.sales_progression = {};
+      agentCfg.sales_progression[r.field_key] = r.raw_value === '' ? null : parseFloat(r.raw_value);
+    } else if (r.field_type === 'brand_comm') {
+      const [brand, subField] = r.field_key.split(':');
+      if (!agentCfg.brand_commission) agentCfg.brand_commission = {};
+      if (!agentCfg.brand_commission[brand]) agentCfg.brand_commission[brand] = { penetration_target: 0, ctn_target: 0 };
+      agentCfg.brand_commission[brand][subField] = r.raw_value === '' ? 0 : parseFloat(r.raw_value);
+    } else if (r.field_type === 'newbie_ctn') {
+      const m = r.field_key.match(/^ctn_tier_([123])_(threshold|reward)$/);
+      ensureTargetTierArray(agentCfg, 'newbie_tiers', [
+        {threshold: 0, reward: 0},
+        {threshold: 0, reward: 0},
+        {threshold: 0, reward: 0},
+      ]);
+      if (r.raw_value !== '') agentCfg.newbie_tiers[parseInt(m[1], 10) - 1][m[2]] = parseFloat(r.raw_value);
+    } else if (r.field_type === 'newbie_acc') {
+      const m = r.field_key.match(/^acc_tier_([123])_(count|reward)$/);
+      ensureTargetTierArray(agentCfg, 'newbie_account_tiers', [
+        {count: 0, reward: 0},
+        {count: 0, reward: 0},
+        {count: 0, reward: 0},
+      ]);
+      if (r.raw_value !== '') agentCfg.newbie_account_tiers[parseInt(m[1], 10) - 1][m[2]] = parseFloat(r.raw_value);
+    } else if (r.field_type === 'flag') {
+      if (r.raw_value !== '') agentCfg[r.field_key] = (r.raw_value === '1' || r.value === 1);
     }
   });
   updateRawJSON();
@@ -2045,12 +2175,28 @@ function csvEscape(value) {
 
 function downloadTargetsTemplate() {
   const month = getBulkImportMonth();
-  const agents = Object.keys(CONFIG?.agents || {}).sort();
+  const agents = Object.keys(CONFIG?.agents || {}).filter(agent => CONFIG.agents[agent]?.active !== false).sort();
   const campaigns = getBulkImportCampaignKeys(month);
   const rows = [['agent','field_type','field_key','value']];
   agents.forEach(agent => {
+    ['normal_t1','normal_t2','ga','ma'].forEach(key => rows.push([agent, 'sales_prog', key, '']));
+    BRANDS.forEach(brand => {
+      rows.push([agent, 'brand_comm', `${brand}:penetration_target`, '']);
+      rows.push([agent, 'brand_comm', `${brand}:ctn_target`, '']);
+    });
     BULK_TARGET_KPI_KEYS.forEach(key => rows.push([agent, 'kpi', key, '']));
     campaigns.forEach(camp => rows.push([agent, 'campaign', camp.key, '']));
+    [1,2,3].forEach(n => {
+      rows.push([agent, 'newbie_ctn', `ctn_tier_${n}_threshold`, '']);
+      rows.push([agent, 'newbie_ctn', `ctn_tier_${n}_reward`, '']);
+    });
+    [1,2,3].forEach(n => {
+      rows.push([agent, 'newbie_acc', `acc_tier_${n}_count`, '']);
+      rows.push([agent, 'newbie_acc', `acc_tier_${n}_reward`, '']);
+    });
+    const cfg = CONFIG.agents?.[agent] || {};
+    rows.push([agent, 'flag', 'active', cfg.active === false ? 0 : 1]);
+    rows.push([agent, 'flag', 'is_newbie', cfg.is_newbie ? 1 : 0]);
   });
   const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
