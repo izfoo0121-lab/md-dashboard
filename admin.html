@@ -922,7 +922,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
       <!-- Month selector -->
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
         <span style="font-family:var(--mono);font-size:9px;color:var(--ink3);text-transform:uppercase;">Month:</span>
-        <select id="kpi-month-select" onchange="renderKPIWeights()"
+        <select id="kpi-month-select" onchange="renderKPIWeights();renderAgentForms();"
           style="font-family:var(--mono);font-size:12px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);">
         </select>
         <span id="kpi-total-display" style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--green);">Total: 0.00%</span>
@@ -934,7 +934,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
 
       <div id="kpi-weights-form"></div>
 
-      <button class="save-btn" onclick="saveKPIWeights()">SAVE KPI WEIGHTS</button>
+      <button class="save-btn" id="kpi-save-btn" onclick="saveKPIWeights()">SAVE KPI WEIGHTS</button>
       <div class="save-toast" id="kpi-save-toast">✓ KPI Weights saved</div>
     </div>
   </div>
@@ -1611,6 +1611,7 @@ function toggleAgentActive(agent, active) {
 function renderAgentForms() {
   const container = document.getElementById('agent-forms');
   const agents = Object.keys(CONFIG.agents || {}).sort();
+  const selectedMonth = document.getElementById('kpi-month-select')?.value || '';
   if (!agents.length) { container.innerHTML = '<p style="color:var(--ink3);font-family:var(--mono);font-size:11px;">No agents in config</p>'; return; }
 
   container.innerHTML = agents.map(agent => {
@@ -1728,6 +1729,24 @@ function renderAgentForms() {
         const pi = snap.prev_inactive || 0;
         const autoVip   = np ? Math.max(1, Math.round(np * 0.20)) : null;
         const autoReact = pi ? Math.max(1, Math.round(pi * 0.40)) : null;
+        const activeCamps = isDynamicCampaignMonth(selectedMonth) ? getActiveCampaignsForMonth(selectedMonth) : [];
+        const campaignTargetRows = activeCamps.length ? `
+          <div style="font-family:var(--mono);font-size:9px;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin:12px 0 6px;">
+            Campaign Targets <span style="color:var(--ink3);font-size:8px;text-transform:none;letter-spacing:0;">(${selectedMonth})</span>
+          </div>
+          ${activeCamps.map(camp => {
+            const campId = String(camp.id || '');
+            const campName = kpiAdminEscape(camp.name || campId);
+            const campType = kpiAdminEscape(camp.type || 'campaign');
+            return `<div class="field-wrap" style="margin-bottom:8px;">
+              <div class="field-lbl">${campName}</div>
+              <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-bottom:3px;">${campType} · ${campId}</div>
+              <input type="number" min="0" placeholder="Target count"
+                value="${a.campaign_targets?.[campId] ?? ''}"
+                onchange="setCampaignTarget('${agent}','${campId}',this.value)">
+            </div>`;
+          }).join('')}
+        ` : '';
         const snapInfo  = np ? `<div style="font-family:var(--mono);font-size:9px;color:var(--blue);margin-bottom:8px;background:rgba(77,166,255,.08);border:1px solid rgba(77,166,255,.2);border-radius:8px;padding:6px 10px;">
           📊 Month-start snapshot: <b>${np}</b> non-personal debtors · <b>${pi}</b> prev inactive
           <span style="color:var(--muted);margin-left:6px;">${snap.captured_date||''}</span>
@@ -1784,6 +1803,7 @@ function renderAgentForms() {
         </div>
         ${(overrides.vip_count||overrides.reactivation||overrides.new_sku)?
           `<button onclick="clearKPIOverrides('${agent}')" style="background:none;border:1px solid var(--border);color:var(--ink3);font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;margin-top:4px;">↺ Reset to auto-calculate</button>`:''}
+        ${campaignTargetRows}
       `;
       })()}
     </div>`;
@@ -1811,6 +1831,13 @@ function setKPI(agent, field, val) {
   if (!CONFIG.agents[agent]) return;
   if (!CONFIG.agents[agent].kpi_targets) CONFIG.agents[agent].kpi_targets = {};
   CONFIG.agents[agent].kpi_targets[field] = val === '' ? null : parseFloat(val);
+  updateRawJSON();
+}
+
+function setCampaignTarget(agent, camp_id, val) {
+  if (!CONFIG.agents[agent]) return;
+  if (!CONFIG.agents[agent].campaign_targets) CONFIG.agents[agent].campaign_targets = {};
+  CONFIG.agents[agent].campaign_targets[camp_id] = val === '' ? null : parseFloat(val);
   updateRawJSON();
 }
 
@@ -2300,6 +2327,62 @@ function getKPIWeights(month) {
   return CONFIG.kpi_weights[month] || DEFAULT_KPI_WEIGHTS[month] || DEFAULT_KPI_WEIGHTS["Apr 26"];
 }
 
+function kpiAdminEscape(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function getActiveCampaignsForMonth(monthLabel) {
+  if (!CAMPAIGNS_DATA?.campaigns?.length) return [];
+  const [monStr, yrStr] = String(monthLabel || '').split(' ');
+  const monthIdx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(monStr);
+  if (monthIdx < 0) return [];
+  const year = 2000 + parseInt(yrStr, 10);
+  if (!year) return [];
+  const monthStart = new Date(year, monthIdx, 1);
+  const monthEnd = new Date(year, monthIdx + 1, 0, 23, 59, 59);
+  return CAMPAIGNS_DATA.campaigns.filter(c => {
+    if (c.active === false) return false;
+    const created = c.created_at ? new Date(c.created_at) : null;
+    const deadline = c.deadline ? new Date(c.deadline) : null;
+    if (created && created > monthEnd) return false;       // not yet created (Q9=A forward-only)
+    if (deadline && deadline < monthStart) return false;   // expired before month
+    return true;
+  });
+}
+
+function isDynamicCampaignMonth(monthLabel) {
+  // Q5=A: May 26 onward uses dynamic per-campaign KPI
+  const [monStr, yrStr] = String(monthLabel || '').split(' ');
+  const monthIdx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(monStr);
+  const year = 2000 + parseInt(yrStr, 10);
+  if (year > 2026) return true;
+  if (year === 2026 && monthIdx >= 4) return true;  // May = idx 4
+  return false;
+}
+
+function getKPIWeightKeysForMonth(month) {
+  const dynamic = isDynamicCampaignMonth(month);
+  const keys = [];
+  KPI_ITEM_DEFS.forEach(([key, , sec]) => {
+    if (dynamic && sec === 'C' && key === 'campaign_1') return;
+    keys.push(key);
+    if (dynamic && key === 'birthday_campaign') {
+      getActiveCampaignsForMonth(month).forEach(camp => {
+        if (camp.id) keys.push('camp_' + camp.id);
+      });
+    }
+  });
+  return keys;
+}
+
+function getSectionCWeightKeysForMonth(month) {
+  return getKPIWeightKeysForMonth(month).filter(key => key === 'birthday_campaign' || key === 'campaign_1' || key.startsWith('camp_'));
+}
+
 function renderKPIWeights() {
   const month = document.getElementById('kpi-month-select').value;
   const weights = getKPIWeights(month);
@@ -2397,13 +2480,157 @@ ${sources.join(' / ')}`);
 // ── Save / Export / Import ─────────────────────────────────────────────────
 // Phase C: saveAll now writes to Supabase (primary), file backup is user-toggled.
 
+// Dynamic Step 5b implementation overrides the legacy static renderer above.
+function renderKPIWeights() {
+  const month = document.getElementById('kpi-month-select').value;
+  const weights = getKPIWeights(month);
+  const container = document.getElementById('kpi-weights-form');
+  if (!container) return;
+
+  let prevSec = null;
+  let html = '';
+  const dynamicMonth = isDynamicCampaignMonth(month);
+
+  const renderWeightRow = (key, label, sec) => {
+    const raw = weights[key] ?? 0;
+    const w = raw <= 1 ? parseFloat((raw * 100).toFixed(3)) : parseFloat(raw.toFixed(3));
+    const isZero = w === 0;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:${isZero?'var(--bg)':'var(--surface)'};border:1px solid var(--border);border-radius:8px;margin-bottom:4px;">
+      <div>
+        <div style="font-family:var(--body);font-size:12px;color:${isZero?'var(--ink3)':'var(--ink)'};">${label}</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);">${key}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <input type="number" min="0" max="100" step="0.001"
+          value="${w}"
+          id="kpiw_${key}"
+          data-kpi-key="${key}"
+          data-kpi-section="${sec}"
+          class="kpi-weight-input"
+          oninput="updateKPITotal()"
+          onchange="updateKPITotal()"
+          style="width:70px;font-family:var(--mono);font-size:12px;text-align:center;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:${isZero?'var(--ink3)':'var(--blue)'};">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--ink3);">%</span>
+      </div>
+    </div>`;
+  };
+
+  KPI_ITEM_DEFS.forEach(([key, label, sec, secLabel]) => {
+    if (dynamicMonth && sec === 'C' && key === 'campaign_1') return;
+    if (sec !== prevSec) {
+      const color = SEC_COLORS[sec] || '#1A1714';
+      html += `<div style="background:${color};color:#fff;font-family:var(--mono);font-size:9px;font-weight:700;padding:6px 12px;border-radius:8px;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.08em;">${secLabel}</div>`;
+      prevSec = sec;
+    }
+    html += renderWeightRow(key, label, sec);
+    if (dynamicMonth && key === 'birthday_campaign') {
+      const activeCamps = getActiveCampaignsForMonth(month);
+      if (activeCamps.length) {
+        activeCamps.forEach(camp => {
+          html += renderWeightRow('camp_' + camp.id, kpiAdminEscape(camp.name || camp.id), 'C');
+        });
+      } else {
+        html += `<div style="font-family:var(--mono);font-size:10px;color:var(--ink3);padding:8px 10px;border:1px dashed var(--border);border-radius:8px;margin-bottom:4px;">No active campaigns this month</div>`;
+      }
+      html += `<div id="kpi-c-sum" style="display:flex;justify-content:flex-end;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;font-weight:700;padding:7px 10px;border:1px solid var(--border);border-radius:8px;margin:6px 0 4px;background:var(--bg);">Section C total: <span id="kpi-c-total">0.000%</span></div>`;
+    }
+  });
+
+  container.innerHTML = html;
+  updateKPITotal();
+}
+
+function updateKPITotal() {
+  let total = 0;
+  document.querySelectorAll('.kpi-weight-input').forEach(el => {
+    total += parseFloat(el.value) || 0;
+  });
+  const disp = document.getElementById('kpi-total-display');
+  if (disp) {
+    const ok = Math.abs(total - 100) < 0.01;
+    disp.textContent = `Total: ${total.toFixed(3)}%`;
+    disp.style.color = ok ? 'var(--green)' : 'var(--accent)';
+  }
+
+  const month = document.getElementById('kpi-month-select')?.value || '';
+  let cTotal = 0;
+  document.querySelectorAll('.kpi-weight-input[data-kpi-section="C"]').forEach(el => {
+    cTotal += parseFloat(el.value) || 0;
+  });
+  const dynamic = isDynamicCampaignMonth(month);
+  const cOk = !dynamic || Math.abs(cTotal - 100) < 0.01;
+  const cRow = document.getElementById('kpi-c-sum');
+  const cDisp = document.getElementById('kpi-c-total');
+  if (cDisp) cDisp.textContent = `${cTotal.toFixed(3)}%`;
+  if (cRow) {
+    cRow.style.color = cOk ? 'var(--green)' : 'var(--accent)';
+    cRow.style.borderColor = cOk ? 'rgba(61,220,132,.45)' : 'rgba(200,56,26,.55)';
+    cRow.style.background = cOk ? 'rgba(61,220,132,.08)' : 'rgba(200,56,26,.08)';
+  }
+  const btn = document.getElementById('kpi-save-btn');
+  if (btn) {
+    btn.disabled = !cOk;
+    btn.style.opacity = cOk ? '1' : '.55';
+    btn.title = cOk ? '' : 'Section C total must be 100% before saving.';
+  }
+  return { total, cTotal, cOk };
+}
+
+function saveKPIWeights() {
+  const month = document.getElementById('kpi-month-select').value;
+  if (!CONFIG.kpi_weights) CONFIG.kpi_weights = {};
+  const weights = {};
+  getKPIWeightKeysForMonth(month).forEach(key => {
+    const el = document.getElementById('kpiw_' + key);
+    weights[key] = parseFloat(el?.value || 0);
+  });
+  const totals = updateKPITotal();
+  if (isDynamicCampaignMonth(month) && !totals.cOk) {
+    alert(`Section C total is ${totals.cTotal.toFixed(3)}% — must be 100% before saving.`);
+    return false;
+  }
+  const total = Object.values(weights).reduce((a, b) => a + b, 0);
+  if (!isDynamicCampaignMonth(month) && Math.abs(total - 100) > 0.1) {
+    alert(`Total is ${total.toFixed(3)}% — must be 100% before saving.`);
+    return false;
+  }
+  const weightsDecimal = {};
+  getKPIWeightKeysForMonth(month).forEach(key => { weightsDecimal[key] = (weights[key] / 100); });
+  CONFIG.kpi_weights[month] = weightsDecimal;
+  updateRawJSON();
+  const toast = document.getElementById('kpi-save-toast');
+  if (toast) { toast.style.display = 'block'; setTimeout(() => toast.style.display = 'none', 2500); }
+  return true;
+}
+
+function copyKPIWeightsFromMonth() {
+  const months = Object.keys(CONFIG?.kpi_weights || {});
+  const current = document.getElementById('kpi-month-select').value;
+  const sources = months.filter(m => m !== current);
+  if (!sources.length) {
+    alert('No other months available to copy from.');
+    return;
+  }
+  const from = prompt(`Copy weights from which month?
+${sources.join(' / ')}`);
+  if (!from || !sources.includes(from)) return;
+  const srcWeights = getKPIWeights(from);
+  getKPIWeightKeysForMonth(current).forEach(key => {
+    const el = document.getElementById('kpiw_' + key);
+    if (el) el.value = ((srcWeights[key] ?? 0) * (srcWeights[key] <= 1 ? 100 : 1)).toFixed(3);
+  });
+  updateKPITotal();
+}
+
 async function saveAll() {
   // Sync DOM -> CONFIG for sections whose form inputs aren't auto-bound to CONFIG.
   // KPI Weights specifically needs this because renderKPIWeights renders inputs
   // from a fallback when the month doesn't exist in CONFIG, but no oninput
   // handler writes user edits back into CONFIG. saveKPIWeights() pulls the
   // current input values into CONFIG.kpi_weights[selectedMonth].
-  try { saveKPIWeights(); } catch (e) { console.warn('saveKPIWeights skipped:', e); }
+  try {
+    if (saveKPIWeights() === false) return;
+  } catch (e) { console.warn('saveKPIWeights skipped:', e); }
 
   updateRawJSON();
   updateSaveStatus('saving');
