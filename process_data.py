@@ -1496,6 +1496,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
         debtor_cards = []
         for dcode in all_debtor_codes:
             d_rows = ag_data[ag_data["debtor_code"] == dcode]
+            d_hist_rows = canggih_paid[canggih_paid["debtor_code"] == dcode]
 
             # Activation status
             # active         = bought this month
@@ -1506,8 +1507,8 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 status = "need_reactivation"
             else:
                 bought_cur   = cur_m   in d_rows["paid_on"].values
-                bought_prev1 = prev1_m in d_rows["paid_on"].values
-                bought_prev2 = prev2_m in d_rows["paid_on"].values if prev2_m else False
+                bought_prev1 = prev1_m in d_hist_rows["paid_on"].values if not d_hist_rows.empty else False
+                bought_prev2 = prev2_m in d_hist_rows["paid_on"].values if prev2_m and not d_hist_rows.empty else False
                 if bought_cur:
                     status = "active"
                 elif bought_prev1:
@@ -1523,15 +1524,16 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
 
             # 3-month CTN
             ctn_cur   = round(float(d_rows[d_rows["paid_on"] == cur_m]["qty_ctn"].sum()), 2)   if not d_rows.empty else 0.0
-            ctn_prev1 = round(float(d_rows[d_rows["paid_on"] == prev1_m]["qty_ctn"].sum()), 2) if not d_rows.empty else 0.0
-            ctn_prev2 = round(float(d_rows[d_rows["paid_on"] == prev2_m]["qty_ctn"].sum()), 2) if not d_rows.empty else 0.0
+            ctn_prev1 = round(float(d_hist_rows[d_hist_rows["paid_on"] == prev1_m]["qty_ctn"].sum()), 2) if not d_hist_rows.empty else 0.0
+            ctn_prev2 = round(float(d_hist_rows[d_hist_rows["paid_on"] == prev2_m]["qty_ctn"].sum()), 2) if not d_hist_rows.empty else 0.0
 
             # Item breakdown per month (for tooltip on CTN tap)
             # Uses invoice date (tranx_mth_full) — matches sku_status and brand penetration logic.
             # Per Isaac's rule: brand-level metrics use invoice; normal totals use paid.
             _bd_col = "tranx_mth_full" if "tranx_mth_full" in d_rows.columns else "paid_on"
             def item_breakdown(month_label):
-                m_rows = d_rows[d_rows[_bd_col] == month_label]
+                source_rows = d_rows if month_label == cur_m else d_hist_rows
+                m_rows = source_rows[source_rows[_bd_col] == month_label]
                 if m_rows.empty:
                     return []
                 grp = m_rows.groupby("item_code")["qty_ctn"].sum().reset_index()
