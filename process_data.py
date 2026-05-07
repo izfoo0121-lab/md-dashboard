@@ -3321,8 +3321,24 @@ def main():
                     if is_target:
                         entry["converted_targets"] += 1
 
+        # Apply user-set per-agent campaign targets after counts settle.
+        # Missing/null campaign_targets fall back to the computed enrolled target
+        # count; explicit 0 is respected.
+        camp_tgts = (
+            targets.get("agents", {})
+                   .get(agent_code, {})
+                   .get("campaign_targets", {})
+            or {}
+        )
+
         # Compute conversion rate after counts settle
-        for entry in per_camp.values():
+        for cid, entry in per_camp.items():
+            user_target = camp_tgts.get(cid)
+            if user_target is not None:
+                try:
+                    entry["target_count"] = float(user_target)
+                except (TypeError, ValueError):
+                    pass
             tc = entry["target_count"]
             entry["conversion_rate_targets"] = round(
                 entry["converted_targets"] / tc, 4
