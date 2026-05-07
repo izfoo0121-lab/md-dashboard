@@ -930,6 +930,23 @@ function monthSlug(monthLabel) {
   return (monthLabel || '').replace(' ','').toLowerCase();
 }
 
+function getRealWorldMonthLabel() {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const now = new Date();
+  return `${months[now.getMonth()]} ${String(now.getFullYear()).slice(-2)}`;
+}
+
+async function fetchAvailableMonthLabels() {
+  try {
+    const r = await fetch('months_index.json?v=' + Date.now());
+    if (!r.ok) return [];
+    const months = await r.json();
+    return Array.isArray(months) ? months : [];
+  } catch(e) {
+    return [];
+  }
+}
+
 function monthLabelFromSlug(slug) {
   const m = String(slug || '').match(/^([a-z]{3})(\d{2})$/i);
   if (!m) return DATA?.current_month || '';
@@ -992,19 +1009,15 @@ function futureViewEmptyHtml(label) {
 let CURRENT_MONTH_FILE = 'dashboard_data.json'; // default
 let CURRENT_MONTH_SLUG = 'current'; // tracks selected month slug
 
-async function loadMonthIndex() {
+async function loadMonthIndex(preloadedMonths) {
   try {
-    const r = await fetch('months_index.json?v=' + Date.now());
-    if (!r.ok) return;
-    const months = await r.json();
+    const months = Array.isArray(preloadedMonths) ? preloadedMonths.slice() : await fetchAvailableMonthLabels();
     MONTHS_WITH_DATA = (months || []).map(m => monthSlug(m));
     if (!months || months.length < 2) return; // only show if >1 month
 
     // After loading months from index, append real-world current month
     // if not already present, to enable future view.
-    const MONTHS_FV = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const today = new Date();
-    const realCurrent = `${MONTHS_FV[today.getMonth()]} ${String(today.getFullYear()).slice(-2)}`;
+    const realCurrent = getRealWorldMonthLabel();
     if (!months.includes(realCurrent)) months.push(realCurrent);
 
     const sel = document.getElementById('month-selector-agent');
@@ -1122,15 +1135,34 @@ async function switchMonth(slug) {
 // ── Load Data ──────────────────────────────────────────────────────────────
 async function loadData() {
   try {
-    const bust = Date.now();
-    const r = await fetch('dashboard_data.json?v='+Date.now());
+    const months = await fetchAvailableMonthLabels();
+    const realMonth = getRealWorldMonthLabel();
+    const realSlug = monthSlug(realMonth);
+    const hasRealMonthData = months.some(m => monthSlug(m) === realSlug);
+    const initialUrl = hasRealMonthData
+      ? `data_${realSlug}.json?v=` + Date.now()
+      : 'dashboard_data.json?v=' + Date.now();
+
+    const r = await fetch(initialUrl);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     DATA = await r.json();
+    const loadedSlug = monthSlug(DATA?.current_month || '');
+    const shouldShowFutureMonth = months.length > 0 && !hasRealMonthData && realSlug && realSlug !== loadedSlug;
+    CURRENT_MONTH_SLUG = hasRealMonthData ? realSlug : (shouldShowFutureMonth ? realSlug : loadedSlug);
+    if (shouldShowFutureMonth) {
+      DATA.current_month = realMonth;
+      DATA.is_future_view = true;
+    } else {
+      DATA.is_future_view = false;
+    }
     // Fetch kpi_manual overrides from Supabase BEFORE init() so first render shows correct values
     await SupabaseKpiSync.apply(DATA);
     init();
-    CURRENT_MONTH_SLUG = (DATA?.current_month||'').replace(' ','').toLowerCase();
-    loadMonthIndex(); // load month dropdown after data ready
+    if (DATA.is_future_view) {
+      const dayProg = document.getElementById('day-prog');
+      if (dayProg) dayProg.textContent = 'Future view · data pending';
+    }
+    loadMonthIndex(months); // load month dropdown after data ready
   } catch(e) {
     document.body.innerHTML = `<div style="padding:40px;text-align:center;font-family:monospace;color:#ff5f5f;">
       ❌ Could not load dashboard data<br>
