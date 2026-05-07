@@ -2164,6 +2164,7 @@ function applyTargetsImport() {
   });
   updateRawJSON();
   renderAgentForms();
+  updateKPITotal();
   const result = document.getElementById('targets-import-result');
   if (result) result.innerHTML = `<div style="color:var(--green);font-weight:700;">Applied ${parsed.applyCount} rows to the form. Click SAVE ALL TARGETS below to persist to Supabase.</div>`;
 }
@@ -2901,7 +2902,7 @@ function renderKPIWeights() {
       } else {
         html += `<div style="font-family:var(--mono);font-size:10px;color:var(--ink3);padding:8px 10px;border:1px dashed var(--border);border-radius:8px;margin-bottom:4px;">No active campaigns this month</div>`;
       }
-      html += `<div id="kpi-c-sum" style="display:flex;justify-content:flex-end;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;font-weight:700;padding:7px 10px;border:1px solid var(--border);border-radius:8px;margin:6px 0 4px;background:var(--bg);">Section C total: <span id="kpi-c-total">0.000%</span></div>`;
+      html += `<div id="kpi-c-sum" style="display:flex;justify-content:flex-end;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;font-weight:700;padding:7px 10px;border:1px solid var(--border);border-radius:8px;margin:6px 0 4px;background:var(--bg);color:var(--ink3);">Section C subtotal: <span id="kpi-c-total">0.000%</span></div>`;
     }
   });
 
@@ -2914,35 +2915,32 @@ function updateKPITotal() {
   document.querySelectorAll('.kpi-weight-input').forEach(el => {
     total += parseFloat(el.value) || 0;
   });
+  const totalOk = Math.abs(total - 100) < 0.01;
   const disp = document.getElementById('kpi-total-display');
   if (disp) {
-    const ok = Math.abs(total - 100) < 0.01;
     disp.textContent = `Total: ${total.toFixed(3)}%`;
-    disp.style.color = ok ? 'var(--green)' : 'var(--accent)';
+    disp.style.color = totalOk ? 'var(--green)' : 'var(--accent)';
   }
 
-  const month = document.getElementById('kpi-month-select')?.value || '';
   let cTotal = 0;
   document.querySelectorAll('.kpi-weight-input[data-kpi-section="C"]').forEach(el => {
     cTotal += parseFloat(el.value) || 0;
   });
-  const dynamic = isDynamicCampaignMonth(month);
-  const cOk = !dynamic || Math.abs(cTotal - 100) < 0.01;
   const cRow = document.getElementById('kpi-c-sum');
   const cDisp = document.getElementById('kpi-c-total');
   if (cDisp) cDisp.textContent = `${cTotal.toFixed(3)}%`;
   if (cRow) {
-    cRow.style.color = cOk ? 'var(--green)' : 'var(--accent)';
-    cRow.style.borderColor = cOk ? 'rgba(61,220,132,.45)' : 'rgba(200,56,26,.55)';
-    cRow.style.background = cOk ? 'rgba(61,220,132,.08)' : 'rgba(200,56,26,.08)';
+    cRow.style.color = 'var(--ink3)';
+    cRow.style.borderColor = 'var(--border)';
+    cRow.style.background = 'var(--bg)';
   }
   const btn = document.getElementById('kpi-save-btn');
   if (btn) {
-    btn.disabled = !cOk;
-    btn.style.opacity = cOk ? '1' : '.55';
-    btn.title = cOk ? '' : 'Section C total must be 100% before saving.';
+    btn.disabled = !totalOk;
+    btn.style.opacity = totalOk ? '1' : '.55';
+    btn.title = totalOk ? '' : 'KPI weight grand total must be 100% before saving.';
   }
-  return { total, cTotal, cOk };
+  return { total, cTotal, totalOk };
 }
 
 function saveKPIWeights() {
@@ -2954,12 +2952,8 @@ function saveKPIWeights() {
     weights[key] = parseFloat(el?.value || 0);
   });
   const totals = updateKPITotal();
-  if (isDynamicCampaignMonth(month) && !totals.cOk) {
-    alert(`Section C total is ${totals.cTotal.toFixed(3)}% — must be 100% before saving.`);
-    return false;
-  }
   const total = Object.values(weights).reduce((a, b) => a + b, 0);
-  if (!isDynamicCampaignMonth(month) && Math.abs(total - 100) > 0.1) {
+  if (Math.abs(total - 100) > 0.1) {
     alert(`Total is ${total.toFixed(3)}% — must be 100% before saving.`);
     return false;
   }
