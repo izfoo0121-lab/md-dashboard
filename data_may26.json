@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-08 13:29:29",
+  "generated_at": "2026-05-08 14:35:37",
   "current_month": "May 26",
   "working_days": {
     "date": "2026-05-08",
@@ -40139,8 +40139,8 @@
           "converted_count": 1,
           "converted_targets": 1,
           "converted_ctn": 1.0,
-          "target_count": 117,
-          "conversion_rate_targets": 0.0085
+          "target_count": 4.0,
+          "conversion_rate_targets": 0.25
         }
       },
       "kpi": {
@@ -63988,8 +63988,8 @@
           "converted_count": 2,
           "converted_targets": 2,
           "converted_ctn": 6.0,
-          "target_count": 70,
-          "conversion_rate_targets": 0.0286
+          "target_count": 4.0,
+          "conversion_rate_targets": 0.5
         }
       },
       "kpi": {
@@ -82987,7 +82987,7 @@
           "converted_count": 0,
           "converted_targets": 0,
           "converted_ctn": 0.0,
-          "target_count": 68,
+          "target_count": 4.0,
           "conversion_rate_targets": 0.0
         },
         "camp_1778113461122": {
@@ -108398,8 +108398,8 @@
           "converted_count": 1,
           "converted_targets": 1,
           "converted_ctn": 10.0,
-          "target_count": 29,
-          "conversion_rate_targets": 0.0345
+          "target_count": 4.0,
+          "conversion_rate_targets": 0.25
         }
       },
       "kpi": {
@@ -129921,7 +129921,7 @@
           "converted_count": 0,
           "converted_targets": 0,
           "converted_ctn": 0.0,
-          "target_count": 64,
+          "target_count": 4.0,
           "conversion_rate_targets": 0.0
         },
         "camp_1778113461122": {
@@ -152014,7 +152014,7 @@
           "converted_count": 0,
           "converted_targets": 0,
           "converted_ctn": 0.0,
-          "target_count": 39,
+          "target_count": 4.0,
           "conversion_rate_targets": 0.0
         }
       },
@@ -174067,8 +174067,8 @@
           "converted_count": 1,
           "converted_targets": 1,
           "converted_ctn": 3.0,
-          "target_count": 44,
-          "conversion_rate_targets": 0.0227
+          "target_count": 6.0,
+          "conversion_rate_targets": 0.1667
         },
         "camp_1778113461122": {
           "name": "TR12 PK 文化 May 2026",
@@ -207872,8 +207872,8 @@
           "converted_count": 1,
           "converted_targets": 1,
           "converted_ctn": 8.0,
-          "target_count": 97,
-          "conversion_rate_targets": 0.0103
+          "target_count": 5.0,
+          "conversion_rate_targets": 0.2
         },
         "camp_1778113461122": {
           "name": "TR12 PK 文化 May 2026",
@@ -226348,8 +226348,8 @@
           "converted_count": 13,
           "converted_targets": 13,
           "converted_ctn": 20.0,
-          "target_count": 43,
-          "conversion_rate_targets": 0.3023
+          "target_count": 4.0,
+          "conversion_rate_targets": 3.25
         },
         "camp_1778113461122": {
           "name": "TR12 PK 文化 May 2026",
@@ -252272,7 +252272,7 @@
           "converted_count": 0,
           "converted_targets": 0,
           "converted_ctn": 0.0,
-          "target_count": 67,
+          "target_count": 4.0,
           "conversion_rate_targets": 0.0
         },
         "camp_1778113461122": {
@@ -264659,7 +264659,7 @@
           "converted_count": 0,
           "converted_targets": 0,
           "converted_ctn": 0.0,
-          "target_count": 17,
+          "target_count": 5.0,
           "conversion_rate_targets": 0.0
         }
       },
@@ -289902,7 +289902,7 @@
           "converted_count": 0,
           "converted_targets": 0,
           "converted_ctn": 0.0,
-          "target_count": 54,
+          "target_count": 4.0,
           "conversion_rate_targets": 0.0
         },
         "camp_1778113461122": {
@@ -311137,7 +311137,7 @@
           "converted_count": 0,
           "converted_targets": 0,
           "converted_ctn": 0.0,
-          "target_count": 68,
+          "target_count": 6.0,
           "conversion_rate_targets": 0.0
         }
       },
@@ -329024,7 +329024,7 @@
           "converted_count": 0,
           "converted_targets": 0,
           "converted_ctn": 0.0,
-          "target_count": 65,
+          "target_count": 6.0,
           "conversion_rate_targets": 0.0
         },
         "camp_1778113461122": {
