@@ -2766,6 +2766,22 @@ function renderKPIWeights() {
     if (sec !== prevSec) {
       const color = SEC_COLORS[sec] || '#1A1714';
       html += `<div style="background:${color};color:#fff;font-family:var(--mono);font-size:9px;font-weight:700;padding:6px 12px;border-radius:8px;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.08em;">${secLabel}</div>`;
+      if (sec === 'C') {
+        html += `<div class="kpi-section-warning" style="
+          background:#fff3cd;
+          border-left:4px solid #d97706;
+          padding:10px 14px;
+          margin:8px 0 12px 0;
+          font-size:13px;
+          color:#5c3d00;
+          border-radius:4px;
+        ">
+          ⚠️ <strong>Per-campaign scoring not yet active.</strong>
+          Weights and per-agent targets save to Supabase, but agent KPI scores
+          do not yet include per-campaign components. Steps 6-7-8 of the
+          per-campaign KPI feature are pending.
+        </div>`;
+      }
       prevSec = sec;
     }
     const raw = weights[key] ?? 0;
