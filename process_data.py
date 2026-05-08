@@ -1097,7 +1097,7 @@ def calc_aging(df, agents, cur_month):
 
 # ── Phase 1 compatibility: existing debtor card data ─────────────────────────
 
-def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups):
+def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups, invoice_rows=None):
     """Calculate campaign progress for a single debtor."""
     import copy
     camps = copy.deepcopy(campaign_map.get(dcode, []))
@@ -1152,13 +1152,15 @@ def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups):
 
             # Filter by item_group, not item_code. item_code is SKU-level;
             # item_group is the brand/group line used for this conversion.
-            if d_rows.empty or not qual_group or "item_group" not in d_rows.columns:
+            conv_rows = invoice_rows if invoice_rows is not None else d_rows
+            if conv_rows.empty or not qual_group or "item_group" not in conv_rows.columns:
                 lookback_ctn = 0.0
                 current_ctn  = 0.0
             else:
-                group_rows = d_rows[d_rows["item_group"] == qual_group]
-                lookback_rows = group_rows[group_rows["paid_on"].isin(lookback_keys)] if lookback_keys else group_rows.iloc[0:0]
-                current_rows  = group_rows[group_rows["paid_on"] == camp_month_key] if camp_month_key else group_rows.iloc[0:0]
+                group_rows = conv_rows[conv_rows["item_group"] == qual_group]
+                month_col = "tranx_mth_full" if "tranx_mth_full" in group_rows.columns else "paid_on"
+                lookback_rows = group_rows[group_rows[month_col].isin(lookback_keys)] if lookback_keys else group_rows.iloc[0:0]
+                current_rows  = group_rows[group_rows[month_col] == camp_month_key] if camp_month_key else group_rows.iloc[0:0]
                 # Price floor for conversion qualification (per-line).
                 # Only lines at >= RM 41/ctn count as conversions — excludes
                 # heavily discounted sales that don't represent real conversion.
@@ -1416,6 +1418,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
         (df["item_group"] != EIGHTCOM_GROUP) &
         (df["paid_on"] != "")
     ]
+    canggih_invoiced = df[df["item_group"] != EIGHTCOM_GROUP]
 
     # Build debtor lookup from Debtor Maintenance (via shared helper)
     debtor_info = build_debtor_info(debtor_df)
@@ -1449,6 +1452,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
 
     for agent in agents:
         ag_data = canggih_paid[canggih_paid["agent"] == agent]
+        ag_invoice_data = canggih_invoiced[canggih_invoiced["agent"] == agent]
 
         # ── Base debtor list from Debtor Maintenance ──
         # Filter out Active=Unchecked ("closed" accounts)
@@ -1496,6 +1500,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
         debtor_cards = []
         for dcode in all_debtor_codes:
             d_rows = ag_data[ag_data["debtor_code"] == dcode]
+            d_invoice_rows = ag_invoice_data[ag_invoice_data["debtor_code"] == dcode]
             d_hist_rows = canggih_paid[canggih_paid["debtor_code"] == dcode]
 
             # Activation status
@@ -1671,7 +1676,8 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             else:
                 _camps = _calc_camp_progress(
                     dcode, agent, (campaign_map or {}),
-                    d_rows, cur_m, area_groups
+                    d_rows, cur_m, area_groups,
+                    invoice_rows=d_invoice_rows
                 )
 
             debtor_cards.append({
