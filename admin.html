@@ -3193,21 +3193,49 @@ function setGroupTarget(brand, val) {
 function _populateGroupSpMonths() {
   const sel = document.getElementById('group-sp-month');
   if (!sel) return;
-  const months = Object.keys(CONFIG.monthly_targets || {}).sort();
-  if (!months.length) {
-    // fallback: use current system month
-    const now = new Date();
-    const mm = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][now.getMonth()];
-    const yy = String(now.getFullYear()).slice(-2);
-    months.push(`${mm} ${yy}`);
+
+  // Generate months from START_YEAR to today + FUTURE_BUFFER (consistent with populateMonthDropdowns)
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const START_YEAR = 2026;
+  const START_MONTH = 0;
+  const FUTURE_BUFFER = 6;
+
+  const today = new Date();
+  const tYear = today.getFullYear();
+  const tMonth = today.getMonth();
+
+  const generated = [];
+  let y = START_YEAR, m = START_MONTH;
+  while (y < tYear || (y === tYear && m <= tMonth + FUTURE_BUFFER)) {
+    generated.push(`${MONTHS[m]} ${String(y).slice(-2)}`);
+    m++;
+    if (m > 11) { m = 0; y++; }
+    if (generated.length > 200) break;
   }
+
+  // Merge with any historical months in monthly_targets (preserve any older data)
+  const historical = Object.keys(CONFIG.monthly_targets || {});
+  const allMonths = Array.from(new Set([...generated, ...historical]));
+
+  // Sort chronologically: parse "Mon YY" → Date, then sort
+  allMonths.sort((a, b) => {
+    const pa = a.split(' '); const pb = b.split(' ');
+    const ya = 2000 + parseInt(pa[1], 10), yb = 2000 + parseInt(pb[1], 10);
+    const ma = MONTHS.indexOf(pa[0]), mb = MONTHS.indexOf(pb[0]);
+    return (ya - yb) || (ma - mb);
+  });
+
   const currentVal = sel.value;
-  sel.innerHTML = months.map(m => `<option value="${m}">${m}</option>`).join('');
-  // Prefer last-selected, else latest month
-  if (currentVal && months.includes(currentVal)) {
+  sel.innerHTML = allMonths.map(m => `<option value="${m}">${m}</option>`).join('');
+
+  // Default: current real-world month if in list, else last
+  const todayLabel = `${MONTHS[tMonth]} ${String(tYear).slice(-2)}`;
+  const defaultSel = allMonths.includes(todayLabel) ? todayLabel : allMonths[allMonths.length - 1];
+
+  if (currentVal && allMonths.includes(currentVal)) {
     sel.value = currentVal;
   } else {
-    sel.value = months[months.length - 1];
+    sel.value = defaultSel;
   }
 }
 
