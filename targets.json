@@ -1,6 +1,6 @@
 {
   "_comment": "MD Sales Dashboard — loaded from Supabase",
-  "_loaded_at": "2026-05-08T14:32:47.511928",
+  "_loaded_at": "2026-05-11T12:54:05.556229",
   "agents": {
     "KI-MI": {
       "is_newbie": true,
@@ -53,7 +53,7 @@
         "activation_rate": 1
       },
       "campaign_targets": {
-        "camp_1777773301331": 4
+        "camp_1777773301331_count": 4
       },
       "kpi_auto_base": {
         "month": "Mar 26",
@@ -131,7 +131,7 @@
         "reactivation": 12
       },
       "campaign_targets": {
-        "camp_1777773301331": 4
+        "camp_1777773301331_count": 4
       }
     },
     "BEN": {
@@ -185,7 +185,7 @@
         "activation_rate": 1
       },
       "campaign_targets": {
-        "camp_1777773301331": 4
+        "camp_1777773301331_count": 4
       },
       "kpi_auto_base": {
         "month": "Mar 26",
@@ -272,7 +272,7 @@
         "activation_rate": 1
       },
       "campaign_targets": {
-        "camp_1777773301331": 4
+        "camp_1777773301331_count": 4
       },
       "kpi_auto_base": {
         "month": "Mar 26",
@@ -359,7 +359,7 @@
         "activation_rate": 1
       },
       "campaign_targets": {
-        "camp_1777773301331": 4
+        "camp_1777773301331_count": 4
       },
       "kpi_auto_base": {
         "month": "Mar 26",
@@ -446,7 +446,7 @@
         "activation_rate": 1
       },
       "campaign_targets": {
-        "camp_1777773301331": 4
+        "camp_1777773301331_count": 4
       },
       "kpi_auto_base": {
         "month": "Mar 26",
@@ -533,7 +533,7 @@
         "activation_rate": 1
       },
       "campaign_targets": {
-        "camp_1777773301331": 6
+        "camp_1777773301331_count": 6
       },
       "kpi_auto_base": {
         "month": "Mar 26",
@@ -620,7 +620,7 @@
         "activation_rate": 1
       },
       "campaign_targets": {
-        "camp_1777773301331": 5
+        "camp_1777773301331_count": 5
       },
       "kpi_auto_base": {
         "month": "Mar 26",
@@ -707,7 +707,7 @@
         "activation_rate": 1
       },
       "campaign_targets": {
-        "camp_1777773301331": 4
+        "camp_1777773301331_count": 4
       },
       "kpi_auto_base": {
         "month": "Mar 26",
@@ -794,7 +794,7 @@
         "activation_rate": 1
       },
       "campaign_targets": {
-        "camp_1777773301331": 4
+        "camp_1777773301331_count": 4
       },
       "kpi_auto_base": {
         "month": "Mar 26",
@@ -936,7 +936,7 @@
         "activation_rate": 1
       },
       "campaign_targets": {
-        "camp_1777773301331": 5
+        "camp_1777773301331_count": 5
       },
       "newbie_tiers": [
         {
@@ -1018,7 +1018,7 @@
         "activation_rate": 1
       },
       "campaign_targets": {
-        "camp_1777773301331": 4
+        "camp_1777773301331_count": 4
       },
       "kpi_auto_base": {
         "month": "Mar 26",
@@ -1105,7 +1105,7 @@
         "activation_rate": null
       },
       "campaign_targets": {
-        "camp_1777773301331": 6
+        "camp_1777773301331_count": 6
       },
       "kpi_auto_base": {
         "month": "Mar 26",
@@ -1192,7 +1192,7 @@
         "activation_rate": 1
       },
       "campaign_targets": {
-        "camp_1777773301331": 6
+        "camp_1777773301331_count": 6
       },
       "kpi_auto_base": {
         "month": "Mar 26",
