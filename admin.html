@@ -346,6 +346,29 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
           • Birthday gift debtor management has moved to <a href="campaign_audit.html" target="_blank" style="color:var(--accent);">campaign_audit.html</a>
         </div>
         <div id="kpi-manual-form"></div>
+        <div class="kpi-manual-campaign-overrides" style="margin-top:24px;border-top:1px solid var(--border);padding-top:16px;">
+          <h4 style="margin:0 0 6px 0;font-family:var(--display);font-size:18px;letter-spacing:.04em;">Campaign Overrides (manual achievement count)</h4>
+          <p style="font-size:12px;color:var(--ink3);margin:0 0 16px 0;line-height:1.6;">
+            Manual override for per-agent campaign achievement. Stored separately from KPI Manual fixed fields.
+            Used when delivery list is not uploaded and auto-detection is not available.
+            Leave blank to defer to auto-detection.
+          </p>
+          <div style="overflow-x:auto;">
+            <table class="kpi-manual-overrides-table" style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;min-width:720px;">
+              <thead>
+                <tr style="color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;font-size:9px;">
+                  <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">Agent</th>
+                  <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">Campaign</th>
+                  <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">Numerator</th>
+                  <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">Override</th>
+                </tr>
+              </thead>
+              <tbody id="kpi-manual-overrides-tbody">
+                <tr><td colspan="4" style="padding:10px;color:var(--ink3);">Select a month to load campaign overrides.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
         <button class="save-btn" onclick="saveKpiManual()" style="margin-top:14px;">💾 SAVE ALL TO SUPABASE</button>
         <div class="save-toast" id="save-toast-kpi-manual">✓ Saved</div>
       </div>
@@ -1301,6 +1324,129 @@ async function loadKpiManual() {
       </div>
     </div>`;
   }).join('');
+  await renderKpiManualOverrides();
+}
+
+async function loadKpiManualOverrides(month) {
+  try {
+    const rows = await _adminSupabaseFetch(`kpi_manual_overrides?select=agent,kpi_key,value&month=eq.${encodeURIComponent(month)}`);
+    const map = new Map();
+    (rows || []).forEach(r => map.set(`${r.agent}|${r.kpi_key}`, r.value));
+    return map;
+  } catch (e) {
+    console.error('Failed to load kpi_manual_overrides:', e);
+    return new Map();
+  }
+}
+
+function getKpiManualOverrideAgents() {
+  return Object.keys(CONFIG?.agents || {})
+    .filter(agent => !CONFIG.agents[agent]?.archived && CONFIG.agents[agent]?.active !== false)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function getKpiManualNumeratorLabel(num) {
+  return num === 'ctn' ? 'Carton (条数)' : 'Count (渗透率)';
+}
+
+async function renderKpiManualOverrides() {
+  const tbody = document.getElementById('kpi-manual-overrides-tbody');
+  if (!tbody) return;
+
+  initKpiManualMonths();
+  const month = document.getElementById('kpi-manual-month')?.value;
+  if (!month) {
+    tbody.innerHTML = '<tr><td colspan="4" style="padding:10px;color:var(--ink3);">Select a month first.</td></tr>';
+    return;
+  }
+
+  const activeCamps = getActiveCampaignsForMonth(month);
+  if (!activeCamps.length) {
+    tbody.innerHTML = `<tr><td colspan="4" style="padding:10px;color:var(--ink3);">No active campaigns for ${kpiAdminEscape(month)}.</td></tr>`;
+    return;
+  }
+
+  const agents = getKpiManualOverrideAgents();
+  if (!agents.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="padding:10px;color:var(--ink3);">No active agents configured.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = '<tr><td colspan="4" style="padding:10px;color:var(--ink3);">Loading campaign overrides...</td></tr>';
+  const overrides = await loadKpiManualOverrides(month);
+  const rows = [];
+
+  agents.forEach(agent => {
+    activeCamps.forEach(camp => {
+      getCampaignMetricRows(camp).forEach(metric => {
+        const existing = overrides.get(`${agent}|${metric.key}`);
+        rows.push(`<tr>
+          <td style="padding:7px;border-bottom:1px solid var(--border);font-weight:700;color:var(--ink);">${kpiAdminEscape(agent)}</td>
+          <td style="padding:7px;border-bottom:1px solid var(--border);">${kpiAdminEscape(camp.name || camp.id)}</td>
+          <td style="padding:7px;border-bottom:1px solid var(--border);">${kpiAdminEscape(getKpiManualNumeratorLabel(metric.numerator))}</td>
+          <td style="padding:7px;border-bottom:1px solid var(--border);">
+            <input type="number" min="0" step="0.01" value="${existing ?? ''}" placeholder="defer to auto"
+              data-month="${kpiAdminEscape(month)}"
+              data-agent="${kpiAdminEscape(agent)}"
+              data-kpi-key="${kpiAdminEscape(metric.key)}"
+              onchange="saveKpiManualOverrideFromInput(this)"
+              style="width:140px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--ink);font-family:var(--mono);font-size:12px;padding:6px 8px;text-align:center;">
+          </td>
+        </tr>`);
+      });
+    });
+  });
+
+  tbody.innerHTML = rows.join('');
+}
+
+async function saveKpiManualOverrideFromInput(input) {
+  const month = input?.dataset?.month || document.getElementById('kpi-manual-month')?.value;
+  const agent = input?.dataset?.agent;
+  const kpiKey = input?.dataset?.kpiKey;
+  if (!month || !agent || !kpiKey) return;
+  await saveKpiManualOverride(month, agent, kpiKey, input.value, input);
+}
+
+async function saveKpiManualOverride(month, agent, kpiKey, value, inputEl = null) {
+  const trimmed = String(value ?? '').trim();
+  if (inputEl) inputEl.style.borderColor = 'var(--accent)';
+
+  try {
+    if (trimmed === '') {
+      await _adminSupabaseFetch(`kpi_manual_overrides?month=eq.${encodeURIComponent(month)}&agent=eq.${encodeURIComponent(agent)}&kpi_key=eq.${encodeURIComponent(kpiKey)}`, {
+        method: 'DELETE',
+        headers: { 'Prefer': 'return=minimal' }
+      });
+      if (inputEl) inputEl.style.borderColor = 'var(--border)';
+      return;
+    }
+
+    const numeric = parseFloat(trimmed);
+    if (!Number.isFinite(numeric) || numeric < 0) {
+      alert('Invalid value: must be a non-negative number');
+      if (inputEl) inputEl.style.borderColor = 'var(--red)';
+      return;
+    }
+
+    await _adminSupabaseFetch('kpi_manual_overrides?on_conflict=month,agent,kpi_key', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify([{
+        month,
+        agent,
+        kpi_key: kpiKey,
+        value: numeric,
+        updated_at: new Date().toISOString(),
+        updated_by: 'admin_ui'
+      }])
+    });
+    if (inputEl) inputEl.style.borderColor = 'var(--green)';
+  } catch (e) {
+    console.error('Save override failed:', e);
+    alert('Save failed: ' + e.message);
+    if (inputEl) inputEl.style.borderColor = 'var(--red)';
+  }
 }
 
 async function saveKpiManual() {
@@ -5240,6 +5386,7 @@ function _onCampaignsLoaded() {
   populateBulkCampSelect();
   if (typeof renderKPIWeights === 'function') renderKPIWeights();
   if (typeof renderAgentForms === 'function') renderAgentForms();
+  if (typeof renderKpiManualOverrides === 'function') renderKpiManualOverrides();
 }
 function saveCampaignsData() {
   localStorage.setItem('touro_campaigns', JSON.stringify(CAMPAIGNS_DATA));
