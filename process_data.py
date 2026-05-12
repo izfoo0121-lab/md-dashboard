@@ -1216,7 +1216,7 @@ def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups, 
 
             camp["lookback_ctn"]   = lookback_ctn
             camp["current_ctn"]    = current_ctn
-            camp["converted"]      = current_ctn > 0
+            camp["converted"]      = (lookback_ctn == 0) and (current_ctn > 0)
             camp["ctn_this_month"] = current_ctn
             camp["foc_earned"]     = 0
             camp["qualified"]      = camp["converted"]
