@@ -2340,8 +2340,7 @@ function renderDebtorCard(d, runNo) {
       const promoText  = c.promo_detail || c.name;
 
       // ── conversion_tiered: tier display + conversion flag ────────────────
-      // No FOC tracking, no min_order_ctn progress bar, no claim button.
-      // Just historical tier context + whether they've converted in the campaign month.
+      // Historical tier context + whether they've converted in the campaign month.
       if (c.type === 'conversion_tiered') {
         const tierLabel   = c.tier_label || 'BASELINE';
         const lookbackCtn = c.lookback_ctn ?? 0;
@@ -2370,6 +2369,16 @@ function renderDebtorCard(d, runNo) {
         const convertedChip = converted
           ? `<span style="font-family:var(--mono);font-size:9px;color:var(--green);background:rgba(61,220,132,.15);padding:2px 6px;border-radius:4px;font-weight:600;">✓ CONVERTED</span>`
           : '';
+        const claimData = getCampClaims(currentAgent, c.id, d.debtor_code);
+        const claimed = !!claimData;
+        const btnLabel = claimed ? '✔ Claimed' : '🎁 Mark Claimed';
+        const btnBorder = claimed ? 'var(--green)' : 'rgba(255,255,255,.3)';
+        const btnBg = claimed ? 'rgba(61,220,132,.2)' : 'rgba(255,255,255,.08)';
+        const btnColor = claimed ? 'var(--green)' : 'var(--text)';
+        const claimBtn = `<button onclick="toggleCampClaim(event,'${d.debtor_code}','${c.id}','${(d.company_name||'').replace(/'/g,'')}','${promoText.replace(/'/g,'')}','${c.type}')"
+            style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:6px;border:1px solid ${btnBorder};background:${btnBg};color:${btnColor};cursor:${claimed?'default':'pointer'};margin-top:4px;opacity:${claimed?'0.7':'1'};">
+            ${btnLabel}
+          </button>`;
 
         return `<div style="margin-top:4px;background:${cBg};border:1px solid ${cBorder};border-radius:8px;padding:6px 10px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
@@ -2381,6 +2390,7 @@ function renderDebtorCard(d, runNo) {
           </div>
           <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:4px;">${promoText}</div>
           <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">${summaryLine}</div>
+          ${claimBtn}
         </div>`;
       }
       // ── end conversion_tiered branch ─────────────────────────────────────
@@ -2419,17 +2429,14 @@ function renderDebtorCard(d, runNo) {
         statusLine  = qualified ? `✅ Qualified` : `${curCtn}/${minCtn} CTN`;
       }
 
-      // Claim / Deliver button — show for promo if qualified, always show for FOC/Festive
+      // Claim button — shown for all campaign types.
       const claimData  = getCampClaims(currentAgent, c.id, d.debtor_code);
       const claimed    = !!claimData;
-      const isFOCType  = c.type === 'foc_sample' || c.type === 'free_sample' || c.type === 'festive_gift';
       const showBtn    = true; // always show button for all campaign types
-      const btnLabel   = claimed
-        ? (isFOCType ? '✔ Delivered' : '✔ Claimed')
-        : (isFOCType ? '🎁 Mark Delivered' : '🎁 Mark Claimed');
-      const btnBorder  = claimed ? 'var(--green)' : isFOCType ? 'var(--gold)' : 'rgba(255,255,255,.3)';
-      const btnBg      = claimed ? 'rgba(61,220,132,.2)' : isFOCType ? 'rgba(200,134,10,.15)' : 'rgba(255,255,255,.08)';
-      const btnColor   = claimed ? 'var(--green)' : isFOCType ? 'var(--gold)' : 'var(--text)';
+      const btnLabel   = claimed ? '✔ Claimed' : '🎁 Mark Claimed';
+      const btnBorder  = claimed ? 'var(--green)' : 'rgba(255,255,255,.3)';
+      const btnBg      = claimed ? 'rgba(61,220,132,.2)' : 'rgba(255,255,255,.08)';
+      const btnColor   = claimed ? 'var(--green)' : 'var(--text)';
       const claimBtn   = showBtn
         ? `<button onclick="toggleCampClaim(event,'${d.debtor_code}','${c.id}','${(d.company_name||'').replace(/'/g,'')}','${promoText.replace(/'/g,'')}','${c.type}')"
             style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:6px;border:1px solid ${btnBorder};background:${btnBg};color:${btnColor};cursor:${claimed?'default':'pointer'};margin-top:4px;opacity:${claimed?'0.7':'1'};">
@@ -4336,11 +4343,10 @@ function renderCamps() {
           const isClaimed  = !!cd;
           const isExcluded = cd?.status === 'excluded';
           const isFOCt     = c.type==='foc_sample'||c.type==='free_sample'||c.type==='festive_gift'||c.type==='birthday_gift';
-          const isBday     = c.type==='birthday_gift';
-          const claimLbl   = isExcluded ? '\uD83D\uDEAB Excluded' : (isClaimed ? (isBday?'\u2714 Sent':isFOCt?'\u2714 Delivered':'\u2714 Claimed') : (isBday?'\uD83C\uDF82 Mark Sent':isFOCt?'\uD83C\uDF81 Deliver':'\uD83C\uDF81 Claim'));
-          const claimBg    = isExcluded ? 'rgba(255,136,102,.2)' : isClaimed ? 'rgba(61,220,132,.2)' : isFOCt ? 'rgba(200,134,10,.15)' : 'rgba(255,255,255,.08)';
-          const claimColor = isExcluded ? '#ff8866' : isClaimed ? 'var(--green)' : isFOCt ? 'var(--gold)' : 'var(--muted)';
-          const claimBdr   = isExcluded ? '#ff8866' : isClaimed ? 'var(--green)' : isFOCt ? 'var(--gold)' : 'var(--border)';
+          const claimLbl   = isExcluded ? '\uD83D\uDEAB Excluded' : (isClaimed ? '\u2714 Claimed' : '\uD83C\uDF81 Mark Claimed');
+          const claimBg    = isExcluded ? 'rgba(255,136,102,.2)' : isClaimed ? 'rgba(61,220,132,.2)' : 'rgba(255,255,255,.08)';
+          const claimColor = isExcluded ? '#ff8866' : isClaimed ? 'var(--green)' : 'var(--muted)';
+          const claimBdr   = isExcluded ? '#ff8866' : isClaimed ? 'var(--green)' : 'var(--border)';
           const metaLine   = isExcluded ? d.debtor_code + ' \u00B7 ' + unableReasonLabel(cd.reason) + (cd.remark ? ' \u2014 ' + cd.remark : '') : d.debtor_code + (cd?.ts ? ' \u00B7 ' + cd.ts : '') + (cd?.count > 1 ? ' \u00B7 ' + cd.count + '\u00D7 claims' : '');
           const rowBg      = isExcluded ? 'rgba(255,136,102,.04)' : isClaimed ? 'rgba(61,220,132,.04)' : 'rgba(255,255,255,.03)';
           const rowBorder  = isExcluded ? 'rgba(255,136,102,.2)' : isClaimed ? 'rgba(61,220,132,.15)' : 'transparent';
@@ -4519,7 +4525,13 @@ function renderCampaignDebtorPanel(camp) {
   const rows = shown.map((d, i) => {
     const t = campDebtorTierInfo(camp, d);
     const rowBg = i % 2 ? 'rgba(255,255,255,.025)' : 'transparent';
-    return `<div style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 86px 86px 104px;gap:8px;align-items:center;padding:7px 8px;background:${rowBg};border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;">
+    const claimData = getCampClaims(currentAgent, campId, d.debtor_code);
+    const claimed = !!claimData;
+    const claimLabel = claimed ? '✔ Claimed' : '🎁 Mark Claimed';
+    const claimBg = claimed ? 'rgba(61,220,132,.2)' : 'rgba(255,255,255,.08)';
+    const claimColor = claimed ? 'var(--green)' : 'var(--muted)';
+    const claimBorder = claimed ? 'var(--green)' : 'var(--border)';
+    return `<div style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 86px 86px 104px 112px;gap:8px;align-items:center;padding:7px 8px;background:${rowBg};border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;">
       <div style="font-family:var(--mono);color:var(--muted);">${start + i + 1}</div>
       <div style="min-width:0;">
         <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;">${campEsc(d.company_name || d.debtor_code)}</div>
@@ -4529,6 +4541,8 @@ function renderCampaignDebtorPanel(camp) {
       <div><span style="font-family:var(--mono);font-size:8px;color:${t.color};background:rgba(255,255,255,.06);border:1px solid ${t.color};padding:2px 6px;border-radius:8px;white-space:nowrap;">${campEsc(t.label)}</span></div>
       <div style="font-family:var(--mono);font-size:10px;color:var(--text);text-align:right;">${fmtNum(t.current)} CTN</div>
       <div style="font-family:var(--mono);font-size:10px;color:${t.targetText.includes('✅') ? 'var(--green)' : 'var(--muted)'};text-align:right;">${campEsc(t.targetText)}</div>
+      <button onclick='toggleCampClaim(event,${JSON.stringify(d.debtor_code || '')},${JSON.stringify(campId)},${JSON.stringify(d.company_name || d.debtor_code || '')},${JSON.stringify(camp.promo_detail || camp.name || '')},${JSON.stringify(camp.type || 'other')})'
+        style="background:${claimBg};border:1px solid ${claimBorder};color:${claimColor};font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;">${claimLabel}</button>
     </div>`;
   }).join('');
   const pager = `<div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:9px 8px;">
@@ -4538,8 +4552,8 @@ function renderCampaignDebtorPanel(camp) {
   </div>`;
   return toggle + `<div style="padding:0 16px 14px;">
     <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:rgba(255,255,255,.025);">
-      <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 86px 86px 104px;gap:8px;padding:6px 8px;background:rgba(255,255,255,.045);font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">
-        <div>#</div><div>Company</div><div>Code</div><div>Tier</div><div style="text-align:right;">Current</div><div style="text-align:right;">Next Target</div>
+      <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 86px 86px 104px 112px;gap:8px;padding:6px 8px;background:rgba(255,255,255,.045);font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">
+        <div>#</div><div>Company</div><div>Code</div><div>Tier</div><div style="text-align:right;">Current</div><div style="text-align:right;">Next Target</div><div>Claim</div>
       </div>
       ${rows || '<div style="padding:12px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--muted);">No enrolled debtors</div>'}
       ${pager}
@@ -4617,19 +4631,18 @@ function setCampFilter(type, btn) {
   renderCamps();
 }
 
-// ── Mark Claimed popup (for promotion type) ────────────────────────────────
+// ── Mark Claimed popup ─────────────────────────────────────────────────────
 function toggleCampClaim(event, debtorCode, campId, debtorName, promoText, campType) {
   if (blockFutureViewAction()) return;
   event.stopPropagation();
   const existing = getCampClaims(currentAgent, campId, debtorCode);
-  const isFOC    = campType === 'foc_sample' || campType === 'free_sample' || campType === 'festive_gift' || campType === 'birthday_gift';
 
   const overlay = document.createElement('div');
   overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:0;`;
 
-  const emoji  = isFOC ? '🎁' : '📢';
-  const action = isFOC ? 'Mark Delivered' : 'Mark Claimed';
-  const accentColor = isFOC ? '#f0c040' : '#3ddc84';  // explicit hex — works in all contexts
+  const emoji  = '🎁';
+  const action = 'Mark Claimed';
+  const accentColor = '#3ddc84';  // explicit hex — works in all contexts
 
   if (existing) {
     // Already claimed — show undo option
@@ -4657,10 +4670,9 @@ function toggleCampClaim(event, debtorCode, campId, debtorName, promoText, campT
         <div style="font-family:var(--display);font-size:20px;color:${accentColor};margin-bottom:2px;">${emoji} ${action}</div>
         <div style="font-family:var(--body);font-size:13px;color:var(--text);margin-bottom:2px;">${debtorName}</div>
         <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:16px;">${promoText}</div>
-        ${!isFOC ? `
         <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Remark (optional)</div>
         <input type="text" id="camp-claim-remark" placeholder="e.g. Delivered, confirmed order"
-          style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--body);font-size:13px;padding:11px 12px;box-sizing:border-box;margin-bottom:14px;">` : ''}
+          style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--body);font-size:13px;padding:11px 12px;box-sizing:border-box;margin-bottom:14px;">
         <div style="display:flex;gap:10px;">
           <button onclick="confirmCampClaim('${debtorCode}','${campId}','${debtorName}','${campType}',this)"
             style="flex:1;background:${accentColor};border:2px solid ${accentColor};color:#000;font-family:var(--mono);font-size:13px;font-weight:800;padding:14px;border-radius:10px;cursor:pointer;letter-spacing:.05em;box-shadow:0 0 16px ${accentColor}88;">
@@ -5317,6 +5329,23 @@ const GistSync = (() => {
       method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body:[row]
     }).catch(()=>{});
 
+    // Best-effort mirror for Phase D scoring. Keep claims as the rich audit
+    // source, and mirror a minimal delivered row for pipeline scoring.
+    _rest('campaign_deliveries', {
+      method:'POST',
+      headers:{'Prefer':'resolution=merge-duplicates'},
+      body:[{
+        campaign_id: campId,
+        debtor_code: debtorCode,
+        agent,
+        month,
+        source: 'list_upload',
+        delivered_at: new Date().toISOString()
+      }]
+    }).then(res => {
+      if (!res?.ok) console.warn('[SupabaseSync] campaign_deliveries mirror skipped', res);
+    }).catch(err => console.warn('[SupabaseSync] campaign_deliveries mirror failed', err));
+
     // Update cache bucket
     const cache = getCache();
     const fk = `claims_${slug}`;
@@ -5334,6 +5363,12 @@ const GistSync = (() => {
     _rest(`claims?month=eq.${encodeURIComponent(month)}&agent=eq.${encodeURIComponent(agent)}&camp_id=eq.${encodeURIComponent(campId)}&debtor_code=eq.${encodeURIComponent(debtorCode)}`, {
       method: 'DELETE'
     }).catch(()=>{});
+
+    _rest(`campaign_deliveries?campaign_id=eq.${encodeURIComponent(campId)}&debtor_code=eq.${encodeURIComponent(debtorCode)}&agent=eq.${encodeURIComponent(agent)}&month=eq.${encodeURIComponent(month)}&source=eq.list_upload`, {
+      method: 'DELETE'
+    }).then(res => {
+      if (!res?.ok) console.warn('[SupabaseSync] campaign_deliveries mirror delete skipped', res);
+    }).catch(err => console.warn('[SupabaseSync] campaign_deliveries mirror delete failed', err));
 
     const cache = getCache();
     const fk = `claims_${slug}`;
