@@ -1528,9 +1528,6 @@ async function initAdmin() {
 
   // Load campaigns (async — await so dropdown populates correctly)
   await loadCampaignsData();
-  renderCampaignsList();
-  populateBulkCampSelect();
-  renderKPIWeights();
   // Set default deadline to end of current month
   const now = new Date();
   const lastDay = new Date(now.getFullYear(), now.getMonth()+1, 0);
@@ -5234,13 +5231,19 @@ async function loadCampaignsData() {
       } catch(err) { console.warn('campaigns.json fallback failed', err); }
     }
   }
+  _onCampaignsLoaded();
+}
+
+function _onCampaignsLoaded() {
+  if (!document.getElementById('campaigns-list')) return;
   renderCampaignsList();
   populateBulkCampSelect();
+  if (typeof renderKPIWeights === 'function') renderKPIWeights();
+  if (typeof renderAgentForms === 'function') renderAgentForms();
 }
 function saveCampaignsData() {
   localStorage.setItem('touro_campaigns', JSON.stringify(CAMPAIGNS_DATA));
-  renderCampaignsList();
-  populateBulkCampSelect();
+  _onCampaignsLoaded();
 }
 
 function renderCatRules(cats) {
