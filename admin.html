@@ -743,15 +743,28 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
         </div>
         <div class="input-group">
           <div class="input-label">Type</div>
-          <select id="new-camp-type" onchange="toggleBrandFields(this.value)"
+          <select id="new-camp-type" onchange="toggleBrandFields(this.value);applyKpiNumeratorDefaults('new-camp', this.value)"
             style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 12px;border-radius:8px;">
             <option value="free_sample">🎁 Free Sample</option>
             <option value="birthday_gift">🎂 Birthday Gift</option>
             <option value="promotion">📢 Brand Promotion / Offer</option>
             <option value="festive_gift">🧧 Festive Gift</option>
             <option value="conversion_tiered">🎯 Conversion (Tiered)</option>
+            <option value="conversion_simple">🎯 Conversion (Simple)</option>
             <option value="other">📋 Other</option>
           </select>
+        </div>
+        <div class="kpi-numerators-section" data-numerators-section="new-camp" style="margin-top:12px;">
+          <label style="font-weight:500;display:block;margin-bottom:6px;">
+            KPI Numerators
+            <span style="font-weight:normal;color:#666;font-size:12px;">(what counts toward score)</span>
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;margin-right:16px;font-family:var(--mono);font-size:11px;">
+            <input type="checkbox" data-kpi-numerator-scope="new-camp" name="new-camp_kpi_numerator" value="count" checked> Count (渗透率)
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;">
+            <input type="checkbox" data-kpi-numerator-scope="new-camp" name="new-camp_kpi_numerator" value="ctn"> Carton Volume (条数)
+          </label>
         </div>
 
         <!-- FOC fields — shown for free_sample and festive_gift types -->
@@ -1743,15 +1756,36 @@ function renderAgentForms() {
             const campId = String(camp.id || '');
             const campName = kpiAdminEscape(camp.name || campId);
             const campType = kpiAdminEscape(camp.type || 'campaign');
-            return `<div class="field-wrap" style="margin-bottom:8px;">
-              <div class="field-lbl">${campName}</div>
-              <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-bottom:3px;">${campType} · ${campId}</div>
-              <input type="number" min="0" placeholder="Target count"
-                value="${a.campaign_targets?.[campId] ?? ''}"
-                onchange="setCampaignTarget('${agent}','${campId}',this.value)">
+            const rows = getCampaignMetricRows(camp);
+            if (rows.length === 1) {
+              const row = rows[0];
+              const val = getCampaignMetricValue(a.campaign_targets, row.key) ?? '';
+              return `<div class="field-wrap" style="margin-bottom:8px;">
+                <div class="field-lbl">${kpiAdminEscape(row.label)}</div>
+                <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-bottom:3px;">${campType} &middot; ${campId}</div>
+                <input type="number" min="0" placeholder="${row.numerator === 'ctn' ? 'Target CTN' : 'Target count'}"
+                  value="${val}"
+                  onchange="setCampaignTarget('${agent}','${row.key}',this.value)">
+              </div>`;
+            }
+            return `<div class="agent-campaign-block" style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px;background:var(--bg);">
+              <div style="font-family:var(--body);font-size:12px;color:var(--ink);font-weight:600;">${campName}</div>
+              <div style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin:2px 0 6px;">${campType} &middot; ${campId}</div>
+              <div class="input-row">
+                ${rows.map(row => {
+                  const val = getCampaignMetricValue(a.campaign_targets, row.key) ?? '';
+                  return `<div class="field-wrap agent-campaign-numerator">
+                    <div class="field-lbl">${row.numerator === 'ctn' ? 'Carton (&#26465;&#25968;)' : 'Count (&#28183;&#36879;&#29575;)'}</div>
+                    <input type="number" min="0" placeholder="${row.numerator === 'ctn' ? 'Target CTN' : 'Target count'}"
+                      value="${val}"
+                      onchange="setCampaignTarget('${agent}','${row.key}',this.value)">
+                  </div>`;
+                }).join('')}
+              </div>
             </div>`;
           }).join('')}
         ` : '';
+
         const snapInfo  = np ? `<div style="font-family:var(--mono);font-size:9px;color:var(--blue);margin-bottom:8px;background:rgba(77,166,255,.08);border:1px solid rgba(77,166,255,.2);border-radius:8px;padding:6px 10px;">
           📊 Month-start snapshot: <b>${np}</b> non-personal debtors · <b>${pi}</b> prev inactive
           <span style="color:var(--muted);margin-left:6px;">${snap.captured_date||''}</span>
@@ -1854,11 +1888,13 @@ function getBulkImportCampaignKeys(month) {
   if (!isDynamicCampaignMonth(month)) return [];
   return getActiveCampaignsForMonth(month)
     .filter(camp => camp.id)
-    .map(camp => ({
-      key: camp.id,
+    .flatMap(camp => getCampaignMetricRows(camp).map(row => ({
+      key: row.key,
+      legacyKey: row.legacyKey,
       id: camp.id,
-      label: camp.name || camp.id,
-    }));
+      numerator: row.numerator,
+      label: row.label,
+    })));
 }
 
 function renderBulkImportSection() {
@@ -1940,7 +1976,7 @@ function getTargetsImportPath(row) {
 function getTargetsImportCurrent(agent, fieldType, fieldKey) {
   const cfg = CONFIG.agents?.[agent] || {};
   if (fieldType === 'kpi') return cfg.kpi_targets?.[fieldKey];
-  if (fieldType === 'campaign') return cfg.campaign_targets?.[fieldKey];
+  if (fieldType === 'campaign') return getCampaignMetricValue(cfg.campaign_targets, fieldKey);
   if (fieldType === 'sales_prog') return cfg.sales_progression?.[fieldKey];
   if (fieldType === 'brand_comm') {
     const [brand, subField] = fieldKey.split(':');
@@ -1984,7 +2020,9 @@ function parseTargetsCsv(text) {
   const expected = ['agent','field_type','field_key','value'];
   const hasHeader = expected.every((h, i) => header[i] === h);
   const dataLines = hasHeader ? lines.slice(1) : lines;
-  const activeCampKeys = new Set(getBulkImportCampaignKeys(getBulkImportMonth()).map(c => c.key));
+  const campaignKeys = getBulkImportCampaignKeys(getBulkImportMonth());
+  const activeCampKeys = new Set(campaignKeys.map(c => c.key));
+  const activeCampLegacyKeys = new Set(campaignKeys.map(c => c.legacyKey));
   const knownAgents = new Set(Object.keys(CONFIG?.agents || {}).map(a => a.toUpperCase()));
   const knownKpi = new Set(BULK_TARGET_KPI_KEYS);
   const knownBrands = new Set(BRANDS);
@@ -2004,7 +2042,7 @@ function parseTargetsCsv(text) {
     const agentInput = normalizeImportAgent(cols[0]);
     const agent = Object.keys(CONFIG.agents || {}).find(a => a.toUpperCase() === agentInput);
     const fieldType = String(cols[1] || '').trim().toLowerCase();
-    const fieldKey = String(cols[2] || '').trim();
+    let fieldKey = String(cols[2] || '').trim();
     const rawValue = String(cols[3] ?? '').trim();
 
     if (!agent || !knownAgents.has(agentInput)) {
@@ -2020,11 +2058,16 @@ function parseTargetsCsv(text) {
       return;
     }
     if (fieldType === 'campaign') {
-      if (!fieldKey.startsWith('camp_')) {
+      const parsedCampKey = parseCampaignImportKey(fieldKey);
+      if (!parsedCampKey) {
         result.errors.push(`Line ${lineNo}: campaign field_key must start with camp_.`);
         return;
       }
-      if (!activeCampKeys.has(fieldKey)) inactiveCampWarnings.add(fieldKey);
+      if (parsedCampKey.legacy) {
+        result.warnings.push(`Line ${lineNo}: legacy key ${fieldKey} interpreted as ${parsedCampKey.key}. Update CSV to use new key format.`);
+        fieldKey = parsedCampKey.key;
+      }
+      if (!activeCampKeys.has(fieldKey) && !activeCampLegacyKeys.has(parsedCampKey.campaignKey)) inactiveCampWarnings.add(fieldKey);
     }
     if (fieldType === 'sales_prog' && !salesProgKeys.has(fieldKey)) {
       result.errors.push(`Line ${lineNo}: sales_prog field_key must be normal_t1, normal_t2, ga, or ma.`);
@@ -2724,6 +2767,86 @@ function getActiveCampaignsForMonth(monthLabel) {
   });
 }
 
+function getCampaignKeyBase(campOrId) {
+  const raw = typeof campOrId === 'object' ? campOrId?.id : campOrId;
+  const id = String(raw || '').trim();
+  if (!id) return '';
+  return id.startsWith('camp_') ? id : 'camp_' + id;
+}
+
+function getCampaignNumerators(camp) {
+  const nums = Array.isArray(camp?.kpi_numerators) && camp.kpi_numerators.length
+    ? camp.kpi_numerators
+    : ['count'];
+  return [...new Set(nums.filter(n => n === 'count' || n === 'ctn'))];
+}
+
+function getCampaignMetricRows(camp) {
+  const base = getCampaignKeyBase(camp);
+  return getCampaignNumerators(camp).map(num => ({
+    campaign: camp,
+    numerator: num,
+    key: `${base}_${num}`,
+    legacyKey: base,
+    label: getCampaignMetricLabel(camp, num),
+  }));
+}
+
+function getCampaignMetricLabel(camp, numerator) {
+  const name = camp?.name || camp?.id || 'Campaign';
+  if (numerator === 'ctn') return `${name} (Carton 条数)`;
+  return `${name} (Count 渗透率)`;
+}
+
+function getCampaignMetricValue(obj, metricKey) {
+  if (!obj) return undefined;
+  if (Object.prototype.hasOwnProperty.call(obj, metricKey)) return obj[metricKey];
+  if (metricKey.endsWith('_count')) {
+    const legacyKey = metricKey.replace(/_count$/, '');
+    if (Object.prototype.hasOwnProperty.call(obj, legacyKey)) return obj[legacyKey];
+    const prefixed = 'camp_' + legacyKey;
+    if (Object.prototype.hasOwnProperty.call(obj, prefixed)) return obj[prefixed];
+  }
+  return undefined;
+}
+
+function parseCampaignImportKey(fieldKey) {
+  const key = String(fieldKey || '').trim();
+  const m = key.match(/^(camp_.+)_(count|ctn)$/);
+  if (m) return { key, campaignKey: m[1], numerator: m[2], legacy: false };
+  if (key.startsWith('camp_')) return { key: `${key}_count`, campaignKey: key, numerator: 'count', legacy: true };
+  return null;
+}
+
+function renderKpiNumeratorsGroup(scope, nums, opts = {}) {
+  const current = Array.isArray(nums) && nums.length ? nums : ['count'];
+  const title = opts.title || 'KPI Numerators';
+  const note = opts.note || '(what counts toward score)';
+  return `<div class="kpi-numerators-section" data-numerators-section="${scope}" style="margin-top:12px;">
+    <label style="font-weight:500;display:block;margin-bottom:6px;">
+      ${title}
+      <span style="font-weight:normal;color:#666;font-size:12px;">${note}</span>
+    </label>
+    <label style="display:inline-flex;align-items:center;gap:6px;margin-right:16px;font-family:var(--mono);font-size:11px;">
+      <input type="checkbox" data-kpi-numerator-scope="${scope}" name="${scope}_kpi_numerator" value="count" ${current.includes('count') ? 'checked' : ''}> Count (渗透率)
+    </label>
+    <label style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;">
+      <input type="checkbox" data-kpi-numerator-scope="${scope}" name="${scope}_kpi_numerator" value="ctn" ${current.includes('ctn') ? 'checked' : ''}> Carton Volume (条数)
+    </label>
+  </div>`;
+}
+
+function readKpiNumerators(scope) {
+  return Array.from(document.querySelectorAll(`input[data-kpi-numerator-scope="${scope}"]:checked`)).map(el => el.value);
+}
+
+function applyKpiNumeratorDefaults(scope, type) {
+  const boxes = Array.from(document.querySelectorAll(`input[data-kpi-numerator-scope="${scope}"]`));
+  if (!boxes.length) return;
+  const defaults = type === 'conversion_simple' ? ['count', 'ctn'] : ['count'];
+  boxes.forEach(box => { box.checked = defaults.includes(box.value); });
+}
+
 function isDynamicCampaignMonth(monthLabel) {
   // Q5=A: May 26 onward uses dynamic per-campaign KPI
   const [monStr, yrStr] = String(monthLabel || '').split(' ');
@@ -2742,7 +2865,7 @@ function getKPIWeightKeysForMonth(month) {
     keys.push(key);
     if (dynamic && key === 'birthday_campaign') {
       getActiveCampaignsForMonth(month).forEach(camp => {
-        if (camp.id) keys.push('camp_' + camp.id);
+        getCampaignMetricRows(camp).forEach(row => keys.push(row.key));
       });
     }
   });
@@ -2878,7 +3001,7 @@ function renderKPIWeights() {
   const dynamicMonth = isDynamicCampaignMonth(month);
 
   const renderWeightRow = (key, label, sec) => {
-    const raw = weights[key] ?? 0;
+    const raw = key.startsWith('camp_') ? (getCampaignMetricValue(weights, key) ?? 0) : (weights[key] ?? 0);
     const w = raw <= 1 ? parseFloat((raw * 100).toFixed(3)) : parseFloat(raw.toFixed(3));
     const isZero = w === 0;
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:${isZero?'var(--bg)':'var(--surface)'};border:1px solid var(--border);border-radius:8px;margin-bottom:4px;">
@@ -2906,6 +3029,22 @@ function renderKPIWeights() {
     if (sec !== prevSec) {
       const color = SEC_COLORS[sec] || '#1A1714';
       html += `<div style="background:${color};color:#fff;font-family:var(--mono);font-size:9px;font-weight:700;padding:6px 12px;border-radius:8px;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.08em;">${secLabel}</div>`;
+      if (sec === 'C') {
+        html += `<div class="kpi-section-warning" style="
+          background:#fff3cd;
+          border-left:4px solid #d97706;
+          padding:10px 14px;
+          margin:8px 0 12px 0;
+          font-size:13px;
+          color:#5c3d00;
+          border-radius:4px;
+        ">
+          ⚠️ <strong>Per-campaign scoring not yet active.</strong>
+          Weights and per-agent targets save to Supabase, but agent KPI scores
+          do not yet include per-campaign components. Steps 6-7-8 of the
+          per-campaign KPI feature are pending.
+        </div>`;
+      }
       prevSec = sec;
     }
     html += renderWeightRow(key, label, sec);
@@ -2913,7 +3052,10 @@ function renderKPIWeights() {
       const activeCamps = getActiveCampaignsForMonth(month);
       if (activeCamps.length) {
         activeCamps.forEach(camp => {
-          html += renderWeightRow('camp_' + camp.id, kpiAdminEscape(camp.name || camp.id), 'C');
+          getCampaignMetricRows(camp).forEach(row => {
+            const rowLabel = getCampaignNumerators(camp).length === 1 ? (camp.name || camp.id) : row.label;
+            html += renderWeightRow(row.key, kpiAdminEscape(rowLabel), 'C');
+          });
         });
       } else {
         html += `<div style="font-family:var(--mono);font-size:10px;color:var(--ink3);padding:8px 10px;border:1px dashed var(--border);border-radius:8px;margin-bottom:4px;">No active campaigns this month</div>`;
@@ -2975,7 +3117,7 @@ function saveKPIWeights() {
   }
   const weightsDecimal = {};
   getKPIWeightKeysForMonth(month).forEach(key => { weightsDecimal[key] = (weights[key] / 100); });
-  CONFIG.kpi_weights[month] = weightsDecimal;
+  CONFIG.kpi_weights[month] = { ...(CONFIG.kpi_weights[month] || {}), ...weightsDecimal };
   updateRawJSON();
   const toast = document.getElementById('kpi-save-toast');
   if (toast) { toast.style.display = 'block'; setTimeout(() => toast.style.display = 'none', 2500); }
@@ -2996,7 +3138,8 @@ ${sources.join(' / ')}`);
   const srcWeights = getKPIWeights(from);
   getKPIWeightKeysForMonth(current).forEach(key => {
     const el = document.getElementById('kpiw_' + key);
-    if (el) el.value = ((srcWeights[key] ?? 0) * (srcWeights[key] <= 1 ? 100 : 1)).toFixed(3);
+    const raw = key.startsWith('camp_') ? (getCampaignMetricValue(srcWeights, key) ?? 0) : (srcWeights[key] ?? 0);
+    if (el) el.value = (raw * (raw <= 1 ? 100 : 1)).toFixed(3);
   });
   updateKPITotal();
 }
@@ -4670,6 +4813,7 @@ function _campFromDb(row, rulesByCampaign, debtorsByCampaign) {
     active: row.active !== false,
     start_date: row.start_date || null,
     deadline: row.deadline || '',
+    kpi_numerators: Array.isArray(row.kpi_numerators) && row.kpi_numerators.length ? row.kpi_numerators : ['count'],
     created_at: row.created_at || '',
     updated_at: row.updated_at || '',
     debtors
@@ -4701,6 +4845,7 @@ function _campCampaignToDb(camp) {
     active: camp.active !== false,
     start_date: camp.start_date || null,
     deadline: camp.deadline || null,
+    kpi_numerators: Array.isArray(camp.kpi_numerators) && camp.kpi_numerators.length ? camp.kpi_numerators : ['count'],
     updated_at: new Date().toISOString()
   };
 }
@@ -4867,9 +5012,11 @@ async function createCampaign() {
   const type     = document.getElementById('new-camp-type').value;
   const desc     = document.getElementById('new-camp-desc').value.trim();
   const deadline = document.getElementById('new-camp-deadline').value;
+  const kpiNumerators = readKpiNumerators('new-camp');
   if (!name)     { alert('Please enter campaign name'); return; }
   if (!deadline) { alert('Please set deadline'); return; }
   if (!_campFileDebtors.length) { alert('Please upload debtor list'); return; }
+  if (!kpiNumerators.length) { alert('Please select at least one KPI numerator.'); return; }
 
   const brands   = type==='promotion'
     ? Array.from(document.querySelectorAll('#brand-checkboxes input:checked')).map(c=>c.value) : [];
@@ -4894,6 +5041,7 @@ async function createCampaign() {
     default_foc_unit:  focUnit,
     foc_note:          focNote,
     festive_occasion:  festive,
+    kpi_numerators:    kpiNumerators,
     created_at:new Date().toISOString().split('T')[0],
     deadline, active:true, debtors:_campFileDebtors,
   };
@@ -5067,8 +5215,8 @@ function renderCampaignsList() {
   if(!el)return;
   const active=CAMPAIGNS_DATA.campaigns.filter(c=>c.active);
   const inactive=CAMPAIGNS_DATA.campaigns.filter(c=>!c.active);
-  const TYPES={free_sample:'🎁 Free Sample',birthday_gift:'🎂 Birthday Gift',promotion:'📢 Brand Promotion',festive_gift:'🧧 Festive Gift',foc_sample:'🎁 FOC Sample',other:'📋 Other'};
-  const TYPE_COLORS={free_sample:'#c8860a',foc_sample:'#c8860a',birthday_gift:'#c8381a',promotion:'#1a5c8f',festive_gift:'#6b3fa0',other:'#555'};
+  const TYPES={free_sample:'🎁 Free Sample',birthday_gift:'🎂 Birthday Gift',promotion:'📢 Brand Promotion',festive_gift:'🧧 Festive Gift',conversion_tiered:'🎯 Conversion (Tiered)',conversion_simple:'🎯 Conversion (Simple)',foc_sample:'🎁 FOC Sample',other:'📋 Other'};
+  const TYPE_COLORS={free_sample:'#c8860a',foc_sample:'#c8860a',birthday_gift:'#c8381a',promotion:'#1a5c8f',festive_gift:'#6b3fa0',conversion_tiered:'#7c3aed',conversion_simple:'#0f766e',other:'#555'};
 
   const renderCard = (c, isInactive) => `
     <div class="admin-card" id="camp-card-${c.id}" style="margin-bottom:8px;border-left:4px solid ${TYPE_COLORS[c.type]||'var(--accent)'};opacity:${isInactive?0.6:1};">
@@ -5084,6 +5232,7 @@ function renderCampaignsList() {
               style="width:100%;font-family:var(--body);font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);margin-bottom:6px;">
             <input type="text" id="camp-edit-promo-${c.id}" value="${(c.promo_detail||'').replace(/"/g,'&quot;')}" placeholder="Promo detail (e.g. 买10条送4条 BISON)"
               style="width:100%;font-family:var(--body);font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);margin-bottom:6px;">
+            ${renderKpiNumeratorsGroup('camp-edit-' + c.id, getCampaignNumerators(c), { note: '(changing this can affect saved per-agent targets)' })}
             <div style="display:flex;gap:6px;">
               <input type="date" id="camp-edit-deadline-${c.id}" value="${c.deadline||''}"
                 style="flex:1;font-family:var(--mono);font-size:11px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);">
@@ -5131,11 +5280,18 @@ async function saveCampEdit(id) {
   const desc     = document.getElementById('camp-edit-desc-'+id)?.value?.trim();
   const promo    = document.getElementById('camp-edit-promo-'+id)?.value?.trim();
   const deadline = document.getElementById('camp-edit-deadline-'+id)?.value;
+  const oldNums = getCampaignNumerators(camp);
+  const newNums = readKpiNumerators('camp-edit-' + id);
+  if (!newNums.length) { alert('Please select at least one KPI numerator.'); return; }
+  if (oldNums.slice().sort().join('|') !== newNums.slice().sort().join('|')) {
+    if (!confirm('Changing numerators may invalidate existing per-agent targets for this campaign. Continue?')) return;
+  }
   const payload = {
     name: name || camp.name,
     description: desc ?? '',
     promo_detail: promo ?? '',
-    deadline: deadline || camp.deadline || null
+    deadline: deadline || camp.deadline || null,
+    kpi_numerators: newNums
   };
   try {
     await _campPatchCampaign(id, payload);
@@ -5143,6 +5299,7 @@ async function saveCampEdit(id) {
     camp.description  = payload.description || '';
     camp.promo_detail = payload.promo_detail || '';
     camp.deadline     = payload.deadline || '';
+    camp.kpi_numerators = payload.kpi_numerators;
     saveCampaignsData();
     renderCampaignsList();
   } catch(e) {
