@@ -1,6 +1,6 @@
 {
   "_comment": "MD Sales Dashboard — loaded from Supabase",
-  "_loaded_at": "2026-05-11T12:54:05.556229",
+  "_loaded_at": "2026-05-12T15:01:53.959545",
   "agents": {
     "KI-MI": {
       "is_newbie": true,
@@ -185,7 +185,9 @@
         "activation_rate": 1
       },
       "campaign_targets": {
-        "camp_1777773301331_count": 4
+        "camp_1778113461122_ctn": 30,
+        "camp_1777773301331_count": 4,
+        "camp_1778113461122_count": 5
       },
       "kpi_auto_base": {
         "month": "Mar 26",
@@ -3613,96 +3615,6 @@
     "BISON": 2200.0,
     "TR": 16998.0
   },
-  "brand_config": {
-    "EVO": [
-      "EVO"
-    ],
-    "TR20": [
-      "TR20"
-    ],
-    "BISON": [
-      "BISON-G",
-      "BISON-R",
-      "BISON-M"
-    ],
-    "SUKUN": [
-      "SKNR",
-      "SKNW"
-    ],
-    "iFACE": [
-      "IFACE B",
-      "IFACE M",
-      "IFACE R",
-      "IFACE DB"
-    ],
-    "LAM+LWM": [
-      "LAM",
-      "LWM"
-    ]
-  },
-  "group_brand_config": {
-    "LF": [
-      "LF-002"
-    ],
-    "TR": [
-      "TR20",
-      "TR-002"
-    ],
-    "EVO": [
-      "EVO"
-    ],
-    "IMP": [
-      "IMP-001"
-    ],
-    "BISON": [
-      "BISON-G",
-      "BISON-M",
-      "BISON-R"
-    ],
-    "SUKUN": [
-      "SKNR",
-      "SKNW"
-    ],
-    "CLASSMILD": [
-      "CM-002"
-    ]
-  },
-  "inhouse_codes": [
-    "90",
-    "DPM EVO",
-    "IMP-001",
-    "LB22",
-    "LF-002",
-    "LIC-001",
-    "LMM-002",
-    "TR-002",
-    "CM-002",
-    "LG22",
-    "LR22",
-    "LBOLD",
-    "MARISE",
-    "HTM-002",
-    "ZYG",
-    "ZL",
-    "EC",
-    "ZPA",
-    "LC20",
-    "CMX",
-    "CMP",
-    "IFACE B",
-    "IFACE M",
-    "IFACE R",
-    "IFACE DB",
-    "SKNR",
-    "SKNW",
-    "EVO",
-    "BISON-G",
-    "BISON-R",
-    "BISON-M",
-    "TR20",
-    "LAM",
-    "LWM"
-  ],
   "kpi_weights": {
     "Apr 26": {
       "event": 0.03,
@@ -3872,10 +3784,100 @@
       "d_account_accuracy": 0.04,
       "alt_channel_contact": 0.02,
       "alt_channel_deliver": 0.03,
-      "camp_camp_1777773301331": 0.02,
-      "camp_camp_1778113461122": 0.02
+      "camp_1777773301331_count": 0.02,
+      "camp_1778113461122_count": 0.02
     }
   },
+  "brand_config": {
+    "EVO": [
+      "EVO"
+    ],
+    "TR20": [
+      "TR20"
+    ],
+    "BISON": [
+      "BISON-G",
+      "BISON-R",
+      "BISON-M"
+    ],
+    "SUKUN": [
+      "SKNR",
+      "SKNW"
+    ],
+    "iFACE": [
+      "IFACE B",
+      "IFACE M",
+      "IFACE R",
+      "IFACE DB"
+    ],
+    "LAM+LWM": [
+      "LAM",
+      "LWM"
+    ]
+  },
+  "group_brand_config": {
+    "LF": [
+      "LF-002"
+    ],
+    "TR": [
+      "TR20",
+      "TR-002"
+    ],
+    "EVO": [
+      "EVO"
+    ],
+    "IMP": [
+      "IMP-001"
+    ],
+    "BISON": [
+      "BISON-G",
+      "BISON-M",
+      "BISON-R"
+    ],
+    "SUKUN": [
+      "SKNR",
+      "SKNW"
+    ],
+    "CLASSMILD": [
+      "CM-002"
+    ]
+  },
+  "inhouse_codes": [
+    "90",
+    "DPM EVO",
+    "IMP-001",
+    "LB22",
+    "LF-002",
+    "LIC-001",
+    "LMM-002",
+    "TR-002",
+    "CM-002",
+    "LG22",
+    "LR22",
+    "LBOLD",
+    "MARISE",
+    "HTM-002",
+    "ZYG",
+    "ZL",
+    "EC",
+    "ZPA",
+    "LC20",
+    "CMX",
+    "CMP",
+    "IFACE B",
+    "IFACE M",
+    "IFACE R",
+    "IFACE DB",
+    "SKNR",
+    "SKNW",
+    "EVO",
+    "BISON-G",
+    "BISON-R",
+    "BISON-M",
+    "TR20",
+    "LAM",
+    "LWM"
+  ],
   "newbie_scheme": {
     "ctn_tiers": [
       {
