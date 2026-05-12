@@ -1050,6 +1050,24 @@ const BULK_TARGET_KPI_KEYS = ['new_accounts','vip_count','reactivation','new_sku
 // Default-selects current real-world month if available, otherwise latest.
 // Runs on DOMContentLoaded so static HTML doesn't need updating each month.
 function populateMonthDropdowns() {
+  const { opts, defaultSel } = getAdminMonthOptions();
+
+  const SELECTORS = ['kpi-month-select', 'bulk-month-select'];
+  for (const id of SELECTORS) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    // Preserve current selection if user has already chosen one and it's valid
+    const previouslySelected = el.value;
+    el.innerHTML = opts.map(o =>
+      `<option value="${o}"${o === defaultSel ? ' selected' : ''}>${o}</option>`
+    ).join('');
+    if (previouslySelected && opts.includes(previouslySelected)) {
+      el.value = previouslySelected;
+    }
+  }
+}
+
+function getAdminMonthOptions() {
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const START_YEAR = 2026;   // earliest data the dashboard knows about
   const START_MONTH = 0;     // 0 = Jan
@@ -1072,20 +1090,7 @@ function populateMonthDropdowns() {
   // Default selection: current real-world month if it's in the list, else last
   const todayLabel = `${MONTHS[tMonth]} ${String(tYear).slice(-2)}`;
   const defaultSel = opts.includes(todayLabel) ? todayLabel : opts[opts.length - 1];
-
-  const SELECTORS = ['kpi-month-select', 'bulk-month-select'];
-  for (const id of SELECTORS) {
-    const el = document.getElementById(id);
-    if (!el) continue;
-    // Preserve current selection if user has already chosen one and it's valid
-    const previouslySelected = el.value;
-    el.innerHTML = opts.map(o =>
-      `<option value="${o}"${o === defaultSel ? ' selected' : ''}>${o}</option>`
-    ).join('');
-    if (previouslySelected && opts.includes(previouslySelected)) {
-      el.value = previouslySelected;
-    }
-  }
+  return { opts, defaultSel };
 }
 
 // Run after DOM is ready
@@ -4902,6 +4907,285 @@ function _campDebtorToDb(campaignId, debtor) {
   };
 }
 
+function renderDeliveryMonthOptions(selectedMonth = '') {
+  const { opts, defaultSel } = getAdminMonthOptions();
+  const selected = selectedMonth && opts.includes(selectedMonth) ? selectedMonth : defaultSel;
+  return opts.map(m => `<option value="${m}"${m === selected ? ' selected' : ''}>${m}</option>`).join('');
+}
+
+function renderCampaignDeliveriesSection(c) {
+  const isConversion = c.type === 'conversion_simple' || c.type === 'conversion_tiered';
+  return `
+    <details class="campaign-deliveries-section" data-camp-id="${kpiAdminEscape(c.id)}" style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
+      <summary style="cursor:pointer;font-weight:500;user-select:none;">
+        📦 Manage Deliveries
+        <span class="deliveries-count-badge" data-deliveries-count style="margin-left:8px;padding:2px 8px;border-radius:10px;background:var(--bg);font-size:11px;color:var(--ink3);">0 delivered this month</span>
+      </summary>
+
+      <div style="margin-top:10px;">
+        <div class="deliveries-auto-note" style="display:${isConversion ? 'block' : 'none'};background:#f0f7ff;border-left:3px solid #3b82f6;padding:8px 10px;margin-bottom:10px;font-size:12px;color:#1e3a8a;border-radius:4px;">
+          ℹ️ This campaign auto-detects deliveries from sales data. Manual upload is optional and overrides auto-detection.
+        </div>
+
+        <div style="margin-bottom:10px;">
+          <label style="font-size:12px;font-weight:500;">Month:</label>
+          <select class="deliveries-month-select" onchange="refreshCampaignDeliverySection('${kpiAdminEscape(c.id)}', this.closest('.campaign-deliveries-section'))" style="margin-left:6px;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:5px 8px;border-radius:6px;">${renderDeliveryMonthOptions()}</select>
+        </div>
+
+        <details style="margin-bottom:8px;">
+          <summary style="cursor:pointer;font-size:13px;">⬆️ Upload delivered list</summary>
+          <div style="margin-top:8px;">
+            <textarea class="deliveries-upload-textarea" placeholder="Paste debtor codes, one per line&#10;e.g.&#10;300-A001&#10;300-B042&#10;3EV-J0123" rows="8" style="width:100%;font-family:var(--mono);font-size:12px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--ink);box-sizing:border-box;"></textarea>
+            <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="deliveries-validate-btn" onclick="validateCampaignDeliveries('${kpiAdminEscape(c.id)}', this.closest('.campaign-deliveries-section'))">Validate</button>
+              <button type="button" class="deliveries-apply-btn" onclick="applyCampaignDeliveries('${kpiAdminEscape(c.id)}', this.closest('.campaign-deliveries-section'))" disabled>Apply</button>
+              <button type="button" class="deliveries-clear-btn" onclick="clearCampaignDeliveriesInput(this.closest('.campaign-deliveries-section'))">Clear</button>
+            </div>
+            <div class="deliveries-validation-results" style="margin-top:8px;font-family:var(--mono);font-size:11px;"></div>
+          </div>
+        </details>
+
+        <details ontoggle="if(this.open) loadCampaignDeliveriesList('${kpiAdminEscape(c.id)}', this.closest('.campaign-deliveries-section'));">
+          <summary style="cursor:pointer;font-size:13px;">👁️ View delivered list</summary>
+          <div class="deliveries-list-display" style="margin-top:8px;">
+            Loading...
+          </div>
+        </details>
+      </div>
+    </details>`;
+}
+
+function normalizeDeliveryCode(code) {
+  return String(code || '').trim().toUpperCase();
+}
+
+function getDeliveryDebtorInfo(code) {
+  const target = normalizeDeliveryCode(code);
+  if (!target) return null;
+  const agents = DASH_DATA?.agents || {};
+  for (const [agent, agentData] of Object.entries(agents)) {
+    const debtors = agentData?.debtor_cards?.debtors || [];
+    for (const d of debtors) {
+      const debtorCode = normalizeDeliveryCode(d.debtor_code || d.code);
+      if (debtorCode === target) {
+        return {
+          code: debtorCode,
+          agent,
+          name: d.company_name || d.name || d.debtor_name || '',
+          type: d.debtor_type || d.type || ''
+        };
+      }
+    }
+  }
+  return null;
+}
+
+async function fetchExistingCampaignDeliveries(campId, month) {
+  const rows = await _adminSupabaseFetch(`campaign_deliveries?select=debtor_code,agent,delivered_at,source&campaign_id=eq.${encodeURIComponent(campId)}&month=eq.${encodeURIComponent(month)}&order=agent.asc,debtor_code.asc`);
+  return rows || [];
+}
+
+async function refreshCampaignDeliveriesCount(campId, section) {
+  const month = section?.querySelector('.deliveries-month-select')?.value || getAdminMonthOptions().defaultSel;
+  const badge = section?.querySelector('[data-deliveries-count]');
+  if (!badge) return;
+  badge.textContent = 'Loading...';
+  try {
+    const rows = await fetchExistingCampaignDeliveries(campId, month);
+    badge.textContent = `${rows.length} delivered this month`;
+  } catch (e) {
+    console.warn('[campaign_deliveries] count failed', e);
+    badge.textContent = 'Count unavailable';
+  }
+}
+
+async function refreshCampaignDeliverySection(campId, section) {
+  await refreshCampaignDeliveriesCount(campId, section);
+  const listDetails = section?.querySelector('.deliveries-list-display')?.closest('details');
+  if (listDetails?.open) await loadCampaignDeliveriesList(campId, section);
+  const applyBtn = section?.querySelector('.deliveries-apply-btn');
+  const resultsEl = section?.querySelector('.deliveries-validation-results');
+  if (applyBtn) {
+    applyBtn.disabled = true;
+    delete applyBtn.dataset.validated;
+  }
+  if (resultsEl) resultsEl.innerHTML = '';
+}
+
+function hydrateCampaignDeliveriesSections() {
+  document.querySelectorAll('.campaign-deliveries-section').forEach(section => {
+    const campId = section.dataset.campId;
+    const sel = section.querySelector('.deliveries-month-select');
+    if (sel && !sel.value) sel.innerHTML = renderDeliveryMonthOptions();
+    if (campId) refreshCampaignDeliveriesCount(campId, section);
+  });
+}
+
+async function validateCampaignDeliveries(campId, section) {
+  const textareaEl = section?.querySelector('.deliveries-upload-textarea');
+  const resultsEl = section?.querySelector('.deliveries-validation-results');
+  const applyBtn = section?.querySelector('.deliveries-apply-btn');
+  const month = section?.querySelector('.deliveries-month-select')?.value || getAdminMonthOptions().defaultSel;
+  if (!textareaEl || !resultsEl || !applyBtn) return;
+
+  const rawCodes = textareaEl.value.split(/[\n,;]+/).map(normalizeDeliveryCode).filter(Boolean);
+  if (!rawCodes.length) {
+    resultsEl.innerHTML = '<span style="color:#888">No codes entered</span>';
+    applyBtn.disabled = true;
+    delete applyBtn.dataset.validated;
+    return;
+  }
+
+  resultsEl.innerHTML = '<span style="color:var(--ink3)">Validating...</span>';
+  applyBtn.disabled = true;
+  delete applyBtn.dataset.validated;
+
+  let alreadyDelivered = new Set();
+  try {
+    const existing = await fetchExistingCampaignDeliveries(campId, month);
+    alreadyDelivered = new Set(existing.map(r => normalizeDeliveryCode(r.debtor_code)));
+  } catch (e) {
+    resultsEl.innerHTML = `<span style="color:red">Error checking existing deliveries: ${kpiAdminEscape(e.message)}</span>`;
+    return;
+  }
+
+  const seenInput = new Set();
+  const validated = rawCodes.map(code => {
+    if (seenInput.has(code)) return { code, status: 'input_duplicate', error: 'duplicate in pasted list' };
+    seenInput.add(code);
+    const info = getDeliveryDebtorInfo(code);
+    if (!info) return { code, status: 'not_found', error: 'not in active debtor list' };
+    if (alreadyDelivered.has(code)) return { code, status: 'duplicate', error: 'already delivered this month' };
+    return { code, status: 'ok', agent: info.agent, name: info.name || '' };
+  });
+
+  const valid = validated.filter(v => v.status === 'ok');
+  const errors = validated.filter(v => v.status !== 'ok');
+  let html = `<div><strong>${valid.length}</strong> valid · <strong>${errors.length}</strong> errors</div>`;
+  if (errors.length) {
+    html += `<details open><summary style="color:#a33;cursor:pointer">Show errors (${errors.length})</summary><ul style="margin:4px 0 0 18px;">`;
+    errors.forEach(e => { html += `<li>${kpiAdminEscape(e.code)}: ${kpiAdminEscape(e.error)}</li>`; });
+    html += '</ul></details>';
+  }
+  if (valid.length) {
+    html += `<details><summary style="color:#373;cursor:pointer">Show valid (${valid.length})</summary><ul style="margin:4px 0 0 18px;">`;
+    valid.forEach(v => { html += `<li>${kpiAdminEscape(v.code)} → ${kpiAdminEscape(v.agent)} (${kpiAdminEscape(v.name)})</li>`; });
+    html += '</ul></details>';
+  }
+  resultsEl.innerHTML = html;
+  applyBtn.disabled = valid.length === 0 || errors.length > 0;
+  applyBtn.dataset.validated = JSON.stringify(valid);
+}
+
+async function applyCampaignDeliveries(campId, section) {
+  const textareaEl = section?.querySelector('.deliveries-upload-textarea');
+  const resultsEl = section?.querySelector('.deliveries-validation-results');
+  const applyBtn = section?.querySelector('.deliveries-apply-btn');
+  const monthSelect = section?.querySelector('.deliveries-month-select');
+  if (!textareaEl || !resultsEl || !applyBtn || !monthSelect) return;
+
+  const validated = JSON.parse(applyBtn.dataset.validated || '[]');
+  if (!validated.length) return;
+  const month = monthSelect.value;
+  const rows = validated.map(v => ({
+    campaign_id: campId,
+    debtor_code: v.code,
+    agent: v.agent,
+    month,
+    source: 'list_upload',
+    delivered_at: new Date().toISOString()
+  }));
+
+  resultsEl.innerHTML = `<span style="color:var(--ink3)">Saving ${rows.length} deliveries...</span>`;
+  try {
+    await _campPostRows('campaign_deliveries', rows);
+    resultsEl.innerHTML = `<span style="color:green">✓ Added ${rows.length} deliveries</span>`;
+    textareaEl.value = '';
+    applyBtn.disabled = true;
+    delete applyBtn.dataset.validated;
+    await refreshCampaignDeliveriesCount(campId, section);
+    await loadCampaignDeliveriesList(campId, section);
+  } catch (e) {
+    resultsEl.innerHTML = `<span style="color:red">Error: ${kpiAdminEscape(e.message)}</span>`;
+  }
+}
+
+function clearCampaignDeliveriesInput(section) {
+  const textareaEl = section?.querySelector('.deliveries-upload-textarea');
+  const resultsEl = section?.querySelector('.deliveries-validation-results');
+  const applyBtn = section?.querySelector('.deliveries-apply-btn');
+  if (textareaEl) textareaEl.value = '';
+  if (resultsEl) resultsEl.innerHTML = '';
+  if (applyBtn) {
+    applyBtn.disabled = true;
+    delete applyBtn.dataset.validated;
+  }
+}
+
+async function loadCampaignDeliveriesList(campId, section) {
+  const month = section?.querySelector('.deliveries-month-select')?.value || getAdminMonthOptions().defaultSel;
+  const container = section?.querySelector('.deliveries-list-display');
+  if (!container) return;
+  container.innerHTML = '<span style="color:var(--ink3)">Loading...</span>';
+  try {
+    const data = await fetchExistingCampaignDeliveries(campId, month);
+    if (!data.length) {
+      container.innerHTML = '<em style="color:#888">No deliveries recorded for this month yet.</em>';
+      return;
+    }
+    const byAgent = {};
+    data.forEach(d => { (byAgent[d.agent] ||= []).push(d); });
+
+    let html = '';
+    Object.keys(byAgent).sort().forEach(agent => {
+      const rows = byAgent[agent].sort((a,b) => normalizeDeliveryCode(a.debtor_code).localeCompare(normalizeDeliveryCode(b.debtor_code)));
+      html += `<div style="margin-bottom:12px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
+        <strong>${kpiAdminEscape(agent)}</strong> (${rows.length} delivered)
+        <button type="button" onclick="removeCampaignAgentDeliveries('${kpiAdminEscape(campId)}','${kpiAdminEscape(agent)}', this.closest('.campaign-deliveries-section'))" style="margin-left:8px;font-size:11px;">Remove all</button>
+        <ul style="margin:4px 0 0 20px;padding-left:0;">`;
+      rows.forEach(r => {
+        const info = getDeliveryDebtorInfo(r.debtor_code);
+        const name = info ? info.name : '?';
+        html += `<li>${kpiAdminEscape(r.debtor_code)} — ${kpiAdminEscape(name)} <button type="button" onclick="removeCampaignDelivery('${kpiAdminEscape(campId)}','${kpiAdminEscape(r.debtor_code)}', this.closest('.campaign-deliveries-section'))" style="font-size:10px;">×</button></li>`;
+      });
+      html += '</ul></div>';
+    });
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = `<span style="color:red">Error: ${kpiAdminEscape(e.message)}</span>`;
+  }
+}
+
+async function removeCampaignDelivery(campId, debtorCode, section) {
+  const month = section?.querySelector('.deliveries-month-select')?.value || getAdminMonthOptions().defaultSel;
+  if (!confirm(`Remove delivery ${debtorCode} for ${month}?`)) return;
+  try {
+    await _adminSupabaseFetch(`campaign_deliveries?campaign_id=eq.${encodeURIComponent(campId)}&month=eq.${encodeURIComponent(month)}&debtor_code=eq.${encodeURIComponent(debtorCode)}`, {
+      method: 'DELETE',
+      headers: { 'Prefer': 'return=minimal' }
+    });
+    await refreshCampaignDeliveriesCount(campId, section);
+    await loadCampaignDeliveriesList(campId, section);
+  } catch (e) {
+    alert('Failed to remove delivery: ' + e.message);
+  }
+}
+
+async function removeCampaignAgentDeliveries(campId, agent, section) {
+  const month = section?.querySelector('.deliveries-month-select')?.value || getAdminMonthOptions().defaultSel;
+  if (!confirm(`Remove all ${agent} deliveries for this campaign in ${month}?`)) return;
+  try {
+    await _adminSupabaseFetch(`campaign_deliveries?campaign_id=eq.${encodeURIComponent(campId)}&month=eq.${encodeURIComponent(month)}&agent=eq.${encodeURIComponent(agent)}`, {
+      method: 'DELETE',
+      headers: { 'Prefer': 'return=minimal' }
+    });
+    await refreshCampaignDeliveriesCount(campId, section);
+    await loadCampaignDeliveriesList(campId, section);
+  } catch (e) {
+    alert('Failed to remove deliveries: ' + e.message);
+  }
+}
+
 async function _campPostRows(table, rows) {
   if (!rows.length) return;
   for (let i = 0; i < rows.length; i += 500) {
@@ -5258,11 +5542,13 @@ function renderCampaignsList() {
         </div>
       </div>
       <div style="font-family:var(--mono);font-size:10px;color:#555;">📋 ${c.debtors?.length||0} debtors &nbsp;·&nbsp; ⏰ ${c.deadline||'no deadline'} &nbsp;·&nbsp; 📅 Start: ${c.start_date||c.created_at||'—'}</div>
+      ${renderCampaignDeliveriesSection(c)}
     </div>`;
 
   el.innerHTML = (active.length ? active.map(c=>renderCard(c,false)).join('') : '<div style="font-family:var(--mono);font-size:10px;color:#888;padding:8px 0;">No active campaigns.</div>')
     + (inactive.length ? `<div style="font-family:var(--mono);font-size:9px;color:#888;margin-top:12px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Closed Campaigns (${inactive.length})</div>`
     + inactive.map(c=>renderCard(c,true)).join('') : '');
+  hydrateCampaignDeliveriesSections();
 }
 
 function editCampaign(id) {
