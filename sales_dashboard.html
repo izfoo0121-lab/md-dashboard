@@ -2339,8 +2339,8 @@ function renderDebtorCard(d, runNo) {
     const campBadges = (d.campaigns||[]).map(c => {
       const promoText  = c.promo_detail || c.name;
 
-      // ── conversion_tiered: tier display + conversion flag ────────────────
-      // Historical tier context + whether they've converted in the campaign month.
+      // ── conversion_tiered: conversion status + lookback context ──────────
+      // Tier is agent-level; debtor chips only show whether this debtor converted.
       if (c.type === 'conversion_tiered') {
         const lookbackCtn = c.lookback_ctn ?? 0;
         const currentCtn  = c.current_ctn ?? 0;
@@ -2355,11 +2355,11 @@ function renderDebtorCard(d, runNo) {
         const lbMonths = (c.notes && c.notes.lookback_months) || [];
         const lbLabel  = lbMonths.length >= 2 ? `${lbMonths[0]}-${lbMonths[lbMonths.length-1]}` : (lbMonths[0] || 'Lookback');
         const summaryLine = converted
-          ? `${lbLabel}: ${lookbackCtn} CTN  →  Campaign: ${currentCtn} CTN`
+          ? `${lbLabel}: ${lookbackCtn} CTN  →  May: ${currentCtn} CTN`
           : `${lbLabel}: ${lookbackCtn} CTN`;
 
         const convertedChip = converted
-          ? `<span style="font-family:var(--mono);font-size:9px;color:var(--green);background:rgba(61,220,132,.15);padding:2px 6px;border-radius:4px;font-weight:600;">✓ CONVERTED</span>`
+          ? `<span style="font-family:var(--mono);font-size:9px;color:var(--green);background:rgba(61,220,132,.15);padding:2px 6px;border-radius:4px;font-weight:600;">✓ converted</span>`
           : '';
         const claimData = getCampClaims(currentAgent, c.id, d.debtor_code);
         const claimed = !!claimData;
