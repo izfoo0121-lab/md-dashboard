@@ -2342,17 +2342,9 @@ function renderDebtorCard(d, runNo) {
       // ── conversion_tiered: tier display + conversion flag ────────────────
       // Historical tier context + whether they've converted in the campaign month.
       if (c.type === 'conversion_tiered') {
-        const tierLabel   = c.tier_label || 'BASELINE';
         const lookbackCtn = c.lookback_ctn ?? 0;
         const currentCtn  = c.current_ctn ?? 0;
         const converted   = !!c.converted;
-        const tierIdx     = c.tier_idx ?? 0;
-
-        // Tier chip color: muted for BASELINE, accent for TIER 1/2, green for TIER 3+
-        let tierColor;
-        if (tierIdx === 0)      tierColor = 'var(--muted)';
-        else if (tierIdx <= 2)  tierColor = 'var(--accent)';
-        else                    tierColor = 'var(--green)';
 
         // Border + bg follow existing pattern: green when "qualified" (here = converted)
         const cBorder = converted ? 'rgba(61,220,132,.4)' : 'rgba(255,255,255,.1)';
@@ -2381,7 +2373,6 @@ function renderDebtorCard(d, runNo) {
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
               <span style="font-family:var(--mono);font-size:10px;color:var(--green);font-weight:600;">🎯 ${c.name}</span>
-              <span style="font-family:var(--mono);font-size:9px;color:${tierColor};background:rgba(255,255,255,.05);padding:1px 6px;border-radius:4px;font-weight:600;">${tierLabel}</span>
             </div>
             ${convertedChip}
           </div>
@@ -4184,7 +4175,8 @@ function renderCamps() {
       // Pull rollup data from the agent block. Fall back to computing from
       // c.debtors if rollup is missing (defensive — handles stale data).
       const rollup = DATA.agents[currentAgent]?.conversion_campaigns?.[c.id];
-      let totalEnrolled, convertedCount, convertedTargets, convertedCtn, targetCount, conversionRate, tierOrder, tierDist;
+      let totalEnrolled, convertedCount, convertedTargets, convertedCtn, targetCount, conversionRate;
+      let agentTierIdx, agentTierLabel, toNextTier, nextTierLabel;
       if (rollup) {
         totalEnrolled    = rollup.total_enrolled;
         convertedCount   = rollup.converted_count;
@@ -4192,65 +4184,33 @@ function renderCamps() {
         convertedCtn     = rollup.converted_ctn;
         targetCount      = rollup.target_count;
         conversionRate   = rollup.conversion_rate_targets;
-        tierOrder        = rollup.tier_order;
-        tierDist         = rollup.tier_distribution;
+        agentTierIdx     = rollup.agent_tier_idx ?? -1;
+        agentTierLabel   = rollup.agent_tier_label || null;
+        toNextTier       = rollup.to_next_tier ?? 0;
+        nextTierLabel    = rollup.next_tier_label || null;
       } else {
         // Fallback: derive from c.debtors directly
         totalEnrolled = c.debtors.length;
         convertedCount = c.debtors.filter(d => (d.campaigns||[]).some(cc => cc.id===c.id && cc.converted)).length;
-        convertedTargets = c.debtors.filter(d => {
-          const cc = (d.campaigns||[]).find(cc => cc.id===c.id);
-          return cc && cc.converted && (cc.tier_idx===0 || cc.tier_idx===1);
-        }).length;
+        convertedTargets = convertedCount;
         convertedCtn = c.debtors.reduce((sum, d) => {
           const cc = (d.campaigns||[]).find(cc => cc.id===c.id);
           return cc && cc.converted ? sum + (cc.current_ctn||0) : sum;
         }, 0);
-        targetCount = c.debtors.filter(d => {
-          const cc = (d.campaigns||[]).find(cc => cc.id===c.id);
-          return cc && (cc.tier_idx===0 || cc.tier_idx===1);
-        }).length;
+        targetCount = totalEnrolled;
         conversionRate = targetCount > 0 ? convertedTargets/targetCount : 0;
-        // Build tier order/dist from per-debtor labels
-        const distMap = {};
-        c.debtors.forEach(d => {
-          const cc = (d.campaigns||[]).find(cc => cc.id===c.id);
-          if (cc) {
-            const tl = cc.tier_label || 'BASELINE';
-            distMap[tl] = (distMap[tl] || 0) + 1;
-          }
-        });
-        tierOrder = Object.keys(distMap);
-        tierDist = distMap;
+        const tier = agentTierFromCount(convertedCount, c.notes?.tier_thresholds || [], c.notes?.tier_names || []);
+        agentTierIdx = tier.idx;
+        agentTierLabel = tier.label;
+        toNextTier = tier.toNext;
+        nextTierLabel = tier.nextLabel;
       }
 
       // Conversion rate as percent
       const ratePct = Math.round((conversionRate || 0) * 100);
       const rateColor = ratePct >= 50 ? 'var(--green)' : ratePct >= 20 ? 'var(--accent)' : 'var(--muted)';
 
-      // Tier color helper (matches the per-debtor card chip logic)
-      const tierColor = (idx) => {
-        if (idx === 0)      return 'var(--muted)';
-        else if (idx <= 2)  return 'var(--accent)';
-        else                return 'var(--green)';
-      };
-
-      // Max count for proportional bar widths in tier distribution
-      const maxCount = Math.max(1, ...Object.values(tierDist));
-
-      // Tier distribution rows
-      const tierRows = tierOrder.map((tlabel, idx) => {
-        const count = tierDist[tlabel] || 0;
-        const widthPct = Math.round((count / maxCount) * 100);
-        const color = tierColor(idx);
-        return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-family:var(--mono);font-size:10px;">' +
-          '<div style="width:78px;color:' + color + ';font-weight:600;">' + tlabel + '</div>' +
-          '<div style="flex:1;height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;">' +
-          '<div style="height:100%;width:' + widthPct + '%;background:' + color + ';border-radius:4px;transition:width .4s;"></div>' +
-          '</div>' +
-          '<div style="width:32px;text-align:right;color:var(--muted);">' + count + '</div>' +
-          '</div>';
-      }).join('');
+      const tierDisplay = agentTierDisplay(agentTierIdx, agentTierLabel, toNextTier, nextTierLabel);
 
       return '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;">' +
         // Header section
@@ -4279,10 +4239,13 @@ function renderCamps() {
               : '') +
           '</div>' +
         '</div>' +
-        // Body: tier distribution
+        // Body: agent-level tier status
         '<div style="padding:10px 16px 14px;">' +
-          '<div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Tier distribution</div>' +
-          tierRows +
+          '<div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Agent tier status</div>' +
+          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+            '<span style="font-family:var(--mono);font-size:9px;color:' + tierDisplay.color + ';background:' + tierDisplay.bg + ';border:1px solid ' + tierDisplay.border + ';padding:3px 9px;border-radius:10px;font-weight:600;">' + tierDisplay.label + '</span>' +
+            '<span style="font-family:var(--mono);font-size:9px;color:' + tierDisplay.color + ';">' + tierDisplay.hint + '</span>' +
+          '</div>' +
         '</div>' +
         renderCampaignDebtorPanel(c) +
       '</div>';
@@ -4450,42 +4413,65 @@ function campEsc(v) {
   }[ch]));
 }
 
-function campTierColor(idx) {
-  if (idx === 0) return 'var(--muted)';
-  if (idx <= 2) return 'var(--accent)';
-  return 'var(--green)';
-}
-
-function campTierLabel(idx, rawLabel) {
-  const label = String(rawLabel || '').trim();
-  if (/baseline/i.test(label) || idx === 0) return 'Baseline';
-  if (/tier\s*1/i.test(label) || idx === 1) return 'Tier 1';
-  if (/tier\s*2/i.test(label) || idx === 2) return 'Tier 2';
-  if (/tier\s*3\+/i.test(label) || idx > 3) return 'Tier 3+';
-  if (/tier\s*3/i.test(label) || idx === 3) return 'Tier 3';
-  return label || 'Baseline';
-}
-
-function campDebtorTierInfo(camp, debtor) {
-  const cc = (debtor.campaigns || []).find(x => x.id === camp.id) || {};
-  const idx = cc.tier_idx ?? 0;
-  const label = campTierLabel(idx, cc.tier_label);
-  const current = Number(cc.current_ctn ?? cc.ctn_this_month ?? cc.progress_ctn ?? debtor.ctn_cur ?? 0);
-  const thresholds = cc.notes?.tier_thresholds || camp.notes?.tier_thresholds || [];
-  const maxed = (cc.converted && idx >= thresholds.length - 1) || /tier\s*3\+/i.test(label);
-  let targetText = '—';
-  if (maxed) {
-    targetText = '✅ Maxed';
-  } else if (thresholds.length && idx < thresholds.length) {
-    targetText = `→ ${fmtNum(thresholds[idx])} CTN`;
-  } else if (cc.to_next_tier != null && Number(cc.to_next_tier) <= 0) {
-    targetText = '✅ Maxed';
-  } else if (cc.to_next_tier != null) {
-    targetText = `→ ${fmtNum(current + Number(cc.to_next_tier || 0))} CTN`;
-  } else if (camp.min_order_ctn) {
-    targetText = `→ ${fmtNum(camp.min_order_ctn)} CTN`;
+function agentTierFromCount(count, thresholds, tierNames) {
+  const converted = Number(count || 0);
+  const steps = Array.isArray(thresholds)
+    ? thresholds.map(Number).filter(n => Number.isFinite(n))
+    : [];
+  const names = Array.isArray(tierNames) ? tierNames : [];
+  if (!steps.length || !names.length) {
+    return { idx: -1, label: null, toNext: 0, nextLabel: null };
   }
-  return { idx, label, color: campTierColor(idx), current, targetText };
+  let idx = -1;
+  for (let i = 0; i < steps.length; i++) {
+    if (converted >= steps[i]) idx = i;
+    else break;
+  }
+  const label = idx >= 0 ? (names[idx] || null) : null;
+  if (idx < 0) {
+    return { idx, label, toNext: Math.max(0, steps[0] - converted), nextLabel: names[0] || null };
+  }
+  if (idx >= steps.length - 1) {
+    return { idx, label, toNext: 0, nextLabel: null };
+  }
+  return {
+    idx,
+    label,
+    toNext: Math.max(0, steps[idx + 1] - converted),
+    nextLabel: names[idx + 1] || null
+  };
+}
+
+function agentTierDisplay(idx, label, toNext, nextLabel) {
+  const topTier = Number(toNext || 0) === 0 && !nextLabel && idx >= 0;
+  const displayLabel = label || 'No tier yet';
+  const hint = topTier ? 'Top tier achieved' : (nextLabel ? `${toNext} more to ${nextLabel}` : '');
+  if (idx >= 3) {
+    return { label: displayLabel, hint, color: 'var(--green)', bg: 'rgba(61,220,132,.15)', border: 'rgba(61,220,132,.45)' };
+  }
+  if (idx === 2) {
+    return { label: displayLabel, hint, color: 'var(--accent)', bg: 'rgba(255,204,102,.13)', border: 'rgba(255,204,102,.38)' };
+  }
+  if (idx >= 0) {
+    return { label: displayLabel, hint, color: 'var(--accent)', bg: 'rgba(77,166,255,.12)', border: 'rgba(77,166,255,.36)' };
+  }
+  return { label: displayLabel, hint, color: 'var(--muted)', bg: 'rgba(255,255,255,.06)', border: 'rgba(255,255,255,.12)' };
+}
+
+function campDebtorConversionInfo(camp, debtor) {
+  const cc = (debtor.campaigns || []).find(x => x.id === camp.id) || {};
+  const converted = !!cc.converted;
+  const lookback = Number(cc.lookback_ctn ?? 0);
+  const current = Number(cc.current_ctn ?? cc.ctn_this_month ?? cc.progress_ctn ?? debtor.ctn_cur ?? 0);
+  return {
+    label: converted ? 'Converted' : 'Not yet',
+    color: converted ? 'var(--green)' : 'var(--muted)',
+    bg: converted ? 'rgba(61,220,132,.12)' : 'rgba(255,255,255,.06)',
+    border: converted ? 'rgba(61,220,132,.4)' : 'rgba(255,255,255,.12)',
+    lookback,
+    current,
+    currentText: current > 0 ? `${fmtNum(current)} CTN` : '0 CTN'
+  };
 }
 
 function toggleCampaignDebtors(campId) {
@@ -4520,7 +4506,7 @@ function renderCampaignDebtorPanel(camp) {
   const start = (page - 1) * CAMPAIGN_DEBTOR_PAGE_SIZE;
   const shown = debtors.slice(start, start + CAMPAIGN_DEBTOR_PAGE_SIZE);
   const rows = shown.map((d, i) => {
-    const t = campDebtorTierInfo(camp, d);
+    const t = campDebtorConversionInfo(camp, d);
     const rowBg = i % 2 ? 'rgba(255,255,255,.025)' : 'transparent';
     const claimData = getCampClaims(currentAgent, campId, d.debtor_code);
     const claimed = !!claimData;
@@ -4528,16 +4514,16 @@ function renderCampaignDebtorPanel(camp) {
     const claimBg = claimed ? 'rgba(61,220,132,.2)' : 'rgba(255,255,255,.08)';
     const claimColor = claimed ? 'var(--green)' : 'var(--muted)';
     const claimBorder = claimed ? 'var(--green)' : 'var(--border)';
-    return `<div style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 86px 86px 104px 112px;gap:8px;align-items:center;padding:7px 8px;background:${rowBg};border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;">
+    return `<div style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 88px 82px 82px 112px;gap:8px;align-items:center;padding:7px 8px;background:${rowBg};border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;">
       <div style="font-family:var(--mono);color:var(--muted);">${start + i + 1}</div>
       <div style="min-width:0;">
         <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;">${campEsc(d.company_name || d.debtor_code)}</div>
         <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">${campEsc(d.phone || '')}</div>
       </div>
       <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">${campEsc(d.debtor_code || '')}</div>
-      <div><span style="font-family:var(--mono);font-size:8px;color:${t.color};background:rgba(255,255,255,.06);border:1px solid ${t.color};padding:2px 6px;border-radius:8px;white-space:nowrap;">${campEsc(t.label)}</span></div>
-      <div style="font-family:var(--mono);font-size:10px;color:var(--text);text-align:right;">${fmtNum(t.current)} CTN</div>
-      <div style="font-family:var(--mono);font-size:10px;color:${t.targetText.includes('✅') ? 'var(--green)' : 'var(--muted)'};text-align:right;">${campEsc(t.targetText)}</div>
+      <div><span style="font-family:var(--mono);font-size:8px;color:${t.color};background:${t.bg};border:1px solid ${t.border};padding:2px 6px;border-radius:8px;white-space:nowrap;">${campEsc(t.label)}</span></div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-align:right;">${fmtNum(t.lookback)} CTN</div>
+      <div style="font-family:var(--mono);font-size:10px;color:${t.current > 0 ? 'var(--green)' : 'var(--muted)'};text-align:right;">${campEsc(t.currentText)}</div>
       <button onclick='toggleCampClaim(event,${JSON.stringify(d.debtor_code || '')},${JSON.stringify(campId)},${JSON.stringify(d.company_name || d.debtor_code || '')},${JSON.stringify(camp.promo_detail || camp.name || '')},${JSON.stringify(camp.type || 'other')})'
         style="background:${claimBg};border:1px solid ${claimBorder};color:${claimColor};font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;">${claimLabel}</button>
     </div>`;
@@ -4549,8 +4535,8 @@ function renderCampaignDebtorPanel(camp) {
   </div>`;
   return toggle + `<div style="padding:0 16px 14px;">
     <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:rgba(255,255,255,.025);">
-      <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 86px 86px 104px 112px;gap:8px;padding:6px 8px;background:rgba(255,255,255,.045);font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">
-        <div>#</div><div>Company</div><div>Code</div><div>Tier</div><div style="text-align:right;">Current</div><div style="text-align:right;">Next Target</div><div>Claim</div>
+      <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 88px 82px 82px 112px;gap:8px;padding:6px 8px;background:rgba(255,255,255,.045);font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">
+        <div>#</div><div>Company</div><div>Code</div><div>Status</div><div style="text-align:right;">Feb-Apr</div><div style="text-align:right;">May</div><div>Claim</div>
       </div>
       ${rows || '<div style="padding:12px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--muted);">No enrolled debtors</div>'}
       ${pager}

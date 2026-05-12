@@ -1214,30 +1214,8 @@ def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups, 
                 lookback_ctn = round(float(lookback_rows["qty_ctn"].sum()), 2)
                 current_ctn  = round(float(current_rows["qty_ctn"].sum()), 2)
 
-            # Thresholds are floors: [4,7,10,14] with 4 names creates 5
-            # buckets, the 5th being "TIER 3+" (>=14).
-            tier_idx = 0
-            for i, th in enumerate(tier_thresholds):
-                if lookback_ctn >= th:
-                    tier_idx = i + 1
-            if tier_idx == 0:
-                tier_label = tier_names[0] if tier_names else "BASELINE"
-            elif tier_idx <= len(tier_names) - 1:
-                tier_label = tier_names[tier_idx]
-            else:
-                top = tier_names[-1] if tier_names else "TIER"
-                tier_label = f"{top}+"
-
-            to_next = None
-            if tier_idx < len(tier_thresholds):
-                to_next = round(tier_thresholds[tier_idx] - lookback_ctn, 2)
-                if to_next < 0: to_next = 0
-
             camp["lookback_ctn"]   = lookback_ctn
             camp["current_ctn"]    = current_ctn
-            camp["tier_idx"]       = tier_idx
-            camp["tier_label"]     = tier_label
-            camp["to_next_tier"]   = to_next
             camp["converted"]      = current_ctn > 0
             camp["ctn_this_month"] = current_ctn
             camp["foc_earned"]     = 0
@@ -2721,6 +2699,38 @@ def build_per_campaign_kpi_items(agent_code, ag_cfg, active_campaigns, deliverie
             }
     return items
 
+def _agent_tier_from_count(count, thresholds, tier_names):
+    """
+    Compute a campaign tier from an agent-level converted debtor count.
+
+    Example with thresholds [4, 7, 10, 14]:
+      0-3   -> below baseline
+      4-6   -> BASELINE
+      7-9   -> TIER 1
+      10-13 -> TIER 2
+      14+   -> TIER 3
+    """
+    if not thresholds or not tier_names:
+        return (-1, None, 0, None)
+
+    tier_idx = -1
+    for i, threshold in enumerate(thresholds):
+        if count >= threshold:
+            tier_idx = i
+        else:
+            break
+
+    tier_label = tier_names[tier_idx] if tier_idx >= 0 and tier_idx < len(tier_names) else None
+
+    if tier_idx == -1:
+        return (tier_idx, tier_label, max(0, thresholds[0] - count), tier_names[0])
+    if tier_idx >= len(thresholds) - 1:
+        return (tier_idx, tier_label, 0, None)
+
+    next_idx = tier_idx + 1
+    next_label = tier_names[next_idx] if next_idx < len(tier_names) else None
+    return (tier_idx, tier_label, max(0, thresholds[next_idx] - count), next_label)
+
 def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_camp=None, cur_month=None):
     """
     Calculate KPI scores for all Sections A-E.
@@ -3430,10 +3440,10 @@ def main():
     # For each agent, count debtors per tier and conversion outcomes per
     # conversion_tiered campaign. Pure aggregation over per-debtor data
     # already populated by _calc_camp_progress.
-    # NOTE: "target_count" = BASELINE + TIER 1 only — the actual conversion
-    # candidates. Higher tiers are existing buyers, not conversion targets.
+    # NOTE: tier is now agent-level, not debtor-level. Every enrolled
+    # non-personal debtor is a conversion candidate; the agent tier is earned
+    # from converted_count after all debtor conversions are counted.
     conversion_campaigns_by_agent = {}
-    TARGET_TIER_INDICES = {0, 1}  # BASELINE, TIER 1
 
     for agent_code, agent_block in debtor_cards.items():
         per_camp = {}  # campaign_id → rollup dict
@@ -3448,45 +3458,32 @@ def main():
                 if not cid:
                     continue
                 if cid not in per_camp:
-                    # Build tier_order from campaign notes; append "+" overflow
-                    # if thresholds exceed names (e.g. 4 thresholds, 4 names → 5 buckets)
                     notes = camp.get("notes") or {}
                     tier_names = list(notes.get("tier_names") or [])
                     thresholds = notes.get("tier_thresholds") or []
-                    if thresholds and len(thresholds) >= len(tier_names):
-                        top = tier_names[-1] if tier_names else "TIER"
-                        tier_order = tier_names + [f"{top}+"]
-                    else:
-                        tier_order = tier_names or ["BASELINE"]
                     per_camp[cid] = {
                         "name":              camp.get("name", ""),
-                        "tier_order":        tier_order,
-                        "tier_distribution": {t: 0 for t in tier_order},
+                        "tier_thresholds":   thresholds,
+                        "tier_names":        tier_names,
                         "total_enrolled":    0,
+                        "enrolled_count":    0,
                         "converted_count":   0,
                         "converted_targets": 0,
                         "converted_ctn":     0.0,
                         "target_count":      0,
+                        "agent_tier_idx":    -1,
+                        "agent_tier_label":  None,
+                        "to_next_tier":      0,
+                        "next_tier_label":   None,
                     }
                 entry = per_camp[cid]
-                tlabel = camp.get("tier_label", "BASELINE")
-                # If tier_label isn't in the prebuilt distribution dict, add it
-                # (defensive — shouldn't happen in practice)
-                if tlabel not in entry["tier_distribution"]:
-                    entry["tier_distribution"][tlabel] = 0
-                    if tlabel not in entry["tier_order"]:
-                        entry["tier_order"].append(tlabel)
-                entry["tier_distribution"][tlabel] += 1
                 entry["total_enrolled"] += 1
-                tidx = camp.get("tier_idx", 0)
-                is_target = tidx in TARGET_TIER_INDICES
-                if is_target:
-                    entry["target_count"] += 1
+                entry["enrolled_count"] += 1
+                entry["target_count"] += 1
                 if camp.get("converted"):
                     entry["converted_count"] += 1
+                    entry["converted_targets"] += 1
                     entry["converted_ctn"] += float(camp.get("current_ctn", 0) or 0)
-                    if is_target:
-                        entry["converted_targets"] += 1
 
         # Apply user-set per-agent campaign targets after counts settle.
         # Missing/null campaign_targets fall back to the computed enrolled target
@@ -3511,6 +3508,15 @@ def main():
                 entry["converted_targets"] / tc, 4
             ) if tc > 0 else 0.0
             entry["converted_ctn"] = round(entry["converted_ctn"], 2)
+            tier_idx, tier_label, to_next, next_label = _agent_tier_from_count(
+                int(entry.get("converted_count", 0) or 0),
+                entry.get("tier_thresholds") or [],
+                entry.get("tier_names") or [],
+            )
+            entry["agent_tier_idx"] = tier_idx
+            entry["agent_tier_label"] = tier_label
+            entry["to_next_tier"] = to_next
+            entry["next_tier_label"] = next_label
 
         if per_camp:
             conversion_campaigns_by_agent[agent_code] = per_camp
