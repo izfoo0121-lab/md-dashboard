@@ -2891,9 +2891,25 @@ const DEFAULT_KPI_WEIGHTS = {
   "Apr 26": {sales_normal_pct:37,alt_channel_contact:2,alt_channel_deliver:3,event:3,new_accounts:3,vip_count:1,reactivation:3,new_sku:3,activation_rate:3,iface_pen:1.5,iface_target:1.5,sukun_pen:1.5,sukun_target:1.5,evo_pen:1.5,evo_target:1.5,bison_pen:1.5,bison_target:1.5,tr20_pen:1.5,tr20_target:1.5,lam_lwm_pen:1.5,lam_lwm_target:1.5,birthday_campaign:1,campaign_1:2,d_key_accuracy:4,d_account_accuracy:4,d_outstanding:4,d_followup:4,e_punctuality:1,e_warehouse:1,e_efficiency:1,e_check_car:1,e_check_stock:1},
 };
 
+function _remapLegacyCampaignWeights(weights) {
+  // Back-compat: pre-Phase-B dynamic campaign weights used camp_camp_<id>.
+  // New scoring keys are camp_<id>_count / camp_<id>_ctn.
+  if (!weights || typeof weights !== 'object') return weights;
+  const out = {};
+  Object.entries(weights).forEach(([key, value]) => {
+    if (key.startsWith('camp_camp_')) {
+      const id = key.substring(10);
+      out[`camp_${id}_count`] = value;
+    } else {
+      out[key] = value;
+    }
+  });
+  return out;
+}
+
 function getKPIWeights(month) {
   if (!CONFIG.kpi_weights) CONFIG.kpi_weights = {};
-  return CONFIG.kpi_weights[month] || DEFAULT_KPI_WEIGHTS[month] || DEFAULT_KPI_WEIGHTS["Apr 26"];
+  return _remapLegacyCampaignWeights(CONFIG.kpi_weights[month] || DEFAULT_KPI_WEIGHTS[month] || DEFAULT_KPI_WEIGHTS["Apr 26"]);
 }
 
 function kpiAdminEscape(value) {
@@ -3273,7 +3289,11 @@ function saveKPIWeights() {
   }
   const weightsDecimal = {};
   getKPIWeightKeysForMonth(month).forEach(key => { weightsDecimal[key] = (weights[key] / 100); });
-  CONFIG.kpi_weights[month] = { ...(CONFIG.kpi_weights[month] || {}), ...weightsDecimal };
+  const existing = { ...(CONFIG.kpi_weights[month] || {}) };
+  Object.keys(existing).forEach(key => {
+    if (/^camp_camp_/.test(key)) delete existing[key];
+  });
+  CONFIG.kpi_weights[month] = { ...existing, ...weightsDecimal };
   updateRawJSON();
   const toast = document.getElementById('kpi-save-toast');
   if (toast) { toast.style.display = 'block'; setTimeout(() => toast.style.display = 'none', 2500); }
