@@ -2372,11 +2372,8 @@ function renderDebtorCard(d, runNo) {
         const claimData = getCampClaims(currentAgent, c.id, d.debtor_code);
         const claimed = !!claimData;
         const btnLabel = claimed ? '✔ Claimed' : '🎁 Mark Claimed';
-        const btnBorder = claimed ? 'var(--green)' : 'rgba(255,255,255,.3)';
-        const btnBg = claimed ? 'rgba(61,220,132,.2)' : 'rgba(255,255,255,.08)';
-        const btnColor = claimed ? 'var(--green)' : 'var(--text)';
         const claimBtn = `<button onclick="toggleCampClaim(event,'${d.debtor_code}','${c.id}','${(d.company_name||'').replace(/'/g,'')}','${promoText.replace(/'/g,'')}','${c.type}')"
-            style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:6px;border:1px solid ${btnBorder};background:${btnBg};color:${btnColor};cursor:${claimed?'default':'pointer'};margin-top:4px;opacity:${claimed?'0.7':'1'};">
+            style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:var(--text);cursor:pointer;margin-top:4px;opacity:1;">
             ${btnLabel}
           </button>`;
 
