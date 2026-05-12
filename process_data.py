@@ -98,6 +98,46 @@ def fetch_kpi_manual_overrides(cur_month):
         log(f"   [Supabase KPI] Skipped: {e}")
         return {}
 
+def fetch_campaign_deliveries(cur_month):
+    """Fetch delivery-list campaign achievements, indexed by (campaign_id, agent)."""
+    try:
+        month_q = urllib.parse.quote(str(cur_month), safe="")
+        rows = _supabase_get(f"campaign_deliveries?select=campaign_id,debtor_code,agent&month=eq.{month_q}")
+        by_camp_agent = {}
+        for r in rows or []:
+            camp_id = r.get("campaign_id")
+            agent = (r.get("agent") or "").upper()
+            debtor_code = r.get("debtor_code")
+            if not camp_id or not agent or not debtor_code:
+                continue
+            by_camp_agent.setdefault((camp_id, agent), []).append(debtor_code)
+        log(f"   campaign_deliveries: {len(rows or [])} rows across {len(by_camp_agent)} (campaign, agent) pairs")
+        return by_camp_agent
+    except Exception as e:
+        log(f"   WARNING: Could not fetch campaign_deliveries: {e}")
+        return {}
+
+def fetch_kpi_manual_overrides_keyed(cur_month):
+    """Fetch keyed KPI manual override rows, indexed by (agent, kpi_key)."""
+    try:
+        month_q = urllib.parse.quote(str(cur_month), safe="")
+        rows = _supabase_get(f"kpi_manual_overrides?select=agent,kpi_key,value&month=eq.{month_q}")
+        out = {}
+        for r in rows or []:
+            agent = (r.get("agent") or "").upper()
+            kpi_key = r.get("kpi_key")
+            if not agent or not kpi_key:
+                continue
+            try:
+                out[(agent, kpi_key)] = float(r.get("value") or 0)
+            except (TypeError, ValueError):
+                continue
+        log(f"   kpi_manual_overrides: {len(out)} rows")
+        return out
+    except Exception as e:
+        log(f"   WARNING: Could not fetch kpi_manual_overrides: {e}")
+        return {}
+
 def _load_public_holidays():
     """Fetch public holidays from Supabase targets_static. Empty set on error."""
     try:
@@ -2556,6 +2596,131 @@ DEFAULT_KPI_WEIGHTS = {
     },
 }
 
+def _campaign_key_base(camp_id):
+    cid = str(camp_id or "").strip()
+    if not cid:
+        return ""
+    return cid if cid.startswith("camp_") else f"camp_{cid}"
+
+def _campaign_metric_key(camp_id, numerator):
+    base = _campaign_key_base(camp_id)
+    return f"{base}_{numerator}" if base else ""
+
+def _get_campaign_target_compat(camp_tgts, camp_id, numerator="count"):
+    """Read new camp_<id>_<num> targets, with legacy bare-key fallbacks."""
+    if not camp_tgts:
+        return None
+    base = _campaign_key_base(camp_id)
+    candidates = [
+        _campaign_metric_key(camp_id, numerator),
+        f"camp_{base}_{numerator}" if base else "",
+    ]
+    if numerator == "count":
+        candidates.extend([base, str(camp_id or "")])
+    for key in candidates:
+        if key and key in camp_tgts:
+            return camp_tgts[key]
+    return None
+
+def _get_campaign_weight_compat(month_weights, camp_id, numerator):
+    """Read campaign weights across Phase B transitional key formats."""
+    if not month_weights:
+        return 0.0
+    base = _campaign_key_base(camp_id)
+    candidates = [
+        _campaign_metric_key(camp_id, numerator),
+        f"camp_{base}_{numerator}" if base else "",
+    ]
+    if numerator == "count":
+        candidates.extend([base, str(camp_id or ""), f"camp_{base}" if base else ""])
+    for key in candidates:
+        if key and key in month_weights:
+            try:
+                return float(month_weights[key] or 0)
+            except (TypeError, ValueError):
+                return 0.0
+    return 0.0
+
+def _normalise_campaign_numerators(camp):
+    nums = camp.get("kpi_numerators") if isinstance(camp, dict) else None
+    if not isinstance(nums, list) or not nums:
+        return ["count"]
+    clean = []
+    for n in nums:
+        if n in ("count", "ctn") and n not in clean:
+            clean.append(n)
+    return clean or ["count"]
+
+def _score_campaign_kpi_item(actual, target, weight):
+    if not target or not weight:
+        return 0.0
+    return round(min(float(actual or 0) / float(target), 1.0) * float(weight) * 100, 3)
+
+def _resolve_campaign_kpi_actual(camp, agent_code, numerator, deliveries_by_camp_agent,
+                                 overrides_by_agent_key, conversion_rollup):
+    camp_id = camp.get("id", "")
+    kpi_key = _campaign_metric_key(camp_id, numerator)
+
+    delivered_codes = deliveries_by_camp_agent.get((camp_id, agent_code), [])
+    if delivered_codes and numerator == "count":
+        return float(len(set(delivered_codes)))
+
+    override = overrides_by_agent_key.get((agent_code, kpi_key))
+    if override is not None:
+        return float(override)
+
+    camp_type = camp.get("type", "other")
+    if camp_type in ("conversion_simple", "conversion_tiered"):
+        rollup = (conversion_rollup or {}).get(camp_id, {})
+        if numerator == "count":
+            return float(rollup.get("converted_count", 0) or 0)
+        if numerator == "ctn":
+            return float(rollup.get("converted_ctn", 0) or 0)
+
+    return 0.0
+
+def build_per_campaign_kpi_items(agent_code, ag_cfg, active_campaigns, deliveries_by_camp_agent,
+                                 overrides_by_agent_key, conversion_rollup, month_weights):
+    items = {}
+    camp_tgts = ag_cfg.get("campaign_targets", {}) or {}
+    for camp in active_campaigns:
+        camp_id = camp.get("id", "")
+        if not camp_id:
+            continue
+        for numerator in _normalise_campaign_numerators(camp):
+            kpi_key = _campaign_metric_key(camp_id, numerator)
+            if not kpi_key:
+                continue
+            raw_target = _get_campaign_target_compat(camp_tgts, camp_id, numerator)
+            try:
+                target = float(raw_target or 0)
+            except (TypeError, ValueError):
+                target = 0.0
+            weight = _get_campaign_weight_compat(month_weights, camp_id, numerator)
+            actual = _resolve_campaign_kpi_actual(
+                camp, agent_code, numerator, deliveries_by_camp_agent,
+                overrides_by_agent_key, conversion_rollup
+            )
+            score = _score_campaign_kpi_item(actual, target, weight)
+            pct = round((actual / target) * 100, 1) if target else 0
+            items[kpi_key] = {
+                "label": camp.get("name", camp_id),
+                "section": "C",
+                "weight": weight,
+                "actual": actual,
+                "target": target,
+                "score": score,
+                "max_score": round(weight * 100, 3),
+                "pct": pct,
+                "source": "campaign_dynamic",
+                "excluded": weight == 0.0,
+                "numerator": numerator,
+                "campaign_id": camp_id,
+                "campaign_name": camp.get("name", camp_id),
+                "campaign_type": camp.get("type", "other"),
+            }
+    return items
+
 def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_camp=None, cur_month=None):
     """
     Calculate KPI scores for all Sections A-E.
@@ -2994,6 +3159,7 @@ def main():
             "id":              camp.get("id",""),
             "name":            camp.get("name",""),
             "type":            camp.get("type","other"),
+            "kpi_numerators":  _normalise_campaign_numerators(camp),
             "brand":           camp.get("brand",""),
             "cat":             cat,
             "start_date":      camp.get("start_date",""),
@@ -3081,6 +3247,7 @@ def main():
                 "notes": camp_row.get("notes"),
                 "min_order_ctn": camp_row.get("min_order_ctn", 0) or 0,
                 "promo_detail": camp_row.get("promo_detail","") or "",
+                "kpi_numerators": camp_row.get("kpi_numerators") or ["count"],
                 "approval_required": False,
                 "eligible_sales_type": [],
                 "eligible_types": [],
@@ -3275,7 +3442,7 @@ def main():
             if card.get("debtor_type", "") in _PERSONAL:
                 continue
             for camp in card.get("campaigns", []):
-                if camp.get("type") != "conversion_tiered":
+                if camp.get("type") not in ("conversion_tiered", "conversion_simple"):
                     continue
                 cid = camp.get("id", "")
                 if not cid:
@@ -3333,7 +3500,7 @@ def main():
 
         # Compute conversion rate after counts settle
         for cid, entry in per_camp.items():
-            user_target = camp_tgts.get(cid)
+            user_target = _get_campaign_target_compat(camp_tgts, cid, "count")
             if user_target is not None:
                 try:
                     entry["target_count"] = float(user_target)
@@ -3350,6 +3517,17 @@ def main():
 
     log(f"Conversion campaigns rollup: {len(conversion_campaigns_by_agent)} agents have enrolled debtors")
     # ── end conversion campaigns rollup ─────────────────────────────────────
+
+    active_campaigns_for_month = {}
+    for camp_list in campaign_map.values():
+        for camp in camp_list:
+            cid = camp.get("id")
+            if cid and cid not in active_campaigns_for_month:
+                active_campaigns_for_month[cid] = camp
+    active_campaigns_for_month = list(active_campaigns_for_month.values())
+    deliveries_by_camp_agent = fetch_campaign_deliveries(cur_month)
+    overrides_by_agent_key = fetch_kpi_manual_overrides_keyed(cur_month)
+    kpi_weights_for_month = (targets.get("kpi_weights") or {}).get(cur_month, {}) or {}
 
     output = {
         "generated_at":   datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -3376,6 +3554,25 @@ def main():
 
     for agent in agents:
         ag_cfg = targets.get("agents", {}).get(agent, {})
+        agent_kpi = kpi.get(agent, {})
+        agent_kpi.setdefault("items", {})
+        agent_kpi["items"].update(build_per_campaign_kpi_items(
+            agent_code=agent,
+            ag_cfg=ag_cfg,
+            active_campaigns=active_campaigns_for_month,
+            deliveries_by_camp_agent=deliveries_by_camp_agent,
+            overrides_by_agent_key=overrides_by_agent_key,
+            conversion_rollup=conversion_campaigns_by_agent.get(agent, {}),
+            month_weights=kpi_weights_for_month,
+        ))
+        _items_for_totals = agent_kpi.get("items", {})
+        if _items_for_totals:
+            agent_kpi["grand_total"] = round(sum(i.get("score", 0) for i in _items_for_totals.values()), 2)
+            agent_kpi["total_abc"] = round(sum(i.get("score", 0) for i in _items_for_totals.values() if i.get("section") in ("A", "B", "C")), 2)
+            _max_total = sum(i.get("max_score", 0) for i in _items_for_totals.values())
+            _max_abc = sum(i.get("max_score", 0) for i in _items_for_totals.values() if i.get("section") in ("A", "B", "C"))
+            agent_kpi["grand_pct"] = round(agent_kpi["grand_total"] / _max_total * 100, 1) if _max_total else 0
+            agent_kpi["total_pct"] = round(agent_kpi["total_abc"] / _max_abc * 100, 1) if _max_abc else 0
         output["agents"][agent] = {
             "sales_progression":  sales_prog.get(agent, {}),
             "brand_commission":   brand_comm.get(agent, {}),
@@ -3383,7 +3580,7 @@ def main():
             "aging":              aging.get(agent, {}),
             "debtor_cards":       debtor_cards.get(agent, {}),
             "conversion_campaigns": conversion_campaigns_by_agent.get(agent, {}),
-            "kpi":                kpi.get(agent, {}),
+            "kpi":                agent_kpi,
             "inherited_from":     ag_cfg.get("inherits_from", None),
             "inherit_from_month": ag_cfg.get("inherit_from_month", None),
         }
