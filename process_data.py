@@ -1539,18 +1539,22 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             d_invoice_rows = ag_invoice_data[ag_invoice_data["debtor_code"] == dcode]
             d_all_invoice_rows = canggih_invoiced[canggih_invoiced["debtor_code"] == dcode]
             d_hist_rows = canggih_paid[canggih_paid["debtor_code"] == dcode]
+            # Debtor-card purchase state is debtor-wide. Ownership follows Debtor
+            # Maintenance, but purchase history follows the customer across agents.
+            _history_rows = d_all_invoice_rows
+            _history_month_col = "tranx_mth_full" if "tranx_mth_full" in _history_rows.columns else "paid_on"
 
             # Activation status
             # active         = bought this month
             # pending        = bought last month but not this month yet
             # need_reactivation = bought prev-prev month but missed last month (your Excel definition)
             # long_inactive  = didn't buy in prev-prev month either
-            if d_rows.empty:
+            if _history_rows.empty:
                 status = "need_reactivation"
             else:
-                bought_cur   = cur_m   in d_rows["paid_on"].values
-                bought_prev1 = prev1_m in d_hist_rows["paid_on"].values if not d_hist_rows.empty else False
-                bought_prev2 = prev2_m in d_hist_rows["paid_on"].values if prev2_m and not d_hist_rows.empty else False
+                bought_cur   = cur_m   in _history_rows[_history_month_col].values
+                bought_prev1 = prev1_m in _history_rows[_history_month_col].values
+                bought_prev2 = prev2_m in _history_rows[_history_month_col].values if prev2_m else False
                 if bought_cur:
                     status = "active"
                 elif bought_prev1:
@@ -1561,14 +1565,13 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                     status = "need_reactivation"  # long inactive — still shows as 待激活
 
             # Last purchase date
-            last_date = d_rows["date_parsed"].max() if not d_rows.empty else None
+            last_date = _history_rows["date_parsed"].max() if not _history_rows.empty else None
             last_date_str = last_date.strftime("%d/%m/%Y") if last_date and pd.notnull(last_date) else ""
 
             # 3-month CTN and item breakdown use invoice month and debtor-wide
             # history. Card ownership follows Debtor Maintenance, but the history
             # panel should show what the customer bought even if another agent sold it.
-            _history_rows = d_all_invoice_rows
-            _bd_col = "tranx_mth_full" if "tranx_mth_full" in _history_rows.columns else "paid_on"
+            _bd_col = _history_month_col
             ctn_cur = round(float(_history_rows[_history_rows[_bd_col] == cur_m]["qty_ctn"].sum()), 2) if not _history_rows.empty else 0.0
             ctn_prev1 = round(float(_history_rows[_history_rows[_bd_col] == prev1_m]["qty_ctn"].sum()), 2) if not _history_rows.empty else 0.0
             ctn_prev2 = round(float(_history_rows[_history_rows[_bd_col] == prev2_m]["qty_ctn"].sum()), 2) if not _history_rows.empty else 0.0
@@ -1716,7 +1719,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                     new_sku_status[grp] = "none"
 
             # Sales type for this debtor this month
-            cur_sales_types = d_rows[d_rows["paid_on"] == cur_m]["sales_type"].unique().tolist() if not d_rows.empty else []
+            cur_sales_types = _history_rows[_history_rows[_history_month_col] == cur_m]["sales_type"].unique().tolist() if not _history_rows.empty else []
 
             # Overdue flag — check if this debtor has any overdue invoices
             ag_unpaid = df[(df["agent"]==agent) & (df["debtor_code"]==dcode) & (df["paid_on"]=="")].copy()
