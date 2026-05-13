@@ -93,6 +93,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .ctn-item-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
 .ctn-item-row:last-child{border-bottom:none;}
 .ctn-item-code{font-family:var(--mono);font-size:12px;font-weight:500;}
+.ctn-item-agent{font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:2px;}
 .ctn-item-ctn{font-family:var(--display);font-size:18px;letter-spacing:.03em;color:var(--accent);}
 .ctn-item-unit{font-family:var(--mono);font-size:9px;color:var(--muted);margin-left:3px;}
 .kpi-hero{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px;position:relative;overflow:hidden;}
@@ -4867,7 +4868,10 @@ function showCtnBreakdown(mbKey, label, monthLabel) {
   } else {
     el.innerHTML = items.map(item => `
       <div class="ctn-item-row">
-        <div class="ctn-item-code">${item.item}</div>
+        <div>
+          <div class="ctn-item-code">${item.item}</div>
+          ${item.agent ? `<div class="ctn-item-agent">sold by ${item.agent}</div>` : ''}
+        </div>
         <div style="display:flex;align-items:baseline;gap:3px;">
           <div class="ctn-item-ctn">${item.ctn % 1 === 0 ? item.ctn.toFixed(0) : item.ctn.toFixed(1)}</div>
           <div class="ctn-item-unit">CTN</div>

@@ -1564,24 +1564,31 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             last_date = d_rows["date_parsed"].max() if not d_rows.empty else None
             last_date_str = last_date.strftime("%d/%m/%Y") if last_date and pd.notnull(last_date) else ""
 
-            # 3-month CTN and item breakdown use invoice month.
-            # This matches SKU/brand penetration convention and makes the tap popup
-            # show the same month basis as the visible CTN cards.
-            _bd_col = "tranx_mth_full" if "tranx_mth_full" in d_invoice_rows.columns else "paid_on"
-            ctn_cur = round(float(d_invoice_rows[d_invoice_rows[_bd_col] == cur_m]["qty_ctn"].sum()), 2) if not d_invoice_rows.empty else 0.0
-            ctn_prev1 = round(float(d_invoice_rows[d_invoice_rows[_bd_col] == prev1_m]["qty_ctn"].sum()), 2) if not d_invoice_rows.empty else 0.0
-            ctn_prev2 = round(float(d_invoice_rows[d_invoice_rows[_bd_col] == prev2_m]["qty_ctn"].sum()), 2) if not d_invoice_rows.empty else 0.0
+            # 3-month CTN and item breakdown use invoice month and debtor-wide
+            # history. Card ownership follows Debtor Maintenance, but the history
+            # panel should show what the customer bought even if another agent sold it.
+            _history_rows = d_all_invoice_rows
+            _bd_col = "tranx_mth_full" if "tranx_mth_full" in _history_rows.columns else "paid_on"
+            ctn_cur = round(float(_history_rows[_history_rows[_bd_col] == cur_m]["qty_ctn"].sum()), 2) if not _history_rows.empty else 0.0
+            ctn_prev1 = round(float(_history_rows[_history_rows[_bd_col] == prev1_m]["qty_ctn"].sum()), 2) if not _history_rows.empty else 0.0
+            ctn_prev2 = round(float(_history_rows[_history_rows[_bd_col] == prev2_m]["qty_ctn"].sum()), 2) if not _history_rows.empty else 0.0
 
             def item_breakdown(month_label):
-                if d_invoice_rows.empty:
+                if _history_rows.empty:
                     return []
-                m_rows = d_invoice_rows[d_invoice_rows[_bd_col] == month_label]
+                m_rows = _history_rows[_history_rows[_bd_col] == month_label]
                 if m_rows.empty:
                     return []
-                grp = m_rows.groupby("item_code")["qty_ctn"].sum().reset_index()
+                grp_cols = ["item_code"]
+                if "agent" in m_rows.columns:
+                    grp_cols.append("agent")
+                grp = m_rows.groupby(grp_cols)["qty_ctn"].sum().reset_index()
                 grp = grp[grp["qty_ctn"].abs() > 0.0001].sort_values("qty_ctn", ascending=False)
-                return [{"item": str(r["item_code"]), "ctn": round(float(r["qty_ctn"]), 2)}
-                        for _, r in grp.iterrows()]
+                return [{
+                    "item": str(r["item_code"]),
+                    "ctn": round(float(r["qty_ctn"]), 2),
+                    "agent": str(r["agent"]) if "agent" in r and pd.notna(r["agent"]) else ""
+                } for _, r in grp.iterrows()]
 
             month_breakdown = {
                 cur_m:   item_breakdown(cur_m),
