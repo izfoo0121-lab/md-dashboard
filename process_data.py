@@ -1597,13 +1597,13 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             }
 
             # Invoice-basis 4-month SKU history for the "未购买" filter.
-            # The visible CTN cards stay paid-basis, but purchase-existence
-            # checks need current + 3 previous invoice months.
-            _unp_col = "tranx_mth_full" if "tranx_mth_full" in d_invoice_rows.columns else "paid_on"
+            # Use debtor-wide history so transferred accounts do not appear
+            # as never-bought just because the current agent did not sell it.
+            _unp_col = "tranx_mth_full" if "tranx_mth_full" in _history_rows.columns else "paid_on"
             def unpurchased_item_breakdown(month_label):
-                if d_invoice_rows.empty:
+                if _history_rows.empty:
                     return []
-                m_rows = d_invoice_rows[d_invoice_rows[_unp_col] == month_label]
+                m_rows = _history_rows[_history_rows[_unp_col] == month_label]
                 if m_rows.empty:
                     return []
                 grp = m_rows.groupby("item_code")["qty_ctn"].sum().reset_index()
@@ -1639,10 +1639,11 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             sku_status = {}
             sku_bought_groups = 0
             sku_sales_type = {}  # sales type per SKU group this month
-            # Prefer invoice-month for classification; fall back to paid_on if unavailable
-            _inv_col = "tranx_mth_full" if "tranx_mth_full" in d_rows.columns else "paid_on"
+            # Prefer invoice-month for classification; fall back to paid_on if unavailable.
+            # SKU status is debtor-wide, matching the visible history tiles.
+            _inv_col = "tranx_mth_full" if "tranx_mth_full" in _history_rows.columns else "paid_on"
             for grp, codes in sku_groups.items():
-                grp_rows = d_rows[d_rows["item_code"].isin(codes)]
+                grp_rows = _history_rows[_history_rows["item_code"].isin(codes)]
                 bought_this  = cur_m in grp_rows[_inv_col].values
                 bought_past  = any(m in grp_rows[_inv_col].values for m in [prev1_m, prev2_m, prev3_m])
                 if bought_this and not bought_past:
@@ -1703,9 +1704,9 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             new_sku_status = {}
             new_sku_count  = 0
             for grp, codes in new_sku_groups.items():
-                grp_rows = d_rows[d_rows["item_code"].isin(codes)]
-                bought_this  = cur_m in grp_rows["paid_on"].values
-                bought_past  = any(m in grp_rows["paid_on"].values for m in [prev1_m, prev2_m, prev3_m])
+                grp_rows = _history_rows[_history_rows["item_code"].isin(codes)]
+                bought_this  = cur_m in grp_rows[_inv_col].values
+                bought_past  = any(m in grp_rows[_inv_col].values for m in [prev1_m, prev2_m, prev3_m])
                 if bought_this and not bought_past:
                     new_sku_status[grp] = "new"   # counts!
                     new_sku_count += 1
