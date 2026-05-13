@@ -3274,6 +3274,7 @@ let _gainAgentFilter = new Set();
 let _dropGainActive = 'drop';  // 'drop' | 'gain' | 'unpurchased'
 let GAINING_DEBTORS_PAGE = 0;
 let GAINING_DEBTORS_LIST = [];
+let DROPPING_DEBTORS_PAGE = 0;
 let DROPPING_DEBTORS_LIST = [];
 let _lastDropExport = null;
 let _lastGainExport = null;
@@ -3281,6 +3282,7 @@ let _lastMgmtUnpurchasedExport = null;
 let _lastBrandExport = null;
 let _lastAnalyticsExport = null;
 const GAINING_DEBTORS_PER_PAGE = 12;
+const DROPPING_DEBTORS_PER_PAGE = 12;
 const MGMT_UNPURCHASED_PAGE_SIZE = 12;
 let mgmtUnpurchasedMode = 'agent'; // 'agent' | 'combined'
 let mgmtUnpurchasedBrand = 'IFACE';
@@ -3996,7 +3998,11 @@ function getMgmtDebtorSkuDrops(d) {
   return { stopped, reduced };
 }
 
-function renderDroppingDebtors() {
+function renderDroppingDebtorsPage() {
+  renderDroppingDebtors(false);
+}
+
+function renderDroppingDebtors(resetPage=true) {
   const section = document.getElementById('debtor-movement-section');
   const list    = document.getElementById('dropping-debtors-list');
   if (!section || !list) return;
@@ -4046,15 +4052,18 @@ function renderDroppingDebtors() {
   // Sort: by prev month CTN highest first (biggest accounts that dropped matter most)
   drops.sort((a, b) => (b.ctn_prev1 || 0) - (a.ctn_prev1 || 0));
 
-  // Bridge: capture full filtered list for export (DOM only renders top 50)
+  // Bridge: capture full filtered list for export while the DOM renders one page.
   DROPPING_DEBTORS_LIST = drops;
   _lastDropExport = {
     month: CURRENT_DATA?.current_month || DATA?.current_month || '',
     debtors: drops,
   };
 
-  // Cap at 50 rows for performance
-  const shown = drops.slice(0, 50);
+  if (resetPage) DROPPING_DEBTORS_PAGE = 0;
+  const totalPages = Math.max(1, Math.ceil(DROPPING_DEBTORS_LIST.length / DROPPING_DEBTORS_PER_PAGE));
+  DROPPING_DEBTORS_PAGE = Math.min(Math.max(DROPPING_DEBTORS_PAGE, 0), totalPages - 1);
+  const pageStart = DROPPING_DEBTORS_PAGE * DROPPING_DEBTORS_PER_PAGE;
+  const shown = DROPPING_DEBTORS_LIST.slice(pageStart, pageStart + DROPPING_DEBTORS_PER_PAGE);
 
   const SKU_COLS = {
     IFACE:'#1a5c8f', SUKUN:'#6b3fa0', EVO:'#c8381a',
@@ -4062,7 +4071,7 @@ function renderDroppingDebtors() {
   };
 
   list.innerHTML = shown.map((d, i) => {
-    const bg      = i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,.02)';
+    const bg      = (pageStart + i) % 2 === 0 ? 'transparent' : 'rgba(0,0,0,.02)';
     const dropCol = d.stopped ? 'var(--accent)' : 'var(--gold)';
     const prevCtn = d.ctn_prev1 || 0;
     const curCtn  = d.ctn_cur  || 0;
@@ -4109,7 +4118,17 @@ function renderDroppingDebtors() {
         ${skuPills}
       </div>
     </div>`;
-  }).join('') + (drops.length > 50 ? `<div style="padding:10px 14px;font-family:var(--mono);font-size:9px;color:var(--ink3);text-align:center;">Showing top 50 of ${drops.length} — use agent drill-down for full list</div>` : '');
+  }).join('');
+
+  const prevDisabled = DROPPING_DEBTORS_PAGE <= 0;
+  const nextDisabled = DROPPING_DEBTORS_PAGE >= totalPages - 1;
+  const pager = totalPages > 1 ? `
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 14px;background:var(--card);">
+      <button class="activity-btn" onclick="if(DROPPING_DEBTORS_PAGE>0){DROPPING_DEBTORS_PAGE--;renderDroppingDebtorsPage();}" ${prevDisabled?'disabled':''} style="${prevDisabled?'opacity:.35;cursor:not-allowed;':''}">‹ Prev</button>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">Page ${DROPPING_DEBTORS_PAGE + 1} of ${totalPages} · ${drops.length} debtors</div>
+      <button class="activity-btn" onclick="if(DROPPING_DEBTORS_PAGE<${totalPages - 1}){DROPPING_DEBTORS_PAGE++;renderDroppingDebtorsPage();}" ${nextDisabled?'disabled':''} style="${nextDisabled?'opacity:.35;cursor:not-allowed;':''}">Next ›</button>
+    </div>` : '';
+  list.innerHTML += pager;
 }
 
 // ── Newbie Progress ──
