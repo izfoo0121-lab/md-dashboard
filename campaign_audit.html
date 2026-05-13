@@ -69,6 +69,7 @@
     .claim-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:10px;margin-bottom:4px;background:rgba(255,255,255,.02);border:1px solid transparent;}
     .claim-row.claimed{background:rgba(61,220,132,.04);border-color:rgba(61,220,132,.12);}
     .claim-row.pending{background:rgba(255,255,255,.02);}
+    .claim-row.unclaimed{background:rgba(255,255,255,.015);border-color:rgba(255,255,255,.06);opacity:.82;}
     .claim-row.verified{background:rgba(77,166,255,.05);border-color:rgba(77,166,255,.15);}
     .claim-row.rejected{background:rgba(255,95,95,.05);border-color:rgba(255,95,95,.15);}
     .claim-row.excluded{background:rgba(255,136,102,.05);border-color:rgba(255,136,102,.2);opacity:.7;}
@@ -79,6 +80,7 @@
     .claim-actions{display:flex;gap:6px;align-items:center;margin-left:10px;flex-shrink:0;}
     .claim-status{font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:8px;}
     .claim-status.pending{color:var(--muted);background:rgba(255,255,255,.06);}
+    .claim-status.unclaimed{color:var(--muted);background:rgba(255,255,255,.045);}
     .claim-status.claimed{color:var(--green);background:rgba(61,220,132,.12);}
     .claim-status.verified{color:var(--blue);background:rgba(77,166,255,.12);}
     .claim-status.rejected{color:var(--red);background:rgba(255,95,95,.12);}
@@ -586,10 +588,12 @@ function renderAudit() {
 
   // Build records from CLAIMS_CACHE (Supabase)
   const records = [];
+  const seen = new Set();
   Object.entries(CLAIMS_CACHE).forEach(([key, claim]) => {
     const [agent, campId, debtorCode] = key.split('|');
     if (agentSel !== 'ALL' && agent !== agentSel) return;
     if (activeCampId !== 'ALL' && campId !== activeCampId) return;
+    seen.add(`${agent}|${campId}|${debtorCode}`);
 
     const camp = allCamps.find(c => c.id === campId)
       || (campId === 'birthday_gift_auto'
@@ -607,6 +611,29 @@ function renderAudit() {
     records.push({ camp, agent, debtor, campEntry, claim, audit });
   });
 
+  // For a specific campaign tab, show the full entitlement/enrollment list,
+  // even before agents mark claimed. Claims still overlay audit status.
+  if (activeCampId !== 'ALL') {
+    const selectedCamp = allCamps.find(c => c.id === activeCampId)
+      || { id:activeCampId, name:activeCampId, type:'other' };
+    Object.entries(debtorByAgentCode).forEach(([lookupKey, debtor]) => {
+      const [agent, debtorCode] = lookupKey.split('|');
+      if (agentSel !== 'ALL' && agent !== agentSel) return;
+      const campEntry = (debtor.campaigns || []).find(c => c.id === activeCampId);
+      if (!campEntry) return;
+      const recordKey = `${agent}|${activeCampId}|${debtorCode}`;
+      if (seen.has(recordKey)) return;
+      records.push({
+        camp: selectedCamp,
+        agent,
+        debtor,
+        campEntry,
+        claim: null,
+        audit: null
+      });
+    });
+  }
+
   // Sort: pending first, then verified, then rejected
   records.sort((a, b) => {
     const rank = r => (!r.audit ? 0 : r.audit.status === 'verified' ? 1 : 2);
@@ -617,14 +644,16 @@ function renderAudit() {
 
   // Summary
   const total    = records.length;
-  const claimed  = records.length;  // every record here IS a claim (from Supabase)
+  const claimed  = records.filter(r=>!!r.claim).length;
   const verified = records.filter(r=>r.audit?.status==='verified').length;
   const rejected = records.filter(r=>r.audit?.status==='rejected').length;
-  const pending  = claimed - verified - rejected;
+  const excluded = records.filter(r=>r.claim?.status==='excluded').length;
+  const pending  = claimed - verified - rejected - excluded;
+  const unclaimed = total - claimed;
   const pct      = total > 0 ? Math.round(claimed/total*100) : 0;
   const rowsForExport = records.map(r => {
-    const isExcluded = r.claim.status === 'excluded';
-    const exportStatus = isExcluded ? 'excluded' : (r.audit?.status || 'pending');
+    const isExcluded = r.claim?.status === 'excluded';
+    const exportStatus = !r.claim ? 'not_claimed' : (isExcluded ? 'excluded' : (r.audit?.status || 'pending'));
     return {
       camp_id: r.camp.id || '',
       camp_name: r.camp.name || r.camp.id || '',
@@ -632,9 +661,9 @@ function renderAudit() {
       debtor_name: r.debtor.company_name || r.debtor.debtor_code || '',
       agent: r.agent || '',
       status: exportStatus,
-      claimed_at: r.claim.ts || '',
+      claimed_at: r.claim?.ts || '',
       verified_by: r.audit?.by || r.audit?.auditor || '',
-      remark: isExcluded ? (r.claim.reason || r.claim.remark || '') : (r.claim.remark || r.audit?.reason || ''),
+      remark: isExcluded ? (r.claim?.reason || r.claim?.remark || '') : (r.claim?.remark || r.audit?.reason || ''),
     };
   });
 
@@ -648,14 +677,14 @@ function renderAudit() {
   };
 
   document.getElementById('summary-row').innerHTML = `
-    <div class="sum-card"><div class="sum-val b">${total}</div><div class="sum-lbl">Total Claims</div></div>
+    <div class="sum-card"><div class="sum-val b">${total}</div><div class="sum-lbl">${activeCampId === 'ALL' ? 'Total Claims' : 'Entitled'}</div></div>
     <div class="sum-card"><div class="sum-val g">${claimed}</div><div class="sum-lbl">Submitted</div></div>
     <div class="sum-card"><div class="sum-val b">${verified}</div><div class="sum-lbl">Verified ✓</div></div>
     <div class="sum-card"><div class="sum-val r">${rejected}</div><div class="sum-lbl">Rejected ✗</div></div>
-    <div class="sum-card"><div class="sum-val a">${pending}</div><div class="sum-lbl">Pending Audit</div></div>`;
+    <div class="sum-card"><div class="sum-val a">${activeCampId === 'ALL' ? pending : unclaimed}</div><div class="sum-lbl">${activeCampId === 'ALL' ? 'Pending Audit' : 'Not Claimed'}</div></div>`;
 
   if (!records.length) {
-    document.getElementById('audit-content').innerHTML = `<div class="empty">No claims in Supabase for ${month}${activeCampId!=='ALL'?' for this campaign':''}</div>`;
+    document.getElementById('audit-content').innerHTML = `<div class="empty">No ${activeCampId==='ALL'?'claims':'campaign debtors'} for ${month}${activeCampId!=='ALL'?' in this campaign':''}</div>`;
     return;
   }
 
@@ -667,41 +696,43 @@ function renderAudit() {
   });
 
   document.getElementById('audit-content').innerHTML = Object.entries(byAgent).map(([agent, recs]) => {
-    const agentClaimed  = recs.length;
+    const agentClaimed  = recs.filter(r=>!!r.claim).length;
     const agentVerified = recs.filter(r=>r.audit?.status==='verified').length;
     const agentRejected = recs.filter(r=>r.audit?.status==='rejected').length;
     const agentExcluded = recs.filter(r=>r.claim?.status==='excluded').length;
     const agentPending  = agentClaimed - agentVerified - agentRejected - agentExcluded;
+    const agentUnclaimed = recs.length - agentClaimed;
     // Progress is computed only over non-excluded claims (excluded are out-of-scope for admin)
     const progressDenom = agentClaimed - agentExcluded;
     const agentPct      = progressDenom > 0 ? Math.round((agentVerified+agentRejected)/progressDenom*100) : 0;
     const progColor     = agentPct>=80?'var(--green)':agentPct>=50?'var(--gold)':'var(--red)';
 
     const rows = recs.map(r => {
-      const isExcluded = r.claim.status === 'excluded';
-      const statusLabel = isExcluded                         ? '🚫 Excluded'
+      const isExcluded = r.claim?.status === 'excluded';
+      const statusLabel = !r.claim                           ? 'Not claimed'
+                        : isExcluded                         ? '🚫 Excluded'
                         : r.audit?.status === 'verified'     ? '✓ Verified'
                         : r.audit?.status === 'rejected'     ? '✗ Rejected'
                         : '● Pending';
-      const statusClass = isExcluded ? 'excluded' : (r.audit?.status || 'claimed');
+      const statusClass = !r.claim ? 'unclaimed' : (isExcluded ? 'excluded' : (r.audit?.status || 'claimed'));
       const isFOC = r.camp.type==='foc_sample'||r.camp.type==='festive_gift'||r.camp.type==='birthday_gift';
-      const actionLabel = isExcluded ? 'Unable to deliver' : (isFOC ? 'Delivered' : 'Claimed');
+      const actionLabel = !r.claim ? 'Not submitted' : (isExcluded ? 'Unable to deliver' : (isFOC ? 'Delivered' : 'Claimed'));
       // Reason label lookup (same as sales_dashboard)
       const reasonMap = {closed:'Shop Closed',unreachable:'Unreachable',moved:'Moved',refused:'Refused',other:'Other'};
-      const reasonText = isExcluded ? (reasonMap[r.claim.reason] || r.claim.reason || 'No reason') : '';
+      const reasonText = isExcluded ? (reasonMap[r.claim?.reason] || r.claim?.reason || 'No reason') : '';
 
       return `<div class="claim-row ${statusClass}" id="row-${agent}-${r.camp.id}-${r.debtor.debtor_code}">
         <div class="claim-info">
           <div class="claim-name">${r.debtor.company_name||r.debtor.debtor_code}</div>
-          <div class="claim-code">${r.debtor.debtor_code} · ${CAMP_EMOJI[r.camp.type]||'📋'} ${r.camp.name}${r.campEntry.cat?' · CAT '+r.campEntry.cat:''}${r.claim.bulk?' · 📥 Bulk':''}</div>
+          <div class="claim-code">${r.debtor.debtor_code} · ${CAMP_EMOJI[r.camp.type]||'📋'} ${r.camp.name}${r.campEntry.cat?' · CAT '+r.campEntry.cat:''}${r.claim?.bulk?' · 📥 Bulk':''}</div>
           <div class="claim-meta">
-            ${actionLabel}: ${r.claim.ts||'—'}${isExcluded ? ` · <span style="color:#ff8866;">${reasonText}</span>` : ''}${r.claim.remark?' · "'+r.claim.remark+'"':''}
+            ${actionLabel}: ${r.claim?.ts||'—'}${isExcluded ? ` · <span style="color:#ff8866;">${reasonText}</span>` : ''}${r.claim?.remark?' · "'+r.claim.remark+'"':''}
             ${r.audit?.status==='verified'?` · ✓ Verified ${r.audit.ts||''}`:r.audit?.status==='rejected'?` · ✗ Rejected: ${r.audit.reason||''}${r.audit.ts?' · '+r.audit.ts:''}` : ''}
           </div>
         </div>
         <div class="claim-actions">
           <span class="claim-status ${statusClass}">${statusLabel}</span>
-          ${isExcluded ? '' : (!r.audit ? `
+          ${!r.claim || isExcluded ? '' : (!r.audit ? `
             <button class="audit-btn verify" onclick="auditClaim('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}','verified')">✓</button>
             <button class="audit-btn reject" onclick="promptReject('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}')">✗</button>
           ` : `
@@ -716,8 +747,9 @@ function renderAudit() {
         <div class="agent-name">${agent}</div>
         <div class="agent-stats">
           <span class="stat-chip pct">${agentPct}% audited</span>
-          <span class="stat-chip done">${agentClaimed} claims</span>
+          <span class="stat-chip done">${agentClaimed}/${recs.length} claimed</span>
           ${agentPending>0?`<span class="stat-chip pending">${agentPending} pending</span>`:''}
+          ${agentUnclaimed>0?`<span class="stat-chip pending">${agentUnclaimed} not claimed</span>`:''}
           ${agentVerified>0?`<span style="font-family:var(--mono);font-size:9px;color:var(--blue);">✓${agentVerified}</span>`:''}
           ${agentRejected>0?`<span style="font-family:var(--mono);font-size:9px;color:var(--red);">✗${agentRejected}</span>`:''}
           ${agentExcluded>0?`<span style="font-family:var(--mono);font-size:9px;color:#ff8866;">🚫${agentExcluded}</span>`:''}
