@@ -1159,12 +1159,17 @@ def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups, 
         # conversion_tiered campaigns use separate logic from the brand-based
         # accumulation machinery. Historical tiers come from lookback months;
         # conversion status comes from the current month.
-        if camp.get("type") == "conversion_tiered":
+        if camp.get("type") in ("conversion_tiered", "conversion_simple"):
             notes = camp.get("notes") or {}
             tier_thresholds = notes.get("tier_thresholds") or []
             tier_names      = notes.get("tier_names") or []
             lookback_months = notes.get("lookback_months") or []
             qual_group      = notes.get("qualifying_item_group") or ""
+            price_floor = float(
+                notes.get("min_rm_per_ctn")
+                or notes.get("price_floor")
+                or (37.5 if qual_group == "TR-002" else 41.0)
+            )
 
             # Build lookback paid_on strings using the campaign deadline year
             # (e.g. ["Feb 26", "Mar 26", "Apr 26"] for a 2026 campaign).
@@ -1198,7 +1203,10 @@ def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups, 
                 lookback_ctn = 0.0
                 current_ctn  = 0.0
             else:
-                group_rows = conv_rows[conv_rows["item_group"] == qual_group]
+                group_mask = conv_rows["item_group"] == qual_group
+                if "item_code" in conv_rows.columns:
+                    group_mask = group_mask | (conv_rows["item_code"] == qual_group)
+                group_rows = conv_rows[group_mask]
                 month_col = "tranx_mth_full" if "tranx_mth_full" in group_rows.columns else "paid_on"
                 lookback_rows = group_rows[group_rows[month_col].isin(lookback_keys)] if lookback_keys else group_rows.iloc[0:0]
                 current_rows  = group_rows[group_rows[month_col] == camp_month_key] if camp_month_key else group_rows.iloc[0:0]
@@ -1207,16 +1215,16 @@ def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups, 
                 # heavily discounted sales that don't represent real conversion.
                 # TODO: move PRICE_FLOOR to campaign config (notes.min_rm_per_ctn)
                 # so different conversion campaigns can have different thresholds.
-                PRICE_FLOOR = 41.0
                 if not current_rows.empty and "rm_ctn" in current_rows.columns:
                     rm_num = pd.to_numeric(current_rows["rm_ctn"], errors="coerce")
-                    current_rows = current_rows[rm_num >= PRICE_FLOOR]
+                    current_rows = current_rows[rm_num >= price_floor]
                 lookback_ctn = round(float(lookback_rows["qty_ctn"].sum()), 2)
                 current_ctn  = round(float(current_rows["qty_ctn"].sum()), 2)
 
             camp["lookback_ctn"]   = lookback_ctn
             camp["current_ctn"]    = current_ctn
             camp["converted"]      = (lookback_ctn == 0) and (current_ctn > 0)
+            camp["price_floor"]    = price_floor
             camp["ctn_this_month"] = current_ctn
             camp["foc_earned"]     = 0
             camp["qualified"]      = camp["converted"]
@@ -3522,6 +3530,7 @@ def main():
                         "converted_count":   0,
                         "converted_targets": 0,
                         "converted_ctn":     0.0,
+                        "price_floor":       camp.get("price_floor"),
                         "target_count":      0,
                         "agent_tier_idx":    -1,
                         "agent_tier_label":  None,

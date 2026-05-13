@@ -2373,13 +2373,13 @@ function renderDebtorCard(d, runNo) {
 
     // Badges
     // Campaign badges — show category-specific promo if available
-    const campEmoji = {free_sample:'🎁',foc_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',voucher:'🎟️',conversion_tiered:'🎯',other:'📋'};
+    const campEmoji = {free_sample:'🎁',foc_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',voucher:'🎟️',conversion_tiered:'🎯',conversion_simple:'🎯',other:'📋'};
     const campBadges = (d.campaigns||[]).map(c => {
       const promoText  = c.promo_detail || c.name;
 
       // ── conversion_tiered: conversion status + lookback context ──────────
       // Tier is agent-level; debtor chips only show whether this debtor converted.
-      if (c.type === 'conversion_tiered') {
+      if (c.type === 'conversion_tiered' || c.type === 'conversion_simple') {
         const lookbackCtn = c.lookback_ctn ?? 0;
         const currentCtn  = c.current_ctn ?? 0;
         const converted   = !!c.converted;
@@ -3972,8 +3972,8 @@ function renderKPI() {
 }
 
 // ── Campaign Detail Popup ──────────────────────────────────────────────────
-const CAMP_EMOJI = {free_sample:'🎁',foc_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',voucher:'🎟️',conversion_tiered:'🎯',other:'📋'};
-const CAMP_LABEL = {free_sample:'Free Sample',birthday_gift:'Birthday Gift',promotion:'Brand Promotion',festive_gift:'Festive Gift',conversion_tiered:'Conversion',other:'Other'};
+const CAMP_EMOJI = {free_sample:'🎁',foc_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',voucher:'🎟️',conversion_tiered:'🎯',conversion_simple:'🎯',other:'📋'};
+const CAMP_LABEL = {free_sample:'Free Sample',birthday_gift:'Birthday Gift',promotion:'Brand Promotion',festive_gift:'Festive Gift',conversion_tiered:'Conversion',conversion_simple:'Conversion',other:'Other'};
 
 // ── Campaign Visit Status Storage ──────────────────────────────────────────
 // Key: camp_status_{month}_{agent}  Value: { "campId_debtorCode": { status, remark, ts } }
@@ -4208,8 +4208,8 @@ function renderCamps() {
   }
 
   el.innerHTML = camps.map(c => {
-    // ── conversion_tiered: tier progress card (no delivery/claim flow) ───
-    if (c.type === 'conversion_tiered') {
+    // ── conversion campaigns: progress card + debtor conversion details ───
+    if (c.type === 'conversion_tiered' || c.type === 'conversion_simple') {
       // Pull rollup data from the agent block. Fall back to computing from
       // c.debtors if rollup is missing (defensive — handles stale data).
       const rollup = DATA.agents[currentAgent]?.conversion_campaigns?.[c.id];
@@ -4220,6 +4220,7 @@ function renderCamps() {
         convertedCount   = rollup.converted_count;
         convertedTargets = rollup.converted_targets;
         convertedCtn     = rollup.converted_ctn;
+        var priceFloor   = rollup.price_floor || c.notes?.min_rm_per_ctn || c.notes?.price_floor || (c.notes?.qualifying_item_group === 'TR-002' ? 37.5 : 41);
         targetCount      = rollup.target_count;
         conversionRate   = rollup.conversion_rate_targets;
         agentTierIdx     = rollup.agent_tier_idx ?? -1;
@@ -4235,6 +4236,7 @@ function renderCamps() {
           const cc = (d.campaigns||[]).find(cc => cc.id===c.id);
           return cc && cc.converted ? sum + (cc.current_ctn||0) : sum;
         }, 0);
+        var priceFloor = c.notes?.min_rm_per_ctn || c.notes?.price_floor || (c.notes?.qualifying_item_group === 'TR-002' ? 37.5 : 41);
         targetCount = totalEnrolled;
         conversionRate = targetCount > 0 ? convertedTargets/targetCount : 0;
         const tier = agentTierFromCount(convertedCount, c.notes?.tier_thresholds || [], c.notes?.tier_names || []);
@@ -4270,7 +4272,7 @@ function renderCamps() {
           // Stat chips: total ctn, all-tier conversions if different from target conversions
           '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
             '<span style="font-family:var(--mono);font-size:8px;background:rgba(61,220,132,.15);color:var(--green);padding:2px 8px;border-radius:10px;">' +
-              convertedCtn.toFixed(1) + ' CTN @ ≥RM41' +
+              convertedCtn.toFixed(1) + ' CTN @ ≥RM' + Number(priceFloor).toFixed(priceFloor % 1 ? 2 : 0) +
             '</span>' +
             (convertedCount > convertedTargets ?
               '<span style="font-family:var(--mono);font-size:8px;background:rgba(255,255,255,.06);color:var(--muted);padding:2px 8px;border-radius:10px;">+' + (convertedCount - convertedTargets) + ' non-target conversions</span>'
