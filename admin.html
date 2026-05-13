@@ -864,14 +864,14 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
           <div class="input-row">
             <div class="field-wrap">
               <div class="field-lbl">Mechanism Type</div>
-              <select id="new-camp-mechanism-type">
+              <select id="new-camp-mechanism-type" onchange="toggleCampaignMechanismSections('new-camp', document.getElementById('new-camp-type')?.value || '')">
                 <option value="manual_claim">Manual claim / entitlement</option>
                 <option value="conversion">Conversion</option>
                 <option value="volume_reward">Volume reward / FOC tier</option>
                 <option value="delivery_gift">Delivered gift / list upload</option>
               </select>
             </div>
-            <div class="field-wrap">
+            <div class="field-wrap" id="new-camp-conversion-rule-wrap">
               <div class="field-lbl">Conversion Rule</div>
               <select id="new-camp-conversion-rule">
                 <option value="no_lookback_then_current">No lookback purchase, then current purchase</option>
@@ -880,7 +880,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
             </div>
           </div>
 
-          <div class="input-row">
+          <div class="input-row" id="new-camp-match-row">
             <div class="field-wrap">
               <div class="field-lbl">Match By</div>
               <select id="new-camp-qualifying-match">
@@ -896,7 +896,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
             </div>
           </div>
 
-          <div class="input-group">
+          <div class="input-group" id="new-camp-lookback-wrap">
             <div class="input-label">Lookback Months (comma-separated, e.g. Feb,Mar,Apr)</div>
             <input type="text" id="new-camp-lookback-months" placeholder="Feb,Mar,Apr" value="Feb,Mar,Apr"
               style="text-transform:capitalize;">
@@ -905,7 +905,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
             </div>
           </div>
 
-          <div class="input-group">
+          <div class="input-group" id="new-camp-qualifying-wrap">
             <div class="input-label">Qualifying Item Group</div>
             <input type="text" id="new-camp-qualifying-item" placeholder="EVO" value="EVO"
               style="text-transform:uppercase;">
@@ -914,7 +914,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
             </div>
           </div>
 
-          <div class="input-row">
+          <div class="input-row" id="new-camp-volume-row">
             <div class="field-wrap">
               <div class="field-lbl">Volume Basis</div>
               <select id="new-camp-volume-basis">
@@ -935,7 +935,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
             </div>
           </div>
 
-          <div class="input-group">
+          <div class="input-group" id="new-camp-reward-wrap">
             <div class="input-label">Reward / Claim Tiers (optional)</div>
             <textarea id="new-camp-reward-tiers" rows="4" placeholder="min,max,sku,qty,unit,note&#10;1,5,SKU-A,1,pack,Starter gift&#10;6,10,SKU-B,2,pack,Better gift"
               style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:8px 10px;border-radius:8px;"></textarea>
@@ -944,7 +944,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
             </div>
           </div>
 
-          <div class="input-row">
+          <div class="input-row" id="new-camp-tier-row">
             <div class="field-wrap">
               <div class="field-lbl">Baseline Threshold</div>
               <input type="number" id="new-camp-tier0" min="1" placeholder="4" value="4">
@@ -963,7 +963,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
             </div>
           </div>
 
-          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);line-height:1.6;margin-top:8px;">
+          <div id="new-camp-tier-note" style="font-family:var(--mono);font-size:9px;color:var(--ink3);line-height:1.6;margin-top:8px;">
             Tier names are auto-set: Below baseline → "BELOW BASELINE" / Baseline → "BASELINE" / Tier 1 → "TIER 1" / Tier 2 → "TIER 2" / Tier 3 → "TIER 3"
           </div>
         </div>
@@ -1739,6 +1739,7 @@ async function initAdmin() {
 
   // Load campaigns (async — await so dropdown populates correctly)
   await loadCampaignsData();
+  toggleBrandFields(document.getElementById('new-camp-type')?.value || 'free_sample');
   // Set default deadline to end of current month
   const now = new Date();
   const lastDay = new Date(now.getFullYear(), now.getMonth()+1, 0);
@@ -3140,20 +3141,22 @@ function readCampaignMechanism(scope, type) {
   const priceFloor = priceFloorRaw === '' || priceFloorRaw == null ? null : Number(priceFloorRaw);
   const lookbackMonths = _campCsv(get('lookback-months')?.value || '');
   const rewardTiers = parseCampaignRewardTiers(get('reward-tiers')?.value || '');
+  const isConversion = mechanismType === 'conversion';
+  const isVolume = mechanismType === 'volume_reward';
   const notes = {
     mechanism_type: mechanismType,
     qualifying_match: matchBy,
-    qualifying_value: firstMatch,
-    qualifying_values: matchValues,
-    qualifying_item_group: firstMatch,
-    min_rm_per_ctn: Number.isFinite(priceFloor) ? priceFloor : null,
-    lookback_months: lookbackMonths,
+    qualifying_value: (isConversion || isVolume) ? firstMatch : '',
+    qualifying_values: (isConversion || isVolume) ? matchValues : [],
+    qualifying_item_group: (isConversion || isVolume) ? firstMatch : '',
+    min_rm_per_ctn: (isConversion || isVolume) && Number.isFinite(priceFloor) ? priceFloor : null,
+    lookback_months: isConversion ? lookbackMonths : [],
     conversion_rule: get('conversion-rule')?.value || 'no_lookback_then_current',
-    volume_basis: get('volume-basis')?.value || 'current_month',
-    sort_by: get('sort-by')?.value || 'ctn_desc',
-    reward_tiers: rewardTiers
+    volume_basis: isVolume ? (get('volume-basis')?.value || 'current_month') : 'current_month',
+    sort_by: isVolume ? (get('sort-by')?.value || 'ctn_desc') : 'ctn_desc',
+    reward_tiers: isVolume ? rewardTiers : []
   };
-  if ((type || '').startsWith('conversion_') || mechanismType === 'conversion') {
+  if (type === 'conversion_tiered' && mechanismType === 'conversion') {
     const thresholds = ['tier0','tier1','tier2','tier3'].map((field, idx) => {
       const fallback = [4, 7, 10, 14][idx];
       const value = parseInt(get(field)?.value, 10);
@@ -3165,6 +3168,27 @@ function readCampaignMechanism(scope, type) {
   return notes;
 }
 
+function toggleCampaignMechanismSections(scope, type = '') {
+  const get = field => document.getElementById(_campScopeId(scope, field));
+  const mechanism = get('mechanism-type')?.value || ((type || '').startsWith('conversion_') ? 'conversion' : 'manual_claim');
+  const isConversion = mechanism === 'conversion';
+  const isTiered = isConversion && type === 'conversion_tiered';
+  const isVolume = mechanism === 'volume_reward';
+  const show = (field, visible) => {
+    const el = get(field);
+    if (el) el.style.display = visible ? '' : 'none';
+  };
+
+  show('conversion-rule-wrap', isConversion);
+  show('lookback-wrap', isConversion);
+  show('match-row', isConversion || isVolume);
+  show('qualifying-wrap', isConversion || isVolume);
+  show('volume-row', isVolume);
+  show('reward-wrap', isVolume);
+  show('tier-row', isTiered);
+  show('tier-note', isTiered);
+}
+
 function renderCampaignMechanismFields(scope, camp = {}) {
   const notes = camp.notes || {};
   const mechanismType = campaignMechanismTypeFor(camp, notes);
@@ -3173,18 +3197,18 @@ function renderCampaignMechanismFields(scope, camp = {}) {
   return `<div style="border:1px solid var(--border);border-radius:10px;padding:10px;margin:10px 0;background:var(--bg);">
     <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Mechanism settings</div>
     <div class="input-row">
-      <div class="field-wrap"><div class="field-lbl">Mechanism Type</div><select id="${_campScopeId(scope,'mechanism-type')}">
+      <div class="field-wrap"><div class="field-lbl">Mechanism Type</div><select id="${_campScopeId(scope,'mechanism-type')}" onchange="toggleCampaignMechanismSections('${scope}','${camp.type || ''}')">
         <option value="manual_claim" ${mechanismType==='manual_claim'?'selected':''}>Manual claim / entitlement</option>
         <option value="conversion" ${mechanismType==='conversion'?'selected':''}>Conversion</option>
         <option value="volume_reward" ${mechanismType==='volume_reward'?'selected':''}>Volume reward / FOC tier</option>
         <option value="delivery_gift" ${mechanismType==='delivery_gift'?'selected':''}>Delivered gift / list upload</option>
       </select></div>
-      <div class="field-wrap"><div class="field-lbl">Conversion Rule</div><select id="${_campScopeId(scope,'conversion-rule')}">
+      <div class="field-wrap" id="${_campScopeId(scope,'conversion-rule-wrap')}"><div class="field-lbl">Conversion Rule</div><select id="${_campScopeId(scope,'conversion-rule')}">
         <option value="no_lookback_then_current" ${(notes.conversion_rule||'no_lookback_then_current')==='no_lookback_then_current'?'selected':''}>No lookback purchase, then current purchase</option>
         <option value="current_month_only" ${notes.conversion_rule==='current_month_only'?'selected':''}>Current month purchase only</option>
       </select></div>
     </div>
-    <div class="input-row">
+    <div class="input-row" id="${_campScopeId(scope,'match-row')}">
       <div class="field-wrap"><div class="field-lbl">Match By</div><select id="${_campScopeId(scope,'qualifying-match')}">
         <option value="item_group" ${(notes.qualifying_match||'item_group')==='item_group'?'selected':''}>Item Group</option>
         <option value="item_code" ${notes.qualifying_match==='item_code'?'selected':''}>Item Code / SKU</option>
@@ -3194,8 +3218,9 @@ function renderCampaignMechanismFields(scope, camp = {}) {
       <div class="field-wrap"><div class="field-lbl">Match Value(s)</div><input id="${_campScopeId(scope,'qualifying-item')}" value="${matchValues.join(', ').replace(/"/g,'&quot;')}" placeholder="EVO or TR-002"></div>
       <div class="field-wrap"><div class="field-lbl">Min RM / CTN</div><input type="number" min="0" step="0.01" id="${_campScopeId(scope,'price-floor')}" value="${notes.min_rm_per_ctn ?? notes.price_floor ?? ''}" placeholder="41.00"></div>
     </div>
-    <div class="input-group"><div class="input-label">Lookback Months</div><input id="${_campScopeId(scope,'lookback-months')}" value="${(notes.lookback_months||[]).join(', ').replace(/"/g,'&quot;')}" placeholder="Feb,Mar,Apr"></div>
-    <div class="input-row">
+    <div class="input-group" id="${_campScopeId(scope,'lookback-wrap')}"><div class="input-label">Lookback Months</div><input id="${_campScopeId(scope,'lookback-months')}" value="${(notes.lookback_months||[]).join(', ').replace(/"/g,'&quot;')}" placeholder="Feb,Mar,Apr"></div>
+    <div class="input-group" id="${_campScopeId(scope,'qualifying-wrap')}" style="display:none;"></div>
+    <div class="input-row" id="${_campScopeId(scope,'volume-row')}">
       <div class="field-wrap"><div class="field-lbl">Volume Basis</div><select id="${_campScopeId(scope,'volume-basis')}">
         <option value="current_month" ${(notes.volume_basis||'current_month')==='current_month'?'selected':''}>Current month</option>
         <option value="previous_month" ${notes.volume_basis==='previous_month'?'selected':''}>Previous month</option>
@@ -3209,10 +3234,11 @@ function renderCampaignMechanismFields(scope, camp = {}) {
         <option value="code" ${notes.sort_by==='code'?'selected':''}>Debtor code</option>
       </select></div>
     </div>
-    <div class="input-group"><div class="input-label">Reward / Claim Tiers</div><textarea id="${_campScopeId(scope,'reward-tiers')}" rows="3" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:8px 10px;border-radius:8px;" placeholder="min,max,sku,qty,unit,note">${formatCampaignRewardTiers(notes.reward_tiers)}</textarea></div>
-    <div class="input-row">
+    <div class="input-group" id="${_campScopeId(scope,'reward-wrap')}"><div class="input-label">Reward / Claim Tiers</div><textarea id="${_campScopeId(scope,'reward-tiers')}" rows="3" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:8px 10px;border-radius:8px;" placeholder="min,max,sku,qty,unit,note">${formatCampaignRewardTiers(notes.reward_tiers)}</textarea></div>
+    <div class="input-row" id="${_campScopeId(scope,'tier-row')}">
       ${['Baseline','Tier 1','Tier 2','Tier 3'].map((label, idx) => `<div class="field-wrap"><div class="field-lbl">${label}</div><input type="number" min="1" id="${_campScopeId(scope,'tier'+idx)}" value="${thresholds[idx] || [4,7,10,14][idx]}"></div>`).join('')}
     </div>
+    <div id="${_campScopeId(scope,'tier-note')}" style="font-family:var(--mono);font-size:9px;color:var(--ink3);line-height:1.6;margin-top:8px;">Tier thresholds only apply to conversion-tiered campaigns.</div>
   </div>`;
 }
 
@@ -5856,7 +5882,12 @@ function toggleBrandFields(type) {
   const mechanism = document.getElementById('new-camp-mechanism-type');
   if (mechanism && (type || '').startsWith('conversion_')) {
     mechanism.value = 'conversion';
+  } else if (mechanism && ['free_sample','birthday_gift','festive_gift','foc_sample'].includes(type)) {
+    mechanism.value = 'delivery_gift';
+  } else if (mechanism && type === 'promotion') {
+    mechanism.value = 'volume_reward';
   }
+  toggleCampaignMechanismSections('new-camp', type);
 }
 
 async function closeCampaign(id) {
@@ -5929,6 +5960,8 @@ function editCampaign(id) {
   document.getElementById('camp-desc-disp-'+id).style.display = 'none';
   const promoDisp = document.getElementById('camp-promo-disp-'+id);
   if (promoDisp) promoDisp.style.display = 'none';
+  const camp = CAMPAIGNS_DATA.campaigns.find(c=>c.id===id);
+  toggleCampaignMechanismSections('camp-edit-' + id, camp?.type || '');
 }
 
 function cancelCampEdit(id) {
