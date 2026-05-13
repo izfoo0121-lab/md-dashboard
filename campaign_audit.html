@@ -570,6 +570,7 @@ function renderAudit() {
   const month     = document.getElementById('month-select').value;
   const agentSel  = document.getElementById('agent-select').value;
   const allCamps  = (CAMP_DATA?.campaigns||[]);
+  const isConversionCamp = camp => camp?.type === 'conversion_tiered' || camp?.type === 'conversion_simple';
 
   if (activeCampId === 'BDAY_LIST') {
     renderBirthdayDebtorList(month, agentSel);
@@ -640,7 +641,10 @@ function renderAudit() {
   records.sort((a, b) => {
     const rank = r => (!r.audit ? 0 : r.audit.status === 'verified' ? 1 : 2);
     const ra = rank(a), rb = rank(b);
+    const ca = isConversionCamp(a.camp) && a.campEntry?.converted ? 0 : 1;
+    const cb = isConversionCamp(b.camp) && b.campEntry?.converted ? 0 : 1;
     return (a.agent || 'ZZZ').localeCompare(b.agent || 'ZZZ') ||
+      (ca - cb) ||
       (ra - rb) ||
       String(a.debtor?.company_name || '').localeCompare(String(b.debtor?.company_name || '')) ||
       String(a.debtor?.debtor_code || '').localeCompare(String(b.debtor?.debtor_code || ''));
@@ -654,10 +658,14 @@ function renderAudit() {
   const excluded = records.filter(r=>r.claim?.status==='excluded').length;
   const pending  = claimed - verified - rejected - excluded;
   const unclaimed = total - claimed;
+  const converted = records.filter(r=>isConversionCamp(r.camp) && r.campEntry?.converted).length;
+  const showConvertedSummary = activeCampId !== 'ALL' && records.some(r=>isConversionCamp(r.camp));
   const pct      = total > 0 ? Math.round(claimed/total*100) : 0;
   const rowsForExport = records.map(r => {
     const isExcluded = r.claim?.status === 'excluded';
-    const exportStatus = !r.claim ? 'not_claimed' : (isExcluded ? 'excluded' : (r.audit?.status || 'pending'));
+    const exportStatus = isConversionCamp(r.camp)
+      ? (r.campEntry?.converted ? 'converted' : 'not_converted')
+      : (!r.claim ? 'not_claimed' : (isExcluded ? 'excluded' : (r.audit?.status || 'pending')));
     return {
       camp_id: r.camp.id || '',
       camp_name: r.camp.name || r.camp.id || '',
@@ -682,10 +690,10 @@ function renderAudit() {
 
   document.getElementById('summary-row').innerHTML = `
     <div class="sum-card"><div class="sum-val b">${total}</div><div class="sum-lbl">${activeCampId === 'ALL' ? 'Total Records' : 'Entitled'}</div></div>
-    <div class="sum-card"><div class="sum-val g">${claimed}</div><div class="sum-lbl">Submitted</div></div>
+    <div class="sum-card"><div class="sum-val g">${showConvertedSummary ? converted : claimed}</div><div class="sum-lbl">${showConvertedSummary ? 'Converted' : 'Submitted'}</div></div>
     <div class="sum-card"><div class="sum-val b">${verified}</div><div class="sum-lbl">Verified ✓</div></div>
     <div class="sum-card"><div class="sum-val r">${rejected}</div><div class="sum-lbl">Rejected ✗</div></div>
-    <div class="sum-card"><div class="sum-val a">${activeCampId === 'ALL' ? pending : unclaimed}</div><div class="sum-lbl">${activeCampId === 'ALL' ? 'Pending Audit' : 'Not Claimed'}</div></div>`;
+    <div class="sum-card"><div class="sum-val a">${showConvertedSummary ? total - converted : (activeCampId === 'ALL' ? pending : unclaimed)}</div><div class="sum-lbl">${showConvertedSummary ? 'Not Converted' : (activeCampId === 'ALL' ? 'Pending Audit' : 'Not Claimed')}</div></div>`;
 
   if (!records.length) {
     document.getElementById('audit-content').innerHTML = `<div class="empty">No ${activeCampId==='ALL'?'claims':'campaign debtors'} for ${month}${activeCampId!=='ALL'?' in this campaign':''}</div>`;
@@ -706,6 +714,9 @@ function renderAudit() {
     const agentExcluded = recs.filter(r=>r.claim?.status==='excluded').length;
     const agentPending  = agentClaimed - agentVerified - agentRejected - agentExcluded;
     const agentUnclaimed = recs.length - agentClaimed;
+    const agentConverted = recs.filter(r=>isConversionCamp(r.camp) && r.campEntry?.converted).length;
+    const agentShowsConversion = recs.some(r=>isConversionCamp(r.camp));
+    const conversionPct = recs.length > 0 ? Math.round(agentConverted/recs.length*100) : 0;
     // Progress is computed only over non-excluded claims (excluded are out-of-scope for admin)
     const progressDenom = agentClaimed - agentExcluded;
     const agentPct      = progressDenom > 0 ? Math.round((agentVerified+agentRejected)/progressDenom*100) : 0;
@@ -713,14 +724,18 @@ function renderAudit() {
 
     const rows = recs.map(r => {
       const isExcluded = r.claim?.status === 'excluded';
-      const statusLabel = !r.claim                           ? 'Not claimed'
+      const isConversion = isConversionCamp(r.camp);
+      const isConverted = isConversion && !!r.campEntry?.converted;
+      const statusLabel = isConversion                        ? (isConverted ? '✓ Converted' : 'Not converted')
+                        : !r.claim                           ? 'Not claimed'
                         : isExcluded                         ? '🚫 Excluded'
                         : r.audit?.status === 'verified'     ? '✓ Verified'
                         : r.audit?.status === 'rejected'     ? '✗ Rejected'
                         : '● Pending';
-      const statusClass = !r.claim ? 'unclaimed' : (isExcluded ? 'excluded' : (r.audit?.status || 'claimed'));
+      const statusClass = isConversion ? (isConverted ? 'claimed' : 'unclaimed') : (!r.claim ? 'unclaimed' : (isExcluded ? 'excluded' : (r.audit?.status || 'claimed')));
       const isFOC = r.camp.type==='foc_sample'||r.camp.type==='festive_gift'||r.camp.type==='birthday_gift';
-      const actionLabel = !r.claim ? 'Not submitted' : (isExcluded ? 'Unable to deliver' : (isFOC ? 'Delivered' : 'Claimed'));
+      const actionLabel = isConversion ? (isConverted ? 'Converted' : 'Not converted') : (!r.claim ? 'Not submitted' : (isExcluded ? 'Unable to deliver' : (isFOC ? 'Delivered' : 'Claimed')));
+      const conversionMeta = isConversion ? `Feb-Apr: ${r.campEntry?.lookback_ctn ?? 0} CTN · May: ${r.campEntry?.current_ctn ?? 0} CTN` : '';
       // Reason label lookup (same as sales_dashboard)
       const reasonMap = {closed:'Shop Closed',unreachable:'Unreachable',moved:'Moved',refused:'Refused',other:'Other'};
       const reasonText = isExcluded ? (reasonMap[r.claim?.reason] || r.claim?.reason || 'No reason') : '';
@@ -730,7 +745,7 @@ function renderAudit() {
           <div class="claim-name">${r.debtor.company_name||r.debtor.debtor_code}</div>
           <div class="claim-code">${r.debtor.debtor_code} · ${CAMP_EMOJI[r.camp.type]||'📋'} ${r.camp.name}${r.campEntry.cat?' · CAT '+r.campEntry.cat:''}${r.claim?.bulk?' · 📥 Bulk':''}</div>
           <div class="claim-meta">
-            ${actionLabel}: ${r.claim?.ts||'—'}${isExcluded ? ` · <span style="color:#ff8866;">${reasonText}</span>` : ''}${r.claim?.remark?' · "'+r.claim.remark+'"':''}
+            ${isConversion ? conversionMeta : `${actionLabel}: ${r.claim?.ts||'—'}`}${isExcluded ? ` · <span style="color:#ff8866;">${reasonText}</span>` : ''}${r.claim?.remark?' · "'+r.claim.remark+'"':''}
             ${r.audit?.status==='verified'?` · ✓ Verified ${r.audit.ts||''}`:r.audit?.status==='rejected'?` · ✗ Rejected: ${r.audit.reason||''}${r.audit.ts?' · '+r.audit.ts:''}` : ''}
           </div>
         </div>
@@ -750,10 +765,11 @@ function renderAudit() {
       <div class="agent-hdr" onclick="toggleAgentSection(this)">
         <div class="agent-name">${agent}</div>
         <div class="agent-stats">
-          <span class="stat-chip pct">${agentPct}% audited</span>
-          <span class="stat-chip done">${agentClaimed}/${recs.length} claimed</span>
-          ${agentPending>0?`<span class="stat-chip pending">${agentPending} pending</span>`:''}
-          ${agentUnclaimed>0?`<span class="stat-chip pending">${agentUnclaimed} not claimed</span>`:''}
+          <span class="stat-chip pct">${agentShowsConversion ? `${conversionPct}% converted` : `${agentPct}% audited`}</span>
+          <span class="stat-chip done">${agentShowsConversion ? `${agentConverted}/${recs.length} converted` : `${agentClaimed}/${recs.length} claimed`}</span>
+          ${!agentShowsConversion && agentPending>0?`<span class="stat-chip pending">${agentPending} pending</span>`:''}
+          ${agentShowsConversion && recs.length-agentConverted>0?`<span class="stat-chip pending">${recs.length-agentConverted} not converted</span>`:''}
+          ${!agentShowsConversion && agentUnclaimed>0?`<span class="stat-chip pending">${agentUnclaimed} not claimed</span>`:''}
           ${agentVerified>0?`<span style="font-family:var(--mono);font-size:9px;color:var(--blue);">✓${agentVerified}</span>`:''}
           ${agentRejected>0?`<span style="font-family:var(--mono);font-size:9px;color:var(--red);">✗${agentRejected}</span>`:''}
           ${agentExcluded>0?`<span style="font-family:var(--mono);font-size:9px;color:#ff8866;">🚫${agentExcluded}</span>`:''}
@@ -764,7 +780,7 @@ function renderAudit() {
           <span class="agent-toggle">▸</span>
         </div>
       </div>
-      <div class="prog-bar"><div class="prog-fill" style="width:${agentPct}%;background:${progColor};"></div></div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${agentShowsConversion ? conversionPct : agentPct}%;background:${agentShowsConversion ? 'var(--green)' : progColor};"></div></div>
       <div class="claims-body" id="claims-${agent}">${rows}</div>
     </div>`;
   }).join('');
