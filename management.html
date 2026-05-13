@@ -1262,6 +1262,7 @@ async function fetchCampClaimsForMonth(month) {
 
 let CAMP_CLAIMS_CACHE = [];
 let CAMPS_CACHE       = [];
+let CAMPAIGN_MGMT_VIEW = 'current';
 
 async function pullGistData() {
   if (!GistSync.isConfigured()) return;
@@ -2559,9 +2560,21 @@ function renderCampaignsMgmt() {
     } catch(e) {}
   }
 
-  const active = campaigns.filter(c => c.active !== false);
-  if (!active.length) { section.style.display = 'none'; return; }
+  const managedCampaigns = campaigns.filter(c => c.active !== false);
+  if (!managedCampaigns.length) { section.style.display = 'none'; return; }
   section.style.display = 'block';
+
+  function isExpiredCampaign(camp) {
+    if (!camp.deadline) return false;
+    const d = new Date(camp.deadline);
+    if (isNaN(d.getTime())) return false;
+    d.setHours(23, 59, 59, 999);
+    return d.getTime() < Date.now();
+  }
+
+  const currentCampaigns = managedCampaigns.filter(c => !isExpiredCampaign(c));
+  const expiredCampaigns = managedCampaigns.filter(c => isExpiredCampaign(c));
+  const active = CAMPAIGN_MGMT_VIEW === 'expired' ? expiredCampaigns : currentCampaigns;
 
   const AGENTS = Object.keys(DATA?.agents || {});
 
@@ -2804,7 +2817,17 @@ function renderCampaignsMgmt() {
 
   const headerBar = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-family:var(--mono);font-size:9px;">
-      <div style="color:var(--ink3);">Sorted by lowest completion first · ${active.length} active campaign${active.length===1?'':'s'}</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="color:var(--ink3);">Sorted by lowest completion first</span>
+        <button onclick="setCampaignMgmtView('current')"
+          style="background:${CAMPAIGN_MGMT_VIEW==='current'?'var(--ink)':'rgba(0,0,0,.04)'};border:1px solid var(--border);color:${CAMPAIGN_MGMT_VIEW==='current'?'#fff':'var(--ink2)'};padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">
+          Current ${currentCampaigns.length}
+        </button>
+        <button onclick="setCampaignMgmtView('expired')"
+          style="background:${CAMPAIGN_MGMT_VIEW==='expired'?'var(--ink)':'rgba(0,0,0,.04)'};border:1px solid var(--border);color:${CAMPAIGN_MGMT_VIEW==='expired'?'#fff':'var(--ink2)'};padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">
+          Expired ${expiredCampaigns.length}
+        </button>
+      </div>
       <div style="display:flex;gap:6px;">
         <button onclick="toggleAllCampCards(true)"
           style="background:rgba(0,0,0,.04);border:1px solid var(--border);color:var(--ink2);padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">Open all</button>
@@ -2812,6 +2835,13 @@ function renderCampaignsMgmt() {
           style="background:rgba(0,0,0,.04);border:1px solid var(--border);color:var(--ink2);padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">Close all</button>
       </div>
     </div>`;
+
+  if (!active.length) {
+    list.innerHTML = headerBar + `<div style="padding:18px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface);font-family:var(--mono);font-size:10px;color:var(--ink3);text-align:center;">
+      No ${CAMPAIGN_MGMT_VIEW === 'expired' ? 'expired' : 'current'} campaigns in this view.
+    </div>`;
+    return;
+  }
 
   list.innerHTML = headerBar + campStats.map(stats => {
     const { camp, isBday, isConversion, perAgent, totalPoolCount, totalExcluded,
@@ -2932,6 +2962,11 @@ function toggleAllCampCards(open) {
     body.style.display = open ? 'block' : 'none';
     if (arrow) arrow.textContent = open ? '▾' : '▸';
   });
+}
+
+function setCampaignMgmtView(view) {
+  CAMPAIGN_MGMT_VIEW = view === 'expired' ? 'expired' : 'current';
+  renderCampaignsMgmt();
 }
 
 function toggleCampCard(cardId) {
