@@ -5807,12 +5807,31 @@ function populateBulkCampSelect() {
   const sel = document.getElementById('bulk-camp-select');
   if (!sel) return;
   sel.innerHTML = '<option value="">-- Select Campaign --</option>';
+  const bdayOpt = document.createElement('option');
+  bdayOpt.value = 'birthday_gift_auto';
+  bdayOpt.textContent = '🎂 Birthday Gift Auto';
+  sel.appendChild(bdayOpt);
   (CAMPAIGNS_DATA.campaigns || []).filter(c => c.active).forEach(c => {
     const opt = document.createElement('option');
     opt.value = c.id;
     opt.textContent = c.name;
     sel.appendChild(opt);
   });
+}
+
+function _bulkCampaignInfo(campId) {
+  if (campId === 'birthday_gift_auto') {
+    return { id: campId, name: 'Birthday Gift Auto', type: 'birthday_gift' };
+  }
+  const camp = (CAMPAIGNS_DATA.campaigns || []).find(c => c.id === campId);
+  return camp || { id: campId, name: campId, type: 'other' };
+}
+
+function _birthdayCodeSetForBulk(month) {
+  const rows = DASH_DATA?.birthday_by_month?.[month]?.debtors
+            ?? DASH_DATA?.birthday_campaign?.debtors
+            ?? [];
+  return new Set(rows.map(d => (d.code || d.debtor_code || '').toUpperCase()).filter(Boolean));
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -5893,6 +5912,7 @@ async function previewBulkMark() {
   if (!campId) { resultEl.textContent = '⚠ Select a campaign first'; resultEl.style.color = 'var(--red)'; return null; }
   if (!month)  { resultEl.textContent = '⚠ Select a month'; resultEl.style.color = 'var(--red)'; return null; }
   if (!raw.trim()) { resultEl.textContent = '⚠ Paste debtor codes first'; resultEl.style.color = 'var(--red)'; return null; }
+  const campInfo = _bulkCampaignInfo(campId);
 
   const codes = raw.split(/[\n,;]+/).map(c => c.trim()).filter(Boolean);
   if (!codes.length) { resultEl.textContent = '⚠ No valid codes found'; return null; }
@@ -5902,7 +5922,16 @@ async function previewBulkMark() {
   resultEl.textContent = '';
 
   // Step 1: Validate codes against dashboard data (agent-debtor mapping)
-  const { valid, notFound, personalSkipped } = _validateCodes(codes, agent);
+  let { valid, notFound, personalSkipped } = _validateCodes(codes, agent);
+  const birthdaySkipped = [];
+  if (campInfo.type === 'birthday_gift' && campId === 'birthday_gift_auto') {
+    const birthdayCodes = _birthdayCodeSetForBulk(month);
+    valid = valid.filter(v => {
+      if (birthdayCodes.has(v.code)) return true;
+      birthdaySkipped.push(v);
+      return false;
+    });
+  }
 
   // Step 2: Check Supabase for already-delivered claims
   const agentsToCheck = [...new Set(valid.map(v => v.agent))];
@@ -5950,12 +5979,11 @@ async function previewBulkMark() {
   });
 
   // Render preview
-  const campName = (CAMPAIGNS_DATA.campaigns || []).find(c => c.id === campId)?.name || campId;
   previewEl.innerHTML = `
     <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:10px;font-family:var(--mono);font-size:11px;">
       <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">🔍 Pre-Validation Report</div>
 
-      <div style="color:var(--ink3);margin-bottom:6px;">Campaign: <strong style="color:var(--ink);">${campName}</strong> (${campId})</div>
+      <div style="color:var(--ink3);margin-bottom:6px;">Campaign: <strong style="color:var(--ink);">${campInfo.name}</strong> (${campId})</div>
       <div style="color:var(--ink3);margin-bottom:6px;">Month: <strong style="color:var(--ink);">${month}</strong></div>
       <div style="color:var(--ink3);margin-bottom:12px;">Agent: <strong style="color:var(--ink);">${agent || 'All active agents'}</strong></div>
 
@@ -5976,6 +6004,11 @@ async function previewBulkMark() {
           <div style="font-size:18px;color:var(--muted);">${personalSkipped.length}</div>
           <div style="font-size:9px;color:var(--muted);">PERSONAL (EXCLUDED)</div>
         </div>
+        ${campId === 'birthday_gift_auto' ? `
+        <div style="padding:8px;background:rgba(150,150,150,.08);border:1px solid var(--border);border-radius:8px;">
+          <div style="font-size:18px;color:var(--muted);">${birthdaySkipped.length}</div>
+          <div style="font-size:9px;color:var(--muted);">NOT IN BIRTHDAY LIST</div>
+        </div>` : ''}
       </div>
 
       ${crossCampWarnings.length ? `
@@ -5992,6 +6025,12 @@ async function previewBulkMark() {
         <div style="margin-top:10px;padding:8px;background:rgba(255,95,95,.06);border:1px solid rgba(255,95,95,.25);border-radius:8px;">
           <div style="color:var(--red,#ff5f5f);font-size:10px;margin-bottom:4px;">Codes not matched to any agent-debtor pair:</div>
           <div style="font-size:10px;color:var(--ink);max-height:60px;overflow-y:auto;">${notFound.slice(0, 20).join(', ')}${notFound.length > 20 ? '...' : ''}</div>
+        </div>` : ''}
+
+      ${birthdaySkipped.length ? `
+        <div style="margin-top:10px;padding:8px;background:rgba(255,165,0,.06);border:1px solid rgba(255,165,0,.25);border-radius:8px;">
+          <div style="color:var(--accent,#ffa500);font-size:10px;margin-bottom:4px;">Matched debtors skipped because they are not in the ${month} birthday list:</div>
+          <div style="font-size:10px;color:var(--ink);max-height:60px;overflow-y:auto;">${birthdaySkipped.slice(0, 20).map(v => `${v.agent}: ${v.code}`).join(', ')}${birthdaySkipped.length > 20 ? '...' : ''}</div>
         </div>` : ''}
 
       <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
@@ -6015,7 +6054,7 @@ async function previewBulkMark() {
   `;
 
   // Stash the calculated to-create list for confirmBulkMark
-  window._pendingBulkMark = { toCreate, campId, month, remark: document.getElementById('bulk-remark')?.value || 'Bulk import' };
+  window._pendingBulkMark = { toCreate, campId, campType: campInfo.type, month, remark: document.getElementById('bulk-remark')?.value || 'Bulk import' };
   return window._pendingBulkMark;
 }
 
@@ -6049,6 +6088,7 @@ async function confirmBulkMark() {
     remark: pending.remark || 'Bulk mark',
     bulk: true,
     actor: 'admin',
+    camp_type: pending.campType || null,
     ts
   }));
 
@@ -6082,7 +6122,7 @@ async function confirmBulkMark() {
   const monthSlug = pending.month.replace(' ', '');
   rows.forEach(row => {
     const key = `camp_claim_${monthSlug}_${row.agent}_${row.camp_id}_${row.debtor_code}`;
-    localStorage.setItem(key, JSON.stringify({ ts: row.ts, remark: row.remark, count: 1, bulk: true }));
+    localStorage.setItem(key, JSON.stringify({ ts: row.ts, remark: row.remark, count: 1, bulk: true, campType: row.camp_type }));
   });
 
   resultEl.style.color = 'var(--green, #3ddc84)';
