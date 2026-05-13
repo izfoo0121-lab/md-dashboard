@@ -1561,8 +1561,8 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 if m_rows.empty:
                     return []
                 grp = m_rows.groupby("item_code")["qty_ctn"].sum().reset_index()
-                grp = grp[grp["qty_ctn"] > 0].sort_values("qty_ctn", ascending=False)
-                return [{"item": str(r["item_code"]), "ctn": round(float(r["qty_ctn"]), 1)}
+                grp = grp[grp["qty_ctn"].abs() > 0.0001].sort_values("qty_ctn", ascending=False)
+                return [{"item": str(r["item_code"]), "ctn": round(float(r["qty_ctn"]), 2)}
                         for _, r in grp.iterrows()]
 
             month_breakdown = {

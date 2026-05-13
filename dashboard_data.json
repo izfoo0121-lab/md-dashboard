@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-13 13:39:49",
+  "generated_at": "2026-05-13 14:00:06",
   "current_month": "May 26",
   "working_days": {
     "date": "2026-05-13",
@@ -205548,7 +205548,7 @@
                 },
                 {
                   "item": "IFACE R",
-                  "ctn": 1.2
+                  "ctn": 1.25
                 }
               ],
               "Apr 26": [
@@ -229895,6 +229895,10 @@
                 {
                   "item": "SKNR",
                   "ctn": 2.0
+                },
+                {
+                  "item": "LWM",
+                  "ctn": -1.0
                 }
               ],
               "Apr 26": [
@@ -231324,16 +231328,20 @@
                   "ctn": 15.0
                 },
                 {
-                  "item": "LC20",
+                  "item": "LMM-002",
                   "ctn": 5.0
                 },
                 {
-                  "item": "LMM-002",
+                  "item": "LC20",
                   "ctn": 5.0
                 },
                 {
                   "item": "SKNW",
                   "ctn": 5.0
+                },
+                {
+                  "item": "CMP",
+                  "ctn": -10.0
                 }
               ]
             },
@@ -233337,6 +233345,10 @@
                 {
                   "item": "LWM",
                   "ctn": 1.0
+                },
+                {
+                  "item": "CMX",
+                  "ctn": -1.0
                 }
               ],
               "Mar 26": [
@@ -311155,7 +311167,7 @@
                 },
                 {
                   "item": "IFACE B",
-                  "ctn": 2.2
+                  "ctn": 2.25
                 },
                 {
                   "item": "SKNW",
@@ -379267,7 +379279,12 @@
             "ctn_prev2": 100.0,
             "avg_ctn_3m": 36.7,
             "month_breakdown": {
-              "May 26": [],
+              "May 26": [
+                {
+                  "item": "CMP",
+                  "ctn": -10.0
+                }
+              ],
               "Apr 26": [
                 {
                   "item": "CM-002",
@@ -382240,6 +382257,10 @@
                 {
                   "item": "SKNR",
                   "ctn": 10.0
+                },
+                {
+                  "item": "LMM-002",
+                  "ctn": -3.0
                 }
               ],
               "Mar 26": [
