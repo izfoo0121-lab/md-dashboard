@@ -1215,13 +1215,9 @@ const SupabaseKpiSync = (() => {
 })();
 
 async function loadCampaignSection() {
-  // Fetch campaigns.json + all claims for current month in parallel, then render.
+  // Fetch campaigns.json + claims for selected month plus campaign months.
   const month = (CURRENT_DATA || DATA)?.current_month || '';
-  const [campsRes, supaClaims] = await Promise.all([
-    fetch('campaigns.json?v=' + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null),
-    fetchCampClaimsForMonth(month),
-  ]);
-  CAMP_CLAIMS_CACHE = supaClaims;
+  const campsRes = await fetch('campaigns.json?v=' + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null);
   // campaigns.json shape is { campaigns: [...] } — unwrap to array
   if (Array.isArray(campsRes)) {
     CAMPS_CACHE = campsRes;
@@ -1230,7 +1226,18 @@ async function loadCampaignSection() {
   } else {
     CAMPS_CACHE = [];
   }
-  console.log(`[campProg] Loaded ${CAMPS_CACHE.length} campaigns, ${CAMP_CLAIMS_CACHE.length} claims`);
+
+  const claimMonths = new Set();
+  if (month) claimMonths.add(month);
+  (CAMPS_CACHE || []).forEach(camp => {
+    campaignMgmtClaimMonths(camp, month).forEach(m => claimMonths.add(m));
+  });
+
+  const monthRows = await Promise.all([...claimMonths].map(async m => [m, await fetchCampClaimsForMonth(m)]));
+  monthRows.forEach(([m, rows]) => { CAMP_CLAIMS_BY_MONTH[m] = rows || []; });
+  CAMP_CLAIMS_CACHE = CAMP_CLAIMS_BY_MONTH[month] || [];
+  const totalClaims = monthRows.reduce((sum, [, rows]) => sum + (rows?.length || 0), 0);
+  console.log(`[campProg] Loaded ${CAMPS_CACHE.length} campaigns, ${totalClaims} claims across ${claimMonths.size} month(s)`);
   renderCampaignsMgmt();
 }
 
@@ -1267,9 +1274,49 @@ async function fetchCampClaimsForMonth(month) {
 }
 
 let CAMP_CLAIMS_CACHE = [];
+let CAMP_CLAIMS_BY_MONTH = {};
 let CAMPS_CACHE       = [];
 let CAMPAIGN_MGMT_VIEW = 'current';
 let CAMPAIGN_MGMT_MODE = 'execution';
+
+function campaignMgmtMonthIndex(label) {
+  const [mon, yy] = String(label || '').split(' ');
+  const idx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(mon);
+  const yr = parseInt(yy, 10);
+  if (idx < 0 || !Number.isFinite(yr)) return null;
+  return (2000 + yr) * 12 + idx;
+}
+
+function campaignMgmtMonthLabelFromIndex(idx) {
+  const year = Math.floor(idx / 12);
+  const month = idx % 12;
+  return new Date(year, month, 1).toLocaleDateString('en-US', { month:'short', year:'2-digit' }).replace(',', '');
+}
+
+function campaignMgmtMonthLabelFromDate(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', { month:'short', year:'2-digit' }).replace(',', '');
+}
+
+function campaignMgmtClaimMonths(camp, fallbackMonth='') {
+  const startLabel = campaignMgmtMonthLabelFromDate(camp?.start_date);
+  const endLabel = campaignMgmtMonthLabelFromDate(camp?.deadline);
+  const startIdx = campaignMgmtMonthIndex(startLabel);
+  const endIdx = campaignMgmtMonthIndex(endLabel);
+  const months = [];
+  if (startIdx != null && endIdx != null) {
+    const from = Math.min(startIdx, endIdx);
+    const to = Math.max(startIdx, endIdx);
+    for (let idx = from; idx <= to; idx++) months.push(campaignMgmtMonthLabelFromIndex(idx));
+  } else {
+    if (startLabel) months.push(startLabel);
+    if (endLabel) months.push(endLabel);
+  }
+  if (!months.length && fallbackMonth) months.push(fallbackMonth);
+  return [...new Set(months.filter(Boolean))];
+}
 
 function resetCampaignMgmtForMonth() {
   CAMPAIGN_MGMT_VIEW = 'current';
@@ -2684,6 +2731,22 @@ function renderCampaignsMgmt() {
   const isConversionCamp = camp => camp?.type === 'conversion_simple' || camp?.type === 'conversion_tiered';
   const isFollowupMode = CAMPAIGN_MGMT_MODE === 'followup1' || CAMPAIGN_MGMT_MODE === 'followup2';
 
+  function getCampaignClaims(camp) {
+    const months = campaignMgmtClaimMonths(camp, VIEW_DATA.current_month || '');
+    const seen = new Set();
+    const rows = [];
+    months.forEach(month => {
+      (CAMP_CLAIMS_BY_MONTH[month] || []).forEach(row => {
+        if (row.camp_id !== camp.id) return;
+        const key = `${month}|${row.agent || ''}|${row.camp_id || ''}|${row.debtor_code || ''}|${row.status || ''}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        rows.push(row);
+      });
+    });
+    return rows;
+  }
+
   function _monthIndex(label) {
     const [mon, yy] = String(label || '').split(' ');
     const idx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(mon);
@@ -2830,8 +2893,9 @@ function renderCampaignsMgmt() {
     }
     const pool   = getCampaignPool(camp);
     const listCodes = new Set(pool.map(d => d.code));
-    // Pull Supabase claims for THIS campaign
-    const campClaims = (CAMP_CLAIMS_CACHE || []).filter(r => r.camp_id === camp.id);
+    // Pull Supabase claims for THIS campaign. Expired cards read their campaign month/period,
+    // not the currently selected dashboard month.
+    const campClaims = getCampaignClaims(camp);
 
     const poolByAgent = {};
     const poolCodes = new Set(pool.map(d => (d.code || '').toUpperCase()));
