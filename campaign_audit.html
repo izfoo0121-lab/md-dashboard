@@ -890,7 +890,12 @@ async function renderBirthdayDebtorList(month, agentSel) {
 
   const allRows = [...finalRows, ...removedRows]
     .filter(d => agentSel === 'ALL' || d.agent === agentSel)
-    .sort((a, b) => (a.agent || 'ZZZ').localeCompare(b.agent || 'ZZZ') || a.status.localeCompare(b.status) || a.code.localeCompare(b.code));
+    .sort((a, b) =>
+      (a.agent || 'ZZZ').localeCompare(b.agent || 'ZZZ') ||
+      (a.name || '').localeCompare(b.name || '') ||
+      a.code.localeCompare(b.code) ||
+      a.status.localeCompare(b.status)
+    );
 
   // Bridge: capture export state for birthday view
   _lastAuditExport = {
