@@ -858,8 +858,43 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
         </div>
 
         <!-- Conversion-tiered fields — shown for conversion_tiered type -->
-        <div id="conversion-tiered-fields" style="display:none;">
-          <div class="sec-divider" style="margin-top:14px;">🎯 Conversion-Tiered Settings</div>
+        <div id="conversion-tiered-fields">
+          <div class="sec-divider" style="margin-top:14px;">Campaign Mechanism Builder</div>
+
+          <div class="input-row">
+            <div class="field-wrap">
+              <div class="field-lbl">Mechanism Type</div>
+              <select id="new-camp-mechanism-type">
+                <option value="manual_claim">Manual claim / entitlement</option>
+                <option value="conversion">Conversion</option>
+                <option value="volume_reward">Volume reward / FOC tier</option>
+                <option value="delivery_gift">Delivered gift / list upload</option>
+              </select>
+            </div>
+            <div class="field-wrap">
+              <div class="field-lbl">Conversion Rule</div>
+              <select id="new-camp-conversion-rule">
+                <option value="no_lookback_then_current">No lookback purchase, then current purchase</option>
+                <option value="current_month_only">Current month purchase only</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="input-row">
+            <div class="field-wrap">
+              <div class="field-lbl">Match By</div>
+              <select id="new-camp-qualifying-match">
+                <option value="item_group">Item Group</option>
+                <option value="item_code">Item Code / SKU</option>
+                <option value="brand">Brand</option>
+                <option value="category">Category</option>
+              </select>
+            </div>
+            <div class="field-wrap">
+              <div class="field-lbl">Min RM / CTN</div>
+              <input type="number" id="new-camp-price-floor" min="0" step="0.01" placeholder="41.00">
+            </div>
+          </div>
 
           <div class="input-group">
             <div class="input-label">Lookback Months (comma-separated, e.g. Feb,Mar,Apr)</div>
@@ -876,6 +911,36 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
               style="text-transform:uppercase;">
             <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:4px;">
               Item group that counts as a "conversion" (e.g. EVO)
+            </div>
+          </div>
+
+          <div class="input-row">
+            <div class="field-wrap">
+              <div class="field-lbl">Volume Basis</div>
+              <select id="new-camp-volume-basis">
+                <option value="current_month">Current month</option>
+                <option value="previous_month">Previous month</option>
+                <option value="last_3_month_sum">Last 3 months sum</option>
+                <option value="last_3_month_avg">Last 3 months average</option>
+              </select>
+            </div>
+            <div class="field-wrap">
+              <div class="field-lbl">Sort Debtors By</div>
+              <select id="new-camp-sort-by">
+                <option value="ctn_desc">CTN high to low</option>
+                <option value="rm_desc">RM high to low</option>
+                <option value="growth_desc">Growth high to low</option>
+                <option value="code">Debtor code</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <div class="input-label">Reward / Claim Tiers (optional)</div>
+            <textarea id="new-camp-reward-tiers" rows="4" placeholder="min,max,sku,qty,unit,note&#10;1,5,SKU-A,1,pack,Starter gift&#10;6,10,SKU-B,2,pack,Better gift"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:8px 10px;border-radius:8px;"></textarea>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:4px;">
+              One tier per line. Useful when purchase volume decides which FOC SKU to give.
             </div>
           </div>
 
@@ -3019,6 +3084,151 @@ function applyKpiNumeratorDefaults(scope, type) {
   boxes.forEach(box => { box.checked = defaults.includes(box.value); });
 }
 
+function _campScopeId(scope, field) {
+  return `${scope}-${field}`;
+}
+
+function _campCsv(value) {
+  return String(value || '').split(',').map(s => s.trim()).filter(Boolean);
+}
+
+function _campSetSelectValue(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.value = value || el.value;
+}
+
+function parseCampaignRewardTiers(raw) {
+  return String(raw || '').split(/\r?\n/).map(line => line.trim()).filter(Boolean).map(line => {
+    const [min, max, sku, qty, unit, ...noteParts] = line.split(',').map(v => v.trim());
+    return {
+      min_ctn: min === '' ? null : Number(min),
+      max_ctn: max === '' ? null : Number(max),
+      reward_sku: sku || '',
+      reward_qty: qty === '' ? null : Number(qty),
+      reward_unit: unit || '',
+      note: noteParts.join(', ').trim()
+    };
+  }).filter(t => t.reward_sku || t.reward_qty || t.note);
+}
+
+function formatCampaignRewardTiers(tiers) {
+  return (Array.isArray(tiers) ? tiers : []).map(t => [
+    t.min_ctn ?? '',
+    t.max_ctn ?? '',
+    t.reward_sku || '',
+    t.reward_qty ?? '',
+    t.reward_unit || '',
+    t.note || ''
+  ].join(',')).join('\n');
+}
+
+function campaignMechanismTypeFor(camp, notes = {}) {
+  if (notes.mechanism_type) return notes.mechanism_type;
+  if ((camp.type || '').startsWith('conversion_')) return 'conversion';
+  if (Array.isArray(notes.reward_tiers) && notes.reward_tiers.length) return 'volume_reward';
+  if (camp.type === 'birthday_gift' || camp.type === 'festive_gift' || camp.type === 'free_sample') return 'delivery_gift';
+  return 'manual_claim';
+}
+
+function readCampaignMechanism(scope, type) {
+  const get = field => document.getElementById(_campScopeId(scope, field));
+  const mechanismType = get('mechanism-type')?.value || ((type || '').startsWith('conversion_') ? 'conversion' : 'manual_claim');
+  const matchBy = get('qualifying-match')?.value || 'item_group';
+  const matchValues = _campCsv(get('qualifying-item')?.value || '').map(v => v.toUpperCase());
+  const firstMatch = matchValues[0] || '';
+  const priceFloorRaw = get('price-floor')?.value;
+  const priceFloor = priceFloorRaw === '' || priceFloorRaw == null ? null : Number(priceFloorRaw);
+  const lookbackMonths = _campCsv(get('lookback-months')?.value || '');
+  const rewardTiers = parseCampaignRewardTiers(get('reward-tiers')?.value || '');
+  const notes = {
+    mechanism_type: mechanismType,
+    qualifying_match: matchBy,
+    qualifying_value: firstMatch,
+    qualifying_values: matchValues,
+    qualifying_item_group: firstMatch,
+    min_rm_per_ctn: Number.isFinite(priceFloor) ? priceFloor : null,
+    lookback_months: lookbackMonths,
+    conversion_rule: get('conversion-rule')?.value || 'no_lookback_then_current',
+    volume_basis: get('volume-basis')?.value || 'current_month',
+    sort_by: get('sort-by')?.value || 'ctn_desc',
+    reward_tiers: rewardTiers
+  };
+  if ((type || '').startsWith('conversion_') || mechanismType === 'conversion') {
+    const thresholds = ['tier0','tier1','tier2','tier3'].map((field, idx) => {
+      const fallback = [4, 7, 10, 14][idx];
+      const value = parseInt(get(field)?.value, 10);
+      return Number.isFinite(value) ? value : fallback;
+    });
+    notes.tier_thresholds = thresholds;
+    notes.tier_names = ['BASELINE', 'TIER 1', 'TIER 2', 'TIER 3'];
+  }
+  return notes;
+}
+
+function renderCampaignMechanismFields(scope, camp = {}) {
+  const notes = camp.notes || {};
+  const mechanismType = campaignMechanismTypeFor(camp, notes);
+  const matchValues = notes.qualifying_values || (notes.qualifying_value ? [notes.qualifying_value] : (notes.qualifying_item_group ? [notes.qualifying_item_group] : []));
+  const thresholds = Array.isArray(notes.tier_thresholds) && notes.tier_thresholds.length ? notes.tier_thresholds : [4, 7, 10, 14];
+  return `<div style="border:1px solid var(--border);border-radius:10px;padding:10px;margin:10px 0;background:var(--bg);">
+    <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Mechanism settings</div>
+    <div class="input-row">
+      <div class="field-wrap"><div class="field-lbl">Mechanism Type</div><select id="${_campScopeId(scope,'mechanism-type')}">
+        <option value="manual_claim" ${mechanismType==='manual_claim'?'selected':''}>Manual claim / entitlement</option>
+        <option value="conversion" ${mechanismType==='conversion'?'selected':''}>Conversion</option>
+        <option value="volume_reward" ${mechanismType==='volume_reward'?'selected':''}>Volume reward / FOC tier</option>
+        <option value="delivery_gift" ${mechanismType==='delivery_gift'?'selected':''}>Delivered gift / list upload</option>
+      </select></div>
+      <div class="field-wrap"><div class="field-lbl">Conversion Rule</div><select id="${_campScopeId(scope,'conversion-rule')}">
+        <option value="no_lookback_then_current" ${(notes.conversion_rule||'no_lookback_then_current')==='no_lookback_then_current'?'selected':''}>No lookback purchase, then current purchase</option>
+        <option value="current_month_only" ${notes.conversion_rule==='current_month_only'?'selected':''}>Current month purchase only</option>
+      </select></div>
+    </div>
+    <div class="input-row">
+      <div class="field-wrap"><div class="field-lbl">Match By</div><select id="${_campScopeId(scope,'qualifying-match')}">
+        <option value="item_group" ${(notes.qualifying_match||'item_group')==='item_group'?'selected':''}>Item Group</option>
+        <option value="item_code" ${notes.qualifying_match==='item_code'?'selected':''}>Item Code / SKU</option>
+        <option value="brand" ${notes.qualifying_match==='brand'?'selected':''}>Brand</option>
+        <option value="category" ${notes.qualifying_match==='category'?'selected':''}>Category</option>
+      </select></div>
+      <div class="field-wrap"><div class="field-lbl">Match Value(s)</div><input id="${_campScopeId(scope,'qualifying-item')}" value="${matchValues.join(', ').replace(/"/g,'&quot;')}" placeholder="EVO or TR-002"></div>
+      <div class="field-wrap"><div class="field-lbl">Min RM / CTN</div><input type="number" min="0" step="0.01" id="${_campScopeId(scope,'price-floor')}" value="${notes.min_rm_per_ctn ?? notes.price_floor ?? ''}" placeholder="41.00"></div>
+    </div>
+    <div class="input-group"><div class="input-label">Lookback Months</div><input id="${_campScopeId(scope,'lookback-months')}" value="${(notes.lookback_months||[]).join(', ').replace(/"/g,'&quot;')}" placeholder="Feb,Mar,Apr"></div>
+    <div class="input-row">
+      <div class="field-wrap"><div class="field-lbl">Volume Basis</div><select id="${_campScopeId(scope,'volume-basis')}">
+        <option value="current_month" ${(notes.volume_basis||'current_month')==='current_month'?'selected':''}>Current month</option>
+        <option value="previous_month" ${notes.volume_basis==='previous_month'?'selected':''}>Previous month</option>
+        <option value="last_3_month_sum" ${notes.volume_basis==='last_3_month_sum'?'selected':''}>Last 3 months sum</option>
+        <option value="last_3_month_avg" ${notes.volume_basis==='last_3_month_avg'?'selected':''}>Last 3 months average</option>
+      </select></div>
+      <div class="field-wrap"><div class="field-lbl">Sort Debtors By</div><select id="${_campScopeId(scope,'sort-by')}">
+        <option value="ctn_desc" ${(notes.sort_by||'ctn_desc')==='ctn_desc'?'selected':''}>CTN high to low</option>
+        <option value="rm_desc" ${notes.sort_by==='rm_desc'?'selected':''}>RM high to low</option>
+        <option value="growth_desc" ${notes.sort_by==='growth_desc'?'selected':''}>Growth high to low</option>
+        <option value="code" ${notes.sort_by==='code'?'selected':''}>Debtor code</option>
+      </select></div>
+    </div>
+    <div class="input-group"><div class="input-label">Reward / Claim Tiers</div><textarea id="${_campScopeId(scope,'reward-tiers')}" rows="3" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:8px 10px;border-radius:8px;" placeholder="min,max,sku,qty,unit,note">${formatCampaignRewardTiers(notes.reward_tiers)}</textarea></div>
+    <div class="input-row">
+      ${['Baseline','Tier 1','Tier 2','Tier 3'].map((label, idx) => `<div class="field-wrap"><div class="field-lbl">${label}</div><input type="number" min="1" id="${_campScopeId(scope,'tier'+idx)}" value="${thresholds[idx] || [4,7,10,14][idx]}"></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function renderCampaignMechanismSummary(camp) {
+  const notes = camp.notes || {};
+  const bits = [];
+  const mechanismType = campaignMechanismTypeFor(camp, notes).replace(/_/g, ' ');
+  bits.push(mechanismType);
+  const match = notes.qualifying_value || notes.qualifying_item_group;
+  if (match) bits.push(`${notes.qualifying_match || 'item_group'}: ${match}`);
+  if (notes.min_rm_per_ctn || notes.price_floor) bits.push(`>= RM${notes.min_rm_per_ctn || notes.price_floor}`);
+  if (Array.isArray(notes.reward_tiers) && notes.reward_tiers.length) bits.push(`${notes.reward_tiers.length} reward tiers`);
+  if (!bits.length) return '';
+  return `<div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:4px;">Mechanism: ${bits.join(' · ')}</div>`;
+}
+
 function isDynamicCampaignMonth(monthLabel) {
   // Q5=A: May 26 onward uses dynamic per-campaign KPI
   const [monStr, yrStr] = String(monthLabel || '').split(' ');
@@ -4972,6 +5182,7 @@ function _campFromDb(row, rulesByCampaign, debtorsByCampaign) {
     brand: brands.length === 1 ? brands[0] : '',
     brands,
     description: row.description || '',
+    notes: row.notes || {},
     promo_detail: row.promo_detail || '',
     min_order_ctn: row.min_order_ctn ?? null,
     cat_rules: catRules,
@@ -5504,26 +5715,10 @@ async function createCampaign() {
     foc_note:          focNote,
     festive_occasion:  festive,
     kpi_numerators:    kpiNumerators,
+    notes:             readCampaignMechanism('new-camp', type),
     created_at:new Date().toISOString().split('T')[0],
     deadline, active:true, debtors:_campFileDebtors,
   };
-
-  if (type === 'conversion_tiered') {
-    const lookbackRaw = document.getElementById('new-camp-lookback-months')?.value || '';
-    const lookbackMonths = lookbackRaw.split(',').map(s => s.trim()).filter(Boolean);
-    const qualItem = document.getElementById('new-camp-qualifying-item')?.value.trim().toUpperCase() || 'EVO';
-    const t0 = parseInt(document.getElementById('new-camp-tier0')?.value) || 4;
-    const t1 = parseInt(document.getElementById('new-camp-tier1')?.value) || 7;
-    const t2 = parseInt(document.getElementById('new-camp-tier2')?.value) || 10;
-    const t3 = parseInt(document.getElementById('new-camp-tier3')?.value) || 14;
-
-    camp.notes = {
-      lookback_months: lookbackMonths,
-      qualifying_item_group: qualItem,
-      tier_thresholds: [t0, t1, t2, t3],
-      tier_names: ["BASELINE", "TIER 1", "TIER 2", "TIER 3"],
-    };
-  }
 
   let insertedCampaign = false;
   try {
@@ -5556,7 +5751,8 @@ async function createCampaign() {
   // Reset form
   ['new-camp-name','new-camp-desc','new-camp-deadline','new-camp-file',
    'new-camp-promo','new-camp-min-order',
-   'new-camp-foc-item','new-camp-foc-qty','new-camp-foc-note'].forEach(id=>{
+   'new-camp-foc-item','new-camp-foc-qty','new-camp-foc-note',
+   'new-camp-price-floor','new-camp-reward-tiers'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
   document.getElementById('camp-file-preview').textContent='';
@@ -5655,7 +5851,11 @@ function toggleBrandFields(type) {
     type === 'festive_gift' ? 'block' : 'none';
   const convFields = document.getElementById('conversion-tiered-fields');
   if (convFields) {
-    convFields.style.display = type === 'conversion_tiered' ? 'block' : 'none';
+    convFields.style.display = 'block';
+  }
+  const mechanism = document.getElementById('new-camp-mechanism-type');
+  if (mechanism && (type || '').startsWith('conversion_')) {
+    mechanism.value = 'conversion';
   }
 }
 
@@ -5695,6 +5895,7 @@ function renderCampaignsList() {
             <input type="text" id="camp-edit-promo-${c.id}" value="${(c.promo_detail||'').replace(/"/g,'&quot;')}" placeholder="Promo detail (e.g. 买10条送4条 BISON)"
               style="width:100%;font-family:var(--body);font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);margin-bottom:6px;">
             ${renderKpiNumeratorsGroup('camp-edit-' + c.id, getCampaignNumerators(c), { note: '(changing this can affect saved per-agent targets)' })}
+            ${renderCampaignMechanismFields('camp-edit-' + c.id, c)}
             <div style="display:flex;gap:6px;">
               <input type="date" id="camp-edit-deadline-${c.id}" value="${c.deadline||''}"
                 style="flex:1;font-family:var(--mono);font-size:11px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);">
@@ -5705,6 +5906,7 @@ function renderCampaignsList() {
           ${c.brand?`<span style="font-family:var(--mono);font-size:9px;background:rgba(200,56,26,.1);color:#c8381a;padding:2px 8px;border-radius:8px;border:1px solid rgba(200,56,26,.3);margin-top:6px;display:inline-block;">${c.brand}</span>`:''}
           ${c.promo_detail?`<div id="camp-promo-disp-${c.id}" style="font-family:var(--mono);font-size:10px;color:var(--green);margin-top:4px;font-weight:600;">💬 "${c.promo_detail}"</div>`:''}
           ${c.default_foc_item?`<div style="font-family:var(--mono);font-size:9px;color:#888;margin-top:2px;">🎁 Default FOC: ${c.default_foc_item} × ${c.default_foc_qty} ${c.default_foc_unit||''}</div>`:''}
+          ${renderCampaignMechanismSummary(c)}
         </div>
         <div style="display:flex;gap:6px;margin-left:8px;flex-shrink:0;">
           <button onclick="editCampaign('${c.id}')" style="background:none;border:1px solid var(--border);color:var(--blue);font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">✏ Edit</button>
@@ -5755,7 +5957,8 @@ async function saveCampEdit(id) {
     description: desc ?? '',
     promo_detail: promo ?? '',
     deadline: deadline || camp.deadline || null,
-    kpi_numerators: newNums
+    kpi_numerators: newNums,
+    notes: readCampaignMechanism('camp-edit-' + id, camp.type)
   };
   try {
     await _campPatchCampaign(id, payload);
@@ -5764,6 +5967,7 @@ async function saveCampEdit(id) {
     camp.promo_detail = payload.promo_detail || '';
     camp.deadline     = payload.deadline || '';
     camp.kpi_numerators = payload.kpi_numerators;
+    camp.notes = payload.notes || {};
     saveCampaignsData();
     renderCampaignsList();
   } catch(e) {
