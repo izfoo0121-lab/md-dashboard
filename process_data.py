@@ -1571,6 +1571,28 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 prev2_m: item_breakdown(prev2_m),
             }
 
+            # Invoice-basis 4-month SKU history for the "未购买" filter.
+            # The visible CTN cards stay paid-basis, but purchase-existence
+            # checks need current + 3 previous invoice months.
+            _unp_col = "tranx_mth_full" if "tranx_mth_full" in d_invoice_rows.columns else "paid_on"
+            def unpurchased_item_breakdown(month_label):
+                if d_invoice_rows.empty:
+                    return []
+                m_rows = d_invoice_rows[d_invoice_rows[_unp_col] == month_label]
+                if m_rows.empty:
+                    return []
+                grp = m_rows.groupby("item_code")["qty_ctn"].sum().reset_index()
+                grp = grp[grp["qty_ctn"] > 0].sort_values("qty_ctn", ascending=False)
+                return [{"item": str(r["item_code"]), "ctn": round(float(r["qty_ctn"]), 1)}
+                        for _, r in grp.iterrows()]
+
+            unpurchased_breakdown = {
+                cur_m:   unpurchased_item_breakdown(cur_m),
+                prev1_m: unpurchased_item_breakdown(prev1_m),
+                prev2_m: unpurchased_item_breakdown(prev2_m),
+                prev3_m: unpurchased_item_breakdown(prev3_m),
+            }
+
             # Volume drop
             volume_drop_pct = None
             if ctn_prev1 > 0 and ctn_cur < ctn_prev1:
@@ -1725,6 +1747,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 "ctn_prev2":          ctn_prev2,
                 "avg_ctn_3m":         avg_ctn,
                 "month_breakdown":    month_breakdown,
+                "unpurchased_breakdown": unpurchased_breakdown,
                 "volume_drop_pct":    volume_drop_pct,
                 "trend":              trend,
                 "sku_status":         sku_status,

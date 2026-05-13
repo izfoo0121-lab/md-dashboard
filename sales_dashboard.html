@@ -1993,7 +1993,8 @@ function renderUnpurchasedMode(debtors) {
   Object.keys(UNPURCHASED_BRAND_ITEMS).forEach(brand => {
     const items = UNPURCHASED_BRAND_ITEMS[brand];
     brandNeverBought[brand] = eligible.filter(d => {
-      const total = Object.values(d.month_breakdown || {})
+      const purchaseBreakdown = d.unpurchased_breakdown || d.month_breakdown || {};
+      const total = Object.values(purchaseBreakdown)
         .flat()
         .filter(r => items.includes(r.item))
         .reduce((s, r) => s + (r.ctn || 0), 0);
