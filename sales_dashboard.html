@@ -4879,12 +4879,26 @@ function saveBdayGift(debtorCode, month, sent, btn) {
   const key = `bday_gift_${currentAgent}_${debtorCode}_${month}`;
   const noteKey = `bday_note_${currentAgent}_${debtorCode}_${month}`;
   const note = document.getElementById('bday-popup-note')?.value || '';
+  const auditMonth = DATA?.current_month || '';
   if (sent) {
     localStorage.setItem(key, '1');
     localStorage.setItem(noteKey, note);
+    if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+      GistSync.saveClaim(auditMonth, currentAgent, 'birthday_gift_auto', debtorCode, {
+        status: 'delivered',
+        campType: 'birthday_gift',
+        remark: note,
+        actor: 'agent',
+        ts: new Date().toISOString(),
+        count: 1
+      }).catch(()=>{});
+    }
   } else {
     localStorage.removeItem(key);
     localStorage.removeItem(noteKey);
+    if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+      GistSync.removeClaim(auditMonth, currentAgent, 'birthday_gift_auto', debtorCode).catch(()=>{});
+    }
   }
   btn.closest('div[style*=fixed]').remove();
   renderDebtors();

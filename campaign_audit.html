@@ -51,10 +51,10 @@
 
     /* Agent section */
     .agent-section{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;}
-    .agent-hdr{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;}
+    .agent-hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;}
     .agent-hdr:hover{background:rgba(255,255,255,.02);}
     .agent-name{font-family:var(--display);font-size:20px;letter-spacing:.05em;}
-    .agent-stats{display:flex;gap:10px;align-items:center;}
+    .agent-stats{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
     .stat-chip{font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:10px;}
     .stat-chip.done{background:rgba(61,220,132,.15);color:var(--green);border:1px solid rgba(61,220,132,.25);}
     .stat-chip.pending{background:rgba(106,104,122,.1);color:var(--muted);border:1px solid var(--border);}
@@ -92,7 +92,11 @@
     .audit-btn.undo:hover{color:var(--text);}
 
     /* Collapsed */
-    .claims-body.collapsed{display:none;}
+    .agent-section.is-collapsed .claims-body,.agent-section.is-collapsed .prog-bar{display:none;}
+    .agent-section.is-collapsed .agent-hdr{border-bottom:0;}
+    .agent-toggle{font-family:var(--mono);font-size:10px;color:var(--muted);min-width:18px;text-align:center;}
+    .audit-mini-btn{font-family:var(--mono);font-size:10px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;}
+    .audit-mini-btn:hover{color:var(--text);border-color:rgba(255,255,255,.25);}
 
     /* Empty */
     .empty{text-align:center;padding:40px 20px;color:var(--muted);font-family:var(--mono);font-size:11px;}
@@ -221,6 +225,8 @@ window.addEventListener('DOMContentLoaded', () => {
   </select>
   <button class="export-btn" onclick="exportAuditCSV()">⬇ Export CSV</button>
   <button class="export-btn" onclick="window.location.href='admin.html'" style="background:rgba(61,220,132,.15);border-color:rgba(61,220,132,.4);color:var(--green);" title="Use admin.html's bulk-mark with pre-validation">📥 Bulk Mark (admin)</button>
+  <button class="audit-mini-btn" onclick="setAllAgentSections(false)">▸ Collapse All</button>
+  <button class="audit-mini-btn" onclick="setAllAgentSections(true)">▾ Expand All</button>
   <input type="file" id="claims-restore-input" accept=".json" style="display:none;" onchange="doRestoreClaims(this)">
 </div>
 
@@ -257,8 +263,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
 <script>
 const AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','YI'];
-const CAMP_EMOJI = {free_sample:'🎁',foc_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',voucher:'🎟️',conversion_tiered:'🎯',other:'📋'};
-const CAMP_LABEL = {free_sample:'FOC Sample',foc_sample:'FOC Sample',birthday_gift:'Birthday Gift',promotion:'Brand Promo',festive_gift:'Festive Gift',other:'Other'};
+const CAMP_EMOJI = {free_sample:'🎁',foc_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',voucher:'🎟️',conversion_tiered:'🎯',conversion_simple:'🎯',other:'📋'};
+const CAMP_LABEL = {free_sample:'FOC Sample',foc_sample:'FOC Sample',birthday_gift:'Birthday Gift',promotion:'Brand Promo',festive_gift:'Festive Gift',conversion_tiered:'Conversion',conversion_simple:'Conversion',other:'Other'};
 
 let DASH_DATA  = null;   // current month data
 let CAMP_DATA  = null;   // campaigns.json
@@ -585,7 +591,10 @@ function renderAudit() {
     if (agentSel !== 'ALL' && agent !== agentSel) return;
     if (activeCampId !== 'ALL' && campId !== activeCampId) return;
 
-    const camp = allCamps.find(c => c.id === campId) || { id:campId, name:campId, type:'other' };
+    const camp = allCamps.find(c => c.id === campId)
+      || (campId === 'birthday_gift_auto'
+        ? { id:campId, name:'Birthday Gift', type:'birthday_gift' }
+        : { id:campId, name:campId, type:'other' });
     const debtor = debtorByAgentCode[`${agent}|${debtorCode}`] || {
       debtor_code: debtorCode,
       company_name: debtorCode,
@@ -716,7 +725,7 @@ function renderAudit() {
             style="background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.3);color:var(--green);font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;margin-left:6px;">
             ✓ Approve all ${agent}
           </button>
-          <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">▾</span>
+          <span class="agent-toggle">▾</span>
         </div>
       </div>
       <div class="prog-bar"><div class="prog-fill" style="width:${agentPct}%;background:${progColor};"></div></div>
@@ -949,9 +958,19 @@ async function renderBirthdayDebtorList(month, agentSel) {
 }
 
 function toggleAgentSection(hdr) {
-  const agent   = hdr.querySelector('.agent-name').textContent;
-  const body    = document.getElementById('claims-'+agent);
-  if (body) body.classList.toggle('collapsed');
+  const section = hdr.closest('.agent-section');
+  if (!section) return;
+  const collapsed = section.classList.toggle('is-collapsed');
+  const icon = section.querySelector('.agent-toggle');
+  if (icon) icon.textContent = collapsed ? '▸' : '▾';
+}
+
+function setAllAgentSections(expand) {
+  document.querySelectorAll('.agent-section').forEach(section => {
+    section.classList.toggle('is-collapsed', !expand);
+    const icon = section.querySelector('.agent-toggle');
+    if (icon) icon.textContent = expand ? '▾' : '▸';
+  });
 }
 
 // ── Audit actions ──────────────────────────────────────────────────────────
