@@ -165,6 +165,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .dc-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
 .dc-phone{color:var(--blue);text-decoration:none;font-family:var(--mono);font-size:10px;display:flex;align-items:center;gap:3px;}
 .dc-badges{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;}
+:root[data-theme="light"] .debtor-card{border-bottom:1px solid var(--border);}
+:root[data-theme="light"] .dc-collapsible.expanded{background:rgba(255,255,255,.38);border-top:1px solid var(--border);padding-top:10px;margin-top:10px;}
+:root[data-theme="light"] .dc-badges > div{background:#fffdf8!important;border:1px solid #d8cdb8!important;box-shadow:0 1px 0 rgba(60,45,20,.05);}
+:root[data-theme="light"] .dc-badges button{background:#fff8e8!important;border-color:#cdbd9e!important;color:var(--text)!important;}
+:root[data-theme="light"] .status-inline{border:1px solid rgba(120,105,75,.18);}
 
 /* CTN 3-month bars */
 .ctn-section{margin:8px 0;}
@@ -175,6 +180,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .ctn-col-val{font-family:var(--mono);font-size:12px;font-weight:500;}
 .ctn-col-lbl{font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:1px;}
 .ctn-col.cur{background:rgba(77,166,255,.1);border:1px solid rgba(77,166,255,.2);}
+:root[data-theme="light"] .ctn-col{background:#fffdf8;border:1px solid #eadfcd;}
+:root[data-theme="light"] .ctn-col.cur{background:#e8f3ff;border-color:#a9d0f5;}
 
 /* SKU row */
 .sku-section{margin-top:8px;}
