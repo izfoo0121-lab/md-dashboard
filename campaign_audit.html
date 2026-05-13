@@ -611,17 +611,19 @@ function renderAudit() {
     records.push({ camp, agent, debtor, campEntry, claim, audit });
   });
 
-  // For a specific campaign tab, show the full entitlement/enrollment list,
-  // even before agents mark claimed. Claims still overlay audit status.
-  if (activeCampId !== 'ALL') {
-    const selectedCamp = allCamps.find(c => c.id === activeCampId)
-      || { id:activeCampId, name:activeCampId, type:'other' };
+  // Show full entitlement/enrollment lists, even before agents mark claimed.
+  // In ALL mode this includes every active campaign for the month.
+  const entitlementCamps = activeCampId === 'ALL'
+    ? allCamps.filter(c => c.active && c.id !== 'birthday_gift_auto' && isCampaignActiveInMonth(c, month))
+    : [allCamps.find(c => c.id === activeCampId) || { id:activeCampId, name:activeCampId, type:'other' }];
+
+  entitlementCamps.forEach(selectedCamp => {
     Object.entries(debtorByAgentCode).forEach(([lookupKey, debtor]) => {
       const [agent, debtorCode] = lookupKey.split('|');
       if (agentSel !== 'ALL' && agent !== agentSel) return;
-      const campEntry = (debtor.campaigns || []).find(c => c.id === activeCampId);
+      const campEntry = (debtor.campaigns || []).find(c => c.id === selectedCamp.id);
       if (!campEntry) return;
-      const recordKey = `${agent}|${activeCampId}|${debtorCode}`;
+      const recordKey = `${agent}|${selectedCamp.id}|${debtorCode}`;
       if (seen.has(recordKey)) return;
       records.push({
         camp: selectedCamp,
@@ -632,7 +634,7 @@ function renderAudit() {
         audit: null
       });
     });
-  }
+  });
 
   // Sort by agent first so the audit list is easy to work through by salesman.
   records.sort((a, b) => {
@@ -679,7 +681,7 @@ function renderAudit() {
   };
 
   document.getElementById('summary-row').innerHTML = `
-    <div class="sum-card"><div class="sum-val b">${total}</div><div class="sum-lbl">${activeCampId === 'ALL' ? 'Total Claims' : 'Entitled'}</div></div>
+    <div class="sum-card"><div class="sum-val b">${total}</div><div class="sum-lbl">${activeCampId === 'ALL' ? 'Total Records' : 'Entitled'}</div></div>
     <div class="sum-card"><div class="sum-val g">${claimed}</div><div class="sum-lbl">Submitted</div></div>
     <div class="sum-card"><div class="sum-val b">${verified}</div><div class="sum-lbl">Verified ✓</div></div>
     <div class="sum-card"><div class="sum-val r">${rejected}</div><div class="sum-lbl">Rejected ✗</div></div>
