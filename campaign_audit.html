@@ -711,7 +711,7 @@ function renderAudit() {
       </div>`;
     }).join('');
 
-    return `<div class="agent-section">
+    return `<div class="agent-section is-collapsed">
       <div class="agent-hdr" onclick="toggleAgentSection(this)">
         <div class="agent-name">${agent}</div>
         <div class="agent-stats">
@@ -725,7 +725,7 @@ function renderAudit() {
             style="background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.3);color:var(--green);font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;margin-left:6px;">
             ✓ Approve all ${agent}
           </button>
-          <span class="agent-toggle">▾</span>
+          <span class="agent-toggle">▸</span>
         </div>
       </div>
       <div class="prog-bar"><div class="prog-fill" style="width:${agentPct}%;background:${progColor};"></div></div>
