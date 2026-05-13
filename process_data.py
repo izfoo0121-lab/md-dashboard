@@ -1520,6 +1520,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
         for dcode in all_debtor_codes:
             d_rows = ag_data[ag_data["debtor_code"] == dcode]
             d_invoice_rows = ag_invoice_data[ag_invoice_data["debtor_code"] == dcode]
+            d_all_invoice_rows = canggih_invoiced[canggih_invoiced["debtor_code"] == dcode]
             d_hist_rows = canggih_paid[canggih_paid["debtor_code"] == dcode]
 
             # Activation status
@@ -1718,7 +1719,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 _camps = _calc_camp_progress(
                     dcode, agent, (campaign_map or {}),
                     d_rows, cur_m, area_groups,
-                    invoice_rows=d_invoice_rows
+                    invoice_rows=d_all_invoice_rows
                 )
 
             debtor_cards.append({
