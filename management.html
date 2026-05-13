@@ -782,7 +782,7 @@ function populateMonthSelectorFromIndex(months) {
 function onMonthChange(val) {
   if (val === 'current' || !val) {
     CURRENT_DATA = DATA;
-    renderOverview();
+    renderSelectedMonthOverview();
     return;
   }
 
@@ -798,7 +798,7 @@ function onMonthChange(val) {
     })
     .then(monthData => {
       CURRENT_DATA = monthData;
-      renderOverview();
+      renderSelectedMonthOverview();
       if (loadBtn) loadBtn.disabled = false;
     })
     .catch(e => {
@@ -809,11 +809,17 @@ function onMonthChange(val) {
         const rows = HISTORY_MONTHLY.filter(r => r.Month === month);
         if (rows.length) {
           CURRENT_DATA = buildDataFromHistory(rows, month);
-          renderOverview();
+          renderSelectedMonthOverview();
         }
       }
       if (loadBtn) loadBtn.disabled = false;
     });
+}
+
+function renderSelectedMonthOverview() {
+  resetCampaignMgmtForMonth();
+  renderOverview();
+  loadCampaignSection().catch(e => console.warn('[mgmt] campaign month reload failed:', e));
 }
 
 function buildDataFromHistory(rows, month) {
@@ -1210,7 +1216,7 @@ const SupabaseKpiSync = (() => {
 
 async function loadCampaignSection() {
   // Fetch campaigns.json + all claims for current month in parallel, then render.
-  const month = DATA?.current_month || '';
+  const month = (CURRENT_DATA || DATA)?.current_month || '';
   const [campsRes, supaClaims] = await Promise.all([
     fetch('campaigns.json?v=' + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null),
     fetchCampClaimsForMonth(month),
@@ -1264,6 +1270,11 @@ let CAMP_CLAIMS_CACHE = [];
 let CAMPS_CACHE       = [];
 let CAMPAIGN_MGMT_VIEW = 'current';
 let CAMPAIGN_MGMT_MODE = 'execution';
+
+function resetCampaignMgmtForMonth() {
+  CAMPAIGN_MGMT_VIEW = 'current';
+  CAMPAIGN_MGMT_MODE = 'execution';
+}
 
 async function pullGistData() {
   if (!GistSync.isConfigured()) return;
@@ -2565,25 +2576,63 @@ function renderCampaignsMgmt() {
   if (!managedCampaigns.length) { section.style.display = 'none'; return; }
   section.style.display = 'block';
 
-  function isExpiredCampaign(camp) {
-    if (!camp.deadline) return false;
-    const d = new Date(camp.deadline);
-    if (isNaN(d.getTime())) return false;
-    d.setHours(23, 59, 59, 999);
-    return d.getTime() < Date.now();
+  function selectedMonthBounds() {
+    const label = (CURRENT_DATA || DATA || {}).current_month || DATA?.current_month || '';
+    const [mon, yy] = String(label).split(' ');
+    const monthIdx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(mon);
+    const year = 2000 + (parseInt(yy, 10) || 0);
+    if (monthIdx < 0 || !year) {
+      const now = new Date();
+      return {
+        start: new Date(now.getFullYear(), now.getMonth(), 1),
+        end: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999),
+      };
+    }
+    return {
+      start: new Date(year, monthIdx, 1),
+      end: new Date(year, monthIdx + 1, 0, 23, 59, 59, 999),
+    };
   }
 
-  const currentCampaigns = managedCampaigns.filter(c => !isExpiredCampaign(c));
-  const expiredCampaigns = managedCampaigns.filter(c => isExpiredCampaign(c));
+  function parseCampaignDate(value, endOfDay=false) {
+    if (!value) return null;
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return null;
+    if (endOfDay) d.setHours(23, 59, 59, 999);
+    else d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  function campaignMonthStartFromDeadline(camp) {
+    const deadline = parseCampaignDate(camp.deadline);
+    return deadline ? new Date(deadline.getFullYear(), deadline.getMonth(), 1) : null;
+  }
+
+  const viewMonth = selectedMonthBounds();
+  function isCampaignActiveInSelectedMonth(camp) {
+    const start = parseCampaignDate(camp.start_date) || campaignMonthStartFromDeadline(camp);
+    const end = parseCampaignDate(camp.deadline, true);
+    if (start && start > viewMonth.end) return false;
+    if (end && end < viewMonth.start) return false;
+    return true;
+  }
+  function isExpiredBeforeSelectedMonth(camp) {
+    const end = parseCampaignDate(camp.deadline, true);
+    return !!end && end < viewMonth.start;
+  }
+
+  const currentCampaigns = managedCampaigns.filter(c => isCampaignActiveInSelectedMonth(c));
+  const expiredCampaigns = managedCampaigns.filter(c => isExpiredBeforeSelectedMonth(c));
   const active = CAMPAIGN_MGMT_VIEW === 'expired' ? expiredCampaigns : currentCampaigns;
 
-  const AGENTS = Object.keys(DATA?.agents || {});
+  const VIEW_DATA = CURRENT_DATA || DATA || {};
+  const AGENTS = Object.keys(VIEW_DATA.agents || {});
 
   // Build debtor name lookup across ALL agents' debtor_cards.
   // Used to resolve off-list debtor codes → friendly names.
   const debtorNameMap = {};  // UPPER(code) → "NAME" or "NAME (owner: AGENT)"
   AGENTS.forEach(ag => {
-    const cards = DATA?.agents?.[ag]?.debtor_cards || {};
+    const cards = VIEW_DATA?.agents?.[ag]?.debtor_cards || {};
     Object.entries(cards).forEach(([code, d]) => {
       const key = (code || '').toUpperCase();
       if (!debtorNameMap[key]) {
@@ -2611,7 +2660,7 @@ function renderCampaignsMgmt() {
   function getCampaignPool(camp) {
     const isBday = camp.type === 'birthday_gift' || camp.id === 'birthday_gift_auto';
     if (isBday) {
-      const D = CURRENT_DATA || DATA || {};
+      const D = VIEW_DATA;
       const month = D.current_month || DATA?.current_month || '';
       const bdayRows = D?.birthday_by_month?.[month]?.debtors
                     || D?.birthday_campaign?.debtors
@@ -2661,7 +2710,7 @@ function renderCampaignsMgmt() {
   }
   function _debtorLookupByCode() {
     const out = {};
-    Object.entries((DATA || CURRENT_DATA || {}).agents || {}).forEach(([agent, a]) => {
+    Object.entries(VIEW_DATA.agents || {}).forEach(([agent, a]) => {
       (a?.debtor_cards?.debtors || []).forEach(d => {
         const code = (d.debtor_code || '').toUpperCase();
         if (code && !out[code]) out[code] = { agent, debtor: d };
@@ -2685,7 +2734,7 @@ function renderCampaignsMgmt() {
     const notes = camp.notes || {};
     const baseMonth = _campaignMonth(camp);
     const followMonth = _monthAdd(baseMonth, followOffset);
-    const currentIdx = _monthIndex((DATA || CURRENT_DATA || {}).current_month || '');
+    const currentIdx = _monthIndex(VIEW_DATA.current_month || '');
     const followIdx = _monthIndex(followMonth);
     const unavailable = followIdx != null && currentIdx != null && followIdx > currentIdx;
     const enabled = !!notes.follow_up_enabled;
@@ -2744,7 +2793,7 @@ function renderCampaignsMgmt() {
     if (isConversion) {
       const perAgent = {};
       AGENTS.forEach(ag => {
-        const rollup = DATA?.agents?.[ag]?.conversion_campaigns?.[camp.id] || {};
+        const rollup = VIEW_DATA?.agents?.[ag]?.conversion_campaigns?.[camp.id] || {};
         const enrolled = Number(rollup.enrolled_count || 0);
         const converted = Number(rollup.converted_count || 0);
         const convertedCtn = Number(rollup.converted_ctn || 0);
