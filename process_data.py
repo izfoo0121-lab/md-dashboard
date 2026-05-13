@@ -1546,17 +1546,18 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             last_date = d_rows["date_parsed"].max() if not d_rows.empty else None
             last_date_str = last_date.strftime("%d/%m/%Y") if last_date and pd.notnull(last_date) else ""
 
-            # 3-month CTN
-            ctn_cur   = round(float(d_rows[d_rows["paid_on"] == cur_m]["qty_ctn"].sum()), 2)   if not d_rows.empty else 0.0
-            ctn_prev1 = round(float(d_hist_rows[d_hist_rows["paid_on"] == prev1_m]["qty_ctn"].sum()), 2) if not d_hist_rows.empty else 0.0
-            ctn_prev2 = round(float(d_hist_rows[d_hist_rows["paid_on"] == prev2_m]["qty_ctn"].sum()), 2) if not d_hist_rows.empty else 0.0
+            # 3-month CTN and item breakdown use invoice month.
+            # This matches SKU/brand penetration convention and makes the tap popup
+            # show the same month basis as the visible CTN cards.
+            _bd_col = "tranx_mth_full" if "tranx_mth_full" in d_invoice_rows.columns else "paid_on"
+            ctn_cur = round(float(d_invoice_rows[d_invoice_rows[_bd_col] == cur_m]["qty_ctn"].sum()), 2) if not d_invoice_rows.empty else 0.0
+            ctn_prev1 = round(float(d_invoice_rows[d_invoice_rows[_bd_col] == prev1_m]["qty_ctn"].sum()), 2) if not d_invoice_rows.empty else 0.0
+            ctn_prev2 = round(float(d_invoice_rows[d_invoice_rows[_bd_col] == prev2_m]["qty_ctn"].sum()), 2) if not d_invoice_rows.empty else 0.0
 
-            # Item breakdown per month for the CTN tap popup.
-            # This must match the visible CTN cards, which are paid-month based.
-            _bd_col = "paid_on"
             def item_breakdown(month_label):
-                source_rows = d_rows if month_label == cur_m else d_hist_rows
-                m_rows = source_rows[source_rows[_bd_col] == month_label]
+                if d_invoice_rows.empty:
+                    return []
+                m_rows = d_invoice_rows[d_invoice_rows[_bd_col] == month_label]
                 if m_rows.empty:
                     return []
                 grp = m_rows.groupby("item_code")["qty_ctn"].sum().reset_index()
