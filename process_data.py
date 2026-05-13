@@ -1467,6 +1467,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
     }
 
     result = {}
+    active_agent_names = {str(a).strip().upper() for a in agents}
     orphan_debtors = []
 
     for agent in agents:
@@ -1498,12 +1499,28 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
         ]
         for code in _orphan_tx_codes:
             orphan_debtors.append({"agent": agent, "debtor_code": code})
+        def _tx_code_belongs_to_agent_or_legacy(code):
+            """Allow TX fallback only when the debtor is not owned by another active agent."""
+            info = debtor_info.get(code, {})
+            assigned_agent = str(info.get("agent", "") or "").strip().upper()
+            return assigned_agent == agent.upper() or assigned_agent not in active_agent_names
+
+        _cross_agent_tx_codes = [
+            c for c in tx_codes_raw
+            if c in debtor_info
+            and debtor_info[c].get("dm_active", True)
+            and not _tx_code_belongs_to_agent_or_legacy(c)
+        ]
         tx_debtor_codes = [
             c for c in tx_codes_raw
-            if c in debtor_info and debtor_info[c].get("dm_active", True)
+            if c in debtor_info
+            and debtor_info[c].get("dm_active", True)
+            and _tx_code_belongs_to_agent_or_legacy(c)
         ]
         if _orphan_tx_codes:
             log(f"  {agent}: {len(_orphan_tx_codes)} orphan TX debtors excluded (missing from Debtor Maintenance)")
+        if _cross_agent_tx_codes:
+            log(f"  {agent}: {len(_cross_agent_tx_codes)} cross-agent TX debtors excluded (assigned to another active agent)")
 
         # Merge: DM list is primary, tx adds any missing
         all_debtor_codes = list(dict.fromkeys(dm_debtor_codes + [
