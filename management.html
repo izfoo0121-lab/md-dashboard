@@ -2618,10 +2618,51 @@ function renderCampaignsMgmt() {
   }
 
   const DELIV_STATUSES = new Set(['claimed','delivered','verified']);
+  const isConversionCamp = camp => camp?.type === 'conversion_simple' || camp?.type === 'conversion_tiered';
 
   // Compute stats per campaign (Option 4: auto-expand pool for FOC/Promo)
   const campStats = active.map(camp => {
     const isBday = camp.type === 'birthday_gift' || camp.id === 'birthday_gift_auto';
+    const isConversion = isConversionCamp(camp);
+
+    if (isConversion) {
+      const perAgent = {};
+      AGENTS.forEach(ag => {
+        const rollup = DATA?.agents?.[ag]?.conversion_campaigns?.[camp.id] || {};
+        const enrolled = Number(rollup.enrolled_count || 0);
+        const converted = Number(rollup.converted_count || 0);
+        const convertedCtn = Number(rollup.converted_ctn || 0);
+        const pct = enrolled > 0 ? Math.min(100, Math.round(converted / enrolled * 100)) : 0;
+        perAgent[ag] = {
+          poolCount: enrolled,
+          delivered: converted,
+          onListDelivered: converted,
+          offListDelivered: 0,
+          excluded: 0,
+          offListCodes: [],
+          effPool: enrolled,
+          pct,
+          yet: Math.max(0, enrolled - converted),
+          convertedCtn,
+          tier: rollup.agent_tier_label || '',
+          toNext: Number(rollup.to_next_tier || 0),
+          nextTier: rollup.next_tier_label || '',
+        };
+      });
+
+      const totalPoolCount = Object.values(perAgent).reduce((s, a) => s + a.poolCount, 0);
+      const delivered = Object.values(perAgent).reduce((s, a) => s + a.delivered, 0);
+      const convertedCtn = Object.values(perAgent).reduce((s, a) => s + a.convertedCtn, 0);
+      const totalYet = Math.max(0, totalPoolCount - delivered);
+      const pct = totalPoolCount > 0 ? Math.min(100, Math.round(delivered / totalPoolCount * 100)) : 0;
+
+      return {
+        camp, isBday, isConversion, perAgent,
+        totalPoolCount, totalExcluded: 0,
+        totalOnList: delivered, totalOffList: 0, allOffListCodes: [],
+        effPool: totalPoolCount, delivered, totalYet, pct, convertedCtn,
+      };
+    }
     const pool   = getCampaignPool(camp);
     const listCodes = new Set(pool.map(d => d.code));
     // Pull Supabase claims for THIS campaign
@@ -2734,7 +2775,7 @@ function renderCampaignsMgmt() {
     }
 
     return {
-      camp, isBday, perAgent, totalPoolCount, totalExcluded,
+      camp, isBday, isConversion, perAgent, totalPoolCount, totalExcluded,
       totalOnList, totalOffList, allOffListCodes,
       effPool, delivered, totalYet, pct,
     };
@@ -2773,16 +2814,18 @@ function renderCampaignsMgmt() {
     </div>`;
 
   list.innerHTML = headerBar + campStats.map(stats => {
-    const { camp, isBday, perAgent, totalPoolCount, totalExcluded,
+    const { camp, isBday, isConversion, perAgent, totalPoolCount, totalExcluded,
             totalOnList, totalOffList, allOffListCodes,
-            effPool, delivered, totalYet, pct } = stats;
+            effPool, delivered, totalYet, pct, convertedCtn } = stats;
     const accentCol = TYPE_COLORS[camp.type] || 'var(--accent)';
     const pctCol    = barColor(pct);
     const cardId    = `camp-card-${camp.id}`;
 
     // Breakdown line under summary:
     let breakdown = '';
-    if (isBday) {
+    if (isConversion) {
+      breakdown = ` <span style="color:var(--ink3);">· ${fi(convertedCtn || 0)} CTN</span>`;
+    } else if (isBday) {
       if (totalExcluded > 0) breakdown = ` <span style="color:#ff8866;">· ${totalExcluded} excluded</span>`;
     } else {
       const parts = [];
@@ -2805,13 +2848,18 @@ function renderCampaignsMgmt() {
         const excTxt = a.excluded > 0 ? ` · <span style="color:#ff8866;">${a.excluded} excl</span>` : '';
         const offTxt = (!isBday && a.offListDelivered > 0)
           ? ` · <span style="color:var(--purple);">+${a.offListDelivered} off-list</span>` : '';
+        const ctnTxt = isConversion ? ` · ${fi(a.convertedCtn || 0)} CTN` : '';
+        const tierTxt = isConversion && a.tier
+          ? ` · <span style="color:var(--green);">${a.tier}</span>`
+          : (isConversion && a.nextTier ? ` · <span style="color:var(--ink3);">${a.toNext} to ${a.nextTier}</span>` : '');
+        const actionLabel = isConversion ? 'converted' : 'delivered';
         // Display: delivered/effPool (from target list size)
         const poolTxt = `${a.delivered}/${a.effPool}`;
         return `
         <div style="display:grid;grid-template-columns:64px 1fr 50px;gap:10px;align-items:center;padding:6px 14px;border-top:1px solid var(--border);">
           <div style="font-family:var(--display);font-size:14px;letter-spacing:.04em;">${ag}</div>
           <div>
-            <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-bottom:2px;">${poolTxt} delivered · ${yetTxt}${excTxt}${offTxt}</div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-bottom:2px;">${poolTxt} ${actionLabel} · ${yetTxt}${ctnTxt}${tierTxt}${excTxt}${offTxt}</div>
             <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
               <div style="height:100%;width:${a.pct}%;background:${col};border-radius:2px;transition:width .4s;"></div>
             </div>
@@ -2846,7 +2894,7 @@ function renderCampaignsMgmt() {
             </div>
             <div style="font-family:var(--display);font-size:17px;letter-spacing:.04em;">${camp.name || camp.id || ''}</div>
             <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:3px;">
-              ${delivered} of ${effPool} delivered · <span style="color:${totalYet>0?'var(--accent)':'var(--green)'};">${totalYet} yet to deliver</span> &nbsp;·&nbsp; ${deadlineMeta(camp.deadline)}${breakdown}
+              ${delivered} of ${effPool} ${isConversion ? 'converted' : 'delivered'} · <span style="color:${totalYet>0?'var(--accent)':'var(--green)'};">${totalYet} yet to ${isConversion ? 'convert' : 'deliver'}</span> &nbsp;·&nbsp; ${deadlineMeta(camp.deadline)}${breakdown}
             </div>
           </div>
           <div style="display:flex;align-items:flex-start;gap:10px;flex-shrink:0;">
