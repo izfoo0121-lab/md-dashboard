@@ -264,7 +264,7 @@ window.addEventListener('DOMContentLoaded', () => {
 <div class="toast" id="toast"></div>
 
 <script>
-const AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','YI'];
+const AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','XIAN','YI'];
 const CAMP_EMOJI = {free_sample:'🎁',foc_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',voucher:'🎟️',conversion_tiered:'🎯',conversion_simple:'🎯',other:'📋'};
 const CAMP_LABEL = {free_sample:'FOC Sample',foc_sample:'FOC Sample',birthday_gift:'Birthday Gift',promotion:'Brand Promo',festive_gift:'Festive Gift',conversion_tiered:'Conversion',conversion_simple:'Conversion',other:'Other'};
 
@@ -634,12 +634,14 @@ function renderAudit() {
     });
   }
 
-  // Sort: pending first, then verified, then rejected
+  // Sort by agent first so the audit list is easy to work through by salesman.
   records.sort((a, b) => {
     const rank = r => (!r.audit ? 0 : r.audit.status === 'verified' ? 1 : 2);
     const ra = rank(a), rb = rank(b);
-    if (ra !== rb) return ra - rb;
-    return a.agent.localeCompare(b.agent);
+    return (a.agent || 'ZZZ').localeCompare(b.agent || 'ZZZ') ||
+      (ra - rb) ||
+      String(a.debtor?.company_name || '').localeCompare(String(b.debtor?.company_name || '')) ||
+      String(a.debtor?.debtor_code || '').localeCompare(String(b.debtor?.debtor_code || ''));
   });
 
   // Summary
@@ -951,7 +953,7 @@ async function renderBirthdayDebtorList(month, agentSel) {
     <div class="sum-card"><div class="sum-val g">${finalCount}</div><div class="sum-lbl">Active Final</div></div>
     <div class="sum-card"><div class="sum-val b">${allRows.length}</div><div class="sum-lbl">${agentSel === 'ALL' ? 'Visible' : agentSel}</div></div>`;
 
-  const rowsHtml = allRows.map(d => {
+  const renderBirthdayRow = d => {
     const isRemoved = d.status === 'removed';
     const isAdded = d.status === 'added';
     const badge = isRemoved
@@ -975,7 +977,30 @@ async function renderBirthdayDebtorList(month, agentSel) {
           : `<button class="audit-btn reject" onclick="birthdayAuditRemove('${auditJs(month)}','${auditJs(d.code)}')">✕</button>`}
       </div>
     </div>`;
-  }).join('');
+  };
+
+  const rowsByAgent = {};
+  allRows.forEach(d => {
+    const key = d.agent || 'Unknown agent';
+    if (!rowsByAgent[key]) rowsByAgent[key] = [];
+    rowsByAgent[key].push(d);
+  });
+  const rowsHtml = Object.entries(rowsByAgent)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([agent, rows]) => `<div class="agent-section is-collapsed">
+      <div class="agent-hdr" onclick="toggleAgentSection(this)">
+        <div>
+          <div class="agent-name"><span class="agent-toggle">â–¸</span> ${auditHtml(agent)}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;">
+            ${rows.length} birthday debtors
+          </div>
+        </div>
+        <div class="agent-stats">
+          <span class="stat-chip done">${rows.length}</span>
+        </div>
+      </div>
+      <div class="claims-body">${rows.map(renderBirthdayRow).join('')}</div>
+    </div>`).join('');
 
   contentEl.innerHTML = `
     <div class="agent-section">
