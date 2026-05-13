@@ -3143,6 +3143,9 @@ function readCampaignMechanism(scope, type) {
   const rewardTiers = parseCampaignRewardTiers(get('reward-tiers')?.value || '');
   const isConversion = mechanismType === 'conversion';
   const isVolume = mechanismType === 'volume_reward';
+  const followUpEnabled = !!get('follow-up-enabled')?.checked;
+  const followUpMonths = parseInt(get('follow-up-months')?.value, 10);
+  const followUpValues = _campCsv(get('follow-up-target')?.value || '').map(v => v.toUpperCase());
   const notes = {
     mechanism_type: mechanismType,
     qualifying_match: matchBy,
@@ -3154,7 +3157,11 @@ function readCampaignMechanism(scope, type) {
     conversion_rule: get('conversion-rule')?.value || 'no_lookback_then_current',
     volume_basis: isVolume ? (get('volume-basis')?.value || 'current_month') : 'current_month',
     sort_by: isVolume ? (get('sort-by')?.value || 'ctn_desc') : 'ctn_desc',
-    reward_tiers: isVolume ? rewardTiers : []
+    reward_tiers: isVolume ? rewardTiers : [],
+    follow_up_enabled: followUpEnabled,
+    follow_up_months: followUpEnabled && Number.isFinite(followUpMonths) ? followUpMonths : 2,
+    follow_up_match: get('follow-up-match')?.value || matchBy,
+    follow_up_values: followUpEnabled ? (followUpValues.length ? followUpValues : matchValues) : []
   };
   if (type === 'conversion_tiered' && mechanismType === 'conversion') {
     const thresholds = ['tier0','tier1','tier2','tier3'].map((field, idx) => {
@@ -3193,6 +3200,7 @@ function renderCampaignMechanismFields(scope, camp = {}) {
   const notes = camp.notes || {};
   const mechanismType = campaignMechanismTypeFor(camp, notes);
   const matchValues = notes.qualifying_values || (notes.qualifying_value ? [notes.qualifying_value] : (notes.qualifying_item_group ? [notes.qualifying_item_group] : []));
+  const followUpValues = Array.isArray(notes.follow_up_values) && notes.follow_up_values.length ? notes.follow_up_values : matchValues;
   const thresholds = Array.isArray(notes.tier_thresholds) && notes.tier_thresholds.length ? notes.tier_thresholds : [4, 7, 10, 14];
   return `<div style="border:1px solid var(--border);border-radius:10px;padding:10px;margin:10px 0;background:var(--bg);">
     <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Mechanism settings</div>
@@ -3235,6 +3243,23 @@ function renderCampaignMechanismFields(scope, camp = {}) {
       </select></div>
     </div>
     <div class="input-group" id="${_campScopeId(scope,'reward-wrap')}"><div class="input-label">Reward / Claim Tiers</div><textarea id="${_campScopeId(scope,'reward-tiers')}" rows="3" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:8px 10px;border-radius:8px;" placeholder="min,max,sku,qty,unit,note">${formatCampaignRewardTiers(notes.reward_tiers)}</textarea></div>
+    <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;">
+      <div class="input-row">
+        <label style="display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--ink2);">
+          <input type="checkbox" id="${_campScopeId(scope,'follow-up-enabled')}" ${notes.follow_up_enabled?'checked':''}>
+          Track follow-up purchases after campaign
+        </label>
+        <div class="field-wrap"><div class="field-lbl">Follow-up Months</div><input type="number" min="1" max="2" id="${_campScopeId(scope,'follow-up-months')}" value="${notes.follow_up_months || 2}"></div>
+      </div>
+      <div class="input-row">
+        <div class="field-wrap"><div class="field-lbl">Follow-up Match By</div><select id="${_campScopeId(scope,'follow-up-match')}">
+          <option value="item_group" ${(notes.follow_up_match||notes.qualifying_match||'item_group')==='item_group'?'selected':''}>Item Group / contains</option>
+          <option value="item_code" ${notes.follow_up_match==='item_code'?'selected':''}>Item Code / exact SKU</option>
+        </select></div>
+        <div class="field-wrap"><div class="field-lbl">Follow-up Target(s)</div><input id="${_campScopeId(scope,'follow-up-target')}" value="${followUpValues.join(', ').replace(/"/g,'&quot;')}" placeholder="EVO or TR-002"></div>
+      </div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);line-height:1.6;">Used by Management follow-up view: campaign month + next month(s).</div>
+    </div>
     <div class="input-row" id="${_campScopeId(scope,'tier-row')}">
       ${['Baseline','Tier 1','Tier 2','Tier 3'].map((label, idx) => `<div class="field-wrap"><div class="field-lbl">${label}</div><input type="number" min="1" id="${_campScopeId(scope,'tier'+idx)}" value="${thresholds[idx] || [4,7,10,14][idx]}"></div>`).join('')}
     </div>
@@ -3251,6 +3276,10 @@ function renderCampaignMechanismSummary(camp) {
   if (match) bits.push(`${notes.qualifying_match || 'item_group'}: ${match}`);
   if (notes.min_rm_per_ctn || notes.price_floor) bits.push(`>= RM${notes.min_rm_per_ctn || notes.price_floor}`);
   if (Array.isArray(notes.reward_tiers) && notes.reward_tiers.length) bits.push(`${notes.reward_tiers.length} reward tiers`);
+  if (notes.follow_up_enabled) {
+    const vals = (notes.follow_up_values || []).join(', ') || notes.qualifying_value || notes.qualifying_item_group || 'target SKU';
+    bits.push(`follow-up ${notes.follow_up_months || 2}m: ${vals}`);
+  }
   if (!bits.length) return '';
   return `<div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:4px;">Mechanism: ${bits.join(' · ')}</div>`;
 }

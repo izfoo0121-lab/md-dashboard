@@ -1263,6 +1263,7 @@ async function fetchCampClaimsForMonth(month) {
 let CAMP_CLAIMS_CACHE = [];
 let CAMPS_CACHE       = [];
 let CAMPAIGN_MGMT_VIEW = 'current';
+let CAMPAIGN_MGMT_MODE = 'execution';
 
 async function pullGistData() {
   if (!GistSync.isConfigured()) return;
@@ -2632,11 +2633,113 @@ function renderCampaignsMgmt() {
 
   const DELIV_STATUSES = new Set(['claimed','delivered','verified']);
   const isConversionCamp = camp => camp?.type === 'conversion_simple' || camp?.type === 'conversion_tiered';
+  const isFollowupMode = CAMPAIGN_MGMT_MODE === 'followup1' || CAMPAIGN_MGMT_MODE === 'followup2';
+
+  function _monthIndex(label) {
+    const [mon, yy] = String(label || '').split(' ');
+    const idx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(mon);
+    const yr = parseInt(yy, 10);
+    if (idx < 0 || !Number.isFinite(yr)) return null;
+    return (2000 + yr) * 12 + idx;
+  }
+  function _monthLabelFromDate(value) {
+    if (!value) return '';
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-US', { month:'short', year:'2-digit' }).replace(',', '');
+  }
+  function _monthAdd(label, add) {
+    const idx = _monthIndex(label);
+    if (idx == null) return '';
+    const year = Math.floor(idx / 12);
+    const month = idx % 12;
+    const d = new Date(year, month + add, 1);
+    return d.toLocaleDateString('en-US', { month:'short', year:'2-digit' }).replace(',', '');
+  }
+  function _campaignMonth(camp) {
+    return _monthLabelFromDate(camp.start_date) || _monthLabelFromDate(camp.deadline) || (DATA?.current_month || '');
+  }
+  function _debtorLookupByCode() {
+    const out = {};
+    Object.entries((DATA || CURRENT_DATA || {}).agents || {}).forEach(([agent, a]) => {
+      (a?.debtor_cards?.debtors || []).forEach(d => {
+        const code = (d.debtor_code || '').toUpperCase();
+        if (code && !out[code]) out[code] = { agent, debtor: d };
+      });
+    });
+    return out;
+  }
+  function _followupTargets(camp) {
+    const notes = camp.notes || {};
+    return (notes.follow_up_values || notes.qualifying_values || [notes.qualifying_value || notes.qualifying_item_group || ''])
+      .map(v => String(v || '').trim().toUpperCase())
+      .filter(Boolean);
+  }
+  function _followupRowMatches(row, targets, matchMode) {
+    const item = String(row?.item || '').toUpperCase();
+    if (!item || !targets.length) return false;
+    return targets.some(t => matchMode === 'item_code' ? item === t : (item.includes(t) || t.includes(item)));
+  }
+
+  function computeFollowupStats(camp, followOffset) {
+    const notes = camp.notes || {};
+    const baseMonth = _campaignMonth(camp);
+    const followMonth = _monthAdd(baseMonth, followOffset);
+    const currentIdx = _monthIndex((DATA || CURRENT_DATA || {}).current_month || '');
+    const followIdx = _monthIndex(followMonth);
+    const unavailable = followIdx != null && currentIdx != null && followIdx > currentIdx;
+    const enabled = !!notes.follow_up_enabled;
+    const targets = _followupTargets(camp);
+    const matchMode = notes.follow_up_match || notes.qualifying_match || 'item_group';
+    const pool = getCampaignPool(camp);
+    const lookup = _debtorLookupByCode();
+    const perAgent = {};
+    AGENTS.forEach(ag => {
+      perAgent[ag] = { poolCount: 0, delivered: 0, onListDelivered: 0, offListDelivered: 0, excluded: 0, offListCodes: [], effPool: 0, pct: 0, yet: 0, convertedCtn: 0 };
+    });
+
+    pool.forEach(p => {
+      const code = (p.code || '').toUpperCase();
+      const found = lookup[code];
+      const ag = (p.agent || found?.agent || '').toUpperCase();
+      if (!ag || !perAgent[ag]) return;
+      const rows = found?.debtor?.month_breakdown?.[followMonth] || [];
+      const buyRows = enabled && !unavailable ? rows.filter(r => _followupRowMatches(r, targets, matchMode)) : [];
+      const ctn = buyRows.reduce((s, r) => s + Number(r.ctn || 0), 0);
+      perAgent[ag].poolCount++;
+      perAgent[ag].effPool++;
+      if (ctn > 0) {
+        perAgent[ag].delivered++;
+        perAgent[ag].onListDelivered++;
+        perAgent[ag].convertedCtn += ctn;
+      }
+    });
+
+    Object.values(perAgent).forEach(a => {
+      a.yet = Math.max(0, a.effPool - a.delivered);
+      a.pct = a.effPool > 0 ? Math.min(100, Math.round(a.delivered / a.effPool * 100)) : 0;
+    });
+
+    const totalPoolCount = Object.values(perAgent).reduce((s, a) => s + a.poolCount, 0);
+    const delivered = Object.values(perAgent).reduce((s, a) => s + a.delivered, 0);
+    const convertedCtn = Object.values(perAgent).reduce((s, a) => s + a.convertedCtn, 0);
+    return {
+      camp, isBday: false, isConversion: false, isFollowup: true, perAgent,
+      totalPoolCount, totalExcluded: 0, totalOnList: delivered, totalOffList: 0, allOffListCodes: [],
+      effPool: totalPoolCount, delivered, totalYet: Math.max(0, totalPoolCount - delivered),
+      pct: totalPoolCount > 0 ? Math.min(100, Math.round(delivered / totalPoolCount * 100)) : 0,
+      convertedCtn, followMonth, baseMonth, missingConfig: !enabled || !targets.length, unavailable,
+    };
+  }
 
   // Compute stats per campaign (Option 4: auto-expand pool for FOC/Promo)
   const campStats = active.map(camp => {
     const isBday = camp.type === 'birthday_gift' || camp.id === 'birthday_gift_auto';
     const isConversion = isConversionCamp(camp);
+
+    if (isFollowupMode) {
+      return computeFollowupStats(camp, CAMPAIGN_MGMT_MODE === 'followup2' ? 2 : 1);
+    }
 
     if (isConversion) {
       const perAgent = {};
@@ -2829,6 +2932,12 @@ function renderCampaignsMgmt() {
         </button>
       </div>
       <div style="display:flex;gap:6px;">
+        <button onclick="setCampaignMgmtMode('execution')"
+          style="background:${CAMPAIGN_MGMT_MODE==='execution'?'var(--ink)':'rgba(0,0,0,.04)'};border:1px solid var(--border);color:${CAMPAIGN_MGMT_MODE==='execution'?'#fff':'var(--ink2)'};padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">Execution</button>
+        <button onclick="setCampaignMgmtMode('followup1')"
+          style="background:${CAMPAIGN_MGMT_MODE==='followup1'?'var(--ink)':'rgba(0,0,0,.04)'};border:1px solid var(--border);color:${CAMPAIGN_MGMT_MODE==='followup1'?'#fff':'var(--ink2)'};padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">M+1</button>
+        <button onclick="setCampaignMgmtMode('followup2')"
+          style="background:${CAMPAIGN_MGMT_MODE==='followup2'?'var(--ink)':'rgba(0,0,0,.04)'};border:1px solid var(--border);color:${CAMPAIGN_MGMT_MODE==='followup2'?'#fff':'var(--ink2)'};padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">M+2</button>
         <button onclick="toggleAllCampCards(true)"
           style="background:rgba(0,0,0,.04);border:1px solid var(--border);color:var(--ink2);padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">Open all</button>
         <button onclick="toggleAllCampCards(false)"
@@ -2853,7 +2962,11 @@ function renderCampaignsMgmt() {
 
     // Breakdown line under summary:
     let breakdown = '';
-    if (isConversion) {
+    if (stats.isFollowup) {
+      if (stats.missingConfig) breakdown = ` <span style="color:var(--accent);">· follow-up not configured</span>`;
+      else if (stats.unavailable) breakdown = ` <span style="color:var(--ink3);">· ${stats.followMonth} not available yet</span>`;
+      else breakdown = ` <span style="color:var(--ink3);">· ${fi(convertedCtn || 0)} CTN in ${stats.followMonth}</span>`;
+    } else if (isConversion) {
       breakdown = ` <span style="color:var(--ink3);">· ${fi(convertedCtn || 0)} CTN</span>`;
     } else if (isBday) {
       if (totalExcluded > 0) breakdown = ` <span style="color:#ff8866;">· ${totalExcluded} excluded</span>`;
@@ -2878,11 +2991,11 @@ function renderCampaignsMgmt() {
         const excTxt = a.excluded > 0 ? ` · <span style="color:#ff8866;">${a.excluded} excl</span>` : '';
         const offTxt = (!isBday && a.offListDelivered > 0)
           ? ` · <span style="color:var(--purple);">+${a.offListDelivered} off-list</span>` : '';
-        const ctnTxt = isConversion ? ` · ${fi(a.convertedCtn || 0)} CTN` : '';
+        const ctnTxt = (isConversion || stats.isFollowup) ? ` · ${fi(a.convertedCtn || 0)} CTN` : '';
         const tierTxt = isConversion && a.tier
           ? ` · <span style="color:var(--green);">${a.tier}</span>`
           : (isConversion && a.nextTier ? ` · <span style="color:var(--ink3);">${a.toNext} to ${a.nextTier}</span>` : '');
-        const actionLabel = isConversion ? 'converted' : 'delivered';
+        const actionLabel = stats.isFollowup ? 'follow-up bought' : (isConversion ? 'converted' : 'delivered');
         // Display: delivered/effPool (from target list size)
         const poolTxt = `${a.delivered}/${a.effPool}`;
         return `
@@ -2924,7 +3037,7 @@ function renderCampaignsMgmt() {
             </div>
             <div style="font-family:var(--display);font-size:17px;letter-spacing:.04em;">${camp.name || camp.id || ''}</div>
             <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:3px;">
-              ${delivered} of ${effPool} ${isConversion ? 'converted' : 'delivered'} · <span style="color:${totalYet>0?'var(--accent)':'var(--green)'};">${totalYet} yet to ${isConversion ? 'convert' : 'deliver'}</span> &nbsp;·&nbsp; ${deadlineMeta(camp.deadline)}${breakdown}
+              ${delivered} of ${effPool} ${stats.isFollowup ? 'follow-up bought' : (isConversion ? 'converted' : 'delivered')} · <span style="color:${totalYet>0?'var(--accent)':'var(--green)'};">${totalYet} ${stats.isFollowup ? 'not bought yet' : ('yet to ' + (isConversion ? 'convert' : 'deliver'))}</span> &nbsp;·&nbsp; ${stats.isFollowup ? ('Base ' + (stats.baseMonth || '—')) : deadlineMeta(camp.deadline)}${breakdown}
             </div>
           </div>
           <div style="display:flex;align-items:flex-start;gap:10px;flex-shrink:0;">
@@ -2966,6 +3079,11 @@ function toggleAllCampCards(open) {
 
 function setCampaignMgmtView(view) {
   CAMPAIGN_MGMT_VIEW = view === 'expired' ? 'expired' : 'current';
+  renderCampaignsMgmt();
+}
+
+function setCampaignMgmtMode(mode) {
+  CAMPAIGN_MGMT_MODE = ['execution','followup1','followup2'].includes(mode) ? mode : 'execution';
   renderCampaignsMgmt();
 }
 
