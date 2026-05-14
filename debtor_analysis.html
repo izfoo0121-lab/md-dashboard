@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debtor Analysis</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg:#0f1016; --panel:#191a23; --panel2:#21232e; --ink:#f6f3ec; --muted:#8d89aa;
+      --line:#30323f; --gold:#f5c542; --blue:#4da6ff; --green:#30d17c; --red:#ff5b67;
+      --orange:#ff9f1a; --purple:#a78bfa; --chip:#262835;
+    }
+    body.light {
+      --bg:#f6f3ec; --panel:#fffaf0; --panel2:#f1eadf; --ink:#15151d; --muted:#706d7b;
+      --line:#ded5c8; --chip:#fbf6eb;
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family:Arial, sans-serif; }
+    .mono { font-family:Consolas, "Courier New", monospace; }
+    .top { position:sticky; top:0; z-index:10; background:rgba(15,16,22,.95); border-bottom:1px solid var(--line); padding:18px 24px; }
+    body.light .top { background:rgba(246,243,236,.95); }
+    .bar { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+    h1 { margin:0; font-size:30px; letter-spacing:.04em; text-transform:uppercase; }
+    .sub { color:var(--muted); font-size:11px; letter-spacing:.18em; text-transform:uppercase; margin-top:4px; }
+    .nav { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .btn, select, input { border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:8px; padding:9px 12px; font:13px Consolas, monospace; }
+    .btn { cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
+    .btn.primary { border-color:rgba(77,166,255,.45); color:var(--blue); background:rgba(77,166,255,.12); }
+    .btn.gold { border-color:rgba(245,197,66,.45); color:var(--gold); background:rgba(245,197,66,.12); }
+    main { max-width:1500px; margin:0 auto; padding:24px; }
+    .controls { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; display:grid; grid-template-columns:repeat(6,minmax(145px,1fr)); gap:12px; }
+    label { display:flex; flex-direction:column; gap:5px; color:var(--muted); font:10px Consolas, monospace; text-transform:uppercase; letter-spacing:.12em; }
+    .wide { grid-column:span 2; }
+    .kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin:16px 0; }
+    .kpi { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; }
+    .kpi .v { font:700 28px Consolas, monospace; color:var(--blue); }
+    .kpi .l { margin-top:5px; color:var(--muted); font:10px Consolas, monospace; text-transform:uppercase; letter-spacing:.14em; }
+    .tabs, .chips { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:14px 0; }
+    .tab, .chip { border:1px solid var(--line); background:var(--chip); color:var(--muted); border-radius:999px; padding:8px 13px; cursor:pointer; font:12px Consolas, monospace; }
+    .tab.active, .chip.active { background:var(--gold); color:#111; border-color:var(--gold); font-weight:700; }
+    .table-wrap { background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { border-bottom:1px solid var(--line); padding:11px 10px; text-align:left; vertical-align:middle; }
+    th { color:var(--muted); font:10px Consolas, monospace; letter-spacing:.12em; text-transform:uppercase; background:var(--panel2); position:sticky; top:90px; z-index:2; }
+    td { font-size:13px; }
+    .code { color:var(--blue); font-family:Consolas, monospace; font-weight:700; }
+    .num { text-align:right; font-family:Consolas, monospace; }
+    .pos { color:var(--green); } .neg { color:var(--red); } .warn { color:var(--orange); }
+    .badge { display:inline-flex; align-items:center; border-radius:999px; padding:4px 8px; background:var(--chip); border:1px solid var(--line); font:11px Consolas, monospace; white-space:nowrap; }
+    .pager { display:flex; justify-content:space-between; align-items:center; padding:12px 4px; color:var(--muted); font:12px Consolas, monospace; }
+    .spark { width:120px; height:28px; display:block; }
+    .empty { padding:60px 20px; text-align:center; color:var(--muted); font:14px Consolas, monospace; }
+    @media (max-width:1050px) {
+      .controls { grid-template-columns:repeat(2,1fr); }
+      .wide { grid-column:span 2; }
+      .kpis { grid-template-columns:repeat(2,1fr); }
+      th { position:static; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="bar">
+      <div>
+        <h1 class="mono">Debtor Analysis</h1>
+        <div class="sub">Volume, brand, SKU, sales type, and A/B period movement</div>
+      </div>
+      <div class="nav">
+        <a class="btn" href="management.html">Management</a>
+        <a class="btn" href="sales_dashboard.html">Sales Dashboard</a>
+        <button class="btn" onclick="toggleTheme()">Dark / Light</button>
+        <button class="btn primary" onclick="exportRows()">Export Excel</button>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <section class="controls">
+      <label>Period A From<select id="aFrom" onchange="render()"></select></label>
+      <label>Period A To<select id="aTo" onchange="render()"></select></label>
+      <label>Period B From<select id="bFrom" onchange="render()"><option value="">No comparison</option></select></label>
+      <label>Period B To<select id="bTo" onchange="render()"><option value="">No comparison</option></select></label>
+      <label>Group By<select id="groupBy" onchange="render()">
+        <option value="debtor">Debtor total</option>
+        <option value="brand">Debtor x brand</option>
+        <option value="sku">Debtor x SKU</option>
+      </select></label>
+      <label>Rows<select id="pageSize" onchange="page=1;render()"><option>25</option><option selected>50</option><option>100</option></select></label>
+
+      <label>Agent<select id="agentFilter" onchange="page=1;render()"></select></label>
+      <label>Type<select id="typeFilter" onchange="page=1;render()"></select></label>
+      <label>Brand<select id="brandFilter" onchange="page=1;render()"></select></label>
+      <label>SKU<select id="skuFilter" onchange="page=1;render()"></select></label>
+      <label>Sales Type<select id="salesTypeFilter" onchange="page=1;render()"></select></label>
+      <label class="wide">Search<input id="search" placeholder="debtor name, code, brand, sku..." oninput="page=1;render()"></label>
+    </section>
+
+    <section class="kpis">
+      <div class="kpi"><div class="v" id="kpiA">-</div><div class="l">Period A CTN</div></div>
+      <div class="kpi"><div class="v" id="kpiB">-</div><div class="l">Period B CTN</div></div>
+      <div class="kpi"><div class="v" id="kpiDelta">-</div><div class="l">Change</div></div>
+      <div class="kpi"><div class="v" id="kpiDebtors">-</div><div class="l">Debtors</div></div>
+      <div class="kpi"><div class="v" id="kpiRows">-</div><div class="l">Rows</div></div>
+    </section>
+
+    <div class="tabs" id="categoryTabs"></div>
+    <div class="pager">
+      <span id="summary"></span>
+      <span>
+        <button class="btn" onclick="page=Math.max(1,page-1);render()">Prev</button>
+        <button class="btn" onclick="page=page+1;render()">Next</button>
+      </span>
+    </div>
+
+    <section class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Debtor</th><th>Agent</th><th>Type</th><th>Brand / SKU</th>
+            <th class="num">Period A</th><th class="num">Period B</th><th class="num">Change</th>
+            <th>Trend</th><th>Category</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </section>
+  </main>
+
+<script>
+let DATA=null, rows=[], filteredRows=[], page=1, activeCategory='all';
+const fmt=n=>(Number(n||0)).toLocaleString('en-MY',{maximumFractionDigits:1});
+const pct=n=>!isFinite(n)?'-':`${n.toFixed(1)}%`;
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+function mKey(m){ const a=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; const p=String(m).split(' '); return (+p[1])*12+a.indexOf(p[0]); }
+function range(from,to){ const ms=DATA.months||[]; const a=ms.indexOf(from), b=ms.indexOf(to); if(a<0||b<0) return []; return ms.slice(Math.min(a,b), Math.max(a,b)+1); }
+function byId(id){ return document.getElementById(id); }
+function unique(vals){ return [...new Set(vals.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b))); }
+
+async function init(){
+  try {
+    const r=await fetch('debtor_analysis_data.json?v='+Date.now());
+    DATA=await r.json();
+  } catch(e) {
+    document.body.innerHTML=`<div class="empty">Could not load debtor_analysis_data.json<br>${esc(e.message)}</div>`;
+    return;
+  }
+  initSelects();
+  render();
+}
+
+function addOptions(id, vals, allLabel='All'){
+  const el=byId(id); el.innerHTML=`<option value="">${allLabel}</option>`+vals.map(v=>`<option>${esc(v)}</option>`).join('');
+}
+
+function initSelects(){
+  const ms=[...(DATA.months||[])].sort((a,b)=>mKey(a)-mKey(b));
+  const monthOpts=ms.map(m=>`<option>${esc(m)}</option>`).join('');
+  byId('aFrom').innerHTML=monthOpts; byId('aTo').innerHTML=monthOpts;
+  byId('bFrom').innerHTML='<option value="">No comparison</option>'+monthOpts;
+  byId('bTo').innerHTML='<option value="">No comparison</option>'+monthOpts;
+  const cur=DATA.current_month || ms[ms.length-1];
+  byId('aFrom').value=cur; byId('aTo').value=cur;
+  addOptions('agentFilter', unique((DATA.debtors||[]).map(d=>d.agent)));
+  addOptions('typeFilter', unique((DATA.debtors||[]).map(d=>d.debtor_type)));
+  addOptions('brandFilter', unique((DATA.records||[]).map(r=>r.brand)));
+  addOptions('skuFilter', unique((DATA.records||[]).map(r=>r.sku)));
+  addOptions('salesTypeFilter', unique((DATA.records||[]).map(r=>r.sales_type || r.sales_type_group)));
+}
+
+function passesFilters(rec){
+  const agent=byId('agentFilter').value, typ=byId('typeFilter').value, brand=byId('brandFilter').value;
+  const sku=byId('skuFilter').value, st=byId('salesTypeFilter').value, q=byId('search').value.trim().toLowerCase();
+  if(agent && rec.agent!==agent) return false;
+  if(typ && rec.debtor_type!==typ) return false;
+  if(brand && rec.brand!==brand) return false;
+  if(sku && rec.sku!==sku) return false;
+  if(st && rec.sales_type!==st && rec.sales_type_group!==st) return false;
+  if(q && !`${rec.debtor_code} ${rec.company_name} ${rec.agent} ${rec.brand} ${rec.sku}`.toLowerCase().includes(q)) return false;
+  return true;
+}
+
+function category(a,b,compare){
+  if(!compare) return a>0 ? 'active' : 'no_volume';
+  if(a===0 && b>0) return 'new';
+  if(a>0 && b===0) return 'stopped';
+  if(a===0 && b===0) return 'no_volume';
+  const change=(b-a)/a*100;
+  if(change>=50) return 'growing_strong';
+  if(change>10) return 'growing';
+  if(change<=-30) return 'dropping_sharp';
+  if(change<-10) return 'declining';
+  return 'stable';
+}
+
+function categoryLabel(c){
+  return {
+    all:'All', active:'Active', no_volume:'No volume', new:'New', stopped:'Stopped',
+    growing_strong:'Growing >=50%', growing:'Growing', stable:'Stable',
+    declining:'Declining', dropping_sharp:'Dropping >=30%'
+  }[c] || c;
+}
+
+function buildRows(){
+  const aMonths=range(byId('aFrom').value, byId('aTo').value);
+  const bMonths=(byId('bFrom').value && byId('bTo').value) ? range(byId('bFrom').value, byId('bTo').value) : [];
+  const compare=bMonths.length>0;
+  const mode=byId('groupBy').value;
+  const source=(DATA.records||[]).filter(passesFilters);
+  const baseDebtors=(DATA.debtors||[]).filter(d=>passesFilters({...d, brand:'', sku:'', sales_type:'', sales_type_group:''}));
+  const map=new Map();
+  function keyFor(r){
+    if(mode==='sku') return `${r.debtor_code}|${r.brand}|${r.sku}`;
+    if(mode==='brand') return `${r.debtor_code}|${r.brand}`;
+    return r.debtor_code;
+  }
+  function ensure(r){
+    const k=keyFor(r);
+    if(!map.has(k)) map.set(k,{
+      key:k, debtor_code:r.debtor_code, company_name:r.company_name, agent:r.agent, debtor_type:r.debtor_type,
+      brand:mode==='debtor'?'':r.brand, sku:mode==='sku'?r.sku:'', a:0,b:0, months:{}, invoices:0
+    });
+    return map.get(k);
+  }
+  if(mode==='debtor'){
+    baseDebtors.forEach(d=>ensure({...d, brand:'', sku:'', sales_type:'', sales_type_group:''}));
+  }
+  source.forEach(r=>{
+    const row=ensure(r);
+    if(aMonths.includes(r.month)) row.a += Number(r.ctn||0);
+    if(compare && bMonths.includes(r.month)) row.b += Number(r.ctn||0);
+    row.months[r.month]=(row.months[r.month]||0)+Number(r.ctn||0);
+    row.invoices += Number(r.invoices||0);
+  });
+  const out=[...map.values()].map(r=>{
+    const cat=category(r.a,r.b,compare);
+    return {...r, delta:compare?r.b-r.a:0, pct:compare && r.a ? (r.b-r.a)/r.a*100 : null, category:cat, compare};
+  });
+  out.sort((x,y)=>{
+    if(x.category!==y.category && activeCategory!=='all') return x.category===activeCategory?-1:1;
+    const primary=compare ? Math.abs(y.delta)-Math.abs(x.delta) : y.a-x.a;
+    return primary || x.agent.localeCompare(y.agent) || x.debtor_code.localeCompare(y.debtor_code);
+  });
+  return out;
+}
+
+function renderCategories(allRows){
+  const cats=['all', ...unique(allRows.map(r=>r.category))];
+  byId('categoryTabs').innerHTML=cats.map(c=>{
+    const count=c==='all'?allRows.length:allRows.filter(r=>r.category===c).length;
+    return `<button class="tab ${activeCategory===c?'active':''}" onclick="activeCategory='${c}';page=1;render()">${categoryLabel(c)} (${count})</button>`;
+  }).join('');
+}
+
+function spark(vals){
+  const arr=vals.map(v=>Number(v||0));
+  const max=Math.max(...arr,1), w=116, h=26;
+  const pts=arr.map((v,i)=>`${i*(w/Math.max(arr.length-1,1))},${h-(v/max*h)}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="var(--blue)" stroke-width="2"/><line x1="0" y1="${h-1}" x2="${w}" y2="${h-1}" stroke="var(--line)"/></svg>`;
+}
+
+function render(){
+  if(!DATA) return;
+  const allRows=buildRows();
+  renderCategories(allRows);
+  filteredRows=activeCategory==='all'?allRows:allRows.filter(r=>r.category===activeCategory);
+  const compare=filteredRows.some(r=>r.compare);
+  const totalA=filteredRows.reduce((s,r)=>s+r.a,0), totalB=filteredRows.reduce((s,r)=>s+r.b,0);
+  byId('kpiA').textContent=fmt(totalA);
+  byId('kpiB').textContent=compare?fmt(totalB):'-';
+  byId('kpiDelta').textContent=compare?`${totalB-totalA>=0?'+':''}${fmt(totalB-totalA)}`:'-';
+  byId('kpiDelta').className='v '+(totalB-totalA>=0?'pos':'neg');
+  byId('kpiDebtors').textContent=unique(filteredRows.map(r=>r.debtor_code)).length;
+  byId('kpiRows').textContent=filteredRows.length;
+
+  const size=Number(byId('pageSize').value||50), pages=Math.max(1,Math.ceil(filteredRows.length/size));
+  if(page>pages) page=pages;
+  const shown=filteredRows.slice((page-1)*size, page*size);
+  byId('summary').textContent=`${filteredRows.length} rows | page ${page}/${pages} | ${DATA.generated_at||''}`;
+  const months=DATA.months||[];
+  byId('tbody').innerHTML=shown.length ? shown.map(r=>{
+    const deltaClass=r.delta>0?'pos':r.delta<0?'neg':'';
+    const brandSku=r.brand ? `${esc(r.brand)}${r.sku?` / ${esc(r.sku)}`:''}` : '<span class="badge">all SKU</span>';
+    return `<tr>
+      <td><div><b>${esc(r.company_name||'-')}</b></div><div class="code">${esc(r.debtor_code)}</div></td>
+      <td>${esc(r.agent||'-')}</td>
+      <td><span class="badge">${esc(r.debtor_type||'-')}</span></td>
+      <td>${brandSku}</td>
+      <td class="num">${fmt(r.a)}</td>
+      <td class="num">${r.compare?fmt(r.b):'-'}</td>
+      <td class="num ${deltaClass}">${r.compare?`${r.delta>=0?'+':''}${fmt(r.delta)} ${r.pct!=null?`(${pct(r.pct)})`:''}`:'-'}</td>
+      <td>${spark(months.map(m=>r.months[m]||0))}</td>
+      <td><span class="badge">${categoryLabel(r.category)}</span></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="9" class="empty">No rows match the selected filters</td></tr>`;
+}
+
+function exportRows(){
+  const out=filteredRows.map(r=>({
+    agent:r.agent, debtor_code:r.debtor_code, company_name:r.company_name, debtor_type:r.debtor_type,
+    brand:r.brand, sku:r.sku, period_a_ctn:r.a, period_b_ctn:r.compare?r.b:'',
+    change_ctn:r.compare?r.delta:'', change_pct:r.compare?r.pct:'', category:categoryLabel(r.category)
+  }));
+  const ws=XLSX.utils.json_to_sheet(out);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Debtor Analysis');
+  XLSX.writeFile(wb, `Debtor_Analysis_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function toggleTheme(){
+  document.body.classList.toggle('light');
+  localStorage.setItem('debtor-analysis-theme', document.body.classList.contains('light')?'light':'dark');
+}
+if(localStorage.getItem('debtor-analysis-theme')==='light') document.body.classList.add('light');
+init();
+</script>
+</body>
+</html>

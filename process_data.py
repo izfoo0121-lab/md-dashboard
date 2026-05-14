@@ -236,6 +236,7 @@ DEBTOR_FILE     = BASE_DIR / "Debtor Maintenance.xlsx"
 TARGETS_FILE    = BASE_DIR / "targets.json"
 CAMPAIGNS_FILE  = BASE_DIR / "campaigns.json"
 OUTPUT_FILE     = BASE_DIR / "dashboard_data.json"
+DEBTOR_ANALYSIS_FILE = BASE_DIR / "debtor_analysis_data.json"
 
 # Area scope — Phase 2 covers GRP 2A only
 SCOPE_AREA      = "GRP 2A"
@@ -327,7 +328,11 @@ DEFAULT_GROUP_BRAND_CONFIG = {
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def log(msg):
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}", flush=True)
+    text = f"[{datetime.now().strftime('%H:%M:%S')}] {msg}"
+    try:
+        print(text, flush=True)
+    except UnicodeEncodeError:
+        print(text.encode("ascii", "replace").decode("ascii"), flush=True)
 
 
 def load_targets():
@@ -562,6 +567,126 @@ def load_debtors():
 
 
 # ── Filter: Scope to GRP 2A ───────────────────────────────────────────────────
+
+def _safe_str(v):
+    if pd.isnull(v):
+        return ""
+    return str(v).strip()
+
+
+def _sales_type_group(v):
+    raw = _safe_str(v)
+    return SALES_TYPE_MAP.get(raw, "normal" if raw in ("", "Target") else "other")
+
+
+def build_debtor_analysis_data(df, debtor_df, cur_month):
+    """
+    Compact invoice-month dataset for debtor_analysis.html.
+    One row per debtor x month x brand x sku x sales type.
+    """
+    log("Building debtor_analysis_data.json...")
+
+    month_order = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+    def month_key(label):
+        try:
+            p = str(label).split()
+            return int(p[1]) * 12 + month_order.index(p[0])
+        except Exception:
+            return 0
+
+    meta = {}
+    debtors = []
+    if debtor_df is not None and not debtor_df.empty:
+        for _, r in debtor_df.iterrows():
+            code = _safe_str(r.get("Code"))
+            if not code:
+                continue
+            rec = {
+                "debtor_code": code,
+                "company_name": _safe_str(r.get("Company Name")),
+                "agent": _safe_str(r.get("Agent")),
+                "debtor_type": _safe_str(r.get("Debtor Type")),
+                "area": _safe_str(r.get("Area")),
+                "active": _safe_str(r.get("Active")),
+                "phone": _safe_str(r.get("Phone 1")),
+            }
+            meta[code] = rec
+            if rec["area"] == SCOPE_AREA and rec["active"] == "Checked":
+                debtors.append(rec)
+
+    canggih = df[
+        (df["area_code"] == SCOPE_AREA) &
+        (df["item_group"] != EIGHTCOM_GROUP) &
+        (df["debtor_code"] != "") &
+        (df["tranx_mth_full"] != "")
+    ].copy()
+
+    if canggih.empty:
+        return {
+            "generated_at": datetime.now().isoformat(timespec="seconds"),
+            "current_month": cur_month,
+            "scope_area": SCOPE_AREA,
+            "months": [],
+            "debtors": debtors,
+            "records": [],
+        }
+
+    canggih["sales_type_group"] = canggih["sales_type"].apply(_sales_type_group)
+    canggih["agent_meta"] = canggih["debtor_code"].map(lambda c: meta.get(c, {}).get("agent", ""))
+    canggih["type_meta"] = canggih["debtor_code"].map(lambda c: meta.get(c, {}).get("debtor_type", ""))
+    canggih["name_meta"] = canggih["debtor_code"].map(lambda c: meta.get(c, {}).get("company_name", ""))
+
+    grouped = canggih.groupby(
+        [
+            "tranx_mth_full", "debtor_code", "company_name", "agent",
+            "item_group", "item_code", "sales_type", "sales_type_group",
+            "agent_meta", "type_meta", "name_meta"
+        ],
+        dropna=False,
+        as_index=False,
+    ).agg(
+        ctn=("qty_ctn", "sum"),
+        amount=("local_subtotal", "sum"),
+        invoices=("doc_no", "nunique"),
+        last_date=("date_parsed", "max"),
+    )
+
+    records = []
+    for _, r in grouped.iterrows():
+        code = _safe_str(r.get("debtor_code"))
+        name = _safe_str(r.get("name_meta")) or _safe_str(r.get("company_name"))
+        agent = _safe_str(r.get("agent_meta")) or _safe_str(r.get("agent"))
+        records.append({
+            "month": _safe_str(r.get("tranx_mth_full")),
+            "debtor_code": code,
+            "company_name": name,
+            "agent": agent,
+            "debtor_type": _safe_str(r.get("type_meta")),
+            "brand": _safe_str(r.get("item_group")),
+            "sku": _safe_str(r.get("item_code")),
+            "sales_type": _safe_str(r.get("sales_type")),
+            "sales_type_group": _safe_str(r.get("sales_type_group")),
+            "ctn": round(float(r.get("ctn") or 0), 2),
+            "amount": round(float(r.get("amount") or 0), 2),
+            "invoices": int(r.get("invoices") or 0),
+            "last_date": r.get("last_date").strftime("%Y-%m-%d") if pd.notnull(r.get("last_date")) else "",
+        })
+
+    months = sorted({m for m in canggih["tranx_mth_full"].dropna().unique() if m}, key=month_key)
+    records.sort(key=lambda x: (month_key(x["month"]), x["agent"], x["debtor_code"], x["brand"], x["sku"]))
+
+    log(f"   Debtor analysis records: {len(records):,} aggregate rows across {len(months)} months")
+    return {
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "current_month": cur_month,
+        "scope_area": SCOPE_AREA,
+        "months": months,
+        "debtors": debtors,
+        "records": records,
+    }
+
 
 def filter_scope(df):
     """Keep only GRP 2A rows."""
@@ -3690,6 +3815,11 @@ def main():
     # ────────────────────────────────────────────────────────────────
 
     # ── Write JSON ──────────────────────────────────────────────────
+    debtor_analysis = build_debtor_analysis_data(df_raw, debtor_df, cur_month)
+    with open(DEBTOR_ANALYSIS_FILE, "w", encoding="utf-8") as f:
+        json.dump(debtor_analysis, f, ensure_ascii=False, separators=(",", ":"), default=str)
+    log(f"   Debtor analysis saved: {DEBTOR_ANALYSIS_FILE.name}")
+
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, indent=2, default=str)
 
