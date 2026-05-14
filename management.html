@@ -627,6 +627,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
     <!-- Content -->
     <div id="yr-content" style="display:none;">
 
+      <!-- YTD KPI cards -->
+      <div id="yr-kpis" style="display:grid;grid-template-columns:repeat(5,minmax(130px,1fr));gap:10px;margin-bottom:16px;"></div>
+
       <!-- Agent selector for chart -->
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
         <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;">Chart Agent:</div>
@@ -636,7 +639,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
       </div>
 
       <!-- Line Chart -->
-      <div class="sec-lbl no-border">📈 CTN Progression — <span id="yr-chart-title">Team Total</span></div>
+      <div class="sec-lbl no-border">📈 Cumulative Target Progression — <span id="yr-chart-title">Team Total</span></div>
       <div class="card card-pad" style="padding:16px 12px;">
         <div id="yr-chart" style="position:relative;"></div>
       </div>
@@ -4830,7 +4833,10 @@ async function loadYearlyData() {
     const r = await fetch('months_index.json?v=' + Date.now());
     if (r.ok) {
       const idx = await r.json();
-      available = (idx.months || []).filter(m => m.endsWith(yr));
+      const idxMonths = Array.isArray(idx) ? idx : (idx.months || []);
+      available = idxMonths
+        .map(m => String(m).replace(' ', '-'))
+        .filter(m => m.endsWith(yr));
     }
   } catch(e) {}
 
@@ -4868,9 +4874,14 @@ async function loadYearlyData() {
 function renderYearly() {
   const yr = document.getElementById('yr-year-sel')?.value || '26';
   document.getElementById('yr-year').textContent = '20' + yr;
+  renderYearlyKpis();
   renderYearlyChart();
   renderYearlyTable();
   renderYearlyYTD();
+}
+
+function yrMetricLabel(metric) {
+  return ({ t1:'Normal T1', t2:'Normal T2', ga:'GA', ma:'MA' })[metric] || 'Normal T1';
 }
 
 function yrGetActualTarget(monthData, agent, metric) {
@@ -4905,13 +4916,69 @@ function yrAllAgents() {
   return [...agents].sort();
 }
 
+function yrSeries(metric, selectedAgent='all') {
+  const yr = document.getElementById('yr-year-sel')?.value || '26';
+  const agents = yrAllAgents();
+  const months = YR_MONTHS_SHORT.map(m => yrMonthLabel(m, yr));
+  let cumActual = 0, cumTarget = 0;
+
+  return months.map(m => {
+    const d = YR_DATA[m];
+    if (!d) return { month:m, actual:null, target:null, cumActual:null, cumTarget:null, pct:null };
+
+    let actual = 0, target = 0, hasActual = false, hasTarget = false;
+    const useAgents = selectedAgent === 'all' ? agents : [selectedAgent];
+    useAgents.forEach(a => {
+      const at = yrGetActualTarget(d, a, metric);
+      if (at.actual !== null) { actual += Number(at.actual || 0); hasActual = true; }
+      if (at.target !== null) { target += Number(at.target || 0); hasTarget = true; }
+    });
+
+    if (hasActual) cumActual += actual;
+    if (hasTarget) cumTarget += target;
+    return {
+      month:m,
+      actual:hasActual ? actual : null,
+      target:hasTarget ? target : null,
+      cumActual:hasActual ? cumActual : null,
+      cumTarget:hasTarget ? cumTarget : null,
+      pct:hasTarget && target > 0 ? actual / target * 100 : null,
+      cumPct:cumTarget > 0 ? cumActual / cumTarget * 100 : null,
+    };
+  });
+}
+
+function renderYearlyKpis() {
+  const metric = document.getElementById('yr-metric')?.value || 't1';
+  const points = yrSeries(metric, 'all').filter(p => p.actual !== null || p.target !== null);
+  const actual = points.reduce((s,p) => s + Number(p.actual || 0), 0);
+  const target = points.reduce((s,p) => s + Number(p.target || 0), 0);
+  const hitMonths = points.filter(p => p.target && p.actual >= p.target).length;
+  const pct = target > 0 ? actual / target * 100 : null;
+  const gap = target > 0 ? actual - target : null;
+  const loaded = points.length;
+  const col = pct == null ? 'var(--blue)' : pct >= 100 ? 'var(--green)' : pct >= 80 ? 'var(--gold)' : 'var(--accent)';
+
+  const cards = [
+    ['Metric', yrMetricLabel(metric), 'var(--blue)'],
+    ['YTD Actual', fi(actual), 'var(--green)'],
+    ['Loaded Target', target ? fi(target) : '—', 'var(--gold)'],
+    ['YTD Achievement', pct == null ? '—' : fp(pct), col],
+    ['Gap / Hit Months', `${gap == null ? '—' : (gap >= 0 ? '+' : '') + fi(gap)} · ${hitMonths}/${loaded}`, gap >= 0 ? 'var(--green)' : 'var(--accent)'],
+  ];
+  document.getElementById('yr-kpis').innerHTML = cards.map(([label, value, color]) => `
+    <div class="card card-pad" style="padding:12px 14px;">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;">${label}</div>
+      <div style="font-family:var(--mono);font-size:22px;font-weight:800;color:${color};margin-top:5px;">${value}</div>
+    </div>
+  `).join('');
+}
+
 function renderYearlyChart() {
-  const yr      = document.getElementById('yr-year-sel')?.value || '26';
   const metric  = document.getElementById('yr-metric')?.value || 't1';
   const agentSel = document.getElementById('yr-chart-agent');
   const agents  = yrAllAgents();
 
-  // Rebuild agent selector
   const prevVal = agentSel?.value || 'all';
   if (agentSel) {
     agentSel.innerHTML = '<option value="all">All Agents (Team Total)</option>';
@@ -4924,89 +4991,59 @@ function renderYearlyChart() {
   document.getElementById('yr-chart-title').textContent =
     selectedAgent === 'all' ? 'Team Total' : selectedAgent;
 
+  const yr = document.getElementById('yr-year-sel')?.value || '26';
   const months = YR_MONTHS_SHORT.map(m => yrMonthLabel(m, yr));
-  const CHART_H = 160;
-  const metricLabels = { t1:'Normal T1', t2:'Normal T2', ga:'GA', ma:'MA' };
+  const points = yrSeries(metric, selectedAgent);
+  const visible = points.filter(p => p.cumActual !== null || p.cumTarget !== null);
+  const maxV = Math.max(...points.map(p => Math.max(p.cumActual||0, p.cumTarget||0)), 1);
 
-  const points = months.map(m => {
-    const d = YR_DATA[m];
-    if (!d) return { month: m, actual: null, target: null };
-    if (selectedAgent === 'all') {
-      let actual = 0, target = 0, hasTarget = false;
-      agents.forEach(a => {
-        const at = yrGetActualTarget(d, a, metric);
-        if (at.actual !== null) actual += at.actual;
-        if (at.target !== null) { target += at.target; hasTarget = true; }
-      });
-      return { month: m, actual, target: hasTarget ? target : null };
-    } else {
-      return { month: m, ...yrGetActualTarget(d, selectedAgent, metric) };
-    }
-  });
-
-  const maxV = Math.max(...points.map(p => Math.max(p.actual||0, p.target||0)), 1);
-
-  // SVG line chart
-  const W = 320, H = CHART_H, PAD = { t:20, r:10, b:30, l:40 };
+  const W = 860, H = 250, PAD = { t:26, r:24, b:42, l:64 };
   const CW = W - PAD.l - PAD.r;
   const CH = H - PAD.t - PAD.b;
   const xStep = CW / (months.length - 1);
+  const xPos = i => PAD.l + i * xStep;
+  const yPos = v => PAD.t + CH - (v / maxV) * CH;
+  const linePath = key => {
+    const pts = points.filter(p => p[key] !== null);
+    return pts.length >= 2
+      ? 'M' + pts.map(p => `${xPos(months.indexOf(p.month))},${yPos(p[key])}`).join(' L')
+      : '';
+  };
 
-  function xPos(i) { return PAD.l + i * xStep; }
-  function yPos(v) { return PAD.t + CH - (v / maxV) * CH; }
-
-  // Grid lines
   const gridVals = [0, 0.25, 0.5, 0.75, 1.0].map(f => Math.round(f * maxV));
   const gridLines = gridVals.map(v =>
-    `<line x1="${PAD.l}" y1="${yPos(v)}" x2="${W-PAD.r}" y2="${yPos(v)}"
-      stroke="rgba(255,255,255,.07)" stroke-width="1"/>
-     <text x="${PAD.l - 4}" y="${yPos(v)+3}" text-anchor="end"
-      font-family="monospace" font-size="7" fill="rgba(255,255,255,.3)">${v}</text>`
+    `<line x1="${PAD.l}" y1="${yPos(v)}" x2="${W-PAD.r}" y2="${yPos(v)}" stroke="rgba(255,255,255,.07)" stroke-width="1"/>
+     <text x="${PAD.l - 6}" y="${yPos(v)+3}" text-anchor="end" font-family="monospace" font-size="9" fill="rgba(255,255,255,.35)">${fi(v)}</text>`
   ).join('');
 
-  // Target line
-  const tgtPts = points.filter(p => p.target !== null);
-  const tgtPath = tgtPts.length >= 2
-    ? 'M' + tgtPts.map(p => `${xPos(months.indexOf(p.month))},${yPos(p.target)}`).join(' L')
-    : '';
-
-  // Actual line (only connected months with data)
-  const actPts = points.filter(p => p.actual !== null);
-  const actPath = actPts.length >= 2
-    ? 'M' + actPts.map(p => `${xPos(months.indexOf(p.month))},${yPos(p.actual)}`).join(' L')
-    : '';
-
-  // Dots + labels
-  const actDots = actPts.map(p => {
+  const targetPath = linePath('cumTarget');
+  const actualPath = linePath('cumActual');
+  const actDots = visible.map(p => {
     const x = xPos(months.indexOf(p.month));
-    const y = yPos(p.actual);
-    const tgt = p.target;
-    const col = tgt ? (p.actual >= tgt ? '#2a7a4b' : p.actual >= tgt*0.8 ? '#f0c040' : '#c8381a') : '#4da6ff';
-    return `<circle cx="${x}" cy="${y}" r="3" fill="${col}"/>
-            <text x="${x}" y="${y-6}" text-anchor="middle" font-family="monospace" font-size="7" fill="${col}">${Math.round(p.actual)}</text>`;
+    const y = yPos(p.cumActual || 0);
+    const col = p.cumTarget ? (p.cumActual >= p.cumTarget ? '#2a7a4b' : p.cumActual >= p.cumTarget*0.8 ? '#f0c040' : '#c8381a') : '#4da6ff';
+    return `<circle cx="${x}" cy="${y}" r="4" fill="${col}"/>
+            <text x="${x}" y="${y-9}" text-anchor="middle" font-family="monospace" font-size="9" fill="${col}">${fi(p.cumActual||0)}</text>`;
   }).join('');
 
-  // X labels
   const xLabels = months.map((m, i) =>
-    `<text x="${xPos(i)}" y="${H - PAD.b + 12}" text-anchor="middle"
-      font-family="monospace" font-size="7" fill="rgba(255,255,255,.4)">${m.slice(0,3)}</text>`
+    `<text x="${xPos(i)}" y="${H - PAD.b + 20}" text-anchor="middle" font-family="monospace" font-size="10" fill="rgba(255,255,255,.45)">${m.slice(0,3)}</text>`
   ).join('');
 
   document.getElementById('yr-chart').innerHTML = `
-    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;">
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:270px;">
       ${gridLines}
-      ${tgtPath ? `<path d="${tgtPath}" fill="none" stroke="#f0c040" stroke-width="1.5" stroke-dasharray="4,3" opacity=".7"/>` : ''}
-      ${actPath ? `<path d="${actPath}" fill="none" stroke="#4da6ff" stroke-width="2"/>` : ''}
+      ${targetPath ? `<path d="${targetPath}" fill="none" stroke="#f0c040" stroke-width="2" stroke-dasharray="6,4" opacity=".9"/>` : ''}
+      ${actualPath ? `<path d="${actualPath}" fill="none" stroke="#4da6ff" stroke-width="3"/>` : ''}
       ${actDots}
       ${xLabels}
     </svg>
-    <div style="display:flex;gap:14px;font-family:monospace;font-size:9px;color:rgba(255,255,255,.45);margin-top:4px;justify-content:center;">
-      <span>— <span style="color:#4da6ff">Actual</span></span>
-      <span>- - <span style="color:#f0c040">Target</span></span>
-      <span><span style="color:#2a7a4b">●</span> Hit &nbsp;<span style="color:#f0c040">●</span> ≥80% &nbsp;<span style="color:#c8381a">●</span> Below</span>
+    <div style="display:flex;gap:14px;font-family:monospace;font-size:9px;color:rgba(255,255,255,.45);margin-top:4px;justify-content:center;flex-wrap:wrap;">
+      <span>Actual cumulative: <span style="color:#4da6ff">${fi(visible.at(-1)?.cumActual || 0)}</span></span>
+      <span>Target cumulative: <span style="color:#f0c040">${visible.at(-1)?.cumTarget ? fi(visible.at(-1).cumTarget) : '—'}</span></span>
+      <span><span style="color:#2a7a4b">●</span> >=100% &nbsp;<span style="color:#f0c040">●</span> >=80% &nbsp;<span style="color:#c8381a">●</span> Below</span>
     </div>`;
 }
-
 function renderYearlyTable() {
   const yr     = document.getElementById('yr-year-sel')?.value || '26';
   const metric = document.getElementById('yr-metric')?.value || 't1';
@@ -5169,3 +5206,4 @@ function initGistBanner() {
 </script>
 </body>
 </html>
+
