@@ -23,6 +23,9 @@
   --accent:#d9a921; --green:#12884e; --red:#d33f49; --orange:#c76b1d;
   --blue:#1169b8; --purple:#7857d8; --text:#1c1b19; --muted:#736f83;
 }
+:root[data-content-size="compact"] body{zoom:.93;}
+:root[data-content-size="normal"] body{zoom:1;}
+:root[data-content-size="large"] body{zoom:1.1;}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;padding-bottom:80px;}
 
@@ -376,6 +379,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
           <span id="sync-status" style="font-family:var(--mono);font-size:8px;color:var(--muted);">—</span>
           <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark theme"
             style="background:rgba(255,255,255,.08);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:8px;padding:3px 6px;border-radius:6px;cursor:pointer;">☾ Dark</button>
+          <button id="content-size-toggle" onclick="cycleContentSize()" title="Adjust dashboard content size"
+            style="background:rgba(255,255,255,.08);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:8px;padding:3px 6px;border-radius:6px;cursor:pointer;">A Normal</button>
           <button id="btn-manual-sync" onclick="manualSync()" title="Re-sync from Gist and Supabase"
             style="background:rgba(77,166,255,.1);border:1px solid rgba(77,166,255,.3);color:var(--blue);font-family:var(--mono);font-size:8px;padding:3px 6px;border-radius:6px;cursor:pointer;">🔃 Sync</button>
           <button onclick="doAgentLogout()" title="Log out (return to PIN gate)"
@@ -581,9 +586,33 @@ function initTheme() {
   applyTheme(saved);
 }
 
+const CONTENT_SIZE_LABELS = { compact: 'A Compact', normal: 'A Normal', large: 'A Large' };
+const CONTENT_SIZE_ORDER = ['compact', 'normal', 'large'];
+
+function applyContentSize(size) {
+  const next = CONTENT_SIZE_LABELS[size] ? size : 'normal';
+  document.documentElement.setAttribute('data-content-size', next);
+  try { localStorage.setItem('md_dashboard_content_size', next); } catch {}
+  const btn = document.getElementById('content-size-toggle');
+  if (btn) btn.textContent = CONTENT_SIZE_LABELS[next];
+}
+
+function cycleContentSize() {
+  const cur = document.documentElement.getAttribute('data-content-size') || 'normal';
+  const idx = CONTENT_SIZE_ORDER.indexOf(cur);
+  applyContentSize(CONTENT_SIZE_ORDER[(idx + 1) % CONTENT_SIZE_ORDER.length]);
+}
+
+function initContentSize() {
+  let saved = 'normal';
+  try { saved = localStorage.getItem('md_dashboard_content_size') || 'normal'; } catch {}
+  applyContentSize(saved);
+}
+
 // Skip login if already authenticated this session
 window.addEventListener('DOMContentLoaded', ()=>{
   initTheme();
+  initContentSize();
   if (sessionStorage.getItem('md_auth') === '1') {
     const agent = sessionStorage.getItem('md_agent');
     document.getElementById('pin-gate').style.display = 'none';
