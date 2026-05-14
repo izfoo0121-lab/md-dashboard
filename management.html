@@ -1351,8 +1351,9 @@ function renderOverview() {
     ? `📅 Historical — ${D.current_month}`
     : `Day ${wd.elapsed_working_days||'?'} of ${wd.total_working_days||'?'} · ${wd.theoretical_pct||0}% elapsed`;
 
-  const rates=agents.map(a=>D.agents[a]?.debtor_cards?.activation_rate||0);
-  const avgRate=rates.length?(rates.reduce((a,b)=>a+b,0)/rates.length).toFixed(1):0;
+  const patronageActive = agents.reduce((s,a)=>s+(Number(D.agents[a]?.debtor_cards?.activation_active ?? D.agents[a]?.debtor_cards?.active_count)||0),0);
+  const patronageBase = agents.reduce((s,a)=>s+(Number(D.agents[a]?.debtor_cards?.activation_base ?? D.agents[a]?.debtor_cards?.total_debtors)||0),0);
+  const avgRate = patronageBase > 0 ? (patronageActive / patronageBase * 100).toFixed(1) : 0;
 
   // Calculate team totals from agents if team_summary empty (historical)
   const teamNormalCtn = isHistorical
@@ -1653,9 +1654,9 @@ async function renderMonthlySummary() {
   // 加SKU
   const totSku     = agents.reduce((s,a)=>s+(Number(D.agents[a]?.debtor_cards?.total_new_sku)||0),0);
   const totSkuTgt  = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.new_sku?.target)||0),0);
-  // 光顾率 — team-level: sum active / sum total non-personal
-  const totActive  = agents.reduce((s,a)=>s+(D.agents[a]?.debtor_cards?.active_count||0),0);
-  const totDebtors = agents.reduce((s,a)=>s+(D.agents[a]?.debtor_cards?.total_debtors||0),0);
+  // 光顾率 — team-level: sum active / frozen opening non-personal baseline
+  const totActive  = agents.reduce((s,a)=>s+(Number(D.agents[a]?.debtor_cards?.activation_active ?? D.agents[a]?.debtor_cards?.active_count)||0),0);
+  const totDebtors = agents.reduce((s,a)=>s+(Number(D.agents[a]?.debtor_cards?.activation_base ?? D.agents[a]?.debtor_cards?.total_debtors)||0),0);
   const totRatePct = totDebtors > 0 ? Math.round(totActive/totDebtors*100) : 0;
   const totRateCol = totRatePct>=80?'#5de89a':totRatePct>=70?'#ffc94d':'#ff6b6b';
   // 交易次数
@@ -3460,8 +3461,8 @@ function renderDebtorSummary(){
     html+=`<div class="dt-row" style="grid-template-columns:${cols}" onclick="openDrill('${agent}')">
       <div class="dt-c dt-agent">${agent}</div>
       <div class="dt-c"><span style="font-family:var(--mono);font-size:11px;font-weight:500;color:${pc(rate)}">${rate}%</span><div class="dt-bar"><div class="dt-bar-fill" style="width:${Math.min(rate,100)}%;background:${bc(rate)}"></div></div></div>
-      <div class="dt-c">${dc.total_debtors||0}</div>
-      <div class="dt-c" style="color:var(--green)">${dc.active_count||0}</div>
+      <div class="dt-c">${dc.activation_base ?? dc.total_debtors ?? 0}</div>
+      <div class="dt-c" style="color:var(--green)">${dc.activation_active ?? dc.active_count ?? 0}</div>
       <div class="dt-c" style="color:var(--orange)">${dc.reactivation_count||0}</div>
       <div class="dt-c" style="color:var(--purple)">${dc.total_new_sku||0}</div>
     </div>`;
@@ -4567,10 +4568,10 @@ function openDrill(agent){
   // Debtor KPI
   const rate=dc.activation_rate??0;
   document.getElementById('dr-kpi').innerHTML=[
-    {lbl:'Total Debtors', val:dc.total_debtors||0,     sub:'Assigned accounts', pct:null},
-    {lbl:'已激活',         val:dc.active_count||0,      sub:'Bought this month', pct:rate},
+    {lbl:'Total Debtors', val:dc.activation_base ?? dc.total_debtors ?? 0, sub:'Month-start baseline', pct:null},
+    {lbl:'已激活',         val:dc.activation_active ?? dc.active_count ?? 0, sub:'Bought this month', pct:rate},
     {lbl:'待激活',         val:dc.reactivation_count||0,sub:'Need reactivation', pct:null},
-    {lbl:'光顾率',         val:rate+'%',                sub:'Excl. P-Personal',  pct:rate},
+    {lbl:'光顾率',         val:rate+'%',                sub:'Active / baseline', pct:rate},
     {lbl:'新增SKU',        val:dc.total_new_sku||0,     sub:'New SKU this month',pct:null},
     {lbl:'Paid CTN',      val:fi(ag.canggih_paid_ctn), sub:'Canggih in-house',  pct:null},
   ].map(item=>`<div class="kpi-box-d">

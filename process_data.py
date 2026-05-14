@@ -2071,9 +2071,10 @@ def save_debtor_snapshot(debtor_cards, targets, cur_month):
             np_total     = s["non_personal"]
             prev_inactive = s["prev_inactive"]
 
-            # Auto-calculate unless manually overridden
-            if "activation_rate" not in overrides:
-                kpi_tgts["activation_rate"] = 80  # % target stays 80%
+            # Patronage target is fixed at 80%. Ignore stale/manual overrides so
+            # scorecards cannot accidentally use 1% or another pasted value.
+            kpi_tgts["activation_rate"] = 80
+            overrides.pop("activation_rate", None)
             if "vip_count" not in overrides:
                 kpi_tgts["vip_count"] = max(1, round(np_total * 0.20))
             if "reactivation" not in overrides:
@@ -3015,7 +3016,7 @@ def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_cam
             "vip_count":        tgt("vip_count",        3),
             "reactivation":     tgt("reactivation",     5),
             "new_sku":          tgt("new_sku",          17),
-            "activation_rate":  tgt("activation_rate",  80),
+            "activation_rate":  80,
             "iface_pen":        bv["iFACE"]["pen_target"],
             "iface_target":     bv["iFACE"]["ctn_target"],
             "sukun_pen":        bv["SUKUN"]["pen_target"],
