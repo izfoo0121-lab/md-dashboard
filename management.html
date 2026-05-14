@@ -3561,8 +3561,23 @@ let mgmtUnpurchasedAgentPages = {};
 
 const MOVEMENT_SKU_COLORS = {
   IFACE:'#1a5c8f', SUKUN:'#6b3fa0', EVO:'#c8381a',
-  BISON:'#c8860a', TR20:'#2a7a4b', 'LAM+LWM':'#5a5550'
+  BISON:'#c8860a', TR20:'#2a7a4b', 'LAM+LWM':'#5a5550',
+  'TR-002':'#2a7a4b', 'CM-002':'#c8860a', 'IMP-001':'#c8860a',
+  CMX:'#c8860a', CMP:'#c8860a', SKNR:'#6b3fa0', SKNW:'#6b3fa0',
+  LAM:'#5a5550', LWM:'#5a5550'
 };
+
+function movementSkuColor(sku) {
+  const s = String(sku || '').toUpperCase();
+  if (MOVEMENT_SKU_COLORS[sku]) return MOVEMENT_SKU_COLORS[sku];
+  if (s.includes('IFACE')) return MOVEMENT_SKU_COLORS.IFACE;
+  if (s.includes('SUKUN') || s.startsWith('SKN')) return MOVEMENT_SKU_COLORS.SUKUN;
+  if (s.includes('EVO')) return MOVEMENT_SKU_COLORS.EVO;
+  if (s.includes('BISON') || s.startsWith('CM') || s.startsWith('IMP')) return MOVEMENT_SKU_COLORS.BISON;
+  if (s.includes('TR20') || s === 'TR-002') return MOVEMENT_SKU_COLORS.TR20;
+  if (s.includes('LAM') || s.includes('LWM') || s.startsWith('LF-')) return MOVEMENT_SKU_COLORS['LAM+LWM'];
+  return 'var(--ink)';
+}
 
 const MGMT_UNPURCHASED_BRAND_ITEMS = {
   'IFACE':   ['IFACE B','IFACE DB','IFACE M','IFACE R'],
@@ -3601,14 +3616,14 @@ function renderGainFilterRow() {
   ].join('');
 }
 
-function renderDropSkuFilter() {
+function renderDropSkuFilter(skuOptions=null) {
   const row = document.getElementById('drop-sku-filter-row');
   if (!row) return;
-  const options = ['all', 'IFACE', 'SUKUN', 'EVO', 'BISON', 'TR20', 'LAM+LWM'];
+  const options = ['all', ...(skuOptions || ['IFACE', 'SUKUN', 'EVO', 'BISON', 'TR20', 'LAM+LWM'])];
   row.innerHTML = options.map(sku => {
     const label = sku === 'all' ? 'All SKU' : sku;
     const safeSku = String(sku).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    const col = MOVEMENT_SKU_COLORS[sku] || 'var(--ink)';
+    const col = movementSkuColor(sku);
     return movementChipHtml(label, sku === _dropSkuFilter, `setDropSkuFilter('${safeSku}')`, col);
   }).join('');
 }
@@ -3928,7 +3943,7 @@ function renderGainSkuFilterButtons(skuOptions) {
     const active = sku === _gainSkuFilter;
     const label = sku === 'all' ? 'All SKU' : sku;
     const safeSku = String(sku).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    const col = GAIN_SKU_COLORS[sku] || 'var(--ink)';
+    const col = movementSkuColor(sku);
     return movementChipHtml(label, active, `setGainSkuFilter('${safeSku}')`, col);
   }).join('');
 }
@@ -4296,9 +4311,6 @@ function renderDroppingDebtors(resetPage=true) {
       const { stopped: skuStopped, reduced: skuReduced } = getMgmtDebtorSkuDrops(d);
       const lapsedSkus = [...new Set([...skuStopped, ...skuReduced])];
 
-      // Apply SKU brand filter — only show if selected brand is lapsed for this debtor
-      if (_dropSkuFilter !== 'all' && !lapsedSkus.includes(_dropSkuFilter)) return;
-
       drops.push({ agent, ...d, stopped, reduced, lapsedSkus, skuStopped, skuReduced });
     });
   });
@@ -4315,14 +4327,33 @@ function renderDroppingDebtors(resetPage=true) {
   }
   section.style.display = 'block';
 
+  const skuOptions = [...new Set(drops.flatMap(d => d.lapsedSkus || []))].sort((a,b) => a.localeCompare(b));
+  if (_dropSkuFilter !== 'all' && !skuOptions.includes(_dropSkuFilter)) _dropSkuFilter = 'all';
+  _gainSkuFilter = _dropSkuFilter;
+  renderDropSkuFilter(skuOptions);
+
+  const filteredDrops = _dropSkuFilter === 'all'
+    ? drops
+    : drops.filter(d => (d.lapsedSkus || []).includes(_dropSkuFilter));
+
+  if (!filteredDrops.length) {
+    DROPPING_DEBTORS_LIST = [];
+    _lastDropExport = {
+      month: CURRENT_DATA?.current_month || DATA?.current_month || '',
+      debtors: [],
+    };
+    list.innerHTML = '<div style="padding:12px 14px;font-family:var(--mono);font-size:10px;color:var(--ink3);text-align:center;">No dropping debtors for selected SKU</div>';
+    return;
+  }
+
   // Sort: by prev month CTN highest first (biggest accounts that dropped matter most)
-  drops.sort((a, b) => (b.ctn_prev1 || 0) - (a.ctn_prev1 || 0));
+  filteredDrops.sort((a, b) => (b.ctn_prev1 || 0) - (a.ctn_prev1 || 0));
 
   // Bridge: capture full filtered list for export while the DOM renders one page.
-  DROPPING_DEBTORS_LIST = drops;
+  DROPPING_DEBTORS_LIST = filteredDrops;
   _lastDropExport = {
     month: CURRENT_DATA?.current_month || DATA?.current_month || '',
-    debtors: drops,
+    debtors: filteredDrops,
   };
 
   if (resetPage) DROPPING_DEBTORS_PAGE = 0;
@@ -4391,7 +4422,7 @@ function renderDroppingDebtors(resetPage=true) {
   const pager = totalPages > 1 ? `
     <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 14px;background:var(--card);">
       <button class="activity-btn" onclick="if(DROPPING_DEBTORS_PAGE>0){DROPPING_DEBTORS_PAGE--;renderDroppingDebtorsPage();}" ${prevDisabled?'disabled':''} style="${prevDisabled?'opacity:.35;cursor:not-allowed;':''}">‹ Prev</button>
-      <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">Page ${DROPPING_DEBTORS_PAGE + 1} of ${totalPages} · ${drops.length} debtors</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">Page ${DROPPING_DEBTORS_PAGE + 1} of ${totalPages} - ${filteredDrops.length} debtors</div>
       <button class="activity-btn" onclick="if(DROPPING_DEBTORS_PAGE<${totalPages - 1}){DROPPING_DEBTORS_PAGE++;renderDroppingDebtorsPage();}" ${nextDisabled?'disabled':''} style="${nextDisabled?'opacity:.35;cursor:not-allowed;':''}">Next ›</button>
     </div>` : '';
   list.innerHTML += pager;
