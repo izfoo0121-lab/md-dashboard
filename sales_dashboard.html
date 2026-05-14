@@ -23,9 +23,10 @@
   --accent:#d9a921; --green:#12884e; --red:#d33f49; --orange:#c76b1d;
   --blue:#1169b8; --purple:#7857d8; --text:#1c1b19; --muted:#736f83;
 }
-:root[data-content-size="compact"] body{zoom:.93;}
+:root[data-content-size="compact"] body{zoom:.85;}
 :root[data-content-size="normal"] body{zoom:1;}
-:root[data-content-size="large"] body{zoom:1.1;}
+:root[data-content-size="large"] body{zoom:1.2;}
+:root[data-content-size="xl"] body{zoom:1.35;}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;padding-bottom:80px;}
 
@@ -586,8 +587,8 @@ function initTheme() {
   applyTheme(saved);
 }
 
-const CONTENT_SIZE_LABELS = { compact: 'A Compact', normal: 'A Normal', large: 'A Large' };
-const CONTENT_SIZE_ORDER = ['compact', 'normal', 'large'];
+const CONTENT_SIZE_LABELS = { compact: 'A Compact', normal: 'A Normal', large: 'A Large', xl: 'A XL' };
+const CONTENT_SIZE_ORDER = ['compact', 'normal', 'large', 'xl'];
 
 function applyContentSize(size) {
   const next = CONTENT_SIZE_LABELS[size] ? size : 'normal';
