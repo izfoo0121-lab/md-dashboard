@@ -963,36 +963,81 @@ async function renderBirthdayDebtorList(month, agentSel) {
   const removedCount = Object.values(overrides).filter(a => a === 'remove').length;
   const finalCount = finalRows.length;
   const monthLabel = auditBirthdayMonthLabel(month);
+  const birthdayCampId = 'birthday_gift_auto';
+
+  function birthdayClaimFor(d) {
+    const exact = getClaim(month, d.agent || '', birthdayCampId, d.code);
+    if (exact) return { claim: exact, keyAgent: d.agent || '' };
+    const suffix = `|${birthdayCampId}|${(d.code || '').toUpperCase()}`;
+    const foundKey = Object.keys(CLAIMS_CACHE).find(k => k.endsWith(suffix));
+    if (!foundKey) return { claim: null, keyAgent: d.agent || '' };
+    return { claim: CLAIMS_CACHE[foundKey], keyAgent: foundKey.split('|')[0] || d.agent || '' };
+  }
+
+  function birthdayAuditFor(d, keyAgent) {
+    return getAudit(month, keyAgent || d.agent || '', birthdayCampId, d.code);
+  }
+
+  const birthdayStatusRows = allRows.map(d => {
+    const { claim, keyAgent } = birthdayClaimFor(d);
+    const audit = claim ? birthdayAuditFor(d, keyAgent) : null;
+    return { ...d, claim, audit, keyAgent };
+  });
+  const claimedCount = birthdayStatusRows.filter(d => !!d.claim && d.claim.status !== 'excluded').length;
+  const verifiedCount = birthdayStatusRows.filter(d => d.audit?.status === 'verified').length;
+  const rejectedCount = birthdayStatusRows.filter(d => d.audit?.status === 'rejected').length;
+  const pendingCount = Math.max(0, claimedCount - verifiedCount - rejectedCount);
 
   summaryEl.innerHTML = `
     <div class="sum-card"><div class="sum-val b">${autoCount}</div><div class="sum-lbl">Auto</div></div>
-    <div class="sum-card"><div class="sum-val a">${addedCount}</div><div class="sum-lbl">Added</div></div>
-    <div class="sum-card"><div class="sum-val r">${removedCount}</div><div class="sum-lbl">Removed</div></div>
-    <div class="sum-card"><div class="sum-val g">${finalCount}</div><div class="sum-lbl">Active Final</div></div>
-    <div class="sum-card"><div class="sum-val b">${allRows.length}</div><div class="sum-lbl">${agentSel === 'ALL' ? 'Visible' : agentSel}</div></div>`;
+    <div class="sum-card"><div class="sum-val g">${claimedCount}</div><div class="sum-lbl">Claimed</div></div>
+    <div class="sum-card"><div class="sum-val b">${verifiedCount}</div><div class="sum-lbl">Verified</div></div>
+    <div class="sum-card"><div class="sum-val a">${pendingCount}</div><div class="sum-lbl">Pending Audit</div></div>
+    <div class="sum-card"><div class="sum-val r">${removedCount}</div><div class="sum-lbl">Removed</div></div>`;
 
   const renderBirthdayRow = d => {
     const isRemoved = d.status === 'removed';
     const isAdded = d.status === 'added';
-    const badge = isRemoved
-      ? '<span class="claim-status pending" style="color:#aaa;background:rgba(255,255,255,.08);">✗ REMOVED</span>'
+    const { claim, keyAgent } = birthdayClaimFor(d);
+    const audit = claim ? birthdayAuditFor(d, keyAgent) : null;
+    const statusClass = isRemoved ? 'pending'
+      : !claim ? 'unclaimed'
+      : audit?.status === 'verified' ? 'verified'
+      : audit?.status === 'rejected' ? 'rejected'
+      : 'claimed';
+    const claimLabel = isRemoved ? 'REMOVED'
+      : !claim ? 'NOT CLAIMED'
+      : audit?.status === 'verified' ? 'VERIFIED'
+      : audit?.status === 'rejected' ? 'REJECTED'
+      : 'CLAIMED';
+    const sourceBadge = isRemoved
+      ? '<span class="claim-status pending" style="color:#aaa;background:rgba(255,255,255,.08);">REMOVED</span>'
       : isAdded
-        ? '<span class="claim-status claimed" style="color:var(--accent);background:rgba(255,165,0,.12);">✓ ADDED</span>'
-        : '<span class="claim-status claimed">AUTO</span>';
-    const rowClass = isRemoved ? 'pending' : 'claimed';
+        ? '<span class="claim-status claimed" style="color:var(--accent);background:rgba(255,165,0,.12);">ADDED</span>'
+        : '<span class="claim-status pending">AUTO</span>';
+    const claimBadge = `<span class="claim-status ${statusClass}">${claimLabel}</span>`;
     const rowStyle = isRemoved ? 'opacity:.65;' : '';
     const nameStyle = isRemoved ? 'text-decoration:line-through;color:var(--muted);' : '';
-    return `<div class="claim-row ${rowClass}" style="${rowStyle}">
+    const claimMeta = !claim ? 'Gift not marked claimed yet'
+      : `Gift marked: ${claim.ts || '-'}${claim.remark ? ' - "' + auditHtml(claim.remark) + '"' : ''}${audit?.status === 'verified' ? ' - Verified' : audit?.status === 'rejected' ? ' - Rejected' : ''}`;
+    return `<div class="claim-row ${statusClass}" style="${rowStyle}">
       <div class="claim-info">
         <div class="claim-name" style="${nameStyle}">${auditHtml(d.name)}</div>
-        <div class="claim-code">${auditHtml(d.code)} · ${auditHtml(d.agent || 'Unknown agent')}${d.type ? ' · ' + auditHtml(d.type) : ''}${d.phone ? ' · ' + auditHtml(d.phone) : ''}</div>
-        <div class="claim-meta">${isRemoved ? 'Excluded by month-scoped birthday override' : isAdded ? 'Manually added in birthday overrides' : 'Auto-selected from birthday rules'}</div>
+        <div class="claim-code">${auditHtml(d.code)} - ${auditHtml(d.agent || 'Unknown agent')}${d.type ? ' - ' + auditHtml(d.type) : ''}${d.phone ? ' - ' + auditHtml(d.phone) : ''}</div>
+        <div class="claim-meta">${isRemoved ? 'Excluded by month-scoped birthday override' : isAdded ? 'Manually added in birthday overrides' : 'Auto-selected from birthday rules'} - ${claimMeta}</div>
       </div>
       <div class="claim-actions">
-        ${badge}
+        ${sourceBadge}
+        ${claimBadge}
         ${isRemoved
           ? `<button class="audit-btn verify" onclick="birthdayAuditAdd('${auditJs(month)}','${auditJs(d.code)}')">+ Add</button>`
-          : `<button class="audit-btn reject" onclick="birthdayAuditRemove('${auditJs(month)}','${auditJs(d.code)}')">✕</button>`}
+          : `${claim ? (!audit ? `
+            <button class="audit-btn verify" onclick="auditClaim('${auditJs(month)}','${auditJs(keyAgent || d.agent)}','${birthdayCampId}','${auditJs(d.code)}','verified')">OK</button>
+            <button class="audit-btn reject" onclick="promptReject('${auditJs(month)}','${auditJs(keyAgent || d.agent)}','${birthdayCampId}','${auditJs(d.code)}')">Reject</button>
+          ` : `
+            <button class="audit-btn undo" onclick="auditClaim('${auditJs(month)}','${auditJs(keyAgent || d.agent)}','${birthdayCampId}','${auditJs(d.code)}','undo')">Undo</button>
+          `) : ''}
+          <button class="audit-btn reject" onclick="birthdayAuditRemove('${auditJs(month)}','${auditJs(d.code)}')">Remove</button>`}
       </div>
     </div>`;
   };
@@ -1005,20 +1050,24 @@ async function renderBirthdayDebtorList(month, agentSel) {
   });
   const rowsHtml = Object.entries(rowsByAgent)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([agent, rows]) => `<div class="agent-section is-collapsed">
+    .map(([agent, rows]) => {
+      const agentClaimed = rows.filter(d => !!birthdayClaimFor(d).claim).length;
+      return `<div class="agent-section is-collapsed">
       <div class="agent-hdr" onclick="toggleAgentSection(this)">
         <div>
-          <div class="agent-name"><span class="agent-toggle">â–¸</span> ${auditHtml(agent)}</div>
+          <div class="agent-name"><span class="agent-toggle">&gt;</span> ${auditHtml(agent)}</div>
           <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;">
-            ${rows.length} birthday debtors
+            ${rows.length} birthday debtors - ${agentClaimed}/${rows.length} claimed
           </div>
         </div>
         <div class="agent-stats">
+          <span class="stat-chip done">${agentClaimed}/${rows.length} claimed</span>
           <span class="stat-chip done">${rows.length}</span>
         </div>
       </div>
       <div class="claims-body">${rows.map(renderBirthdayRow).join('')}</div>
-    </div>`).join('');
+    </div>`;
+    }).join('');
 
   contentEl.innerHTML = `
     <div class="agent-section">
@@ -1026,7 +1075,7 @@ async function renderBirthdayDebtorList(month, agentSel) {
         <div>
           <div class="agent-name">Birthday ${auditHtml(monthLabel)}</div>
           <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;">
-            Auto: ${autoCount} + Added: ${addedCount} = ${finalCount} active. Removed: ${removedCount} separately.
+            Auto: ${autoCount} + Added: ${addedCount} = ${finalCount} active. Claimed: ${claimedCount}. Verified: ${verifiedCount}. Removed: ${removedCount} separately.
           </div>
         </div>
         <div class="agent-stats">
