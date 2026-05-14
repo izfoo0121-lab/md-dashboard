@@ -32,6 +32,17 @@
     .controls { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; display:grid; grid-template-columns:repeat(6,minmax(145px,1fr)); gap:12px; }
     label { display:flex; flex-direction:column; gap:5px; color:var(--muted); font:10px Consolas, monospace; text-transform:uppercase; letter-spacing:.12em; }
     .wide { grid-column:span 2; }
+    .field { display:flex; flex-direction:column; gap:5px; color:var(--muted); font:10px Consolas, monospace; text-transform:uppercase; letter-spacing:.12em; }
+    details.multi { position:relative; }
+    details.multi summary { list-style:none; border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:8px; padding:9px 12px; font:13px Consolas, monospace; cursor:pointer; min-height:38px; text-transform:none; letter-spacing:0; }
+    details.multi summary::-webkit-details-marker { display:none; }
+    details.multi[open] summary { border-color:rgba(77,166,255,.55); box-shadow:0 0 0 2px rgba(77,166,255,.12); }
+    .multi-menu { position:absolute; z-index:30; top:42px; left:0; right:0; max-height:280px; overflow:auto; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:8px; box-shadow:0 16px 40px rgba(0,0,0,.35); text-transform:none; letter-spacing:0; }
+    .multi-actions { display:flex; gap:6px; margin-bottom:7px; position:sticky; top:0; background:var(--panel); padding-bottom:6px; }
+    .mini { border:1px solid var(--line); background:var(--chip); color:var(--ink); border-radius:6px; padding:5px 7px; font:11px Consolas, monospace; cursor:pointer; }
+    .check-row { display:flex; align-items:center; gap:8px; padding:6px 4px; color:var(--ink); font:12px Consolas, monospace; border-radius:6px; cursor:pointer; }
+    .check-row:hover { background:var(--chip); }
+    .check-row input { width:14px; height:14px; padding:0; margin:0; accent-color:var(--gold); }
     .kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin:16px 0; }
     .kpi { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; }
     .kpi .v { font:700 28px Consolas, monospace; color:var(--blue); }
@@ -88,11 +99,11 @@
       </select></label>
       <label>Rows<select id="pageSize" onchange="page=1;render()"><option>25</option><option selected>50</option><option>100</option></select></label>
 
-      <label>Agent<select id="agentFilter" onchange="page=1;render()"></select></label>
-      <label>Type<select id="typeFilter" onchange="page=1;render()"></select></label>
-      <label>Brand<select id="brandFilter" onchange="page=1;render()"></select></label>
-      <label>SKU<select id="skuFilter" onchange="page=1;render()"></select></label>
-      <label>Sales Type<select id="salesTypeFilter" onchange="page=1;render()"></select></label>
+      <div class="field">Agent<details class="multi" id="agentFilter"><summary>All agents</summary><div class="multi-menu"></div></details></div>
+      <div class="field">Type<details class="multi" id="typeFilter"><summary>All types</summary><div class="multi-menu"></div></details></div>
+      <div class="field">Brand<details class="multi" id="brandFilter"><summary>All brands</summary><div class="multi-menu"></div></details></div>
+      <div class="field">SKU<details class="multi" id="skuFilter"><summary>All SKUs</summary><div class="multi-menu"></div></details></div>
+      <div class="field">Sales Type<details class="multi" id="salesTypeFilter"><summary>All sales types</summary><div class="multi-menu"></div></details></div>
       <label class="wide">Search<input id="search" placeholder="debtor name, code, brand, sku..." oninput="page=1;render()"></label>
     </section>
 
@@ -150,8 +161,36 @@ async function init(){
   render();
 }
 
-function addOptions(id, vals, allLabel='All'){
-  const el=byId(id); el.innerHTML=`<option value="">${allLabel}</option>`+vals.map(v=>`<option>${esc(v)}</option>`).join('');
+function addMultiOptions(id, vals, allLabel='All'){
+  const el=byId(id);
+  const menu=el.querySelector('.multi-menu');
+  menu.innerHTML=`<div class="multi-actions">
+    <button type="button" class="mini" onclick="setMulti('${id}', true)">All</button>
+    <button type="button" class="mini" onclick="setMulti('${id}', false)">Clear</button>
+  </div>` + vals.map(v=>`<label class="check-row"><input type="checkbox" value="${esc(v)}" onchange="page=1;updateMultiSummary('${id}','${esc(allLabel)}');render()"> ${esc(v)}</label>`).join('');
+  updateMultiSummary(id, allLabel);
+}
+
+function getMultiValues(id){
+  return [...byId(id).querySelectorAll('input[type="checkbox"]:checked')].map(cb=>cb.value);
+}
+
+function setMulti(id, checked){
+  byId(id).querySelectorAll('input[type="checkbox"]').forEach(cb=>cb.checked=checked);
+  page=1;
+  updateMultiSummary(id);
+  render();
+}
+
+function updateMultiSummary(id, fallback){
+  const el=byId(id);
+  const selected=getMultiValues(id);
+  const total=el.querySelectorAll('input[type="checkbox"]').length;
+  const summary=el.querySelector('summary');
+  if(!selected.length || selected.length===total) summary.textContent=fallback || summary.dataset.fallback || 'All';
+  else if(selected.length===1) summary.textContent=selected[0];
+  else summary.textContent=`${selected.length} selected`;
+  if(fallback) summary.dataset.fallback=fallback;
 }
 
 function initSelects(){
@@ -162,21 +201,21 @@ function initSelects(){
   byId('bTo').innerHTML='<option value="">No comparison</option>'+monthOpts;
   const cur=DATA.current_month || ms[ms.length-1];
   byId('aFrom').value=cur; byId('aTo').value=cur;
-  addOptions('agentFilter', unique((DATA.debtors||[]).map(d=>d.agent)));
-  addOptions('typeFilter', unique((DATA.debtors||[]).map(d=>d.debtor_type)));
-  addOptions('brandFilter', unique((DATA.records||[]).map(r=>r.brand)));
-  addOptions('skuFilter', unique((DATA.records||[]).map(r=>r.sku)));
-  addOptions('salesTypeFilter', unique((DATA.records||[]).map(r=>r.sales_type || r.sales_type_group)));
+  addMultiOptions('agentFilter', unique((DATA.debtors||[]).map(d=>d.agent)), 'All agents');
+  addMultiOptions('typeFilter', unique((DATA.debtors||[]).map(d=>d.debtor_type)), 'All types');
+  addMultiOptions('brandFilter', unique((DATA.records||[]).map(r=>r.brand)), 'All brands');
+  addMultiOptions('skuFilter', unique((DATA.records||[]).map(r=>r.sku)), 'All SKUs');
+  addMultiOptions('salesTypeFilter', unique((DATA.records||[]).map(r=>r.sales_type || r.sales_type_group)), 'All sales types');
 }
 
 function passesFilters(rec){
-  const agent=byId('agentFilter').value, typ=byId('typeFilter').value, brand=byId('brandFilter').value;
-  const sku=byId('skuFilter').value, st=byId('salesTypeFilter').value, q=byId('search').value.trim().toLowerCase();
-  if(agent && rec.agent!==agent) return false;
-  if(typ && rec.debtor_type!==typ) return false;
-  if(brand && rec.brand!==brand) return false;
-  if(sku && rec.sku!==sku) return false;
-  if(st && rec.sales_type!==st && rec.sales_type_group!==st) return false;
+  const agents=getMultiValues('agentFilter'), types=getMultiValues('typeFilter'), brands=getMultiValues('brandFilter');
+  const skus=getMultiValues('skuFilter'), sts=getMultiValues('salesTypeFilter'), q=byId('search').value.trim().toLowerCase();
+  if(agents.length && !agents.includes(rec.agent)) return false;
+  if(types.length && !types.includes(rec.debtor_type)) return false;
+  if(brands.length && !brands.includes(rec.brand)) return false;
+  if(skus.length && !skus.includes(rec.sku)) return false;
+  if(sts.length && !sts.includes(rec.sales_type) && !sts.includes(rec.sales_type_group)) return false;
   if(q && !`${rec.debtor_code} ${rec.company_name} ${rec.agent} ${rec.brand} ${rec.sku}`.toLowerCase().includes(q)) return false;
   return true;
 }
