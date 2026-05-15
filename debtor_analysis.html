@@ -104,6 +104,7 @@
       <div class="field">Brand<details class="multi" id="brandFilter"><summary>All brands</summary><div class="multi-menu"></div></details></div>
       <div class="field">SKU<details class="multi" id="skuFilter"><summary>All SKUs</summary><div class="multi-menu"></div></details></div>
       <div class="field">Sales Type<details class="multi" id="salesTypeFilter"><summary>All sales types</summary><div class="multi-menu"></div></details></div>
+      <div class="field">Payment<details class="multi" id="paidFilter"><summary>All payment status</summary><div class="multi-menu"></div></details></div>
       <label class="wide">Search<input id="search" placeholder="debtor name, code, brand, sku..." oninput="page=1;render()"></label>
     </section>
 
@@ -129,7 +130,7 @@
       <table>
         <thead>
           <tr>
-            <th>Debtor</th><th>Agent</th><th>Type</th><th>Brand / SKU</th>
+            <th>Debtor</th><th>Agent</th><th>Type</th><th>Brand / SKU</th><th>Payment</th>
             <th class="num">Period A</th><th class="num">Period B</th><th class="num">Change</th>
             <th>Trend</th><th>Category</th>
           </tr>
@@ -209,16 +210,40 @@ function initSelects(){
   addMultiOptions('brandFilter', unique((DATA.records||[]).map(r=>r.brand)), 'All brands');
   addMultiOptions('skuFilter', unique((DATA.records||[]).map(r=>r.sku)), 'All SKUs');
   addMultiOptions('salesTypeFilter', unique((DATA.records||[]).map(r=>r.sales_type || r.sales_type_group)), 'All sales types');
+  addMultiOptions('paidFilter', ['Paid', 'Unpaid', 'Partial', 'No sales'], 'All payment status');
+}
+
+function recPaymentStatus(rec){
+  const paid=Number(rec.paid_ctn||0), unpaid=Number(rec.unpaid_ctn||0), total=Number(rec.ctn||0);
+  if(total<=0) return 'No sales';
+  if(paid>0 && unpaid>0) return 'Partial';
+  if(unpaid>0) return 'Unpaid';
+  return 'Paid';
+}
+
+function rowPaymentStatus(row){
+  const paid=Number(row.paid_ctn||0), unpaid=Number(row.unpaid_ctn||0), total=Number(row.a||0);
+  if(total<=0) return 'No sales';
+  if(paid>0 && unpaid>0) return 'Partial';
+  if(unpaid>0) return 'Unpaid';
+  return 'Paid';
+}
+
+function paymentBadge(status, paid, unpaid){
+  const color = status==='Paid' ? 'var(--green)' : status==='Unpaid' ? 'var(--red)' : status==='Partial' ? 'var(--orange)' : 'var(--muted)';
+  const detail = status==='Partial' ? ` · P ${fmt(paid)} / U ${fmt(unpaid)}` : status==='Unpaid' ? ` · ${fmt(unpaid)} CTN` : status==='Paid' ? ` · ${fmt(paid)} CTN` : '';
+  return `<span class="badge" style="color:${color};border-color:${color};">${esc(status)}${detail}</span>`;
 }
 
 function passesFilters(rec){
   const agents=getMultiValues('agentFilter'), types=getMultiValues('typeFilter'), brands=getMultiValues('brandFilter');
-  const skus=getMultiValues('skuFilter'), sts=getMultiValues('salesTypeFilter'), q=byId('search').value.trim().toLowerCase();
+  const skus=getMultiValues('skuFilter'), sts=getMultiValues('salesTypeFilter'), pays=getMultiValues('paidFilter'), q=byId('search').value.trim().toLowerCase();
   if(agents.length && !agents.includes(rec.agent)) return false;
   if(types.length && !types.includes(rec.debtor_type)) return false;
   if(brands.length && !brands.includes(rec.brand)) return false;
   if(skus.length && !skus.includes(rec.sku)) return false;
   if(sts.length && !sts.includes(rec.sales_type) && !sts.includes(rec.sales_type_group)) return false;
+  if(pays.length && !pays.includes(recPaymentStatus(rec))) return false;
   if(q && !`${rec.debtor_code} ${rec.company_name} ${rec.agent} ${rec.brand} ${rec.sku}`.toLowerCase().includes(q)) return false;
   return true;
 }
@@ -272,7 +297,7 @@ function buildRows(){
     const k=keyFor(r);
     if(!map.has(k)) map.set(k,{
       key:k, debtor_code:r.debtor_code, company_name:r.company_name, agent:r.agent, debtor_type:r.debtor_type,
-      brand:mode==='debtor'?'':r.brand, sku:mode==='sku'?r.sku:'', a:0,b:0, months:{}, invoices:0
+      brand:mode==='debtor'?'':r.brand, sku:mode==='sku'?r.sku:'', a:0,b:0, paid_ctn:0, unpaid_ctn:0, months:{}, invoices:0
     });
     return map.get(k);
   }
@@ -281,14 +306,22 @@ function buildRows(){
   }
   source.forEach(r=>{
     const row=ensure(r);
-    if(aMonths.includes(r.month)) row.a += Number(r.ctn||0);
+    if(aMonths.includes(r.month)) {
+      row.a += Number(r.ctn||0);
+      row.paid_ctn += Number(r.paid_ctn||0);
+      row.unpaid_ctn += Number(r.unpaid_ctn||0);
+    }
     if(compare && bMonths.includes(r.month)) row.b += Number(r.ctn||0);
     row.months[r.month]=(row.months[r.month]||0)+Number(r.ctn||0);
     row.invoices += Number(r.invoices||0);
   });
   const out=[...map.values()].map(r=>{
     const cat=category(r.a,r.b,compare);
-    return {...r, delta:compare?r.b-r.a:0, pct:compare && r.a ? (r.b-r.a)/r.a*100 : null, category:cat, compare};
+    const payment_status=rowPaymentStatus(r);
+    return {...r, payment_status, delta:compare?r.b-r.a:0, pct:compare && r.a ? (r.b-r.a)/r.a*100 : null, category:cat, compare};
+  }).filter(r=>{
+    const pays=getMultiValues('paidFilter');
+    return !pays.length || pays.includes(r.payment_status);
   });
   out.sort((x,y)=>{
     if(x.category!==y.category && activeCategory!=='all') return x.category===activeCategory?-1:1;
@@ -342,19 +375,21 @@ function render(){
       <td>${esc(r.agent||'-')}</td>
       <td><span class="badge">${esc(r.debtor_type||'-')}</span></td>
       <td>${brandSku}</td>
+      <td>${paymentBadge(r.payment_status, r.paid_ctn, r.unpaid_ctn)}</td>
       <td class="num">${fmt(r.a)}</td>
       <td class="num">${r.compare?fmt(r.b):'-'}</td>
       <td class="num ${deltaClass}">${r.compare?`${r.delta>=0?'+':''}${fmt(r.delta)} ${r.pct!=null?`(${pct(r.pct)})`:''}`:'-'}</td>
       <td>${spark(months.map(m=>r.months[m]||0))}</td>
       <td><span class="badge">${categoryLabel(r.category)}</span></td>
     </tr>`;
-  }).join('') : `<tr><td colspan="9" class="empty">No rows match the selected filters</td></tr>`;
+  }).join('') : `<tr><td colspan="10" class="empty">No rows match the selected filters</td></tr>`;
 }
 
 function exportRows(){
   const out=filteredRows.map(r=>({
     agent:r.agent, debtor_code:r.debtor_code, company_name:r.company_name, debtor_type:r.debtor_type,
-    brand:r.brand, sku:r.sku, period_a_ctn:r.a, period_b_ctn:r.compare?r.b:'',
+    brand:r.brand, sku:r.sku, payment_status:r.payment_status, paid_ctn:r.paid_ctn, unpaid_ctn:r.unpaid_ctn,
+    period_a_ctn:r.a, period_b_ctn:r.compare?r.b:'',
     change_ctn:r.compare?r.delta:'', change_pct:r.compare?r.pct:'', category:categoryLabel(r.category)
   }));
   const ws=XLSX.utils.json_to_sheet(out);

@@ -637,6 +637,9 @@ def build_debtor_analysis_data(df, debtor_df, cur_month):
     canggih["agent_meta"] = canggih["debtor_code"].map(lambda c: meta.get(c, {}).get("agent", ""))
     canggih["type_meta"] = canggih["debtor_code"].map(lambda c: meta.get(c, {}).get("debtor_type", ""))
     canggih["name_meta"] = canggih["debtor_code"].map(lambda c: meta.get(c, {}).get("company_name", ""))
+    canggih["_is_paid"] = canggih["paid_on"].fillna("").astype(str).str.strip() != ""
+    canggih["_paid_ctn"] = canggih["qty_ctn"].where(canggih["_is_paid"], 0)
+    canggih["_unpaid_ctn"] = canggih["qty_ctn"].where(~canggih["_is_paid"], 0)
 
     grouped = canggih.groupby(
         [
@@ -648,6 +651,8 @@ def build_debtor_analysis_data(df, debtor_df, cur_month):
         as_index=False,
     ).agg(
         ctn=("qty_ctn", "sum"),
+        paid_ctn=("_paid_ctn", "sum"),
+        unpaid_ctn=("_unpaid_ctn", "sum"),
         amount=("local_subtotal", "sum"),
         invoices=("doc_no", "nunique"),
         last_date=("date_parsed", "max"),
@@ -669,6 +674,8 @@ def build_debtor_analysis_data(df, debtor_df, cur_month):
             "sales_type": _safe_str(r.get("sales_type")),
             "sales_type_group": _safe_str(r.get("sales_type_group")),
             "ctn": round(float(r.get("ctn") or 0), 2),
+            "paid_ctn": round(float(r.get("paid_ctn") or 0), 2),
+            "unpaid_ctn": round(float(r.get("unpaid_ctn") or 0), 2),
             "amount": round(float(r.get("amount") or 0), 2),
             "invoices": int(r.get("invoices") or 0),
             "last_date": r.get("last_date").strftime("%Y-%m-%d") if pd.notnull(r.get("last_date")) else "",
