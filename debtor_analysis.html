@@ -172,7 +172,9 @@ function addMultiOptions(id, vals, allLabel='All'){
 }
 
 function getMultiValues(id){
-  return [...byId(id).querySelectorAll('input[type="checkbox"]:checked')].map(cb=>cb.value);
+  const boxes=[...byId(id).querySelectorAll('input[type="checkbox"]')];
+  const checked=boxes.filter(cb=>cb.checked).map(cb=>cb.value);
+  return checked.length===boxes.length ? [] : checked;
 }
 
 function setMulti(id, checked){
