@@ -43,7 +43,7 @@
     .check-row { display:flex; align-items:center; gap:8px; padding:6px 4px; color:var(--ink); font:12px Consolas, monospace; border-radius:6px; cursor:pointer; }
     .check-row:hover { background:var(--chip); }
     .check-row input { width:14px; height:14px; padding:0; margin:0; accent-color:var(--gold); }
-    .kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin:16px 0; }
+    .kpis { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin:16px 0; }
     .kpi { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; }
     .kpi .v { font:700 28px Consolas, monospace; color:var(--blue); }
     .kpi .l { margin-top:5px; color:var(--muted); font:10px Consolas, monospace; text-transform:uppercase; letter-spacing:.14em; }
@@ -111,6 +111,7 @@
       <div class="kpi"><div class="v" id="kpiA">-</div><div class="l">Period A CTN</div></div>
       <div class="kpi"><div class="v" id="kpiB">-</div><div class="l">Period B CTN</div></div>
       <div class="kpi"><div class="v" id="kpiDelta">-</div><div class="l">Change</div></div>
+      <div class="kpi"><div class="v" id="kpiActivation">-</div><div class="l">Activation Rate</div></div>
       <div class="kpi"><div class="v" id="kpiDebtors">-</div><div class="l">Debtors</div></div>
       <div class="kpi"><div class="v" id="kpiRows">-</div><div class="l">Rows</div></div>
     </section>
@@ -139,7 +140,7 @@
   </main>
 
 <script>
-let DATA=null, rows=[], filteredRows=[], page=1, activeCategory='all';
+let DATA=null, rows=[], filteredRows=[], page=1, activeCategory='all', analysisStats={totalDebtors:0, activeDebtors:0};
 const fmt=n=>(Number(n||0)).toLocaleString('en-MY',{maximumFractionDigits:1});
 const pct=n=>!isFinite(n)?'-':`${n.toFixed(1)}%`;
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -222,6 +223,14 @@ function passesFilters(rec){
   return true;
 }
 
+function passesDebtorFilters(debtor){
+  const agents=getMultiValues('agentFilter'), types=getMultiValues('typeFilter'), q=byId('search').value.trim().toLowerCase();
+  if(agents.length && !agents.includes(debtor.agent)) return false;
+  if(types.length && !types.includes(debtor.debtor_type)) return false;
+  if(q && !`${debtor.debtor_code} ${debtor.company_name} ${debtor.agent}`.toLowerCase().includes(q)) return false;
+  return true;
+}
+
 function category(a,b,compare){
   if(!compare) return a>0 ? 'active' : 'no_volume';
   if(a===0 && b>0) return 'new';
@@ -248,9 +257,11 @@ function buildRows(){
   const bMonths=(byId('bFrom').value && byId('bTo').value) ? range(byId('bFrom').value, byId('bTo').value) : [];
   const compare=bMonths.length>0;
   const mode=byId('groupBy').value;
-  const baseDebtors=(DATA.debtors||[]).filter(d=>passesFilters({...d, brand:'', sku:'', sales_type:'', sales_type_group:''}));
+  const baseDebtors=(DATA.debtors||[]).filter(passesDebtorFilters);
   const baseCodes=new Set(baseDebtors.map(d=>d.debtor_code));
   const source=(DATA.records||[]).filter(r=>baseCodes.has(r.debtor_code)).filter(passesFilters);
+  const activeDebtorCodes=new Set(source.filter(r=>aMonths.includes(r.month) && Number(r.ctn||0)>0).map(r=>r.debtor_code));
+  analysisStats={totalDebtors:baseDebtors.length, activeDebtors:activeDebtorCodes.size};
   const map=new Map();
   function keyFor(r){
     if(mode==='sku') return `${r.debtor_code}|${r.brand}|${r.sku}`;
@@ -313,6 +324,8 @@ function render(){
   byId('kpiB').textContent=compare?fmt(totalB):'-';
   byId('kpiDelta').textContent=compare?`${totalB-totalA>=0?'+':''}${fmt(totalB-totalA)}`:'-';
   byId('kpiDelta').className='v '+(totalB-totalA>=0?'pos':'neg');
+  const activationRate=analysisStats.totalDebtors ? analysisStats.activeDebtors/analysisStats.totalDebtors*100 : 0;
+  byId('kpiActivation').textContent=pct(activationRate);
   byId('kpiDebtors').textContent=unique(filteredRows.map(r=>r.debtor_code)).length;
   byId('kpiRows').textContent=filteredRows.length;
 
