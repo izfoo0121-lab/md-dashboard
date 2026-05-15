@@ -248,8 +248,9 @@ function buildRows(){
   const bMonths=(byId('bFrom').value && byId('bTo').value) ? range(byId('bFrom').value, byId('bTo').value) : [];
   const compare=bMonths.length>0;
   const mode=byId('groupBy').value;
-  const source=(DATA.records||[]).filter(passesFilters);
   const baseDebtors=(DATA.debtors||[]).filter(d=>passesFilters({...d, brand:'', sku:'', sales_type:'', sales_type_group:''}));
+  const baseCodes=new Set(baseDebtors.map(d=>d.debtor_code));
+  const source=(DATA.records||[]).filter(r=>baseCodes.has(r.debtor_code)).filter(passesFilters);
   const map=new Map();
   function keyFor(r){
     if(mode==='sku') return `${r.debtor_code}|${r.brand}|${r.sku}`;
