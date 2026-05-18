@@ -903,9 +903,20 @@ async function loadData() {
 const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
 
-const ACTIVITY_AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','YI'];
+const ACTIVITY_AGENT_ORDER = ['BEN','CJ','JACKY','JAMES','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','XIAN','YI'];
 let activityMonthOffset = 0;
 let CAMPAIGN_MGMT_EXPORT_ROWS = [];
+
+function _activityAgentsForData(D, activity) {
+  const agents = Object.keys(D?.agents || {});
+  const source = agents.length ? agents : Object.keys(activity || {});
+  const order = new Map(ACTIVITY_AGENT_ORDER.map((agent, idx) => [agent, idx]));
+  return [...new Set(source)].sort((a, b) => {
+    const ai = order.has(a) ? order.get(a) : 999;
+    const bi = order.has(b) ? order.get(b) : 999;
+    return ai - bi || a.localeCompare(b);
+  });
+}
 
 function _activityMonthDate() {
   const D = CURRENT_DATA || DATA || {};
@@ -979,6 +990,7 @@ async function renderActivityMap() {
   if (!el) return;
   const D = CURRENT_DATA || DATA || {};
   const activity = D.agent_activity_daily || {};
+  const activityAgents = _activityAgentsForData(D, activity);
   const { start, end, startKey, endKey } = _activityMonthBounds();
   const monthLabel = `${start.toLocaleString('en-US', {month:'short'})} ${String(start.getFullYear()).slice(-2)}`;
   const label = document.getElementById('activity-month-label');
@@ -991,7 +1003,7 @@ async function renderActivityMap() {
       <th class="activity-date activity-corner">Agent</th>
       ${days.map(d => `<th class="activity-date"><b>${d.getDate()}</b><br>${d.toLocaleDateString('en-US', {weekday:'short'})}</th>`).join('')}
     </tr></thead>
-    <tbody>${ACTIVITY_AGENTS.map(agent => `<tr><th class="activity-agent">${agent}</th>${days.map(() => '<td class="activity-cell zero">...</td>').join('')}</tr>`).join('')}</tbody>
+    <tbody>${activityAgents.map(agent => `<tr><th class="activity-agent">${agent}</th>${days.map(() => '<td class="activity-cell zero">...</td>').join('')}</tr>`).join('')}</tbody>
   </table>`;
 
   const { leaveByAgentDate, offByAgent } = await _loadActivityCalendarMeta(startKey, endKey);
@@ -1000,7 +1012,7 @@ async function renderActivityMap() {
       <th class="activity-date activity-corner">Agent</th>
       ${days.map(d => `<th class="activity-date"><b>${d.getDate()}</b><br>${d.toLocaleDateString('en-US', {weekday:'short'})}</th>`).join('')}
     </tr></thead>
-    <tbody>${ACTIVITY_AGENTS.map(agent => {
+    <tbody>${activityAgents.map(agent => {
       const row = days.map(d => {
         const key = _dateKey(d);
         const dow = d.toLocaleDateString('en-US', {weekday:'short'});
