@@ -2261,7 +2261,8 @@ const GistSync = (() => {
         if (!byAgent[row.agent]) byAgent[row.agent] = {};
         byAgent[row.agent][row.debtor_code] = {
           reason: row.reason || '',
-          ts    : row.ts
+          ts    : row.ts,
+          flagged_at: row.ts
         };
       });
       _setCacheBucket(fileKey, byAgent);
@@ -2507,7 +2508,8 @@ const GistSync = (() => {
         if (!flagsByAgent[row.agent]) flagsByAgent[row.agent] = {};
         flagsByAgent[row.agent][row.debtor_code] = {
           reason: row.reason || '',
-          ts    : row.ts
+          ts    : row.ts,
+          flagged_at: row.ts
         };
       });
       Object.entries(flagsByAgent).forEach(([agent, flags]) => {
@@ -3265,6 +3267,11 @@ async function resolveFlag(agent, debtorCode) {
   if (flags[agent]) delete flags[agent][debtorCode];
   if (flags[agent] && !Object.keys(flags[agent]).length) delete flags[agent];
   await saveFlags(flags);
+  const month = DATA?.current_month || '';
+  if (month && typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+    try { await GistSync.saveFlags(month, agent, flags[agent] || {}); }
+    catch(e) { console.warn('[mgmt] flag resolve Supabase sync failed', e); }
+  }
   renderPendingActions();
 }
 

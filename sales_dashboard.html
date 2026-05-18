@@ -3762,6 +3762,12 @@ function saveFlags(flags) {
   if (blockFutureViewAction()) return;
   try { localStorage.setItem(FLAGS_KEY, JSON.stringify(flags)); } catch(e) {}
 }
+function syncFlagsForAgent(agent, flagsForAgent) {
+  const month = DATA?.current_month || '';
+  if (!month || !agent || typeof GistSync === 'undefined' || !GistSync.isConfigured()) return;
+  GistSync.saveFlags(month, agent, flagsForAgent || {})
+    .catch(err => console.warn('[flags] Supabase sync failed', err));
+}
 function getFlag(agent, debtorCode) {
   const flags = loadFlags();
   return flags[agent]?.[debtorCode] || null;
@@ -3816,14 +3822,17 @@ function submitFlag() {
   if (!_flagReason || !_flagCode || !_flagAgent) return;
   const flags = loadFlags();
   if (!flags[_flagAgent]) flags[_flagAgent] = {};
+  const nowIso = new Date().toISOString();
   flags[_flagAgent][_flagCode] = {
     reason:    _flagReason,
     note:      document.getElementById('flag-note').value.trim(),
-    flagged_at: new Date().toISOString(),
+    flagged_at: nowIso,
+    ts:        nowIso,
     agent:     _flagAgent,
     debtor_code: _flagCode,
   };
   saveFlags(flags);
+  syncFlagsForAgent(_flagAgent, flags[_flagAgent]);
   document.getElementById('flag-sheet-overlay').classList.remove('open');
   document.body.style.overflow = '';
   renderDebtors(); // Refresh to show flag badge
@@ -3833,6 +3842,7 @@ function resolveFlag(agent, debtorCode) {
   const flags = loadFlags();
   if (flags[agent]) delete flags[agent][debtorCode];
   saveFlags(flags);
+  syncFlagsForAgent(agent, flags[agent] || {});
   renderDebtors();
 }
 
