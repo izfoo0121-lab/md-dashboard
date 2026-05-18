@@ -93,17 +93,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 .activity-pill.mc{background:var(--gold-bg);color:var(--gold);}
 .activity-pill.off{background:var(--blue-bg);color:var(--blue);}
 .activity-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-family:var(--mono);font-size:9px;color:var(--ink3);}
-/* Debtor summary table */
-.dt-wrap{min-width:340px;}
-.dt-hdr{display:grid;gap:0;border-bottom:2px solid var(--border);}
-.dt-hdr-c{font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);padding:6px 8px;text-align:center;}
-.dt-row{display:grid;gap:0;border-bottom:1px solid var(--border);align-items:center;}
-.dt-row:last-child{border-bottom:none;}
-.dt-row:hover{background:#faf8f5;}
-.dt-c{font-family:var(--mono);font-size:10px;padding:7px 8px;text-align:center;}
-.dt-agent{font-weight:600;font-size:12px;cursor:pointer;color:var(--blue);text-align:left;}
-.dt-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:3px;}
-.dt-bar-fill{height:100%;border-radius:2px;}
 /* Newbie */
 .nb-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:8px;border-left:4px solid var(--purple);}
 .nb-agent{font-family:var(--display);font-size:18px;letter-spacing:.05em;margin-bottom:10px;}
@@ -407,16 +396,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
         <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">✓ Both hit &nbsp;·&nbsp; ½ One criteria &nbsp;·&nbsp; ✗ Not earned</div>
       </div>
       <div class="heat-scroll"><div id="comm-heatmap"></div></div>
-    </div>
-
-    <!-- 5. Debtor Summary -->
-    <div class="sec-lbl">👥 Debtor Summary</div>
-    <div class="card">
-      <div class="card-pad" style="padding-bottom:6px;">
-        <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;margin-bottom:3px;">Per Agent Overview</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">Total · 光顾率 · 已激活 · 待激活 · 新增SKU · Tap to drill down</div>
-      </div>
-      <div class="heat-scroll"><div id="debtor-summary"></div></div>
     </div>
 
     <!-- 5b. Brand SKU Penetration Status -->
@@ -1394,7 +1373,6 @@ function renderOverview() {
   renderLeaderboard();
   renderGroupBrands();
   renderCommHeatmap();
-  renderDebtorSummary();
   renderBrandSkuStatus();
   renderBrandVolumeAlert();
   setDropGainActive(_dropGainActive);
@@ -3620,34 +3598,6 @@ function renderBrandSkuStatus() {
     rows: brandRows,
   };
 }
-
-// ── Debtor Summary ──
-function renderDebtorSummary(){
-  const DATA = CURRENT_DATA || window.__DATA__;
-  const agents=Object.keys(DATA.agents||{});
-  const cols='65px 70px 45px 50px 50px 55px';
-  let html=`<div class="dt-wrap"><div class="dt-hdr" style="grid-template-columns:${cols}">
-    <div class="dt-hdr-c" style="text-align:left;">Agent</div>
-    <div class="dt-hdr-c" style="color:var(--blue)">光顾率</div>
-    <div class="dt-hdr-c">Total</div>
-    <div class="dt-hdr-c" style="color:var(--green)">激活</div>
-    <div class="dt-hdr-c" style="color:var(--orange)">待激活</div>
-    <div class="dt-hdr-c" style="color:var(--purple)">新增SKU</div>
-  </div>`;
-  agents.forEach(agent=>{
-    const dc=DATA.agents[agent]?.debtor_cards||{};
-    const rate=dc.activation_rate??0;
-    html+=`<div class="dt-row" style="grid-template-columns:${cols}" onclick="openDrill('${agent}')">
-      <div class="dt-c dt-agent">${agent}</div>
-      <div class="dt-c"><span style="font-family:var(--mono);font-size:11px;font-weight:500;color:${pc(rate)}">${rate}%</span><div class="dt-bar"><div class="dt-bar-fill" style="width:${Math.min(rate,100)}%;background:${bc(rate)}"></div></div></div>
-      <div class="dt-c">${dc.activation_base ?? dc.total_debtors ?? 0}</div>
-      <div class="dt-c" style="color:var(--green)">${dc.activation_active ?? dc.active_count ?? 0}</div>
-      <div class="dt-c" style="color:var(--orange)">${dc.reactivation_count||0}</div>
-      <div class="dt-c" style="color:var(--purple)">${dc.total_new_sku||0}</div>
-    </div>`;
-  });
-  html+=`</div>`;
-  document.getElementById('debtor-summary').innerHTML=html;}
 
 // ── Brand Volume Alert ─────────────────────────────────────────────────────
 function renderBrandVolumeAlert() {
