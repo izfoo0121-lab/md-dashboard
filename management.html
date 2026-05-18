@@ -2851,7 +2851,7 @@ function renderCampaignsMgmt() {
     const lookup = _debtorLookupByCode();
     const perAgent = {};
     AGENTS.forEach(ag => {
-      perAgent[ag] = { poolCount: 0, delivered: 0, onListDelivered: 0, offListDelivered: 0, excluded: 0, offListCodes: [], effPool: 0, pct: 0, yet: 0, convertedCtn: 0 };
+      perAgent[ag] = { poolCount: 0, delivered: 0, onListDelivered: 0, offListDelivered: 0, excluded: 0, offListCodes: [], effPool: 0, pct: 0, yet: 0, convertedCtn: 0, boughtRows: [], notYetRows: [] };
     });
 
     pool.forEach(p => {
@@ -2862,12 +2862,25 @@ function renderCampaignsMgmt() {
       const rows = found?.debtor?.month_breakdown?.[followMonth] || [];
       const buyRows = !unavailable ? rows.filter(r => _followupRowMatches(r, targets, matchMode)) : [];
       const ctn = buyRows.reduce((s, r) => s + Number(r.ctn || 0), 0);
+      const name = p.name || found?.debtor?.company_name || code;
+      const itemMap = {};
+      buyRows.forEach(r => {
+        const item = String(r.item || r.sku || r.item_code || 'SKU').trim() || 'SKU';
+        itemMap[item] = (itemMap[item] || 0) + Number(r.ctn || 0);
+      });
+      const items = Object.entries(itemMap)
+        .sort((a, b) => b[1] - a[1])
+        .map(([item, qty]) => `${item} ${fi(qty)}`)
+        .join(', ');
       perAgent[ag].poolCount++;
       perAgent[ag].effPool++;
       if (ctn > 0) {
         perAgent[ag].delivered++;
         perAgent[ag].onListDelivered++;
         perAgent[ag].convertedCtn += ctn;
+        perAgent[ag].boughtRows.push({ code, name, ctn, items });
+      } else {
+        perAgent[ag].notYetRows.push({ code, name });
       }
     });
 
@@ -3074,6 +3087,53 @@ function renderCampaignsMgmt() {
     } catch(e) { return `⏰ ${deadlineStr}`; }
   }
   function barColor(pct) { return pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--gold)' : 'var(--accent)'; }
+  function campMgmtEsc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  }
+  function renderFollowupAuditSection(stats, cardId) {
+    if (!stats.isFollowup) return '';
+    const agentBlocks = AGENTS
+      .filter(ag => (stats.perAgent[ag]?.poolCount || 0) > 0)
+      .sort((a, b) => {
+        const aa = stats.perAgent[a], bb = stats.perAgent[b];
+        if ((bb.boughtRows?.length || 0) !== (aa.boughtRows?.length || 0)) return (bb.boughtRows?.length || 0) - (aa.boughtRows?.length || 0);
+        return a.localeCompare(b);
+      })
+      .map(ag => {
+        const a = stats.perAgent[ag];
+        const bought = (a.boughtRows || []).slice().sort((x, y) => y.ctn - x.ctn || x.name.localeCompare(y.name));
+        const buyerRows = bought.length ? bought.map(row => `
+          <div style="display:grid;grid-template-columns:70px minmax(0,1fr) 90px minmax(120px,.8fr);gap:10px;align-items:center;padding:5px 8px;border-top:1px solid rgba(0,0,0,.05);font-family:var(--mono);font-size:9px;">
+            <div style="color:var(--blue);font-weight:700;">${campMgmtEsc(row.code)}</div>
+            <div style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink2);">${campMgmtEsc(row.name)}</div>
+            <div style="text-align:right;color:var(--green);font-weight:700;">${fi(row.ctn)} CTN</div>
+            <div style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink3);">${campMgmtEsc(row.items || 'matched target')}</div>
+          </div>`).join('') : `
+          <div style="padding:7px 8px;border-top:1px solid rgba(0,0,0,.05);font-family:var(--mono);font-size:9px;color:var(--ink3);">No follow-up purchase yet.</div>`;
+        return `<div style="border:1px solid var(--border);border-radius:9px;overflow:hidden;background:rgba(255,255,255,.45);">
+          <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:7px 9px;background:rgba(0,0,0,.03);">
+            <div style="font-family:var(--display);font-size:14px;">${campMgmtEsc(ag)}</div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">
+              <span style="color:var(--green);">${bought.length}/${a.effPool} bought</span>
+              &nbsp;·&nbsp; ${fi(a.convertedCtn || 0)} CTN
+              &nbsp;·&nbsp; <span style="color:var(--accent);">${a.yet} not yet</span>
+            </div>
+          </div>
+          ${buyerRows}
+        </div>`;
+      }).join('');
+    return `<div id="${cardId}-followup-audit" style="border-top:1px solid var(--border);padding:10px 14px;background:rgba(255,255,255,.28);">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px;">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;">
+          Follow-up purchase audit · ${campMgmtEsc(stats.followMonth || '')}
+        </div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">
+          ${stats.delivered}/${stats.effPool} debtors · ${fi(stats.convertedCtn || 0)} CTN
+        </div>
+      </div>
+      <div style="display:grid;gap:8px;">${agentBlocks || '<div style="font-family:var(--mono);font-size:10px;color:var(--ink3);">No follow-up audit rows.</div>'}</div>
+    </div>`;
+  }
 
   const headerBar = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-family:var(--mono);font-size:9px;">
@@ -3184,6 +3244,17 @@ function renderCampaignsMgmt() {
           }).join('')}
         </div>` : '';
 
+    const followupAuditSection = stats.isFollowup ? renderFollowupAuditSection(stats, cardId) : '';
+    const auditAction = stats.isFollowup
+      ? `<a href="#${cardId}-followup-audit"
+             style="font-family:var(--mono);font-size:9px;color:var(--purple);text-decoration:none;padding:4px 10px;border:1px solid rgba(107,63,160,.3);border-radius:6px;background:rgba(107,63,160,.05);">
+            🔍 View follow-up buyers ↓
+          </a>`
+      : `<a href="campaign_audit.html" target="_blank"
+             style="font-family:var(--mono);font-size:9px;color:var(--purple);text-decoration:none;padding:4px 10px;border:1px solid rgba(107,63,160,.3);border-radius:6px;background:rgba(107,63,160,.05);">
+            🔍 Open full audit →
+          </a>`;
+
     return `
     <div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid ${accentCol};border-radius:12px;margin-bottom:10px;overflow:hidden;" id="${cardId}">
       <div onclick="toggleCampCard('${cardId}')" style="padding:12px 14px;cursor:pointer;user-select:none;">
@@ -3212,11 +3283,9 @@ function renderCampaignsMgmt() {
       <div id="${cardId}-body" style="display:none;background:#fbf9f4;">
         ${agentRows || '<div style="padding:14px;font-family:var(--mono);font-size:10px;color:var(--ink3);text-align:center;">No agents have debtors in this campaign pool.</div>'}
         ${offListSection}
+        ${followupAuditSection}
         <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;">
-          <a href="campaign_audit.html" target="_blank"
-             style="font-family:var(--mono);font-size:9px;color:var(--purple);text-decoration:none;padding:4px 10px;border:1px solid rgba(107,63,160,.3);border-radius:6px;background:rgba(107,63,160,.05);">
-            🔍 Open full audit →
-          </a>
+          ${auditAction}
         </div>
       </div>
     </div>`;
