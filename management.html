@@ -3254,6 +3254,8 @@ function toggleCampCard(cardId) {
 }
 
 function renderPendingActions() {
+  // Debtor flags now live in campaign_audit.html (Flags tab).
+  return;
   const flags = loadFlags();
   const section = document.getElementById('pending-actions-section');
   const list    = document.getElementById('pending-actions-list');

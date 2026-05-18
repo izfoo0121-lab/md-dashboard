@@ -85,6 +85,9 @@
     .claim-status.verified{color:var(--blue);background:rgba(77,166,255,.12);}
     .claim-status.rejected{color:var(--red);background:rgba(255,95,95,.12);}
     .claim-status.excluded{color:#ff8866;background:rgba(255,136,102,.12);}
+    .flag-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px;border-radius:10px;margin-bottom:6px;background:rgba(255,95,95,.045);border:1px solid rgba(255,95,95,.16);}
+    .flag-reason{font-family:var(--mono);font-size:10px;color:var(--red);margin-top:3px;}
+    .flag-meta{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;}
     .audit-btn{font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:8px;border:1px solid;cursor:pointer;background:transparent;transition:all .15s;}
     .audit-btn.verify{color:var(--green);border-color:rgba(61,220,132,.4);}
     .audit-btn.verify:hover{background:rgba(61,220,132,.15);}
@@ -240,7 +243,7 @@ window.addEventListener('DOMContentLoaded', () => {
 <div class="camp-tabs" id="camp-tabs"></div>
 
 <!-- Bulk approve panel -->
-<div style="background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;">
+<div id="bulk-approve-panel" style="background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;">
   <div style="max-width:900px;margin:0 auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
     <span style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">⚡ Bulk Actions:</span>
     <button onclick="bulkApproveAllPending()"
@@ -281,6 +284,7 @@ const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
 // Key format: `${agent}|${campId}|${debtorCode}`
 let CLAIMS_CACHE = {};  // value: claim row from Supabase
 let AUDIT_CACHE  = {};  // value: audit row derived from claim.status
+let FLAGS_CACHE  = [];  // raw rows from Supabase flags table
 
 // Mirrors process_data.py's _campaign_active_in_month and the JS helper
 // already in sales_dashboard.html. Returns true if a campaign was active
@@ -370,6 +374,28 @@ async function fetchAllClaimsForMonth(month) {
       }
     });
     if (!r.ok) { console.warn('[audit] fetch failed', r.status); break; }
+    const batch = await r.json();
+    if (!batch || !batch.length) break;
+    all.push(...batch);
+    if (batch.length < 1000) break;
+    offset += 1000;
+  }
+  return all;
+}
+
+async function fetchAllFlagsForMonth(month) {
+  const all = [];
+  let offset = 0;
+  while (offset < 5000) {
+    const url = `${SUPABASE_URL}/rest/v1/flags?select=*&month=eq.${encodeURIComponent(month)}&order=ts.asc`;
+    const r = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Range': `${offset}-${offset+999}`
+      }
+    });
+    if (!r.ok) { console.warn('[audit-flags] fetch failed', r.status); break; }
     const batch = await r.json();
     if (!batch || !batch.length) break;
     all.push(...batch);
@@ -521,7 +547,7 @@ async function loadAuditData() {
 
   // If the previously-selected campaign tab is no longer valid for this
   // month, reset to ALL so the UI shows something rather than nothing.
-  if (activeCampId !== 'ALL' && activeCampId !== 'BDAY_LIST') {
+  if (activeCampId !== 'ALL' && activeCampId !== 'BDAY_LIST' && activeCampId !== 'FLAGS_LIST') {
     const stillActive = (CAMP_DATA?.campaigns || [])
       .some(c => c.id === activeCampId && c.active && isCampaignActiveInMonth(c, month));
     if (!stillActive) {
@@ -539,6 +565,13 @@ async function loadAuditData() {
     CLAIMS_CACHE = {};
     AUDIT_CACHE = {};
   }
+  try {
+    FLAGS_CACHE = await fetchAllFlagsForMonth(month);
+    console.log(`[audit] Loaded ${FLAGS_CACHE.length} Supabase flags for ${month}`);
+  } catch(e) {
+    console.warn('[audit] Failed to load Supabase flags', e);
+    FLAGS_CACHE = [];
+  }
 
   buildCampTabs();
   renderAudit();
@@ -554,6 +587,8 @@ function buildCampTabs() {
   tabs.innerHTML = `<button class="camp-tab ${activeCampId==='ALL'?'active':''}" onclick="switchCamp('ALL',this)">ALL</button>`
     + `<button class="camp-tab ${activeCampId==='BDAY_LIST'?'active':''}" onclick="switchCamp('BDAY_LIST',this)">🎂 Birthday List</button>`
     + camps.map(c => `<button class="camp-tab ${activeCampId===c.id?'active':''}" onclick="switchCamp('${c.id}',this)">${CAMP_EMOJI[c.type]||'📋'} ${c.name}</button>`).join('');
+  tabs.insertAdjacentHTML('beforeend',
+    `<button class="camp-tab ${activeCampId==='FLAGS_LIST'?'active':''}" onclick="switchCamp('FLAGS_LIST',this)">⚑ Flags ${FLAGS_CACHE.length ? '(' + FLAGS_CACHE.length + ')' : ''}</button>`);
 }
 
 function switchCamp(id, btn) {
@@ -566,11 +601,145 @@ function switchCamp(id, btn) {
 // ── Main render ────────────────────────────────────────────────────────────
 // Driven by Supabase claims (CLAIMS_CACHE). Shows ALL claims that exist,
 // including bulk-imported ones, not just pre-assigned campaign entries.
+function renderFlagAudit() {
+  const month = document.getElementById('month-select').value;
+  const agentSel = document.getElementById('agent-select').value;
+  const rows = (FLAGS_CACHE || [])
+    .filter(f => agentSel === 'ALL' || f.agent === agentSel)
+    .slice()
+    .sort((a, b) =>
+      String(a.agent || '').localeCompare(String(b.agent || '')) ||
+      String(a.ts || '').localeCompare(String(b.ts || '')) ||
+      String(a.debtor_code || '').localeCompare(String(b.debtor_code || ''))
+    );
+
+  const debtorByAgentCode = {};
+  const debtorByCode = {};
+  AGENTS.forEach(a => {
+    const list = DASH_DATA?.agents?.[a]?.debtor_cards?.debtors || [];
+    list.forEach(d => {
+      const code = (d.debtor_code || '').toUpperCase();
+      debtorByAgentCode[`${a}|${code}`] = d;
+      if (!debtorByCode[code]) debtorByCode[code] = { debtor: d, owner: a };
+    });
+  });
+
+  const reasonLabels = {
+    cant_contact: "Can't Contact",
+    close_account: 'Close Account Request',
+    transfer: 'Transfer / Area Change',
+    other: 'Other',
+  };
+
+  const byAgent = {};
+  rows.forEach(row => {
+    const ag = row.agent || 'UNKNOWN';
+    if (!byAgent[ag]) byAgent[ag] = [];
+    byAgent[ag].push(row);
+  });
+
+  _lastAuditExport = {
+    mode: 'flags',
+    campId: 'FLAGS_LIST',
+    month,
+    agent: agentSel,
+    rows: rows.map(row => {
+      const code = String(row.debtor_code || '').toUpperCase();
+      const found = debtorByAgentCode[`${row.agent}|${code}`] || debtorByCode[code]?.debtor || {};
+      return {
+        agent: row.agent || '',
+        debtor_code: code,
+        debtor_name: found.company_name || code,
+        reason: row.reason || '',
+        note: row.note || row.remark || '',
+        flagged_at: row.ts || row.flagged_at || '',
+      };
+    }),
+  };
+
+  document.getElementById('summary-row').innerHTML = `
+    <div class="sum-card"><div class="sum-val r">${rows.length}</div><div class="sum-lbl">Open Flags</div></div>
+    <div class="sum-card"><div class="sum-val b">${Object.keys(byAgent).length}</div><div class="sum-lbl">Agents</div></div>
+    <div class="sum-card"><div class="sum-val a">${rows.filter(r=>r.reason==='close_account').length}</div><div class="sum-lbl">Close Requests</div></div>
+    <div class="sum-card"><div class="sum-val b">${rows.filter(r=>r.reason==='transfer').length}</div><div class="sum-lbl">Transfers</div></div>`;
+
+  if (!rows.length) {
+    document.getElementById('audit-content').innerHTML = `<div class="empty">No open debtor flags for ${auditHtml(month)}</div>`;
+    return;
+  }
+
+  document.getElementById('audit-content').innerHTML = Object.entries(byAgent).map(([agent, flags]) => {
+    const flagRows = flags.map(row => {
+      const code = String(row.debtor_code || '').toUpperCase();
+      const debtor = debtorByAgentCode[`${agent}|${code}`] || debtorByCode[code]?.debtor || {};
+      const owner = debtorByCode[code]?.owner || agent;
+      const name = debtor.company_name || code;
+      const type = debtor.debtor_type || '';
+      const note = row.note || row.remark || '';
+      const date = row.ts ? new Date(row.ts).toLocaleString('en-MY') : '—';
+      const ownerNote = owner && owner !== agent ? ` · owner: ${auditHtml(owner)}` : '';
+      return `<div class="flag-row">
+        <div class="claim-info">
+          <div class="claim-name">${auditHtml(name)}</div>
+          <div class="claim-code">${auditHtml(code)}${type ? ' · ' + auditHtml(type) : ''}${ownerNote}</div>
+          <div class="flag-reason">⚑ ${auditHtml(reasonLabels[row.reason] || row.reason || 'Flagged')}</div>
+          ${note ? `<div class="flag-meta">"${auditHtml(note)}"</div>` : ''}
+          <div class="flag-meta">Flagged: ${auditHtml(date)}</div>
+        </div>
+        <div class="claim-actions">
+          <button class="audit-btn verify" onclick="resolveAuditFlag('${auditJs(month)}','${auditJs(agent)}','${auditJs(code)}')">✓ Resolve</button>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="agent-section is-collapsed">
+      <div class="agent-hdr" onclick="toggleAgentSection(this)">
+        <div class="agent-name">${auditHtml(agent)}</div>
+        <div class="agent-stats">
+          <span class="stat-chip pending">${flags.length} open flag${flags.length === 1 ? '' : 's'}</span>
+          <span class="agent-toggle">▸</span>
+        </div>
+      </div>
+      <div class="claims-body">${flagRows}</div>
+    </div>`;
+  }).join('');
+}
+
+async function resolveAuditFlag(month, agent, debtorCode) {
+  if (!confirm(`Resolve flag for ${debtorCode}?`)) return;
+  const url = `${SUPABASE_URL}/rest/v1/flags?month=eq.${encodeURIComponent(month)}&agent=eq.${encodeURIComponent(agent)}&debtor_code=eq.${encodeURIComponent(debtorCode)}`;
+  try {
+    const r = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+      }
+    });
+    if (!r.ok) throw new Error(`DELETE ${r.status}`);
+    FLAGS_CACHE = (FLAGS_CACHE || []).filter(f =>
+      !(f.month === month && f.agent === agent && String(f.debtor_code || '').toUpperCase() === debtorCode)
+    );
+    showToast('✓ Flag resolved');
+    renderAudit();
+  } catch(e) {
+    console.warn('[audit-flags] resolve failed', e);
+    showToast('✗ Resolve failed');
+  }
+}
+
 function renderAudit() {
   const month     = document.getElementById('month-select').value;
   const agentSel  = document.getElementById('agent-select').value;
   const allCamps  = (CAMP_DATA?.campaigns||[]);
   const isConversionCamp = camp => camp?.type === 'conversion_tiered' || camp?.type === 'conversion_simple';
+
+  const bulkPanel = document.getElementById('bulk-approve-panel');
+  if (activeCampId === 'FLAGS_LIST') {
+    if (bulkPanel) bulkPanel.style.display = 'none';
+    renderFlagAudit();
+    return;
+  }
+  if (bulkPanel) bulkPanel.style.display = '';
 
   if (activeCampId === 'BDAY_LIST') {
     renderBirthdayDebtorList(month, agentSel);
