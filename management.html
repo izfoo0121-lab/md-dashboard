@@ -926,6 +926,7 @@ const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
 
 const ACTIVITY_AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','YI'];
 let activityMonthOffset = 0;
+let CAMPAIGN_MGMT_EXPORT_ROWS = [];
 
 function _activityMonthDate() {
   const D = CURRENT_DATA || DATA || {};
@@ -2033,6 +2034,27 @@ function exportAnalyticsDetailExcel() {
   XLSX.writeFile(wb, `MD_AnalyticsDetail_${today}.xlsx`);
 }
 
+function exportCampaignMgmtExcel() {
+  if (typeof XLSX === 'undefined') { alert('Excel library not loaded.'); return; }
+  const rows = CAMPAIGN_MGMT_EXPORT_ROWS || [];
+  if (!rows.length) {
+    alert('No follow-up audit rows to export. Switch to M+1 or M+2 first.');
+    return;
+  }
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [
+    {wch:32}, {wch:8}, {wch:12}, {wch:14}, {wch:26},
+    {wch:10}, {wch:14}, {wch:34}, {wch:16}, {wch:10}, {wch:36}
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Follow-up Audit');
+  const month = (CURRENT_DATA || DATA || {}).current_month || DATA?.current_month || '';
+  const mode = CAMPAIGN_MGMT_MODE === 'followup2' ? 'M2' : 'M1';
+  const safeMonth = String(month || 'month').replace(/\s+/g, '_');
+  const date = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `MD_CampaignFollowup_${mode}_${safeMonth}_${date}.xlsx`);
+}
+
 // ── Pending Actions (Flags) ────────────────────────────────────────────────
 // ── GistSync Module (Supabase-backed) ─────────────────────────────────
 /**
@@ -2897,7 +2919,7 @@ function renderCampaignsMgmt() {
       totalPoolCount, totalExcluded: 0, totalOnList: delivered, totalOffList: 0, allOffListCodes: [],
       effPool: totalPoolCount, delivered, totalYet: Math.max(0, totalPoolCount - delivered),
       pct: totalPoolCount > 0 ? Math.min(100, Math.round(delivered / totalPoolCount * 100)) : 0,
-      convertedCtn, followMonth, baseMonth, missingConfig: !targets.length, unavailable,
+      convertedCtn, followMonth, baseMonth, targets: targets.join(', '), missingConfig: !targets.length, unavailable,
     };
   }
 
@@ -3073,6 +3095,46 @@ function renderCampaignsMgmt() {
     if (b.effPool === 0 && a.effPool > 0) return -1;
     return a.pct - b.pct;
   });
+  CAMPAIGN_MGMT_EXPORT_ROWS = [];
+  if (isFollowupMode) {
+    campStats.forEach(stats => {
+      if (!stats.isFollowup) return;
+      AGENTS.forEach(agent => {
+        const a = stats.perAgent[agent];
+        if (!a || !a.poolCount) return;
+        (a.boughtRows || []).forEach(row => {
+          CAMPAIGN_MGMT_EXPORT_ROWS.push({
+            Campaign: stats.camp.name || stats.camp.id || '',
+            Mode: CAMPAIGN_MGMT_MODE === 'followup2' ? 'M+2' : 'M+1',
+            'Base Month': stats.baseMonth || '',
+            'Follow-up Month': stats.followMonth || '',
+            'Target SKU/Brand': stats.targets || '',
+            Agent: agent,
+            'Debtor Code': row.code,
+            'Debtor Name': row.name,
+            Status: 'Bought',
+            CTN: Number(row.ctn || 0),
+            'Matched SKU/Items': row.items || '',
+          });
+        });
+        (a.notYetRows || []).forEach(row => {
+          CAMPAIGN_MGMT_EXPORT_ROWS.push({
+            Campaign: stats.camp.name || stats.camp.id || '',
+            Mode: CAMPAIGN_MGMT_MODE === 'followup2' ? 'M+2' : 'M+1',
+            'Base Month': stats.baseMonth || '',
+            'Follow-up Month': stats.followMonth || '',
+            'Target SKU/Brand': stats.targets || '',
+            Agent: agent,
+            'Debtor Code': row.code,
+            'Debtor Name': row.name,
+            Status: 'Not bought yet',
+            CTN: 0,
+            'Matched SKU/Items': '',
+          });
+        });
+      });
+    });
+  }
 
   function deadlineMeta(deadlineStr) {
     if (!deadlineStr) return '';
@@ -3155,6 +3217,8 @@ function renderCampaignsMgmt() {
           style="background:${CAMPAIGN_MGMT_MODE==='followup1'?'var(--ink)':'rgba(0,0,0,.04)'};border:1px solid var(--border);color:${CAMPAIGN_MGMT_MODE==='followup1'?'#fff':'var(--ink2)'};padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">M+1</button>
         <button onclick="setCampaignMgmtMode('followup2')"
           style="background:${CAMPAIGN_MGMT_MODE==='followup2'?'var(--ink)':'rgba(0,0,0,.04)'};border:1px solid var(--border);color:${CAMPAIGN_MGMT_MODE==='followup2'?'#fff':'var(--ink2)'};padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">M+2</button>
+        ${isFollowupMode ? `<button onclick="exportCampaignMgmtExcel()"
+          style="background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);color:var(--green);padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">📊 Export follow-up Excel</button>` : ''}
         <button onclick="toggleAllCampCards(true)"
           style="background:rgba(0,0,0,.04);border:1px solid var(--border);color:var(--ink2);padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">Open all</button>
         <button onclick="toggleAllCampCards(false)"
