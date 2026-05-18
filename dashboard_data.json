@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-18 09:58:37",
+  "generated_at": "2026-05-18 10:43:40",
   "current_month": "May 26",
   "working_days": {
     "date": "2026-05-18",
@@ -6419,15 +6419,15 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 28,
-          "non_buyers": 127,
+          "prev_buyers": 571,
+          "non_buyers": 133,
           "cur_buyers": 9,
           "new_penetrations": 1
         },
         "TR20": {
           "penetration": {
             "count": 0,
-            "target": 3,
+            "target": 8,
             "hit": false,
             "pct": 0.0
           },
@@ -6441,8 +6441,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 0,
-          "non_buyers": 155,
+          "prev_buyers": 138,
+          "non_buyers": 158,
           "cur_buyers": 0,
           "new_penetrations": 0
         },
@@ -6463,17 +6463,17 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 24,
-          "non_buyers": 131,
+          "prev_buyers": 307,
+          "non_buyers": 136,
           "cur_buyers": 7,
           "new_penetrations": 1
         },
         "SUKUN": {
           "penetration": {
-            "count": 3,
+            "count": 2,
             "target": 4,
             "hit": false,
-            "pct": 75.0
+            "pct": 50.0
           },
           "ctn": {
             "sold": 394.0,
@@ -6485,10 +6485,10 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 86,
-          "non_buyers": 69,
+          "prev_buyers": 763,
+          "non_buyers": 77,
           "cur_buyers": 54,
-          "new_penetrations": 3
+          "new_penetrations": 2
         },
         "iFACE": {
           "penetration": {
@@ -6507,8 +6507,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 32,
-          "non_buyers": 123,
+          "prev_buyers": 283,
+          "non_buyers": 127,
           "cur_buyers": 11,
           "new_penetrations": 0
         },
@@ -6529,8 +6529,8 @@
           "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 35,
-          "non_buyers": 120,
+          "prev_buyers": 155,
+          "non_buyers": 124,
           "cur_buyers": 13,
           "new_penetrations": 4
         }
@@ -48783,11 +48783,11 @@
             "label": "SUKUN Penetration",
             "section": "B",
             "weight": 0.015,
-            "actual": 3,
+            "actual": 2,
             "target": 4,
-            "score": 1.125,
+            "score": 0.75,
             "max_score": 1.5,
-            "pct": 75.0,
+            "pct": 50.0,
             "source": "auto",
             "excluded": false
           },
@@ -48856,7 +48856,7 @@
             "section": "B",
             "weight": 0.015,
             "actual": 0,
-            "target": 3,
+            "target": 8,
             "score": 0.0,
             "max_score": 1.5,
             "pct": 0.0,
@@ -49092,7 +49092,7 @@
             "max_score": 35.003
           },
           "B": {
-            "score": 11.224,
+            "score": 10.849,
             "max_score": 39.0
           },
           "C": {
@@ -49108,12 +49108,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 34.09,
+        "grand_total": 33.72,
         "max_total": 98.003,
-        "grand_pct": 33.4,
+        "grand_pct": 33.1,
         "kpi_month": "May 26",
-        "total_abc": 34.09,
-        "total_pct": 42.1
+        "total_abc": 33.72,
+        "total_pct": 41.6
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -49503,10 +49503,10 @@
       "brand_commission": {
         "EVO": {
           "penetration": {
-            "count": 10,
+            "count": 4,
             "target": 7,
-            "hit": true,
-            "pct": 142.9
+            "hit": false,
+            "pct": 57.1
           },
           "ctn": {
             "sold": 77.0,
@@ -49515,20 +49515,20 @@
             "gap": -151.0,
             "pct": 33.8
           },
-          "status": "one_hit",
+          "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 0,
-          "non_buyers": 89,
+          "prev_buyers": 571,
+          "non_buyers": 99,
           "cur_buyers": 10,
-          "new_penetrations": 10
+          "new_penetrations": 4
         },
         "TR20": {
           "penetration": {
-            "count": 12,
+            "count": 3,
             "target": 5,
-            "hit": true,
-            "pct": 240.0
+            "hit": false,
+            "pct": 60.0
           },
           "ctn": {
             "sold": 91.0,
@@ -49537,20 +49537,20 @@
             "gap": 9.0,
             "pct": 111.0
           },
-          "status": "both_hit",
-          "comm_earned": 163.8,
-          "both_hit": true,
-          "prev_buyers": 0,
-          "non_buyers": 89,
+          "status": "one_hit",
+          "comm_earned": 0.0,
+          "both_hit": false,
+          "prev_buyers": 138,
+          "non_buyers": 99,
           "cur_buyers": 12,
-          "new_penetrations": 12
+          "new_penetrations": 3
         },
         "BISON": {
           "penetration": {
-            "count": 9,
+            "count": 1,
             "target": 5,
-            "hit": true,
-            "pct": 180.0
+            "hit": false,
+            "pct": 20.0
           },
           "ctn": {
             "sold": 130.0,
@@ -49559,20 +49559,20 @@
             "gap": -18.0,
             "pct": 87.8
           },
-          "status": "one_hit",
+          "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 0,
-          "non_buyers": 89,
+          "prev_buyers": 307,
+          "non_buyers": 91,
           "cur_buyers": 9,
-          "new_penetrations": 9
+          "new_penetrations": 1
         },
         "SUKUN": {
           "penetration": {
-            "count": 32,
-            "target": 4,
+            "count": 3,
+            "target": 3,
             "hit": true,
-            "pct": 800.0
+            "pct": 100.0
           },
           "ctn": {
             "sold": 339.0,
@@ -49584,17 +49584,17 @@
           "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 0,
-          "non_buyers": 89,
+          "prev_buyers": 763,
+          "non_buyers": 63,
           "cur_buyers": 32,
-          "new_penetrations": 32
+          "new_penetrations": 3
         },
         "iFACE": {
           "penetration": {
-            "count": 5,
+            "count": 0,
             "target": 5,
-            "hit": true,
-            "pct": 100.0
+            "hit": false,
+            "pct": 0.0
           },
           "ctn": {
             "sold": 44.0,
@@ -49603,20 +49603,20 @@
             "gap": -21.0,
             "pct": 67.7
           },
-          "status": "one_hit",
+          "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 0,
-          "non_buyers": 89,
+          "prev_buyers": 283,
+          "non_buyers": 108,
           "cur_buyers": 5,
-          "new_penetrations": 5
+          "new_penetrations": 0
         },
         "LAM+LWM": {
           "penetration": {
-            "count": 6,
+            "count": 3,
             "target": 7,
             "hit": false,
-            "pct": 85.7
+            "pct": 42.9
           },
           "ctn": {
             "sold": 20.0,
@@ -49628,10 +49628,10 @@
           "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 0,
-          "non_buyers": 89,
+          "prev_buyers": 155,
+          "non_buyers": 116,
           "cur_buyers": 6,
-          "new_penetrations": 6
+          "new_penetrations": 3
         }
       },
       "newbie_scheme": null,
@@ -82630,11 +82630,11 @@
             "label": "iFACE Penetration",
             "section": "B",
             "weight": 0.015,
-            "actual": 5,
+            "actual": 0,
             "target": 5,
-            "score": 1.5,
+            "score": 0.0,
             "max_score": 1.5,
-            "pct": 100.0,
+            "pct": 0.0,
             "source": "auto",
             "excluded": false
           },
@@ -82654,11 +82654,11 @@
             "label": "SUKUN Penetration",
             "section": "B",
             "weight": 0.015,
-            "actual": 32,
-            "target": 4,
+            "actual": 3,
+            "target": 3,
             "score": 1.5,
             "max_score": 1.5,
-            "pct": 800.0,
+            "pct": 100.0,
             "source": "auto",
             "excluded": false
           },
@@ -82678,11 +82678,11 @@
             "label": "EVO Penetration",
             "section": "B",
             "weight": 0.015,
-            "actual": 10,
+            "actual": 4,
             "target": 7,
-            "score": 1.5,
+            "score": 0.857,
             "max_score": 1.5,
-            "pct": 142.9,
+            "pct": 57.1,
             "source": "auto",
             "excluded": false
           },
@@ -82702,11 +82702,11 @@
             "label": "BISON Penetration",
             "section": "B",
             "weight": 0.015,
-            "actual": 9,
+            "actual": 1,
             "target": 5,
-            "score": 1.5,
+            "score": 0.3,
             "max_score": 1.5,
-            "pct": 180.0,
+            "pct": 20.0,
             "source": "auto",
             "excluded": false
           },
@@ -82726,11 +82726,11 @@
             "label": "TR20 Penetration",
             "section": "B",
             "weight": 0.015,
-            "actual": 12,
+            "actual": 3,
             "target": 5,
-            "score": 1.5,
+            "score": 0.9,
             "max_score": 1.5,
-            "pct": 240.0,
+            "pct": 60.0,
             "source": "auto",
             "excluded": false
           },
@@ -82750,11 +82750,11 @@
             "label": "LAM+LWM Penetration",
             "section": "B",
             "weight": 0.015,
-            "actual": 6,
+            "actual": 3,
             "target": 7,
-            "score": 1.286,
+            "score": 0.643,
             "max_score": 1.5,
-            "pct": 85.7,
+            "pct": 42.9,
             "source": "auto",
             "excluded": false
           },
@@ -82963,7 +82963,7 @@
             "max_score": 35.003
           },
           "B": {
-            "score": 21.688,
+            "score": 17.102,
             "max_score": 39.0
           },
           "C": {
@@ -82979,12 +82979,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 40.38,
+        "grand_total": 35.8,
         "max_total": 98.003,
-        "grand_pct": 39.6,
+        "grand_pct": 35.1,
         "kpi_month": "May 26",
-        "total_abc": 40.38,
-        "total_pct": 49.9
+        "total_abc": 35.8,
+        "total_pct": 44.2
       },
       "inherited_from": null,
       "inherit_from_month": null
@@ -83382,15 +83382,15 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 10,
-          "non_buyers": 79,
+          "prev_buyers": 571,
+          "non_buyers": 81,
           "cur_buyers": 3,
           "new_penetrations": 1
         },
         "TR20": {
           "penetration": {
             "count": 0,
-            "target": 3,
+            "target": 5,
             "hit": false,
             "pct": 0.0
           },
@@ -83404,8 +83404,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 0,
-          "non_buyers": 89,
+          "prev_buyers": 138,
+          "non_buyers": 91,
           "cur_buyers": 0,
           "new_penetrations": 0
         },
@@ -83426,15 +83426,15 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 9,
-          "non_buyers": 80,
+          "prev_buyers": 307,
+          "non_buyers": 85,
           "cur_buyers": 1,
           "new_penetrations": 0
         },
         "SUKUN": {
           "penetration": {
             "count": 0,
-            "target": 4,
+            "target": 3,
             "hit": false,
             "pct": 0.0
           },
@@ -83448,8 +83448,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 42,
-          "non_buyers": 47,
+          "prev_buyers": 763,
+          "non_buyers": 54,
           "cur_buyers": 18,
           "new_penetrations": 0
         },
@@ -83470,8 +83470,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 12,
-          "non_buyers": 77,
+          "prev_buyers": 283,
+          "non_buyers": 80,
           "cur_buyers": 4,
           "new_penetrations": 0
         },
@@ -83492,8 +83492,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 1,
-          "non_buyers": 88,
+          "prev_buyers": 155,
+          "non_buyers": 90,
           "cur_buyers": 1,
           "new_penetrations": 1
         }
@@ -105585,7 +105585,7 @@
             "section": "B",
             "weight": 0.015,
             "actual": 0,
-            "target": 4,
+            "target": 3,
             "score": 0.0,
             "max_score": 1.5,
             "pct": 0.0,
@@ -105657,7 +105657,7 @@
             "section": "B",
             "weight": 0.015,
             "actual": 0,
-            "target": 3,
+            "target": 5,
             "score": 0.0,
             "max_score": 1.5,
             "pct": 0.0,
@@ -106319,17 +106319,17 @@
           "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 87,
-          "non_buyers": 119,
+          "prev_buyers": 571,
+          "non_buyers": 77,
           "cur_buyers": 69,
           "new_penetrations": 12
         },
         "TR20": {
           "penetration": {
             "count": 1,
-            "target": 3,
+            "target": 8,
             "hit": false,
-            "pct": 33.3
+            "pct": 12.5
           },
           "ctn": {
             "sold": 2.0,
@@ -106341,17 +106341,17 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 0,
-          "non_buyers": 206,
+          "prev_buyers": 138,
+          "non_buyers": 158,
           "cur_buyers": 1,
           "new_penetrations": 1
         },
         "BISON": {
           "penetration": {
             "count": 2,
-            "target": 6,
+            "target": 7,
             "hit": false,
-            "pct": 33.3
+            "pct": 28.6
           },
           "ctn": {
             "sold": 192.0,
@@ -106363,17 +106363,17 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 24,
-          "non_buyers": 182,
+          "prev_buyers": 307,
+          "non_buyers": 135,
           "cur_buyers": 7,
           "new_penetrations": 2
         },
         "SUKUN": {
           "penetration": {
             "count": 7,
-            "target": 4,
+            "target": 5,
             "hit": true,
-            "pct": 175.0
+            "pct": 140.0
           },
           "ctn": {
             "sold": 563.0,
@@ -106385,17 +106385,17 @@
           "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 60,
-          "non_buyers": 146,
+          "prev_buyers": 763,
+          "non_buyers": 102,
           "cur_buyers": 37,
           "new_penetrations": 7
         },
         "iFACE": {
           "penetration": {
             "count": 3,
-            "target": 6,
+            "target": 7,
             "hit": false,
-            "pct": 50.0
+            "pct": 42.9
           },
           "ctn": {
             "sold": 241.0,
@@ -106407,8 +106407,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 28,
-          "non_buyers": 178,
+          "prev_buyers": 283,
+          "non_buyers": 132,
           "cur_buyers": 16,
           "new_penetrations": 3
         },
@@ -106429,8 +106429,8 @@
           "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 13,
-          "non_buyers": 193,
+          "prev_buyers": 155,
+          "non_buyers": 145,
           "cur_buyers": 7,
           "new_penetrations": 4
         }
@@ -142451,10 +142451,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 3,
-            "target": 6,
-            "score": 0.75,
+            "target": 7,
+            "score": 0.643,
             "max_score": 1.5,
-            "pct": 50.0,
+            "pct": 42.9,
             "source": "auto",
             "excluded": false
           },
@@ -142475,10 +142475,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 7,
-            "target": 4,
+            "target": 5,
             "score": 1.5,
             "max_score": 1.5,
-            "pct": 175.0,
+            "pct": 140.0,
             "source": "auto",
             "excluded": false
           },
@@ -142523,10 +142523,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 2,
-            "target": 6,
-            "score": 0.5,
+            "target": 7,
+            "score": 0.429,
             "max_score": 1.5,
-            "pct": 33.3,
+            "pct": 28.6,
             "source": "auto",
             "excluded": false
           },
@@ -142547,10 +142547,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 1,
-            "target": 3,
-            "score": 0.5,
+            "target": 8,
+            "score": 0.188,
             "max_score": 1.5,
-            "pct": 33.3,
+            "pct": 12.5,
             "source": "auto",
             "excluded": false
           },
@@ -142783,7 +142783,7 @@
             "max_score": 35.003
           },
           "B": {
-            "score": 18.939,
+            "score": 18.449,
             "max_score": 39.0
           },
           "C": {
@@ -142799,12 +142799,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 46.84,
+        "grand_total": 46.35,
         "max_total": 98.003,
-        "grand_pct": 45.9,
+        "grand_pct": 45.4,
         "kpi_month": "May 26",
-        "total_abc": 46.84,
-        "total_pct": 57.8
+        "total_abc": 46.35,
+        "total_pct": 57.2
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -143209,8 +143209,8 @@
           "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 25,
-          "non_buyers": 145,
+          "prev_buyers": 571,
+          "non_buyers": 108,
           "cur_buyers": 7,
           "new_penetrations": 1
         },
@@ -143231,8 +143231,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 26,
-          "non_buyers": 144,
+          "prev_buyers": 138,
+          "non_buyers": 106,
           "cur_buyers": 11,
           "new_penetrations": 0
         },
@@ -143253,8 +143253,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 19,
-          "non_buyers": 151,
+          "prev_buyers": 307,
+          "non_buyers": 113,
           "cur_buyers": 0,
           "new_penetrations": 0
         },
@@ -143275,8 +143275,8 @@
           "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 55,
-          "non_buyers": 115,
+          "prev_buyers": 763,
+          "non_buyers": 81,
           "cur_buyers": 25,
           "new_penetrations": 5
         },
@@ -143297,8 +143297,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 6,
-          "non_buyers": 164,
+          "prev_buyers": 283,
+          "non_buyers": 126,
           "cur_buyers": 3,
           "new_penetrations": 0
         },
@@ -143319,8 +143319,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 5,
-          "non_buyers": 165,
+          "prev_buyers": 155,
+          "non_buyers": 127,
           "cur_buyers": 3,
           "new_penetrations": 1
         }
@@ -173024,15 +173024,15 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 81,
-          "non_buyers": 69,
+          "prev_buyers": 571,
+          "non_buyers": 49,
           "cur_buyers": 48,
           "new_penetrations": 3
         },
         "TR20": {
           "penetration": {
             "count": 0,
-            "target": 5,
+            "target": 6,
             "hit": false,
             "pct": 0.0
           },
@@ -173046,17 +173046,17 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 0,
-          "non_buyers": 148,
+          "prev_buyers": 138,
+          "non_buyers": 121,
           "cur_buyers": 0,
           "new_penetrations": 0
         },
         "BISON": {
           "penetration": {
             "count": 1,
-            "target": 5,
+            "target": 6,
             "hit": false,
-            "pct": 20.0
+            "pct": 16.7
           },
           "ctn": {
             "sold": 35.0,
@@ -173068,8 +173068,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 8,
-          "non_buyers": 140,
+          "prev_buyers": 307,
+          "non_buyers": 113,
           "cur_buyers": 5,
           "new_penetrations": 1
         },
@@ -173090,8 +173090,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 53,
-          "non_buyers": 96,
+          "prev_buyers": 763,
+          "non_buyers": 76,
           "cur_buyers": 31,
           "new_penetrations": 2
         },
@@ -173112,8 +173112,8 @@
           "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 14,
-          "non_buyers": 134,
+          "prev_buyers": 283,
+          "non_buyers": 109,
           "cur_buyers": 5,
           "new_penetrations": 0
         },
@@ -173134,8 +173134,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 8,
-          "non_buyers": 140,
+          "prev_buyers": 155,
+          "non_buyers": 113,
           "cur_buyers": 6,
           "new_penetrations": 4
         }
@@ -201821,10 +201821,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 1,
-            "target": 5,
-            "score": 0.3,
+            "target": 6,
+            "score": 0.25,
             "max_score": 1.5,
-            "pct": 20.0,
+            "pct": 16.7,
             "source": "auto",
             "excluded": false
           },
@@ -201845,7 +201845,7 @@
             "section": "B",
             "weight": 0.015,
             "actual": 0,
-            "target": 5,
+            "target": 6,
             "score": 0.0,
             "max_score": 1.5,
             "pct": 0.0,
@@ -202081,7 +202081,7 @@
             "max_score": 35.003
           },
           "B": {
-            "score": 14.247,
+            "score": 14.197,
             "max_score": 39.0
           },
           "C": {
@@ -202097,12 +202097,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 39.13,
+        "grand_total": 39.08,
         "max_total": 98.003,
-        "grand_pct": 38.4,
+        "grand_pct": 38.3,
         "kpi_month": "May 26",
-        "total_abc": 39.13,
-        "total_pct": 48.3
+        "total_abc": 39.08,
+        "total_pct": 48.2
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -202507,15 +202507,15 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 43,
-          "non_buyers": 100,
+          "prev_buyers": 571,
+          "non_buyers": 99,
           "cur_buyers": 22,
           "new_penetrations": 3
         },
         "TR20": {
           "penetration": {
             "count": 0,
-            "target": 5,
+            "target": 6,
             "hit": false,
             "pct": 0.0
           },
@@ -202529,17 +202529,17 @@
           "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 15,
-          "non_buyers": 128,
+          "prev_buyers": 138,
+          "non_buyers": 127,
           "cur_buyers": 6,
           "new_penetrations": 0
         },
         "BISON": {
           "penetration": {
             "count": 1,
-            "target": 5,
+            "target": 6,
             "hit": false,
-            "pct": 20.0
+            "pct": 16.7
           },
           "ctn": {
             "sold": 160.0,
@@ -202551,8 +202551,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 27,
-          "non_buyers": 116,
+          "prev_buyers": 307,
+          "non_buyers": 117,
           "cur_buyers": 9,
           "new_penetrations": 1
         },
@@ -202573,17 +202573,17 @@
           "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 62,
-          "non_buyers": 81,
+          "prev_buyers": 763,
+          "non_buyers": 82,
           "cur_buyers": 40,
           "new_penetrations": 4
         },
         "iFACE": {
           "penetration": {
             "count": 1,
-            "target": 5,
+            "target": 6,
             "hit": false,
-            "pct": 20.0
+            "pct": 16.7
           },
           "ctn": {
             "sold": 85.25,
@@ -202595,7 +202595,7 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 33,
+          "prev_buyers": 283,
           "non_buyers": 110,
           "cur_buyers": 11,
           "new_penetrations": 1
@@ -202617,8 +202617,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 12,
-          "non_buyers": 131,
+          "prev_buyers": 155,
+          "non_buyers": 130,
           "cur_buyers": 8,
           "new_penetrations": 3
         }
@@ -235374,10 +235374,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 1,
-            "target": 5,
-            "score": 0.3,
+            "target": 6,
+            "score": 0.25,
             "max_score": 1.5,
-            "pct": 20.0,
+            "pct": 16.7,
             "source": "auto",
             "excluded": false
           },
@@ -235446,10 +235446,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 1,
-            "target": 5,
-            "score": 0.3,
+            "target": 6,
+            "score": 0.25,
             "max_score": 1.5,
-            "pct": 20.0,
+            "pct": 16.7,
             "source": "auto",
             "excluded": false
           },
@@ -235470,7 +235470,7 @@
             "section": "B",
             "weight": 0.015,
             "actual": 0,
-            "target": 5,
+            "target": 6,
             "score": 0.0,
             "max_score": 1.5,
             "pct": 0.0,
@@ -235706,7 +235706,7 @@
             "max_score": 35.003
           },
           "B": {
-            "score": 15.222,
+            "score": 15.122,
             "max_score": 39.0
           },
           "C": {
@@ -235722,12 +235722,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 34.56,
+        "grand_total": 34.46,
         "max_total": 98.003,
-        "grand_pct": 33.9,
+        "grand_pct": 33.8,
         "kpi_month": "May 26",
-        "total_abc": 34.56,
-        "total_pct": 42.7
+        "total_abc": 34.46,
+        "total_pct": 42.5
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -236132,15 +236132,15 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 46,
-          "non_buyers": 93,
+          "prev_buyers": 571,
+          "non_buyers": 128,
           "cur_buyers": 24,
           "new_penetrations": 2
         },
         "TR20": {
           "penetration": {
             "count": 0,
-            "target": 3,
+            "target": 8,
             "hit": false,
             "pct": 0.0
           },
@@ -236154,17 +236154,17 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 0,
-          "non_buyers": 139,
+          "prev_buyers": 138,
+          "non_buyers": 169,
           "cur_buyers": 0,
           "new_penetrations": 0
         },
         "BISON": {
           "penetration": {
             "count": 1,
-            "target": 6,
+            "target": 7,
             "hit": false,
-            "pct": 16.7
+            "pct": 14.3
           },
           "ctn": {
             "sold": 327.0,
@@ -236176,17 +236176,17 @@
           "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 38,
-          "non_buyers": 101,
+          "prev_buyers": 307,
+          "non_buyers": 133,
           "cur_buyers": 13,
           "new_penetrations": 1
         },
         "SUKUN": {
           "penetration": {
             "count": 1,
-            "target": 4,
+            "target": 6,
             "hit": false,
-            "pct": 25.0
+            "pct": 16.7
           },
           "ctn": {
             "sold": 406.0,
@@ -236198,8 +236198,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 59,
-          "non_buyers": 80,
+          "prev_buyers": 763,
+          "non_buyers": 113,
           "cur_buyers": 35,
           "new_penetrations": 1
         },
@@ -236220,8 +236220,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 26,
-          "non_buyers": 113,
+          "prev_buyers": 283,
+          "non_buyers": 143,
           "cur_buyers": 13,
           "new_penetrations": 0
         },
@@ -236242,8 +236242,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 10,
-          "non_buyers": 129,
+          "prev_buyers": 155,
+          "non_buyers": 159,
           "cur_buyers": 5,
           "new_penetrations": 3
         }
@@ -277827,10 +277827,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 1,
-            "target": 4,
-            "score": 0.375,
+            "target": 6,
+            "score": 0.25,
             "max_score": 1.5,
-            "pct": 25.0,
+            "pct": 16.7,
             "source": "auto",
             "excluded": false
           },
@@ -277875,10 +277875,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 1,
-            "target": 6,
-            "score": 0.25,
+            "target": 7,
+            "score": 0.214,
             "max_score": 1.5,
-            "pct": 16.7,
+            "pct": 14.3,
             "source": "auto",
             "excluded": false
           },
@@ -277899,7 +277899,7 @@
             "section": "B",
             "weight": 0.015,
             "actual": 0,
-            "target": 3,
+            "target": 8,
             "score": 0.0,
             "max_score": 1.5,
             "pct": 0.0,
@@ -278135,7 +278135,7 @@
             "max_score": 35.003
           },
           "B": {
-            "score": 9.997,
+            "score": 9.836,
             "max_score": 39.0
           },
           "C": {
@@ -278151,12 +278151,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 38.68,
+        "grand_total": 38.52,
         "max_total": 98.003,
-        "grand_pct": 37.9,
+        "grand_pct": 37.8,
         "kpi_month": "May 26",
-        "total_abc": 38.68,
-        "total_pct": 47.8
+        "total_abc": 38.52,
+        "total_pct": 47.6
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -278561,8 +278561,8 @@
           "status": "both_hit",
           "comm_earned": 460.8,
           "both_hit": true,
-          "prev_buyers": 45,
-          "non_buyers": 113,
+          "prev_buyers": 571,
+          "non_buyers": 62,
           "cur_buyers": 39,
           "new_penetrations": 20
         },
@@ -278583,17 +278583,17 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 24,
-          "non_buyers": 134,
+          "prev_buyers": 138,
+          "non_buyers": 80,
           "cur_buyers": 5,
           "new_penetrations": 0
         },
         "BISON": {
           "penetration": {
             "count": 1,
-            "target": 5,
+            "target": 4,
             "hit": false,
-            "pct": 20.0
+            "pct": 25.0
           },
           "ctn": {
             "sold": 98.0,
@@ -278605,17 +278605,17 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 29,
-          "non_buyers": 129,
+          "prev_buyers": 307,
+          "non_buyers": 74,
           "cur_buyers": 9,
           "new_penetrations": 1
         },
         "SUKUN": {
           "penetration": {
             "count": 4,
-            "target": 4,
+            "target": 2,
             "hit": true,
-            "pct": 100.0
+            "pct": 200.0
           },
           "ctn": {
             "sold": 478.0,
@@ -278627,17 +278627,17 @@
           "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 67,
-          "non_buyers": 92,
+          "prev_buyers": 763,
+          "non_buyers": 47,
           "cur_buyers": 32,
           "new_penetrations": 4
         },
         "iFACE": {
           "penetration": {
             "count": 1,
-            "target": 3,
+            "target": 4,
             "hit": false,
-            "pct": 33.3
+            "pct": 25.0
           },
           "ctn": {
             "sold": 46.0,
@@ -278649,8 +278649,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 35,
-          "non_buyers": 123,
+          "prev_buyers": 283,
+          "non_buyers": 71,
           "cur_buyers": 9,
           "new_penetrations": 1
         },
@@ -278671,8 +278671,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 10,
-          "non_buyers": 148,
+          "prev_buyers": 155,
+          "non_buyers": 94,
           "cur_buyers": 2,
           "new_penetrations": 2
         }
@@ -304730,10 +304730,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 1,
-            "target": 3,
-            "score": 0.5,
+            "target": 4,
+            "score": 0.375,
             "max_score": 1.5,
-            "pct": 33.3,
+            "pct": 25.0,
             "source": "auto",
             "excluded": false
           },
@@ -304754,10 +304754,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 4,
-            "target": 4,
+            "target": 2,
             "score": 1.5,
             "max_score": 1.5,
-            "pct": 100.0,
+            "pct": 200.0,
             "source": "auto",
             "excluded": false
           },
@@ -304802,10 +304802,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 1,
-            "target": 5,
-            "score": 0.3,
+            "target": 4,
+            "score": 0.375,
             "max_score": 1.5,
-            "pct": 20.0,
+            "pct": 25.0,
             "source": "auto",
             "excluded": false
           },
@@ -305062,7 +305062,7 @@
             "max_score": 35.003
           },
           "B": {
-            "score": 17.783,
+            "score": 17.733,
             "max_score": 39.0
           },
           "C": {
@@ -305078,12 +305078,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 42.36,
+        "grand_total": 42.31,
         "max_total": 98.003,
         "grand_pct": 41.5,
         "kpi_month": "May 26",
-        "total_abc": 42.36,
-        "total_pct": 52.3
+        "total_abc": 42.31,
+        "total_pct": 52.2
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -305482,15 +305482,15 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 68,
-          "non_buyers": 55,
+          "prev_buyers": 571,
+          "non_buyers": 80,
           "cur_buyers": 40,
           "new_penetrations": 1
         },
         "TR20": {
           "penetration": {
             "count": 0,
-            "target": 5,
+            "target": 7,
             "hit": false,
             "pct": 0.0
           },
@@ -305504,8 +305504,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 6,
-          "non_buyers": 117,
+          "prev_buyers": 138,
+          "non_buyers": 141,
           "cur_buyers": 5,
           "new_penetrations": 0
         },
@@ -305526,17 +305526,17 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 25,
-          "non_buyers": 98,
+          "prev_buyers": 307,
+          "non_buyers": 121,
           "cur_buyers": 5,
           "new_penetrations": 1
         },
         "SUKUN": {
           "penetration": {
             "count": 1,
-            "target": 4,
+            "target": 6,
             "hit": false,
-            "pct": 25.0
+            "pct": 16.7
           },
           "ctn": {
             "sold": 184.0,
@@ -305548,8 +305548,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 39,
-          "non_buyers": 84,
+          "prev_buyers": 763,
+          "non_buyers": 110,
           "cur_buyers": 18,
           "new_penetrations": 1
         },
@@ -305570,8 +305570,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 13,
-          "non_buyers": 110,
+          "prev_buyers": 283,
+          "non_buyers": 134,
           "cur_buyers": 9,
           "new_penetrations": 0
         },
@@ -305592,8 +305592,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 17,
-          "non_buyers": 106,
+          "prev_buyers": 155,
+          "non_buyers": 130,
           "cur_buyers": 7,
           "new_penetrations": 2
         }
@@ -337344,10 +337344,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 1,
-            "target": 4,
-            "score": 0.375,
+            "target": 6,
+            "score": 0.25,
             "max_score": 1.5,
-            "pct": 25.0,
+            "pct": 16.7,
             "source": "auto",
             "excluded": false
           },
@@ -337416,7 +337416,7 @@
             "section": "B",
             "weight": 0.015,
             "actual": 0,
-            "target": 5,
+            "target": 7,
             "score": 0.0,
             "max_score": 1.5,
             "pct": 0.0,
@@ -337652,7 +337652,7 @@
             "max_score": 35.003
           },
           "B": {
-            "score": 9.039,
+            "score": 8.914,
             "max_score": 39.0
           },
           "C": {
@@ -337668,12 +337668,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 29.62,
+        "grand_total": 29.5,
         "max_total": 98.003,
-        "grand_pct": 29.0,
+        "grand_pct": 28.9,
         "kpi_month": "May 26",
-        "total_abc": 29.62,
-        "total_pct": 36.6
+        "total_abc": 29.5,
+        "total_pct": 36.4
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -338057,10 +338057,10 @@
       "brand_commission": {
         "EVO": {
           "penetration": {
-            "count": 3,
+            "count": 2,
             "target": 5,
             "hit": false,
-            "pct": 60.0
+            "pct": 40.0
           },
           "ctn": {
             "sold": 33.0,
@@ -338072,15 +338072,15 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 10,
-          "non_buyers": 49,
+          "prev_buyers": 571,
+          "non_buyers": 35,
           "cur_buyers": 7,
-          "new_penetrations": 3
+          "new_penetrations": 2
         },
         "TR20": {
           "penetration": {
             "count": 0,
-            "target": 3,
+            "target": 2,
             "hit": false,
             "pct": 0.0
           },
@@ -338094,15 +338094,15 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 1,
-          "non_buyers": 58,
+          "prev_buyers": 138,
+          "non_buyers": 49,
           "cur_buyers": 0,
           "new_penetrations": 0
         },
         "BISON": {
           "penetration": {
-            "count": 2,
-            "target": 4,
+            "count": 1,
+            "target": 2,
             "hit": false,
             "pct": 50.0
           },
@@ -338116,17 +338116,17 @@
           "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 16,
-          "non_buyers": 43,
+          "prev_buyers": 307,
+          "non_buyers": 35,
           "cur_buyers": 8,
-          "new_penetrations": 2
+          "new_penetrations": 1
         },
         "SUKUN": {
           "penetration": {
-            "count": 3,
-            "target": 4,
+            "count": 0,
+            "target": 1,
             "hit": false,
-            "pct": 75.0
+            "pct": 0.0
           },
           "ctn": {
             "sold": 133.0,
@@ -338138,10 +338138,10 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 27,
-          "non_buyers": 32,
+          "prev_buyers": 763,
+          "non_buyers": 25,
           "cur_buyers": 13,
-          "new_penetrations": 3
+          "new_penetrations": 0
         },
         "iFACE": {
           "penetration": {
@@ -338160,8 +338160,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 1,
-          "non_buyers": 58,
+          "prev_buyers": 283,
+          "non_buyers": 48,
           "cur_buyers": 1,
           "new_penetrations": 1
         },
@@ -338182,8 +338182,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 2,
-          "non_buyers": 57,
+          "prev_buyers": 155,
+          "non_buyers": 47,
           "cur_buyers": 1,
           "new_penetrations": 0
         }
@@ -354789,11 +354789,11 @@
             "label": "SUKUN Penetration",
             "section": "B",
             "weight": 0.015,
-            "actual": 3,
-            "target": 4,
-            "score": 1.125,
+            "actual": 0,
+            "target": 1,
+            "score": 0.0,
             "max_score": 1.5,
-            "pct": 75.0,
+            "pct": 0.0,
             "source": "auto",
             "excluded": false
           },
@@ -354813,11 +354813,11 @@
             "label": "EVO Penetration",
             "section": "B",
             "weight": 0.015,
-            "actual": 3,
+            "actual": 2,
             "target": 5,
-            "score": 0.9,
+            "score": 0.6,
             "max_score": 1.5,
-            "pct": 60.0,
+            "pct": 40.0,
             "source": "auto",
             "excluded": false
           },
@@ -354837,8 +354837,8 @@
             "label": "BISON Penetration",
             "section": "B",
             "weight": 0.015,
-            "actual": 2,
-            "target": 4,
+            "actual": 1,
+            "target": 2,
             "score": 0.75,
             "max_score": 1.5,
             "pct": 50.0,
@@ -354862,7 +354862,7 @@
             "section": "B",
             "weight": 0.015,
             "actual": 0,
-            "target": 3,
+            "target": 2,
             "score": 0.0,
             "max_score": 1.5,
             "pct": 0.0,
@@ -355098,7 +355098,7 @@
             "max_score": 35.003
           },
           "B": {
-            "score": 10.832,
+            "score": 9.407,
             "max_score": 39.0
           },
           "C": {
@@ -355114,12 +355114,12 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 35.61,
+        "grand_total": 34.18,
         "max_total": 98.003,
-        "grand_pct": 34.9,
+        "grand_pct": 33.5,
         "kpi_month": "May 26",
-        "total_abc": 35.61,
-        "total_pct": 44.0
+        "total_abc": 34.18,
+        "total_pct": 42.2
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -355518,15 +355518,15 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 68,
-          "non_buyers": 112,
+          "prev_buyers": 571,
+          "non_buyers": 67,
           "cur_buyers": 41,
           "new_penetrations": 4
         },
         "TR20": {
           "penetration": {
             "count": 0,
-            "target": 3,
+            "target": 6,
             "hit": false,
             "pct": 0.0
           },
@@ -355540,8 +355540,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 6,
-          "non_buyers": 174,
+          "prev_buyers": 138,
+          "non_buyers": 124,
           "cur_buyers": 2,
           "new_penetrations": 0
         },
@@ -355562,17 +355562,17 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 26,
-          "non_buyers": 154,
+          "prev_buyers": 307,
+          "non_buyers": 106,
           "cur_buyers": 11,
           "new_penetrations": 2
         },
         "SUKUN": {
           "penetration": {
             "count": 4,
-            "target": 4,
+            "target": 3,
             "hit": true,
-            "pct": 100.0
+            "pct": 133.3
           },
           "ctn": {
             "sold": 314.0,
@@ -355584,15 +355584,15 @@
           "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 71,
-          "non_buyers": 109,
+          "prev_buyers": 763,
+          "non_buyers": 64,
           "cur_buyers": 48,
           "new_penetrations": 4
         },
         "iFACE": {
           "penetration": {
             "count": 0,
-            "target": 4,
+            "target": 5,
             "hit": false,
             "pct": 0.0
           },
@@ -355606,8 +355606,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 40,
-          "non_buyers": 140,
+          "prev_buyers": 283,
+          "non_buyers": 93,
           "cur_buyers": 18,
           "new_penetrations": 0
         },
@@ -355628,8 +355628,8 @@
           "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 12,
-          "non_buyers": 168,
+          "prev_buyers": 155,
+          "non_buyers": 118,
           "cur_buyers": 9,
           "new_penetrations": 3
         }
@@ -388706,7 +388706,7 @@
             "section": "B",
             "weight": 0.015,
             "actual": 0,
-            "target": 4,
+            "target": 5,
             "score": 0.0,
             "max_score": 1.5,
             "pct": 0.0,
@@ -388730,10 +388730,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 4,
-            "target": 4,
+            "target": 3,
             "score": 1.5,
             "max_score": 1.5,
-            "pct": 100.0,
+            "pct": 133.3,
             "source": "auto",
             "excluded": false
           },
@@ -388802,7 +388802,7 @@
             "section": "B",
             "weight": 0.015,
             "actual": 0,
-            "target": 3,
+            "target": 6,
             "score": 0.0,
             "max_score": 1.5,
             "pct": 0.0,
@@ -389452,8 +389452,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 24,
-          "non_buyers": 160,
+          "prev_buyers": 571,
+          "non_buyers": 0,
           "cur_buyers": 0,
           "new_penetrations": 0
         },
@@ -389474,8 +389474,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 24,
-          "non_buyers": 160,
+          "prev_buyers": 138,
+          "non_buyers": 0,
           "cur_buyers": 0,
           "new_penetrations": 0
         },
@@ -389496,8 +389496,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 33,
-          "non_buyers": 152,
+          "prev_buyers": 307,
+          "non_buyers": 0,
           "cur_buyers": 0,
           "new_penetrations": 0
         },
@@ -389518,8 +389518,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 66,
-          "non_buyers": 119,
+          "prev_buyers": 763,
+          "non_buyers": 0,
           "cur_buyers": 0,
           "new_penetrations": 0
         },
@@ -389540,8 +389540,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 15,
-          "non_buyers": 169,
+          "prev_buyers": 283,
+          "non_buyers": 0,
           "cur_buyers": 0,
           "new_penetrations": 0
         },
@@ -389562,8 +389562,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 6,
-          "non_buyers": 178,
+          "prev_buyers": 155,
+          "non_buyers": 0,
           "cur_buyers": 0,
           "new_penetrations": 0
         }
@@ -390595,8 +390595,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 29,
-          "non_buyers": 88,
+          "prev_buyers": 571,
+          "non_buyers": 75,
           "cur_buyers": 9,
           "new_penetrations": 0
         },
@@ -390617,8 +390617,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 35,
-          "non_buyers": 82,
+          "prev_buyers": 138,
+          "non_buyers": 69,
           "cur_buyers": 22,
           "new_penetrations": 0
         },
@@ -390639,17 +390639,17 @@
           "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 24,
-          "non_buyers": 93,
+          "prev_buyers": 307,
+          "non_buyers": 81,
           "cur_buyers": 12,
           "new_penetrations": 4
         },
         "SUKUN": {
           "penetration": {
             "count": 4,
-            "target": 4,
+            "target": 2,
             "hit": true,
-            "pct": 100.0
+            "pct": 200.0
           },
           "ctn": {
             "sold": 518.0,
@@ -390661,8 +390661,8 @@
           "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 65,
-          "non_buyers": 53,
+          "prev_buyers": 763,
+          "non_buyers": 43,
           "cur_buyers": 38,
           "new_penetrations": 4
         },
@@ -390683,8 +390683,8 @@
           "status": "none_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 25,
-          "non_buyers": 92,
+          "prev_buyers": 283,
+          "non_buyers": 80,
           "cur_buyers": 9,
           "new_penetrations": 0
         },
@@ -390705,8 +390705,8 @@
           "status": "one_hit",
           "comm_earned": 0.0,
           "both_hit": false,
-          "prev_buyers": 20,
-          "non_buyers": 97,
+          "prev_buyers": 155,
+          "non_buyers": 84,
           "cur_buyers": 5,
           "new_penetrations": 0
         }
@@ -416010,10 +416010,10 @@
             "section": "B",
             "weight": 0.015,
             "actual": 4,
-            "target": 4,
+            "target": 2,
             "score": 1.5,
             "max_score": 1.5,
-            "pct": 100.0,
+            "pct": 200.0,
             "source": "auto",
             "excluded": false
           },
@@ -416370,11 +416370,11 @@
         "total_comm": 0.0,
         "both_hit_agents": [],
         "one_hit_agents": [
-          "XIAN",
           "NMK"
         ],
         "none_hit_agents": [
           "KI-MI",
+          "XIAN",
           "BEN",
           "KF",
           "KEE",
@@ -416418,12 +416418,12 @@
           "LEON"
         ],
         "one_hit_agents": [
-          "XIAN",
           "KF",
           "KEE"
         ],
         "none_hit_agents": [
           "KI-MI",
+          "XIAN",
           "BEN",
           "NMK",
           "KW",
@@ -416440,13 +416440,13 @@
         "total_comm": 0.0,
         "both_hit_agents": [],
         "one_hit_agents": [
-          "XIAN",
           "YI",
           "SAM",
           "CJ"
         ],
         "none_hit_agents": [
           "KI-MI",
+          "XIAN",
           "BEN",
           "KF",
           "KEE",
@@ -416460,11 +416460,10 @@
         ]
       },
       "TR20": {
-        "total_comm": 163.8,
-        "both_hit_agents": [
-          "XIAN"
-        ],
+        "total_comm": 0.0,
+        "both_hit_agents": [],
         "one_hit_agents": [
+          "XIAN",
           "KW"
         ],
         "none_hit_agents": [
@@ -416613,7 +416612,7 @@
         "t1_target": 3491,
         "t1_pct": 47.7,
         "t1_color": "red",
-        "brands_earned": 1,
+        "brands_earned": 0,
         "rank": 12
       },
       {

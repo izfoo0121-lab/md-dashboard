@@ -904,7 +904,9 @@ def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_con
 
         ag_paid_cur   = paid_cur[paid_cur["agent"] == agent]           # CTN target (cash-basis)
         ag_inv_cur    = inv_cur[inv_cur["agent"] == agent]             # Penetration current (invoice-basis)
-        ag_inv_prev   = inv_prev_3mo[inv_prev_3mo["agent"] == agent]   # Penetration prev (invoice-basis)
+        # Previous-period penetration is debtor-wide: if the debtor bought the
+        # brand from any agent in the last 3 months, they are not a non-buyer
+        # target for their currently assigned agent.
 
         result[agent] = {}
 
@@ -916,7 +918,7 @@ def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_con
                 # Penetration (invoice-basis) — NEVER has price filter (universal rule).
                 # Any EVO invoice counts toward penetration, regardless of rm_ctn or month.
                 pen_cur_rows  = ag_inv_cur[ag_inv_cur["item_code"].isin(codes)]
-                pen_prev_rows = ag_inv_prev[ag_inv_prev["item_code"].isin(codes)]
+                pen_prev_rows = inv_prev_3mo[inv_prev_3mo["item_code"].isin(codes)]
 
                 if _use_new_evo_rule(cur_month):
                     # NEW CTN TARGET RULE (Apr 26 onwards):
@@ -959,7 +961,7 @@ def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_con
             else:
                 cur_rows  = ag_paid_cur[ag_paid_cur["item_code"].isin(codes)]
                 pen_cur_rows  = ag_inv_cur[ag_inv_cur["item_code"].isin(codes)]
-                pen_prev_rows = ag_inv_prev[ag_inv_prev["item_code"].isin(codes)]
+                pen_prev_rows = inv_prev_3mo[inv_prev_3mo["item_code"].isin(codes)]
                 ctn_target_rows = pen_cur_rows  # non-EVO brands: CTN target = all invoice rows
 
             # ── Criteria 1: Penetration (invoice-basis, eligibility filtered) ─
@@ -996,11 +998,15 @@ def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_con
                 status = "none_hit"
 
             # ── Non-buyers (haven't bought in last 3 months) ───────────────
-            # All live debtors for this agent. Debtor Maintenance is the source of
-            # truth; transaction-only orphan codes are excluded.
+            # All live, penetration-eligible debtors assigned to this agent.
+            # Debtor Maintenance is the source of truth; transaction rows are
+            # incomplete because no-history debtors still count as non-buyers.
+            agent_key = agent.strip().upper()
             all_agent_debtors = {
-                c for c in df[df["agent"] == agent]["debtor_code"].unique()
-                if c in debtor_info and debtor_info[c].get("dm_active", True)
+                c for c, info in debtor_info.items()
+                if (info.get("agent", "") or "").strip().upper() == agent_key
+                and info.get("dm_active", True)
+                and _pen_eligible(c)
             }
             non_buyers = all_agent_debtors - prev_buyers
             non_buyer_count = len(non_buyers)
@@ -2317,12 +2323,15 @@ def save_penetration_snapshot(brand_comm, targets, cur_month):
     """
     AUTO_BRANDS = {"iFACE", "SUKUN", "BISON", "TR20"}
     MANUAL_BRANDS = {"EVO", "LAM+LWM"}
-    SNAP_KEY = f"pen_snapshot_{cur_month}"
+    POOL_VERSION = "dm_active_nonpersonal_debtorwide_v2"
 
     snaps = targets.get("penetration_snapshots", {})
-    if cur_month in snaps:
+    snap_meta = targets.get("penetration_snapshot_meta", {})
+    if cur_month in snaps and snap_meta.get(cur_month, {}).get("pool_version") == POOL_VERSION:
         log(f"  Penetration snapshot for {cur_month} already exists — skipping")
         return targets
+    if cur_month in snaps:
+        log(f"  Refreshing legacy penetration snapshot for {cur_month} with Debtor Maintenance non-personal pool...")
 
     log(f"  Saving penetration snapshot for {cur_month}...")
     snap = {}
@@ -2338,7 +2347,7 @@ def save_penetration_snapshot(brand_comm, targets, cur_month):
 
             # Auto-calculate target for selected brands
             if brand in AUTO_BRANDS and brand not in overrides:
-                auto_target = max(1, round(non_buyers * 0.05))
+                auto_target = 0 if non_buyers <= 0 else max(1, round(non_buyers * 0.05))
                 if brand not in bc_tgts:
                     bc_tgts[brand] = {}
                 bc_tgts[brand]["penetration_target"] = auto_target
@@ -2353,6 +2362,11 @@ def save_penetration_snapshot(brand_comm, targets, cur_month):
 
     snaps[cur_month] = snap
     targets["penetration_snapshots"] = snaps
+    snap_meta[cur_month] = {
+        "pool_version": POOL_VERSION,
+        "updated_at": datetime.now().isoformat(timespec="seconds"),
+    }
+    targets["penetration_snapshot_meta"] = snap_meta
 
     # Save targets.json
     with open(TARGETS_FILE, "w", encoding="utf-8") as f:
@@ -3573,6 +3587,7 @@ def main():
 
     # ── Auto-calculate penetration targets from non-buyer counts ─────────────
     targets = save_penetration_snapshot(brand_comm, targets, cur_month)
+    brand_comm  = calc_brand_commission(df, targets, all_agents, cur_month, prev_months, brand_config, debtor_info=debtor_info_shared)
     newbie      = calc_newbie_scheme(df, targets, agents, cur_month, debtor_info=debtor_info_shared, manual_overrides=_sb_kpi)
     aging       = calc_aging(df, all_agents, cur_month)
     debtor_cards = calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map, area_groups)
