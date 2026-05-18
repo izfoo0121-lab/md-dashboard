@@ -3480,10 +3480,11 @@ function renderCommHeatmap(){
   const brands=Object.keys(DATA.config?.brand_config||BC);
   const aw='65px',bw=`${Math.floor(75/brands.length)}%`;
   const tw='38px';
-  let html=`<div class="heat-table"><div class="heat-grid" style="grid-template-columns:${aw} ${brands.map(()=>bw).join(' ')} ${tw}">`;
+  let html=`<div class="heat-table"><div class="heat-grid" style="grid-template-columns:${aw} ${brands.map(()=>bw).join(' ')} ${tw} ${tw}">`;
   html+=`<div class="h-hdr" style="text-align:left;padding-left:8px;">Agent</div>`;
   brands.forEach(b=>html+=`<div class="h-hdr">${b.replace('LAM+LWM','L+L')}</div>`);
-  html+=`<div class="h-hdr" style="color:var(--ink3);">✓+½</div>`;
+  html+=`<div class="h-hdr" style="color:var(--green);">✓</div>`;
+  html+=`<div class="h-hdr" style="color:var(--gold);">½</div>`;
 
   // Brand totals accumulators
   const brandHit={}, brandOne={};
@@ -3492,35 +3493,39 @@ function renderCommHeatmap(){
   agents.forEach(agent=>{
     const bcomm=DATA.agents[agent]?.brand_commission||{};
     html+=`<div class="h-agent" onclick="openDrill('${agent}')">${agent}</div>`;
-    let agentScore=0;
+    let bothCount=0;
+    let halfCount=0;
     brands.forEach(b=>{
       const st=bcomm[b]?.status||'none_hit';
       const cls=st==='both_hit'?'hc-g':st==='one_hit'?'hc-o':'hc-r';
       const icon=st==='both_hit'?'✓':st==='one_hit'?'½':'✗';
-      if(st==='both_hit'){ brandHit[b]++; agentScore++; }
-      else if(st==='one_hit'){ brandOne[b]++; agentScore++; }
+      if(st==='both_hit'){ brandHit[b]++; bothCount++; }
+      else if(st==='one_hit'){ brandOne[b]++; halfCount++; }
       html+=`<div class="h-cell ${cls}">${icon}</div>`;
     });
-    // Agent total column
-    const agCls=agentScore===brands.length?'hc-g':agentScore>0?'hc-o':'hc-r';
-    html+=`<div class="h-cell ${agCls}" style="font-weight:700;">${agentScore}</div>`;
+    html+=`<div class="h-cell ${bothCount>0?'hc-g':'hc-r'}" style="font-weight:700;">${bothCount}</div>`;
+    html+=`<div class="h-cell ${halfCount>0?'hc-o':'hc-r'}" style="font-weight:700;">${halfCount}</div>`;
   });
 
   // Brand totals row
-  html+=`<div class="h-agent" style="font-size:9px;color:var(--ink3);">Total</div>`;
+  html+=`<div class="h-agent" style="font-size:9px;color:var(--green);">Total ✓</div>`;
   brands.forEach(b=>{
-    const tot=brandHit[b]+brandOne[b];
-    const cls=tot===agents.length?'hc-g':tot>0?'hc-o':'hc-r';
+    const tot=brandHit[b];
+    const cls=tot===agents.length?'hc-g':tot>0?'hc-g':'hc-r';
     html+=`<div class="h-cell ${cls}" style="font-weight:700;">${tot}</div>`;
   });
-  // Grand total cell
-  const grandTotal=agents.reduce((s,ag)=>{
-    const bcomm=DATA.agents[ag]?.brand_commission||{};
-    return s+brands.filter(b=>['both_hit','one_hit'].includes(bcomm[b]?.status)).length;
-  },0);
-  const maxTotal=agents.length*brands.length;
-  const gtCls=grandTotal===maxTotal?'hc-g':grandTotal>0?'hc-o':'hc-r';
-  html+=`<div class="h-cell ${gtCls}" style="font-weight:700;">${grandTotal}</div>`;
+  const grandBoth=brands.reduce((s,b)=>s+brandHit[b],0);
+  const grandHalf=brands.reduce((s,b)=>s+brandOne[b],0);
+  html+=`<div class="h-cell ${grandBoth>0?'hc-g':'hc-r'}" style="font-weight:700;">${grandBoth}</div>`;
+  html+=`<div class="h-cell hc-r" style="font-weight:700;">—</div>`;
+
+  html+=`<div class="h-agent" style="font-size:9px;color:var(--gold);">Total ½</div>`;
+  brands.forEach(b=>{
+    const tot=brandOne[b];
+    html+=`<div class="h-cell ${tot>0?'hc-o':'hc-r'}" style="font-weight:700;">${tot}</div>`;
+  });
+  html+=`<div class="h-cell hc-r" style="font-weight:700;">—</div>`;
+  html+=`<div class="h-cell ${grandHalf>0?'hc-o':'hc-r'}" style="font-weight:700;">${grandHalf}</div>`;
 
   html+=`</div></div>`;
   document.getElementById('comm-heatmap').innerHTML=html;}
