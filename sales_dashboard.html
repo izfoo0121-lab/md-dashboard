@@ -4570,9 +4570,19 @@ function changeCampaignDebtorPage(campId, dir) {
 
 function renderCampaignDebtorPanel(camp) {
   const campId = camp.id || camp.name || 'campaign';
-  const debtors = (camp.debtors || []).slice()
-    .sort((a, b) => String(a.company_name || a.debtor_code || '').localeCompare(String(b.company_name || b.debtor_code || '')));
-  const total = debtors.length;
+  const rowsData = (camp.debtors || []).map(d => ({
+    debtor: d,
+    info: campDebtorConversionInfo(camp, d)
+  })).sort((a, b) => {
+    const aDone = a.info.label === 'Converted';
+    const bDone = b.info.label === 'Converted';
+    if (aDone !== bDone) return aDone ? -1 : 1;
+    return String(a.debtor.company_name || a.debtor.debtor_code || '')
+      .localeCompare(String(b.debtor.company_name || b.debtor.debtor_code || ''));
+  });
+  const convertedTotal = rowsData.filter(x => x.info.label === 'Converted').length;
+  const notYetTotal = rowsData.length - convertedTotal;
+  const total = rowsData.length;
   const expanded = expandedCampaigns.has(campId);
   const toggleLabel = expanded ? `▲ Hide Debtors` : `▼ View Debtors (${total})`;
   const toggle = `<div style="padding:8px 16px 12px;border-top:1px solid var(--border);">
@@ -4584,9 +4594,25 @@ function renderCampaignDebtorPanel(camp) {
   campaignPages[campId] = Math.min(Math.max(1, campaignPages[campId] || 1), pages);
   const page = campaignPages[campId];
   const start = (page - 1) * CAMPAIGN_DEBTOR_PAGE_SIZE;
-  const shown = debtors.slice(start, start + CAMPAIGN_DEBTOR_PAGE_SIZE);
-  const rows = shown.map((d, i) => {
-    const t = campDebtorConversionInfo(camp, d);
+  const shown = rowsData.slice(start, start + CAMPAIGN_DEBTOR_PAGE_SIZE);
+  let lastGroup = null;
+  const sectionHeader = (key) => {
+    const isConverted = key === 'converted';
+    const label = isConverted ? '✓ Converted' : 'Not yet';
+    const count = isConverted ? convertedTotal : notYetTotal;
+    const color = isConverted ? 'var(--green)' : 'var(--muted)';
+    const bg = isConverted ? 'rgba(61,220,132,.08)' : 'rgba(255,255,255,.035)';
+    return `<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:7px 8px;background:${bg};border-top:1px solid rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:9px;color:${color};text-transform:uppercase;letter-spacing:.06em;">
+      <span>${label}</span>
+      <span style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:1px 7px;">${count}</span>
+    </div>`;
+  };
+  const rows = shown.map((row, i) => {
+    const d = row.debtor;
+    const t = row.info;
+    const group = t.label === 'Converted' ? 'converted' : 'not-yet';
+    const header = group !== lastGroup ? sectionHeader(group) : '';
+    lastGroup = group;
     const rowBg = i % 2 ? 'rgba(255,255,255,.025)' : 'transparent';
     const claimData = getCampClaims(currentAgent, campId, d.debtor_code);
     const claimed = !!claimData;
@@ -4594,7 +4620,7 @@ function renderCampaignDebtorPanel(camp) {
     const claimBg = claimed ? 'rgba(61,220,132,.2)' : 'rgba(255,255,255,.08)';
     const claimColor = claimed ? 'var(--green)' : 'var(--muted)';
     const claimBorder = claimed ? 'var(--green)' : 'var(--border)';
-    return `<div style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 88px 82px 82px 112px;gap:8px;align-items:center;padding:7px 8px;background:${rowBg};border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;">
+    return header + `<div style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 88px 82px 82px 112px;gap:8px;align-items:center;padding:7px 8px;background:${rowBg};border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;">
       <div style="font-family:var(--mono);color:var(--muted);">${start + i + 1}</div>
       <div style="min-width:0;">
         <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;">${campEsc(d.company_name || d.debtor_code)}</div>
@@ -4617,6 +4643,11 @@ function renderCampaignDebtorPanel(camp) {
     <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:rgba(255,255,255,.025);">
       <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 88px 82px 82px 112px;gap:8px;padding:6px 8px;background:rgba(255,255,255,.045);font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">
         <div>#</div><div>Company</div><div>Code</div><div>Status</div><div style="text-align:right;">Feb-Apr</div><div style="text-align:right;">May</div><div>Claim</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;padding:7px 8px;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:9px;color:var(--muted);">
+        <span style="color:var(--green);">✓ Converted ${convertedTotal}</span>
+        <span>·</span>
+        <span>Not yet ${notYetTotal}</span>
       </div>
       ${rows || '<div style="padding:12px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--muted);">No enrolled debtors</div>'}
       ${pager}
