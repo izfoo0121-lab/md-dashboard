@@ -2790,14 +2790,52 @@ function renderCampaignsMgmt() {
   }
   function _followupTargets(camp) {
     const notes = camp.notes || {};
-    return (notes.follow_up_values || notes.qualifying_values || [notes.qualifying_value || notes.qualifying_item_group || ''])
-      .map(v => String(v || '').trim().toUpperCase())
-      .filter(Boolean);
+    const brandConfig = VIEW_DATA?.config?.brand_config || DATA?.config?.brand_config || {};
+    const out = [];
+    const add = v => {
+      const value = String(v || '').trim().toUpperCase();
+      if (value && !out.includes(value)) out.push(value);
+    };
+    const addBrand = brand => {
+      const key = String(brand || '').trim();
+      if (!key) return;
+      const codes = brandConfig[key] || brandConfig[key.toUpperCase()] || [];
+      if (Array.isArray(codes) && codes.length) codes.forEach(add);
+      else add(key);
+    };
+
+    (notes.follow_up_values || notes.qualifying_values || []).forEach(add);
+    add(notes.follow_up_value || notes.qualifying_value || notes.follow_up_item || notes.qualifying_item_group);
+    (camp.brands || []).forEach(addBrand);
+    addBrand(camp.brand);
+    add(camp.default_foc_item);
+    add(camp.default_foc_item_2);
+
+    // Legacy campaigns were created before follow-up config existed. If no
+    // structured brand/SKU exists, infer from name/description so M+1/M+2 still
+    // works. Avoid parsing reward text when brand config is already present.
+    if (!out.length) {
+      const text = `${camp.name || ''} ${camp.description || ''} ${camp.promo_detail || ''}`.toUpperCase();
+      Object.keys(brandConfig).forEach(brand => {
+        if (text.includes(brand.toUpperCase())) addBrand(brand);
+      });
+      if (!out.length) (text.match(/[A-Z]{1,4}\d{2}/g) || []).forEach(add);
+    }
+
+    return out;
   }
   function _followupRowMatches(row, targets, matchMode) {
-    const item = String(row?.item || '').toUpperCase();
+    const item = String(row?.item || '').trim().toUpperCase();
     if (!item || !targets.length) return false;
-    return targets.some(t => matchMode === 'item_code' ? item === t : (item.includes(t) || t.includes(item)));
+    const norm = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const itemNorm = norm(item);
+    return targets.some(t => {
+      const target = String(t || '').trim().toUpperCase();
+      const targetNorm = norm(target);
+      if (!target || !targetNorm) return false;
+      if (item === target || itemNorm === targetNorm) return true;
+      return matchMode === 'item_code' ? false : (item.includes(target) || target.includes(item));
+    });
   }
 
   function computeFollowupStats(camp, followOffset) {
@@ -2807,7 +2845,6 @@ function renderCampaignsMgmt() {
     const currentIdx = _monthIndex(VIEW_DATA.current_month || '');
     const followIdx = _monthIndex(followMonth);
     const unavailable = followIdx != null && currentIdx != null && followIdx > currentIdx;
-    const enabled = !!notes.follow_up_enabled;
     const targets = _followupTargets(camp);
     const matchMode = notes.follow_up_match || notes.qualifying_match || 'item_group';
     const pool = getCampaignPool(camp);
@@ -2823,7 +2860,7 @@ function renderCampaignsMgmt() {
       const ag = (p.agent || found?.agent || '').toUpperCase();
       if (!ag || !perAgent[ag]) return;
       const rows = found?.debtor?.month_breakdown?.[followMonth] || [];
-      const buyRows = enabled && !unavailable ? rows.filter(r => _followupRowMatches(r, targets, matchMode)) : [];
+      const buyRows = !unavailable ? rows.filter(r => _followupRowMatches(r, targets, matchMode)) : [];
       const ctn = buyRows.reduce((s, r) => s + Number(r.ctn || 0), 0);
       perAgent[ag].poolCount++;
       perAgent[ag].effPool++;
@@ -2847,7 +2884,7 @@ function renderCampaignsMgmt() {
       totalPoolCount, totalExcluded: 0, totalOnList: delivered, totalOffList: 0, allOffListCodes: [],
       effPool: totalPoolCount, delivered, totalYet: Math.max(0, totalPoolCount - delivered),
       pct: totalPoolCount > 0 ? Math.min(100, Math.round(delivered / totalPoolCount * 100)) : 0,
-      convertedCtn, followMonth, baseMonth, missingConfig: !enabled || !targets.length, unavailable,
+      convertedCtn, followMonth, baseMonth, missingConfig: !targets.length, unavailable,
     };
   }
 
