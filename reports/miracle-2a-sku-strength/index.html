@@ -393,6 +393,87 @@
     .sku-chip-new { background: var(--soft-teal); color: var(--teal); }
     .sku-chip-flat { background: #edf1ed; color: var(--muted); }
 
+    .portfolio-chart {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    .chart-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .chart-title {
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .movement-chart {
+      display: grid;
+      gap: 8px;
+    }
+
+    .movement-row {
+      display: grid;
+      grid-template-columns: minmax(150px, 220px) minmax(220px, 1fr) minmax(145px, 170px);
+      align-items: center;
+      gap: 10px;
+    }
+
+    .movement-label {
+      min-width: 0;
+      font-size: 12px;
+    }
+
+    .movement-label b,
+    .movement-label span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .movement-label span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .movement-axis {
+      position: relative;
+      height: 24px;
+      border-radius: 999px;
+      overflow: hidden;
+      background:
+        linear-gradient(90deg, transparent calc(50% - 1px), var(--line) calc(50% - 1px), var(--line) calc(50% + 1px), transparent calc(50% + 1px)),
+        #edf1ed;
+    }
+
+    .movement-bar {
+      position: absolute;
+      top: 4px;
+      height: 16px;
+      border-radius: 999px;
+    }
+
+    .movement-bar-up { background: var(--green); }
+    .movement-bar-down { background: var(--red); }
+    .movement-bar-new { background: var(--teal); }
+    .movement-bar-flat { background: var(--muted); }
+
+    .movement-value {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
     .portfolio-wrap {
       max-height: 620px;
       overflow: auto;
@@ -476,6 +557,8 @@
       th, td { padding: 8px; }
       .search, .select { width: 100%; min-width: 0; }
       .filters { width: 100%; }
+      .movement-row { grid-template-columns: 1fr; gap: 5px; }
+      .movement-value { justify-content: flex-start; }
     }
   </style>
 </head>
@@ -571,6 +654,7 @@
         <span class="hint">Every item, sales mix, and increasing / dropping signal</span>
       </div>
       <div class="portfolio-summary" id="portfolioSummary"></div>
+      <div class="portfolio-chart" id="portfolioChart"></div>
       <div class="portfolio-wrap" id="portfolioMonitor"></div>
     </section>
 
@@ -50304,6 +50388,47 @@
       return `<span class="sku-chip ${klass}" title="${escapeHtml(title)}">${escapeHtml(item.code)} <span>${movementMarker(item.trend)}</span></span>`;
     }
 
+    function renderMovementChart(rows, selectedAgent) {
+      const chartRows = rows
+        .filter(row => row.trend)
+        .sort((a, b) => Math.abs(b.trend.qtyDelta || 0) - Math.abs(a.trend.qtyDelta || 0) || b.sales - a.sales)
+        .slice(0, selectedAgent ? 18 : 24);
+      if (!chartRows.length) {
+        document.getElementById("portfolioChart").innerHTML = `<div style="color:var(--muted)">No previous-period movement available for this selection.</div>`;
+        return;
+      }
+      const maxAbs = Math.max(1, ...chartRows.map(row => Math.abs(row.trend.qtyDelta || 0)));
+      document.getElementById("portfolioChart").innerHTML = `
+        <div class="chart-head">
+          <div class="chart-title">Largest CTN Movements</div>
+          <span class="hint">Red = dropping, green = increasing</span>
+        </div>
+        <div class="movement-chart">
+          ${chartRows.map(row => {
+            const delta = row.trend.qtyDelta || 0;
+            const status = movementStatus(row.trend).key;
+            const width = Math.max(3, Math.abs(delta) / maxAbs * 50);
+            const left = delta < 0 ? 50 - width : 50;
+            const klass = status === "new" ? "movement-bar-new" : delta < 0 ? "movement-bar-down" : delta > 0 ? "movement-bar-up" : "movement-bar-flat";
+            return `
+              <div class="movement-row">
+                <div class="movement-label">
+                  <b>${escapeHtml(selectedAgent ? row.code : `${row.agent} · ${row.code}`)}</b>
+                  <span>${escapeHtml(row.desc)}</span>
+                </div>
+                <div class="movement-axis" title="${escapeHtml(`${skuLabel(row.code, row.desc)} | ${signed(delta)} CTN vs previous period`)}">
+                  <span class="movement-bar ${klass}" style="left:${left}%;width:${width}%"></span>
+                </div>
+                <div class="movement-value">
+                  <span>${signed(delta)} CTN</span>
+                  ${movementBadge(row.trend)}
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>`;
+    }
+
     let currentPeriods = ["2026-05"];
 
     function escapeHtml(value) {
@@ -50622,6 +50747,8 @@
         if (selectedAgent) return Math.abs((b.trend?.qtyDelta || 0)) - Math.abs((a.trend?.qtyDelta || 0)) || b.sales - a.sales;
         return a.state.localeCompare(b.state) || a.agent.localeCompare(b.agent) || b.sales - a.sales;
       });
+
+      renderMovementChart(sortedRows, selectedAgent);
 
       document.getElementById("portfolioMonitor").innerHTML = sortedRows.length ? `
         <table>
