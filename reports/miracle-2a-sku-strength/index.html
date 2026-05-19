@@ -370,6 +370,9 @@
         <select class="select" id="agentSelect" aria-label="Select agent">
           <option value="">All agents</option>
         </select>
+        <select class="select" id="skuSelect" aria-label="Select SKU">
+          <option value="">All SKUs</option>
+        </select>
         <input class="search" id="agentSearch" type="search" placeholder="Filter SKU text">
       </div>
     </div>
@@ -5074,6 +5077,7 @@
     function render() {
       const view = data[currentPeriod];
       syncDropdownOptions();
+      const selectedSku = document.getElementById("skuSelect").value;
       const maxSales = Math.max(...view.states.map(s => s.sales));
       document.getElementById("kpis").innerHTML = view.states.map(s => `
         <div class="kpi">
@@ -5092,12 +5096,15 @@
           `).join("")}</tbody>
         </table>`;
 
+      const stateSkuRows = selectedSku
+        ? view.stateSkus.filter(([, , code]) => code === selectedSku)
+        : view.stateSkus;
       document.getElementById("stateSkus").innerHTML = `
         <table>
           <thead><tr><th>State</th><th class="num">Rank</th><th>SKU</th><th>Description</th><th class="num">Sales</th><th class="num">CTN</th><th class="num">Customers</th><th class="num">Mix</th></tr></thead>
-          <tbody>${view.stateSkus.map(([state, rank, code, desc, sales, qty, customers, mix]) => `
+          <tbody>${stateSkuRows.map(([state, rank, code, desc, sales, qty, customers, mix]) => `
             <tr><td>${statePill(state)}</td><td class="num score">${rank}</td><td><b>${code}</b></td><td>${desc}</td><td class="num">${rm(sales)}</td><td class="num">${fmt.format(qty)}</td><td class="num">${fmt.format(customers)}</td><td class="num">${pct(mix)}</td></tr>
-          `).join("")}</tbody>
+          `).join("") || `<tr><td colspan="8" style="padding:18px;color:var(--muted)">No state SKU rows match the selected SKU.</td></tr>`}</tbody>
         </table>`;
 
       renderDebtorStatus();
@@ -5110,15 +5117,19 @@
       const query = document.getElementById("agentSearch").value.trim().toLowerCase();
       const selectedState = document.getElementById("stateSelect").value;
       const selectedAgent = document.getElementById("agentSelect").value;
+      const selectedSku = document.getElementById("skuSelect").value;
       const filtered = view.agents.filter(([state, agent, skus]) => {
         const text = `${state} ${agent} ${skus.flat().join(" ")}`.toLowerCase();
         return (!selectedState || state === selectedState)
           && (!selectedAgent || agent === selectedAgent)
+          && (!selectedSku || skus.some(([code]) => code === selectedSku))
           && (!query || text.includes(query));
       });
 
       document.getElementById("emptyState").style.display = filtered.length ? "none" : "block";
-      document.getElementById("agentGrid").innerHTML = filtered.map(([state, agent, skus]) => `
+      document.getElementById("agentGrid").innerHTML = filtered.map(([state, agent, skus]) => {
+        const visibleSkus = selectedSku ? skus.filter(([code]) => code === selectedSku) : skus;
+        return `
         <article class="agent-card">
           <div class="agent-head">
             <div class="agent-name">${agent}</div>
@@ -5126,12 +5137,12 @@
           </div>
           <table>
             <thead><tr><th>SKU</th><th class="num">Sales</th><th class="num">CTN</th><th class="num">Cust.</th><th class="num">Mix</th></tr></thead>
-            <tbody>${skus.map(([code, desc, sales, qty, customers, mix]) => `
+            <tbody>${visibleSkus.map(([code, desc, sales, qty, customers, mix]) => `
               <tr><td><b>${code}</b><br><span style="color:var(--muted)">${desc}</span></td><td class="num">${rm(sales)}</td><td class="num">${fmt.format(qty)}</td><td class="num">${fmt.format(customers)}</td><td class="num score">${pct(mix)}</td></tr>
             `).join("")}</tbody>
           </table>
         </article>
-      `).join("");
+      `}).join("");
     }
 
     function statusBadge(status) {
@@ -5229,8 +5240,10 @@
       const view = data[currentPeriod];
       const stateSelect = document.getElementById("stateSelect");
       const agentSelect = document.getElementById("agentSelect");
+      const skuSelect = document.getElementById("skuSelect");
       const currentState = stateSelect.value;
       const currentAgent = agentSelect.value;
+      const currentSku = skuSelect.value;
       const states = [...new Set(view.agents.map(([state]) => state))].sort();
 
       stateSelect.innerHTML = `<option value="">All states</option>` + states
@@ -5246,12 +5259,22 @@
         .map(agent => `<option value="${agent}">${agent}</option>`)
         .join("");
       agentSelect.value = agents.includes(currentAgent) ? currentAgent : "";
+
+      const skuSet = new Set();
+      view.stateSkus.forEach(([, , code]) => skuSet.add(code));
+      view.agents.forEach(([, , skus]) => skus.forEach(([code]) => skuSet.add(code)));
+      const skus = [...skuSet].sort((a, b) => a.localeCompare(b));
+      skuSelect.innerHTML = `<option value="">All SKUs</option>` + skus
+        .map(sku => `<option value="${sku}">${sku}</option>`)
+        .join("");
+      skuSelect.value = skus.includes(currentSku) ? currentSku : "";
     }
 
     document.getElementById("periodSelect").addEventListener("change", event => {
       currentPeriod = event.target.value;
       document.getElementById("stateSelect").value = "";
       document.getElementById("agentSelect").value = "";
+      document.getElementById("skuSelect").value = "";
       render();
     });
     document.getElementById("stateSelect").addEventListener("change", () => {
@@ -5260,6 +5283,9 @@
       renderDebtorStatus();
       renderMonthlyRevenue();
       renderAgents();
+    });
+    document.getElementById("skuSelect").addEventListener("change", () => {
+      render();
     });
     document.getElementById("agentSelect").addEventListener("change", () => {
       renderDebtorStatus();
