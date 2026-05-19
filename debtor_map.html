@@ -42,6 +42,9 @@ body{font-family:var(--body);background:var(--bg);color:var(--text);height:100vh
 .sub{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-top:1px;}
 .agent-badge{font-family:var(--mono);font-size:10px;background:rgba(240,192,64,.15);color:var(--accent);border:1px solid rgba(240,192,64,.3);padding:3px 9px;border-radius:20px;}
 .theme-btn{background:none;border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:10px;padding:4px 8px;border-radius:6px;cursor:pointer;}
+#header.agent-mode{padding:6px 12px;}
+#header.agent-mode h1{font-size:16px;}
+#header.agent-mode .sub{display:none;}
 
 #controls{background:var(--surface);padding:6px 12px;border-bottom:1px solid var(--border);flex-shrink:0;}
 #search-row{display:flex;gap:6px;margin-bottom:6px;}
@@ -358,6 +361,12 @@ async function boot() {
   currentAgent = agent;
   isAdmin = (agent === IS_ADMIN);
   document.getElementById('agent-badge').textContent = isAdmin ? 'ADMIN' : agent;
+
+  if (!isAdmin) {
+    document.getElementById('controls').style.display = 'none';
+    document.querySelector('.bottom-nav').style.display = 'none';
+    document.getElementById('header').classList.add('agent-mode');
+  }
 
   try {
     setLoadMsg(isAdmin ? 'Fetching all debtors...' : `Fetching debtors for ${agent}...`);
