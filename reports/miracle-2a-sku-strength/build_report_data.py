@@ -32,6 +32,28 @@ def qty(value):
     return round(float(value or 0), 2)
 
 
+def pct_delta(current, previous):
+    previous = float(previous or 0)
+    if previous == 0:
+        return None
+    return round((float(current or 0) - previous) / abs(previous) * 100, 1)
+
+
+def build_trend(current_sales, current_qty, previous_metrics):
+    previous_sales = float(previous_metrics["sales"]) if previous_metrics else 0
+    previous_qty = float(previous_metrics["qty"]) if previous_metrics else 0
+    current_sales = float(current_sales or 0)
+    current_qty = float(current_qty or 0)
+    return {
+        "prevSales": money(previous_sales),
+        "prevQty": qty(previous_qty),
+        "salesDelta": money(current_sales - previous_sales),
+        "qtyDelta": qty(current_qty - previous_qty),
+        "salesPct": pct_delta(current_sales, previous_sales),
+        "qtyPct": pct_delta(current_qty, previous_qty),
+    }
+
+
 def load_sales():
     df = pd.read_excel(SALES_XLSX, sheet_name=0)
     df.columns = [str(c).strip() for c in df.columns]
@@ -87,6 +109,21 @@ def month_label(period_key):
     return pd.Timestamp(period_key + "-01").strftime("%b %Y")
 
 
+def grouped_lookup(frame, keys):
+    if frame.empty:
+        return {}
+    grouped = (
+        frame.groupby(keys, dropna=False)
+        .agg(sales=("sales", "sum"), qty=("qty_ctn", "sum"))
+        .reset_index()
+    )
+    lookup = {}
+    for row in grouped.itertuples(index=False):
+        key = tuple(getattr(row, column) for column in keys)
+        lookup[key] = {"sales": row.sales, "qty": row.qty}
+    return lookup
+
+
 def build_strength(df):
     data = {}
     periods = sorted(df["period_key"].dropna().unique())
@@ -94,6 +131,10 @@ def build_strength(df):
     period_labels.append(("all", f"{month_label(periods[0])}-{month_label(periods[-1])}" if periods else "All months"))
     for period, label in period_labels:
         view = period_frame(df, period)
+        prev_period = periods[periods.index(period) - 1] if period in periods and periods.index(period) > 0 else None
+        prev_view = period_frame(df, prev_period) if prev_period else df.iloc[0:0].copy()
+        prev_state_skus = grouped_lookup(prev_view, ["state", "sku"])
+        prev_agent_skus = grouped_lookup(prev_view, ["state", "agent", "sku"])
         states = []
         state_skus = []
         agents = []
@@ -117,9 +158,11 @@ def build_strength(df):
                 .head(5)
             )
             for rank, row in enumerate(sku_rows.itertuples(index=False), start=1):
+                trend = build_trend(row.sales, row.qty, prev_state_skus.get((state, row.sku))) if prev_period else None
                 state_skus.append([
                     state, rank, row.sku, row.desc, money(row.sales), qty(row.qty),
                     int(row.customers), round(float(row.sales) / total_sales * 100, 1) if total_sales else 0,
+                    trend,
                 ])
 
         for state, state_agents in STATE_MAP.items():
@@ -137,7 +180,8 @@ def build_strength(df):
                 )
                 skus = [
                     [row.sku, row.desc, money(row.sales), qty(row.qty), int(row.customers),
-                     round(float(row.sales) / total_sales * 100, 1) if total_sales else 0]
+                     round(float(row.sales) / total_sales * 100, 1) if total_sales else 0,
+                     build_trend(row.sales, row.qty, prev_agent_skus.get((state, agent, row.sku))) if prev_period else None]
                     for row in sku_rows.itertuples(index=False)
                 ]
                 agents.append([state, agent, skus])
