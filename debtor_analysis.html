@@ -33,6 +33,10 @@
     .report-tab.active { background:var(--gold); color:#111; border-color:var(--gold); font-weight:700; }
     .report-tab:hover { border-color:var(--gold); color:var(--gold); }
     .report-tab.active:hover { color:#111; }
+    .report-panel[hidden] { display:none; }
+    .sku-report-tools { display:flex; justify-content:flex-end; margin:-4px 0 12px; }
+    .sku-frame-wrap { background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; min-height:calc(100vh - 190px); }
+    .sku-frame { display:block; width:100%; height:calc(100vh - 190px); min-height:780px; border:0; background:#f7f8f5; }
     main { max-width:1500px; margin:0 auto; padding:24px; }
     .controls { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; display:grid; grid-template-columns:repeat(6,minmax(145px,1fr)); gap:12px; }
     label { display:flex; flex-direction:column; gap:5px; color:var(--muted); font:10px Consolas, monospace; text-transform:uppercase; letter-spacing:.12em; }
@@ -85,7 +89,7 @@
       <div class="nav">
         <a class="btn" href="management.html">Management</a>
         <a class="btn" href="sales_dashboard.html">Sales Dashboard</a>
-        <a class="btn gold" href="reports/miracle-2a-sku-strength/index.html" target="_blank" rel="noopener">Miracle 2A SKU</a>
+        <a class="btn gold" href="debtor_analysis.html?report=sku-strength">Miracle 2A SKU</a>
         <button class="btn" onclick="toggleTheme()">Dark / Light</button>
         <button class="btn primary" onclick="exportRows()">Export Excel</button>
       </div>
@@ -94,10 +98,11 @@
 
   <main>
     <nav class="report-tabs" aria-label="Debtor analysis reports">
-      <span class="report-tab active">Debtor Movement</span>
-      <a class="report-tab" href="reports/miracle-2a-sku-strength/index.html" target="_blank" rel="noopener">Miracle 2A SKU Strength</a>
+      <button type="button" class="report-tab active" id="tabMovement" onclick="switchAnalysisReport('movement')">Debtor Movement</button>
+      <button type="button" class="report-tab" id="tabSkuStrength" onclick="switchAnalysisReport('sku-strength')">Miracle 2A SKU Strength</button>
     </nav>
 
+    <div class="report-panel" id="movementPanel">
     <section class="controls">
       <label>Period A From<select id="aFrom" onchange="render()"></select></label>
       <label>Period A To<select id="aTo" onchange="render()"></select></label>
@@ -149,6 +154,16 @@
         <tbody id="tbody"></tbody>
       </table>
     </section>
+    </div>
+
+    <div class="report-panel" id="skuStrengthPanel" hidden>
+      <div class="sku-report-tools">
+        <a class="btn gold" href="reports/miracle-2a-sku-strength/index.html" target="_blank" rel="noopener">Open full page</a>
+      </div>
+      <div class="sku-frame-wrap">
+        <iframe class="sku-frame" title="Miracle 2A SKU Strength" src="reports/miracle-2a-sku-strength/index.html"></iframe>
+      </div>
+    </div>
   </main>
 
 <script>
@@ -161,6 +176,18 @@ function mKey(m){ const a=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'
 function range(from,to){ const ms=DATA.months||[]; const a=ms.indexOf(from), b=ms.indexOf(to); if(a<0||b<0) return []; return ms.slice(Math.min(a,b), Math.max(a,b)+1); }
 function byId(id){ return document.getElementById(id); }
 function unique(vals){ return [...new Set(vals.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b))); }
+
+function switchAnalysisReport(report){
+  const isSku = report === 'sku-strength';
+  byId('movementPanel').hidden = isSku;
+  byId('skuStrengthPanel').hidden = !isSku;
+  byId('tabMovement').classList.toggle('active', !isSku);
+  byId('tabSkuStrength').classList.toggle('active', isSku);
+  const url = new URL(window.location.href);
+  if(isSku) url.searchParams.set('report', 'sku-strength');
+  else url.searchParams.delete('report');
+  history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+}
 
 async function init(){
   try {
@@ -414,6 +441,9 @@ function toggleTheme(){
   localStorage.setItem('debtor-analysis-theme', document.body.classList.contains('light')?'light':'dark');
 }
 if(localStorage.getItem('debtor-analysis-theme')==='light') document.body.classList.add('light');
+if(new URLSearchParams(window.location.search).get('report')==='sku-strength' || location.hash==='#sku-strength') {
+  switchAnalysisReport('sku-strength');
+}
 init();
 </script>
 </body>
