@@ -35,18 +35,18 @@ if "%PYTHON%"=="" (
 REM -- Step 1: Process data ---------------------------------
 if "%MONTH_OVERRIDE%"=="" (
     if "%FAST_FLAG%"=="" (
-        echo [1/4] Processing sales data ^(current month^)...
+        echo [1/5] Processing sales data ^(current month^)...
         %PYTHON% process_data.py
     ) else (
-        echo [1/4] Processing sales data ^(FAST mode - debtor cache^)...
+        echo [1/5] Processing sales data ^(FAST mode - debtor cache^)...
         %PYTHON% process_data.py --fast
     )
 ) else (
     if "%FAST_FLAG%"=="" (
-        echo [1/4] Processing: %MONTH_OVERRIDE%
+        echo [1/5] Processing: %MONTH_OVERRIDE%
         %PYTHON% process_data.py --month "%MONTH_OVERRIDE%"
     ) else (
-        echo [1/4] Processing: %MONTH_OVERRIDE% ^(FAST mode^)
+        echo [1/5] Processing: %MONTH_OVERRIDE% ^(FAST mode^)
         %PYTHON% process_data.py --month "%MONTH_OVERRIDE%" --fast
     )
 )
@@ -57,25 +57,41 @@ if %errorlevel% neq 0 (
 echo Done.
 echo.
 
-REM -- Step 2: Save history ---------------------------------
-echo [2/4] Saving monthly history...
+REM -- Step 2: Rebuild SKU Strength report ------------------
+echo [2/5] Rebuilding SKU Strength report...
+if exist reports\miracle-2a-sku-strength\build_report_data.py (
+    %PYTHON% reports\miracle-2a-sku-strength\build_report_data.py
+    if %errorlevel% neq 0 (
+        echo ERROR: SKU Strength report rebuild failed!
+        pause & exit /b 1
+    )
+) else (
+    echo WARNING: SKU Strength report builder not found ^(non-critical^)
+)
+echo Done.
+echo.
+
+REM -- Step 3: Save history ---------------------------------
+echo [3/5] Saving monthly history...
 %PYTHON% save_history.py
 if %errorlevel% neq 0 echo WARNING: save_history.py failed ^(non-critical^)
 echo Done.
 echo.
 
-REM -- Step 3: Generate history.json ------------------------
-echo [3/4] Generating history.json...
+REM -- Step 4: Generate history.json ------------------------
+echo [4/5] Generating history.json...
 %PYTHON% save_history_json.py
 if %errorlevel% neq 0 echo WARNING: save_history_json.py failed ^(non-critical^)
 echo Done.
 echo.
 
-REM -- Step 4: Push to GitHub -------------------------------
-echo [4/4] Pushing to GitHub...
-git add dashboard_data.json history.xlsx history.json targets.json
+REM -- Step 5: Push to GitHub -------------------------------
+echo [5/5] Pushing to GitHub...
+git add dashboard_data.json debtor_analysis_data.json history.xlsx history.json targets.json
 git add sales_dashboard.html management.html admin.html
+git add debtor_analysis.html index.html
 git add data_*.json months_index.json 2>nul
+git add reports\miracle-2a-sku-strength\index.html reports\miracle-2a-sku-strength\debtor_status.js reports\miracle-2a-sku-strength\agent_monthly_revenue.js reports\miracle-2a-sku-strength\build_report_data.py 2>nul
 if "%MONTH_OVERRIDE%"=="" (
     git commit -m "Daily update %date% %time%"
 ) else (
