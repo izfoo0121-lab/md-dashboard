@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Miracle 2A SKU Strength</title>
+  <style>
+    :root {
+      --bg: #f7f8f5;
+      --panel: #ffffff;
+      --ink: #20251f;
+      --muted: #627064;
+      --line: #dce3da;
+      --green: #23644a;
+      --lime: #c4d95f;
+      --teal: #287985;
+      --red: #c6533c;
+      --amber: #d9972d;
+      --soft-green: #e9f2df;
+      --soft-teal: #e1f0f2;
+      --soft-amber: #f6edd8;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.45;
+    }
+
+    header {
+      padding: 28px 32px 18px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcf8;
+    }
+
+    .eyebrow {
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 6px 0 8px;
+      font-size: 32px;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .sub {
+      color: var(--muted);
+      max-width: 980px;
+      margin: 0;
+    }
+
+    main {
+      padding: 24px 32px 42px;
+      max-width: 1480px;
+      margin: 0 auto;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .segmented {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+
+    .segmented button {
+      border: 0;
+      border-right: 1px solid var(--line);
+      background: transparent;
+      color: var(--muted);
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .segmented button:last-child { border-right: 0; }
+    .segmented button.active {
+      background: var(--green);
+      color: white;
+    }
+
+    .search {
+      min-width: 260px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font: inherit;
+      background: white;
+      color: var(--ink);
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .kpis {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-bottom: 20px;
+    }
+
+    .kpi {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .kpi .label {
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .kpi .value {
+      font-size: 28px;
+      font-weight: 800;
+      margin-top: 8px;
+    }
+
+    .kpi .meta {
+      color: var(--muted);
+      margin-top: 8px;
+      font-size: 13px;
+    }
+
+    .two-col {
+      grid-template-columns: minmax(360px, 0.8fr) minmax(520px, 1.2fr);
+      align-items: start;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      padding: 15px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      background: #fbfcf8;
+    }
+
+    td.num, th.num { text-align: right; }
+    tr:last-child td { border-bottom: 0; }
+
+    .state-pill {
+      display: inline-flex;
+      align-items: center;
+      min-width: 96px;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    .Pahang { background: var(--soft-teal); color: var(--teal); }
+    .Terengganu { background: var(--soft-green); color: var(--green); }
+    .Kelantan { background: var(--soft-amber); color: #8a5a06; }
+
+    .bar {
+      height: 8px;
+      background: #edf1ed;
+      border-radius: 999px;
+      overflow: hidden;
+      min-width: 96px;
+      margin-top: 5px;
+    }
+
+    .bar > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--green);
+    }
+
+    .score {
+      font-weight: 800;
+      color: var(--green);
+    }
+
+    .callouts {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .callout {
+      border-left: 4px solid var(--green);
+      background: #fbfcf8;
+      padding: 13px 14px;
+      border-radius: 6px;
+    }
+
+    .callout:nth-child(2) { border-color: var(--amber); }
+    .callout:nth-child(3) { border-color: var(--teal); }
+    .callout b { display: block; margin-bottom: 5px; }
+    .callout span { color: var(--muted); font-size: 13px; }
+
+    .agent-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(320px, 1fr));
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .agent-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .agent-head {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .agent-name {
+      font-size: 18px;
+      font-weight: 850;
+    }
+
+    .empty {
+      display: none;
+      padding: 28px;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      background: white;
+    }
+
+    footer {
+      color: var(--muted);
+      font-size: 12px;
+      padding: 18px 32px 32px;
+      max-width: 1480px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 980px) {
+      header, main, footer { padding-left: 18px; padding-right: 18px; }
+      .kpis, .two-col, .callouts, .agent-grid { grid-template-columns: 1fr; }
+      .hint { white-space: normal; }
+      table { font-size: 12px; }
+      th, td { padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="eyebrow">MD Sales Report | Miracle 2A</div>
+    <h1>SKU Strength Dashboard</h1>
+    <p class="sub">State and agent SKU strength based on the latest available sales data. Current view defaults to May 2026, covering 2026-05-02 to 2026-05-18; all-month view covers 2026-02-01 to 2026-05-18.</p>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <div class="segmented" aria-label="Period">
+        <button type="button" class="active" data-period="may">May 2026</button>
+        <button type="button" data-period="all">Feb-May 2026</button>
+      </div>
+      <input class="search" id="agentSearch" type="search" placeholder="Filter agent or SKU">
+    </div>
+
+    <div class="grid kpis" id="kpis"></div>
+
+    <div class="grid two-col">
+      <section>
+        <div class="section-head">
+          <h2>State Strength</h2>
+          <span class="hint">Sales, qty, customers, orders</span>
+        </div>
+        <div id="stateSummary"></div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>Top State SKUs</h2>
+          <span class="hint">Ranked by sales RM</span>
+        </div>
+        <div id="stateSkus"></div>
+      </section>
+    </div>
+
+    <div class="callouts">
+      <div class="callout">
+        <b>Pahang engine</b>
+        <span>TR-002 is the main power SKU, with CM-002 as the second pillar.</span>
+      </div>
+      <div class="callout">
+        <b>Terengganu identity</b>
+        <span>EVO dominates the state, especially through NMK and KF.</span>
+      </div>
+      <div class="callout">
+        <b>Kelantan split</b>
+        <span>CM-002 and EVO lead, while KI-MI shows a clear SKNR strength.</span>
+      </div>
+    </div>
+
+    <section>
+      <div class="section-head">
+        <h2>Every Agent SKU Strength</h2>
+        <span class="hint">Top 3 SKUs per agent, with sales mix</span>
+      </div>
+    </section>
+    <div class="empty" id="emptyState">No matching agent or SKU found.</div>
+    <div class="agent-grid" id="agentGrid"></div>
+  </main>
+
+  <footer>
+    Source workbook: C:\Users\tgy_3\Downloads\20260519 MD Sales Report.xlsx. State split: Terengganu (KF, JAMES, NMK), Kelantan (YI, KI-MI, BEN, JACKY), Pahang (LEON, CJ, KEE, KW, XIAN). GRP 2A agents outside this mapping were excluded.
+  </footer>
+
+  <script>
+    const data = {
+      may: {
+        label: "May 2026",
+        states: [
+          { state: "Pahang", sales: 983348, qty: 237430, customers: 434, docs: 796 },
+          { state: "Terengganu", sales: 439258, qty: 99286, customers: 342, docs: 627 },
+          { state: "Kelantan", sales: 320248, qty: 74674, customers: 292, docs: 552 }
+        ],
+        stateSkus: [
+          ["Kelantan", 1, "CM-002", "CLASS MILD", 79885, 17650, 109, 24.9],
+          ["Kelantan", 2, "EVO", "EVO", 70492, 17700, 86, 22.0],
+          ["Kelantan", 3, "SKNR", "SUKUN SPECIAL (RED)", 36095, 8980, 124, 11.3],
+          ["Kelantan", 4, "TR-002", "TR-002", 33098, 8670, 50, 10.3],
+          ["Kelantan", 5, "BISON-R", "BISON RED", 16464, 4980, 30, 5.1],
+          ["Pahang", 1, "TR-002", "TR-002", 302323, 82550, 253, 30.7],
+          ["Pahang", 2, "CM-002", "CLASS MILD", 223007, 52160, 141, 22.7],
+          ["Pahang", 3, "SKNR", "SUKUN SPECIAL (RED)", 79637, 19870, 154, 8.1],
+          ["Pahang", 4, "IMP-001", "IMP-001", 60903, 16450, 74, 6.2],
+          ["Pahang", 5, "EVO", "EVO", 55833, 13940, 87, 5.7],
+          ["Terengganu", 1, "EVO", "EVO", 140032, 34550, 168, 31.9],
+          ["Terengganu", 2, "CM-002", "CLASS MILD", 95324, 20550, 143, 21.7],
+          ["Terengganu", 3, "SKNR", "SUKUN SPECIAL (RED)", 46120, 11450, 116, 10.5],
+          ["Terengganu", 4, "JDB", "JOHN D-BLEND", 21446, 2890, 38, 4.9],
+          ["Terengganu", 5, "90", "90MINUTE", 17526, 3900, 44, 4.0]
+        ],
+        agents: [
+          ["Kelantan", "BEN", [["CM-002","CLASS MILD",5336,1120,13,32.4],["SKNR","SUKUN SPECIAL (RED)",3400,850,18,20.6],["CMP","CLASMILD PURPLE",1275,270,5,7.7]]],
+          ["Kelantan", "JACKY", [["EVO","EVO",47433,11950,40,30.1],["CM-002","CLASS MILD",31354,7090,29,19.9],["TR-002","TR-002",29291,7720,20,18.6]]],
+          ["Kelantan", "KI-MI", [["SKNR","SUKUN SPECIAL (RED)",13265,3300,56,31.9],["CM-002","CLASS MILD",6809,1440,23,16.4],["SKNW","SUKUN EXECUTIVE (WHITE)",3240,810,18,7.8]]],
+          ["Kelantan", "YI", [["CM-002","CLASS MILD",36386,8000,44,34.9],["EVO","EVO",20431,5120,29,19.6],["SKNR","SUKUN SPECIAL (RED)",15800,3930,35,15.1]]],
+          ["Pahang", "CJ", [["TR-002","TR-002",79582,21780,62,32.5],["CM-002","CLASS MILD",45778,10820,25,18.7],["IMP-001","IMP-001",38130,10460,29,15.5]]],
+          ["Pahang", "KEE", [["TR-002","TR-002",74146,20400,38,42.8],["CM-002","CLASS MILD",17120,3870,19,9.9],["TR20","TR20",16828,2840,12,9.7]]],
+          ["Pahang", "KW", [["CM-002","CLASS MILD",98276,23120,33,35.1],["TR-002","TR-002",80692,22080,57,28.8],["SKNR","SUKUN SPECIAL (RED)",18808,4700,36,6.7]]],
+          ["Pahang", "LEON", [["TR-002","TR-002",35787,9620,46,24.9],["EVO","EVO",22789,5710,39,15.9],["CM-002","CLASS MILD",22650,5360,23,15.8]]],
+          ["Pahang", "XIAN", [["CM-002","CLASS MILD",39184,8990,41,27.8],["TR-002","TR-002",32115,8670,50,22.8],["SKNR","SUKUN SPECIAL (RED)",12880,3210,32,9.1]]],
+          ["Terengganu", "JAMES", [["EVO","EVO",21021,5210,44,24.6],["CM-002","CLASS MILD",19590,4210,37,22.9],["SKNR","SUKUN SPECIAL (RED)",10320,2560,44,12.1]]],
+          ["Terengganu", "KF", [["EVO","EVO",64115,15710,73,28.7],["CM-002","CLASS MILD",49948,10850,59,22.4],["SKNR","SUKUN SPECIAL (RED)",20540,5100,36,9.2]]],
+          ["Terengganu", "NMK", [["EVO","EVO",54896,13630,51,42.1],["CM-002","CLASS MILD",25786,5490,47,19.8],["SKNR","SUKUN SPECIAL (RED)",15260,3790,36,11.7]]]
+        ]
+      },
+      all: {
+        label: "Feb-May 2026",
+        states: [
+          { state: "Pahang", sales: 4870290, qty: 1253594, customers: 606, docs: 3862 },
+          { state: "Terengganu", sales: 2212836, qty: 534752, customers: 457, docs: 3429 },
+          { state: "Kelantan", sales: 1727222, qty: 426679, customers: 443, docs: 3281 }
+        ],
+        stateSkus: [
+          ["Kelantan", 1, "CM-002", "CLASS MILD", 427407, 99200, 178, 24.7],
+          ["Kelantan", 2, "EVO", "EVO", 366011, 99630, 159, 21.2],
+          ["Kelantan", 3, "TR-002", "TR-002", 215011, 60143, 95, 12.4],
+          ["Kelantan", 4, "SKNR", "SUKUN SPECIAL (RED)", 178978, 46630, 211, 10.4],
+          ["Kelantan", 5, "JDB", "JOHN D-BLEND", 92394, 12820, 70, 5.3],
+          ["Pahang", 1, "TR-002", "TR-002", 1495709, 431098, 378, 30.7],
+          ["Pahang", 2, "CM-002", "CLASS MILD", 952186, 233700, 245, 19.6],
+          ["Pahang", 3, "SKNR", "SUKUN SPECIAL (RED)", 376679, 98790, 277, 7.7],
+          ["Pahang", 4, "EVO", "EVO", 355869, 99500, 176, 7.3],
+          ["Pahang", 5, "IMP-001", "IMP-001", 304074, 86950, 116, 6.2],
+          ["Terengganu", 1, "EVO", "EVO", 687668, 185420, 258, 31.1],
+          ["Terengganu", 2, "CM-002", "CLASS MILD", 500245, 113020, 211, 22.6],
+          ["Terengganu", 3, "SKNR", "SUKUN SPECIAL (RED)", 234022, 60910, 186, 10.6],
+          ["Terengganu", 4, "JDB", "JOHN D-BLEND", 110448, 15680, 80, 5.0],
+          ["Terengganu", 5, "90", "90MINUTE", 99257, 24380, 60, 4.5]
+        ],
+        agents: [
+          ["Kelantan", "BEN", [["CM-002","CLASS MILD",33987,7940,26,25.1],["SKNR","SUKUN SPECIAL (RED)",28096,7390,41,20.8],["LF-002","LF-002",13399,3130,4,9.9]]],
+          ["Kelantan", "JACKY", [["EVO","EVO",261959,71550,69,30.4],["TR-002","TR-002",192876,54200,36,22.4],["CM-002","CLASS MILD",155464,36750,46,18.0]]],
+          ["Kelantan", "KI-MI", [["SKNR","SUKUN SPECIAL (RED)",60881,15810,83,28.2],["CM-002","CLASS MILD",44507,9810,45,20.6],["CMP","CLASMILD PURPLE",15305,3510,18,7.1]]],
+          ["Kelantan", "YI", [["CM-002","CLASS MILD",193450,44700,61,37.6],["EVO","EVO",86739,23500,49,16.9],["SKNR","SUKUN SPECIAL (RED)",71674,18720,56,13.9]]],
+          ["Pahang", "CJ", [["TR-002","TR-002",434807,126458,90,32.0],["CM-002","CLASS MILD",216111,53590,42,15.9],["IMP-001","IMP-001",192012,55570,41,14.1]]],
+          ["Pahang", "KEE", [["TR-002","TR-002",380434,109820,77,37.3],["CM-002","CLASS MILD",141858,34210,54,13.9],["TR20","TR20",94144,16690,27,9.2]]],
+          ["Pahang", "KW", [["TR-002","TR-002",425672,123010,90,28.9],["CM-002","CLASS MILD",391716,96280,56,26.6],["EVO","EVO",151093,43760,46,10.3]]],
+          ["Pahang", "LEON", [["TR-002","TR-002",222680,63140,71,25.4],["CM-002","CLASS MILD",163317,40630,52,18.6],["EVO","EVO",116968,32080,65,13.3]]],
+          ["Pahang", "XIAN", [["CM-002","CLASS MILD",39184,8990,41,27.8],["TR-002","TR-002",32115,8670,50,22.8],["SKNR","SUKUN SPECIAL (RED)",12880,3210,32,9.1]]],
+          ["Terengganu", "JAMES", [["EVO","EVO",115789,31210,73,22.8],["CM-002","CLASS MILD",107356,24110,57,21.1],["SKNR","SUKUN SPECIAL (RED)",56545,14670,65,11.1]]],
+          ["Terengganu", "KF", [["EVO","EVO",317017,85110,101,29.7],["CM-002","CLASS MILD",260178,59300,86,24.4],["SKNR","SUKUN SPECIAL (RED)",100694,26130,66,9.4]]],
+          ["Terengganu", "NMK", [["EVO","EVO",254862,69100,85,40.0],["CM-002","CLASS MILD",132711,29610,70,20.8],["SKNR","SUKUN SPECIAL (RED)",76783,20110,56,12.1]]]
+        ]
+      }
+    };
+
+    const fmt = new Intl.NumberFormat("en-MY", { maximumFractionDigits: 0 });
+    const rm = value => `RM ${fmt.format(value)}`;
+    const pct = value => `${value.toFixed(1)}%`;
+
+    let currentPeriod = "may";
+
+    function statePill(state) {
+      return `<span class="state-pill ${state}">${state}</span>`;
+    }
+
+    function bar(value, max, state) {
+      const width = Math.max(4, Math.round((value / max) * 100));
+      const color = state === "Pahang" ? "var(--teal)" : state === "Kelantan" ? "var(--amber)" : "var(--green)";
+      return `<div class="bar"><span style="width:${width}%;background:${color}"></span></div>`;
+    }
+
+    function render() {
+      const view = data[currentPeriod];
+      const maxSales = Math.max(...view.states.map(s => s.sales));
+      document.getElementById("kpis").innerHTML = view.states.map(s => `
+        <div class="kpi">
+          <div class="label">${statePill(s.state)}</div>
+          <div class="value">${rm(s.sales)}</div>
+          ${bar(s.sales, maxSales, s.state)}
+          <div class="meta">${fmt.format(s.qty)} qty | ${fmt.format(s.customers)} customers | ${fmt.format(s.docs)} docs</div>
+        </div>
+      `).join("");
+
+      document.getElementById("stateSummary").innerHTML = `
+        <table>
+          <thead><tr><th>State</th><th class="num">Sales</th><th class="num">Qty</th><th class="num">Customers</th><th class="num">Docs</th></tr></thead>
+          <tbody>${view.states.map(s => `
+            <tr><td>${statePill(s.state)}</td><td class="num">${rm(s.sales)}</td><td class="num">${fmt.format(s.qty)}</td><td class="num">${fmt.format(s.customers)}</td><td class="num">${fmt.format(s.docs)}</td></tr>
+          `).join("")}</tbody>
+        </table>`;
+
+      document.getElementById("stateSkus").innerHTML = `
+        <table>
+          <thead><tr><th>State</th><th class="num">Rank</th><th>SKU</th><th>Description</th><th class="num">Sales</th><th class="num">Qty</th><th class="num">Customers</th><th class="num">Mix</th></tr></thead>
+          <tbody>${view.stateSkus.map(([state, rank, code, desc, sales, qty, customers, mix]) => `
+            <tr><td>${statePill(state)}</td><td class="num score">${rank}</td><td><b>${code}</b></td><td>${desc}</td><td class="num">${rm(sales)}</td><td class="num">${fmt.format(qty)}</td><td class="num">${fmt.format(customers)}</td><td class="num">${pct(mix)}</td></tr>
+          `).join("")}</tbody>
+        </table>`;
+
+      renderAgents();
+    }
+
+    function renderAgents() {
+      const view = data[currentPeriod];
+      const query = document.getElementById("agentSearch").value.trim().toLowerCase();
+      const filtered = view.agents.filter(([state, agent, skus]) => {
+        const text = `${state} ${agent} ${skus.flat().join(" ")}`.toLowerCase();
+        return !query || text.includes(query);
+      });
+
+      document.getElementById("emptyState").style.display = filtered.length ? "none" : "block";
+      document.getElementById("agentGrid").innerHTML = filtered.map(([state, agent, skus]) => `
+        <article class="agent-card">
+          <div class="agent-head">
+            <div class="agent-name">${agent}</div>
+            ${statePill(state)}
+          </div>
+          <table>
+            <thead><tr><th>SKU</th><th class="num">Sales</th><th class="num">Qty</th><th class="num">Cust.</th><th class="num">Mix</th></tr></thead>
+            <tbody>${skus.map(([code, desc, sales, qty, customers, mix]) => `
+              <tr><td><b>${code}</b><br><span style="color:var(--muted)">${desc}</span></td><td class="num">${rm(sales)}</td><td class="num">${fmt.format(qty)}</td><td class="num">${fmt.format(customers)}</td><td class="num score">${pct(mix)}</td></tr>
+            `).join("")}</tbody>
+          </table>
+        </article>
+      `).join("");
+    }
+
+    document.querySelectorAll(".segmented button").forEach(button => {
+      button.addEventListener("click", () => {
+        currentPeriod = button.dataset.period;
+        document.querySelectorAll(".segmented button").forEach(b => b.classList.toggle("active", b === button));
+        render();
+      });
+    });
+    document.getElementById("agentSearch").addEventListener("input", renderAgents);
+    render();
+  </script>
+</body>
+</html>
