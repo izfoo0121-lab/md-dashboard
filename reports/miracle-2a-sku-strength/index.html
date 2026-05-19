@@ -355,14 +355,13 @@
   <header>
     <div class="eyebrow">MD Sales Report | Miracle 2A</div>
     <h1>SKU Strength Dashboard</h1>
-    <p class="sub">State and agent SKU strength based on the latest available sales data. Current view defaults to May 2026, covering 2026-05-02 to 2026-05-18; all-month view covers 2026-02-01 to 2026-05-18.</p>
+    <p class="sub">State and agent SKU strength based on the latest available sales data. Use the month selector to inspect any available month, or choose All months for the full workbook range.</p>
   </header>
 
   <main>
     <div class="toolbar">
-      <div class="segmented" aria-label="Period">
-        <button type="button" class="active" data-period="may">May 2026</button>
-        <button type="button" data-period="all">Feb-May 2026</button>
+      <div class="filters">
+        <select class="select" id="periodSelect" aria-label="Select month"></select>
       </div>
       <div class="filters">
         <select class="select" id="stateSelect" aria-label="Select state">
@@ -431,7 +430,7 @@
     <section style="margin-bottom:20px">
       <div class="section-head">
         <h2>Monthly Revenue by Agent</h2>
-        <span class="hint">Feb-May 2026 sales revenue</span>
+        <span class="hint">Workbook monthly sales revenue</span>
       </div>
       <div id="monthlyRevenue"></div>
     </section>
@@ -454,7 +453,3517 @@
   <script src="agent_monthly_revenue.js"></script>
   <script>
     const data = {
-      "may": {
+      "2025-10": {
+            "label": "Oct 2025",
+            "states": [
+                  {
+                        "state": "Pahang",
+                        "sales": 1194956,
+                        "qty": 33124.0,
+                        "customers": 399,
+                        "docs": 1093
+                  },
+                  {
+                        "state": "Kelantan",
+                        "sales": 408220,
+                        "qty": 10863.0,
+                        "customers": 375,
+                        "docs": 1049
+                  },
+                  {
+                        "state": "Terengganu",
+                        "sales": 398656,
+                        "qty": 10554.0,
+                        "customers": 267,
+                        "docs": 779
+                  }
+            ],
+            "stateSkus": [
+                  [
+                        "Terengganu",
+                        1,
+                        "EVO",
+                        "EVO",
+                        114492,
+                        3217.0,
+                        132,
+                        28.7
+                  ],
+                  [
+                        "Terengganu",
+                        2,
+                        "CM-002",
+                        "CLASS MILD",
+                        108723,
+                        2527.0,
+                        109,
+                        27.3
+                  ],
+                  [
+                        "Terengganu",
+                        3,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        41825,
+                        1120.0,
+                        97,
+                        10.5
+                  ],
+                  [
+                        "Terengganu",
+                        4,
+                        "90",
+                        "90MINUTE",
+                        20360,
+                        522.0,
+                        29,
+                        5.1
+                  ],
+                  [
+                        "Terengganu",
+                        5,
+                        "CMX",
+                        "CLAS MAXX",
+                        18312,
+                        419.0,
+                        28,
+                        4.6
+                  ],
+                  [
+                        "Kelantan",
+                        1,
+                        "CM-002",
+                        "CLASS MILD",
+                        126810,
+                        2982.0,
+                        153,
+                        31.1
+                  ],
+                  [
+                        "Kelantan",
+                        2,
+                        "EVO",
+                        "EVO",
+                        93196,
+                        2660.0,
+                        126,
+                        22.8
+                  ],
+                  [
+                        "Kelantan",
+                        3,
+                        "TR-002",
+                        "TR-002",
+                        57562,
+                        1656.0,
+                        88,
+                        14.1
+                  ],
+                  [
+                        "Kelantan",
+                        4,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        47341,
+                        1272.0,
+                        180,
+                        11.6
+                  ],
+                  [
+                        "Kelantan",
+                        5,
+                        "SKNW",
+                        "SUKUN EXECUTIVE (WHITE)",
+                        10845,
+                        291.0,
+                        66,
+                        2.7
+                  ],
+                  [
+                        "Pahang",
+                        1,
+                        "TR-002",
+                        "TR-002",
+                        406544,
+                        12035.0,
+                        224,
+                        34.0
+                  ],
+                  [
+                        "Pahang",
+                        2,
+                        "CM-002",
+                        "CLASS MILD",
+                        241877,
+                        6077.0,
+                        116,
+                        20.2
+                  ],
+                  [
+                        "Pahang",
+                        3,
+                        "EVO",
+                        "EVO",
+                        102690,
+                        2988.0,
+                        114,
+                        8.6
+                  ],
+                  [
+                        "Pahang",
+                        4,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        100427,
+                        2713.0,
+                        150,
+                        8.4
+                  ],
+                  [
+                        "Pahang",
+                        5,
+                        "IMP-001",
+                        "IMP-001",
+                        91010,
+                        2686.0,
+                        73,
+                        7.6
+                  ]
+            ],
+            "agents": [
+                  [
+                        "Terengganu",
+                        "KF",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    80250,
+                                    2257.0,
+                                    73,
+                                    31.8
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    72888,
+                                    1706.0,
+                                    65,
+                                    28.9
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    25433,
+                                    684.0,
+                                    42,
+                                    10.1
+                              ]
+                        ]
+                  ],
+                  [
+                        "Terengganu",
+                        "JAMES",
+                        [
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    35835,
+                                    821.0,
+                                    45,
+                                    24.5
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    34242,
+                                    960.0,
+                                    59,
+                                    23.4
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    16392,
+                                    436.0,
+                                    55,
+                                    11.2
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "YI",
+                        [
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    59433,
+                                    1398.0,
+                                    51,
+                                    43.7
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    20405,
+                                    550.0,
+                                    52,
+                                    15.0
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    19677,
+                                    554.0,
+                                    42,
+                                    14.5
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "KI-MI",
+                        [
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    14503,
+                                    319.0,
+                                    39,
+                                    28.2
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    13693,
+                                    369.0,
+                                    69,
+                                    26.7
+                              ],
+                              [
+                                    "SKNW",
+                                    "SUKUN EXECUTIVE (WHITE)",
+                                    3582,
+                                    96.0,
+                                    28,
+                                    7.0
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "BEN",
+                        [
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    12932,
+                                    288.0,
+                                    27,
+                                    30.5
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    9101,
+                                    243.0,
+                                    36,
+                                    21.5
+                              ],
+                              [
+                                    "LF-002",
+                                    "LF-002",
+                                    4346,
+                                    102.0,
+                                    3,
+                                    10.3
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "JACKY",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    68025,
+                                    1960.0,
+                                    52,
+                                    38.1
+                              ],
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    48358,
+                                    1399.0,
+                                    29,
+                                    27.1
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    39942,
+                                    977.0,
+                                    37,
+                                    22.4
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "LEON",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    75840,
+                                    2230.0,
+                                    49,
+                                    30.7
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    56595,
+                                    1427.0,
+                                    26,
+                                    22.9
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    29920,
+                                    860.0,
+                                    41,
+                                    12.1
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "CJ",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    98867,
+                                    2982.0,
+                                    57,
+                                    31.4
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    61811,
+                                    1593.0,
+                                    26,
+                                    19.6
+                              ],
+                              [
+                                    "IMP-001",
+                                    "IMP-001",
+                                    51892,
+                                    1564.0,
+                                    29,
+                                    16.5
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "KEE",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    104646,
+                                    3067.0,
+                                    48,
+                                    45.9
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    32912,
+                                    798.0,
+                                    29,
+                                    14.5
+                              ],
+                              [
+                                    "TR20",
+                                    "TR20",
+                                    23680,
+                                    431.0,
+                                    14,
+                                    10.4
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "KW",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    127192,
+                                    3756.0,
+                                    70,
+                                    31.4
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    90559,
+                                    2259.0,
+                                    35,
+                                    22.3
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    51340,
+                                    1525.0,
+                                    34,
+                                    12.7
+                              ]
+                        ]
+                  ]
+            ]
+      },
+      "2025-11": {
+            "label": "Nov 2025",
+            "states": [
+                  {
+                        "state": "Pahang",
+                        "sales": 1050105,
+                        "qty": 28844.0,
+                        "customers": 405,
+                        "docs": 979
+                  },
+                  {
+                        "state": "Kelantan",
+                        "sales": 364438,
+                        "qty": 9672.0,
+                        "customers": 379,
+                        "docs": 929
+                  },
+                  {
+                        "state": "Terengganu",
+                        "sales": 347755,
+                        "qty": 9256.0,
+                        "customers": 256,
+                        "docs": 673
+                  }
+            ],
+            "stateSkus": [
+                  [
+                        "Terengganu",
+                        1,
+                        "EVO",
+                        "EVO",
+                        110492,
+                        3110.0,
+                        126,
+                        31.8
+                  ],
+                  [
+                        "Terengganu",
+                        2,
+                        "CM-002",
+                        "CLASS MILD",
+                        92086,
+                        2148.0,
+                        102,
+                        26.5
+                  ],
+                  [
+                        "Terengganu",
+                        3,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        41763,
+                        1119.0,
+                        97,
+                        12.0
+                  ],
+                  [
+                        "Terengganu",
+                        4,
+                        "TR-002",
+                        "TR-002",
+                        11912,
+                        325.0,
+                        41,
+                        3.4
+                  ],
+                  [
+                        "Terengganu",
+                        5,
+                        "IFACE B",
+                        "IFACE BLUE",
+                        11764,
+                        400.0,
+                        25,
+                        3.4
+                  ],
+                  [
+                        "Kelantan",
+                        1,
+                        "CM-002",
+                        "CLASS MILD",
+                        108541,
+                        2562.0,
+                        140,
+                        29.8
+                  ],
+                  [
+                        "Kelantan",
+                        2,
+                        "EVO",
+                        "EVO",
+                        73495,
+                        2091.0,
+                        128,
+                        20.2
+                  ],
+                  [
+                        "Kelantan",
+                        3,
+                        "TR-002",
+                        "TR-002",
+                        46977,
+                        1354.0,
+                        69,
+                        12.9
+                  ],
+                  [
+                        "Kelantan",
+                        4,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        45099,
+                        1217.0,
+                        164,
+                        12.4
+                  ],
+                  [
+                        "Kelantan",
+                        5,
+                        "SKNW",
+                        "SUKUN EXECUTIVE (WHITE)",
+                        13848,
+                        374.0,
+                        75,
+                        3.8
+                  ],
+                  [
+                        "Pahang",
+                        1,
+                        "TR-002",
+                        "TR-002",
+                        365492,
+                        10853.0,
+                        218,
+                        34.8
+                  ],
+                  [
+                        "Pahang",
+                        2,
+                        "CM-002",
+                        "CLASS MILD",
+                        193032,
+                        4831.0,
+                        128,
+                        18.4
+                  ],
+                  [
+                        "Pahang",
+                        3,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        90896,
+                        2456.0,
+                        149,
+                        8.7
+                  ],
+                  [
+                        "Pahang",
+                        4,
+                        "EVO",
+                        "EVO",
+                        90658,
+                        2628.0,
+                        113,
+                        8.6
+                  ],
+                  [
+                        "Pahang",
+                        5,
+                        "IMP-001",
+                        "IMP-001",
+                        80023,
+                        2360.0,
+                        67,
+                        7.6
+                  ]
+            ],
+            "agents": [
+                  [
+                        "Terengganu",
+                        "KF",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    80848,
+                                    2278.0,
+                                    70,
+                                    35.6
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    63882,
+                                    1500.0,
+                                    57,
+                                    28.2
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    26572,
+                                    716.0,
+                                    43,
+                                    11.7
+                              ]
+                        ]
+                  ],
+                  [
+                        "Terengganu",
+                        "JAMES",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    29644,
+                                    832.0,
+                                    56,
+                                    24.5
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    28204,
+                                    648.0,
+                                    45,
+                                    23.3
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    15191,
+                                    403.0,
+                                    54,
+                                    12.6
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "YI",
+                        [
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    48044,
+                                    1128.0,
+                                    50,
+                                    38.9
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    19852,
+                                    536.0,
+                                    51,
+                                    16.1
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    14938,
+                                    417.0,
+                                    42,
+                                    12.1
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "KI-MI",
+                        [
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    12183,
+                                    329.0,
+                                    64,
+                                    25.2
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    11571,
+                                    255.0,
+                                    35,
+                                    23.9
+                              ],
+                              [
+                                    "SKNW",
+                                    "SUKUN EXECUTIVE (WHITE)",
+                                    3562,
+                                    96.0,
+                                    27,
+                                    7.4
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "BEN",
+                        [
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    9768,
+                                    264.0,
+                                    33,
+                                    26.1
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    8301,
+                                    184.0,
+                                    21,
+                                    22.2
+                              ],
+                              [
+                                    "SKNW",
+                                    "SUKUN EXECUTIVE (WHITE)",
+                                    2960,
+                                    80.0,
+                                    20,
+                                    7.9
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "JACKY",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    54105,
+                                    1557.0,
+                                    53,
+                                    34.9
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    40625,
+                                    995.0,
+                                    35,
+                                    26.2
+                              ],
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    38897,
+                                    1125.0,
+                                    31,
+                                    25.1
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "LEON",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    57092,
+                                    1677.0,
+                                    45,
+                                    27.7
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    40453,
+                                    1022.0,
+                                    32,
+                                    19.6
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    29542,
+                                    852.0,
+                                    42,
+                                    14.3
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "CJ",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    100537,
+                                    3030.0,
+                                    59,
+                                    35.8
+                              ],
+                              [
+                                    "IMP-001",
+                                    "IMP-001",
+                                    48834,
+                                    1471.0,
+                                    31,
+                                    17.4
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    47876,
+                                    1222.0,
+                                    26,
+                                    17.1
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "KEE",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    112628,
+                                    3349.0,
+                                    46,
+                                    44.7
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    43433,
+                                    1068.0,
+                                    31,
+                                    17.2
+                              ],
+                              [
+                                    "TR20",
+                                    "TR20",
+                                    28998,
+                                    529.0,
+                                    15,
+                                    11.5
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "KW",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    95235,
+                                    2797.0,
+                                    68,
+                                    30.6
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    61269,
+                                    1519.0,
+                                    39,
+                                    19.7
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    38888,
+                                    1148.0,
+                                    38,
+                                    12.5
+                              ]
+                        ]
+                  ]
+            ]
+      },
+      "2025-12": {
+            "label": "Dec 2025",
+            "states": [
+                  {
+                        "state": "Pahang",
+                        "sales": 1163729,
+                        "qty": 31541.4,
+                        "customers": 388,
+                        "docs": 1138
+                  },
+                  {
+                        "state": "Terengganu",
+                        "sales": 562481,
+                        "qty": 14685.0,
+                        "customers": 349,
+                        "docs": 1112
+                  },
+                  {
+                        "state": "Kelantan",
+                        "sales": 414637,
+                        "qty": 10992.0,
+                        "customers": 357,
+                        "docs": 1014
+                  }
+            ],
+            "stateSkus": [
+                  [
+                        "Terengganu",
+                        1,
+                        "EVO",
+                        "EVO",
+                        195592,
+                        5556.0,
+                        189,
+                        34.8
+                  ],
+                  [
+                        "Terengganu",
+                        2,
+                        "CM-002",
+                        "CLASS MILD",
+                        135929,
+                        3149.0,
+                        153,
+                        24.2
+                  ],
+                  [
+                        "Terengganu",
+                        3,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        49115,
+                        1315.0,
+                        125,
+                        8.7
+                  ],
+                  [
+                        "Terengganu",
+                        4,
+                        "90",
+                        "90MINUTE",
+                        27539,
+                        708.0,
+                        47,
+                        4.9
+                  ],
+                  [
+                        "Terengganu",
+                        5,
+                        "SKNW",
+                        "SUKUN EXECUTIVE (WHITE)",
+                        17442,
+                        466.0,
+                        50,
+                        3.1
+                  ],
+                  [
+                        "Kelantan",
+                        1,
+                        "CM-002",
+                        "CLASS MILD",
+                        113840,
+                        2678.0,
+                        147,
+                        27.5
+                  ],
+                  [
+                        "Kelantan",
+                        2,
+                        "EVO",
+                        "EVO",
+                        92227,
+                        2640.0,
+                        116,
+                        22.2
+                  ],
+                  [
+                        "Kelantan",
+                        3,
+                        "TR-002",
+                        "TR-002",
+                        54586,
+                        1588.0,
+                        60,
+                        13.2
+                  ],
+                  [
+                        "Kelantan",
+                        4,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        44934,
+                        1212.0,
+                        161,
+                        10.8
+                  ],
+                  [
+                        "Kelantan",
+                        5,
+                        "CMP",
+                        "CLASMILD PURPLE",
+                        19926,
+                        479.0,
+                        49,
+                        4.8
+                  ],
+                  [
+                        "Pahang",
+                        1,
+                        "TR-002",
+                        "TR-002",
+                        359229,
+                        10593.0,
+                        218,
+                        30.9
+                  ],
+                  [
+                        "Pahang",
+                        2,
+                        "CM-002",
+                        "CLASS MILD",
+                        203918,
+                        5093.0,
+                        138,
+                        17.5
+                  ],
+                  [
+                        "Pahang",
+                        3,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        103963,
+                        2808.4,
+                        162,
+                        8.9
+                  ],
+                  [
+                        "Pahang",
+                        4,
+                        "EVO",
+                        "EVO",
+                        91404,
+                        2632.0,
+                        110,
+                        7.9
+                  ],
+                  [
+                        "Pahang",
+                        5,
+                        "IMP-001",
+                        "IMP-001",
+                        91138,
+                        2677.0,
+                        80,
+                        7.8
+                  ]
+            ],
+            "agents": [
+                  [
+                        "Terengganu",
+                        "KF",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    81208,
+                                    2290.0,
+                                    71,
+                                    32.4
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    69741,
+                                    1638.0,
+                                    59,
+                                    27.9
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    15287,
+                                    411.0,
+                                    36,
+                                    6.1
+                              ]
+                        ]
+                  ],
+                  [
+                        "Terengganu",
+                        "JAMES",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    33300,
+                                    941.0,
+                                    55,
+                                    24.9
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    27869,
+                                    631.0,
+                                    41,
+                                    20.8
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    18732,
+                                    496.0,
+                                    55,
+                                    14.0
+                              ]
+                        ]
+                  ],
+                  [
+                        "Terengganu",
+                        "NMK",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    81084,
+                                    2325.0,
+                                    63,
+                                    45.5
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    38319,
+                                    880.0,
+                                    53,
+                                    21.5
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    15096,
+                                    408.0,
+                                    34,
+                                    8.5
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "YI",
+                        [
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    43214,
+                                    1011.0,
+                                    50,
+                                    36.5
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    18191,
+                                    512.0,
+                                    40,
+                                    15.4
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    17541,
+                                    473.0,
+                                    49,
+                                    14.8
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "KI-MI",
+                        [
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    14911,
+                                    403.0,
+                                    69,
+                                    27.6
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    13078,
+                                    288.0,
+                                    43,
+                                    24.2
+                              ],
+                              [
+                                    "SKNW",
+                                    "SUKUN EXECUTIVE (WHITE)",
+                                    3182,
+                                    86.0,
+                                    28,
+                                    5.9
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "BEN",
+                        [
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    8819,
+                                    197.0,
+                                    17,
+                                    20.8
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    8594,
+                                    232.0,
+                                    28,
+                                    20.2
+                              ],
+                              [
+                                    "LF-002",
+                                    "LF-002",
+                                    4442,
+                                    104.0,
+                                    2,
+                                    10.5
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "JACKY",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    69930,
+                                    2019.0,
+                                    51,
+                                    35.0
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    48730,
+                                    1182.0,
+                                    37,
+                                    24.4
+                              ],
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    47095,
+                                    1369.0,
+                                    27,
+                                    23.6
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "LEON",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    53443,
+                                    1568.0,
+                                    44,
+                                    23.7
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    48382,
+                                    1221.0,
+                                    36,
+                                    21.4
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    32721,
+                                    943.0,
+                                    35,
+                                    14.5
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "CJ",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    105425,
+                                    3148.0,
+                                    60,
+                                    31.9
+                              ],
+                              [
+                                    "IMP-001",
+                                    "IMP-001",
+                                    59268,
+                                    1774.0,
+                                    37,
+                                    17.9
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    47555,
+                                    1222.0,
+                                    22,
+                                    14.4
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "KEE",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    103103,
+                                    3038.0,
+                                    47,
+                                    39.4
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    36340,
+                                    889.0,
+                                    37,
+                                    13.9
+                              ],
+                              [
+                                    "TR20",
+                                    "TR20",
+                                    27406,
+                                    499.0,
+                                    16,
+                                    10.5
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "KW",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    97258,
+                                    2839.0,
+                                    67,
+                                    28.1
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    71641,
+                                    1761.0,
+                                    43,
+                                    20.7
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    34187,
+                                    997.0,
+                                    34,
+                                    9.9
+                              ]
+                        ]
+                  ]
+            ]
+      },
+      "2026-01": {
+            "label": "Jan 2026",
+            "states": [
+                  {
+                        "state": "Pahang",
+                        "sales": 1180110,
+                        "qty": 31353.0,
+                        "customers": 382,
+                        "docs": 1083
+                  },
+                  {
+                        "state": "Terengganu",
+                        "sales": 615271,
+                        "qty": 15919.0,
+                        "customers": 343,
+                        "docs": 1114
+                  },
+                  {
+                        "state": "Kelantan",
+                        "sales": 473917,
+                        "qty": 12144.0,
+                        "customers": 376,
+                        "docs": 1054
+                  }
+            ],
+            "stateSkus": [
+                  [
+                        "Terengganu",
+                        1,
+                        "EVO",
+                        "EVO",
+                        228519,
+                        6478.0,
+                        193,
+                        37.1
+                  ],
+                  [
+                        "Terengganu",
+                        2,
+                        "CM-002",
+                        "CLASS MILD",
+                        135472,
+                        3128.0,
+                        146,
+                        22.0
+                  ],
+                  [
+                        "Terengganu",
+                        3,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        56660,
+                        1520.0,
+                        124,
+                        9.2
+                  ],
+                  [
+                        "Terengganu",
+                        4,
+                        "90",
+                        "90MINUTE",
+                        31129,
+                        801.0,
+                        49,
+                        5.1
+                  ],
+                  [
+                        "Terengganu",
+                        5,
+                        "JDB",
+                        "JOHN D-BLEND",
+                        23041,
+                        342.0,
+                        36,
+                        3.7
+                  ],
+                  [
+                        "Kelantan",
+                        1,
+                        "CM-002",
+                        "CLASS MILD",
+                        125021,
+                        2963.0,
+                        140,
+                        26.4
+                  ],
+                  [
+                        "Kelantan",
+                        2,
+                        "EVO",
+                        "EVO",
+                        95678,
+                        2741.0,
+                        115,
+                        20.2
+                  ],
+                  [
+                        "Kelantan",
+                        3,
+                        "TR-002",
+                        "TR-002",
+                        56166,
+                        1627.0,
+                        71,
+                        11.9
+                  ],
+                  [
+                        "Kelantan",
+                        4,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        51765,
+                        1395.0,
+                        180,
+                        10.9
+                  ],
+                  [
+                        "Kelantan",
+                        5,
+                        "JDB",
+                        "JOHN D-BLEND",
+                        24945,
+                        363.0,
+                        40,
+                        5.3
+                  ],
+                  [
+                        "Pahang",
+                        1,
+                        "TR-002",
+                        "TR-002",
+                        374959,
+                        11134.0,
+                        217,
+                        31.8
+                  ],
+                  [
+                        "Pahang",
+                        2,
+                        "CM-002",
+                        "CLASS MILD",
+                        193264,
+                        4849.0,
+                        117,
+                        16.4
+                  ],
+                  [
+                        "Pahang",
+                        3,
+                        "EVO",
+                        "EVO",
+                        102896,
+                        2999.0,
+                        91,
+                        8.7
+                  ],
+                  [
+                        "Pahang",
+                        4,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        101030,
+                        2728.0,
+                        156,
+                        8.6
+                  ],
+                  [
+                        "Pahang",
+                        5,
+                        "IMP-001",
+                        "IMP-001",
+                        65532,
+                        1928.0,
+                        77,
+                        5.6
+                  ]
+            ],
+            "agents": [
+                  [
+                        "Terengganu",
+                        "KF",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    102059,
+                                    2859.0,
+                                    71,
+                                    36.6
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    63902,
+                                    1496.0,
+                                    53,
+                                    22.9
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    23813,
+                                    639.0,
+                                    42,
+                                    8.5
+                              ]
+                        ]
+                  ],
+                  [
+                        "Terengganu",
+                        "JAMES",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    35217,
+                                    993.0,
+                                    54,
+                                    24.6
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    31130,
+                                    710.0,
+                                    43,
+                                    21.8
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    16335,
+                                    435.0,
+                                    52,
+                                    11.4
+                              ]
+                        ]
+                  ],
+                  [
+                        "Terengganu",
+                        "NMK",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    91243,
+                                    2626.0,
+                                    69,
+                                    47.1
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    40440,
+                                    922.0,
+                                    50,
+                                    20.9
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    16512,
+                                    446.0,
+                                    30,
+                                    8.5
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "YI",
+                        [
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    51002,
+                                    1195.0,
+                                    50,
+                                    35.1
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    25720,
+                                    728.0,
+                                    40,
+                                    17.7
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    18089,
+                                    487.0,
+                                    49,
+                                    12.4
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "KI-MI",
+                        [
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    18611,
+                                    503.0,
+                                    65,
+                                    29.8
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    13786,
+                                    308.0,
+                                    33,
+                                    22.0
+                              ],
+                              [
+                                    "SKNW",
+                                    "SUKUN EXECUTIVE (WHITE)",
+                                    3552,
+                                    96.0,
+                                    26,
+                                    5.7
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "BEN",
+                        [
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    10923,
+                                    251.0,
+                                    23,
+                                    23.2
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    10141,
+                                    273.0,
+                                    41,
+                                    21.6
+                              ],
+                              [
+                                    "DPM EVO",
+                                    "DPM EVO",
+                                    5300,
+                                    138.0,
+                                    9,
+                                    11.3
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "JACKY",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    65430,
+                                    1892.0,
+                                    45,
+                                    29.9
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    49310,
+                                    1209.0,
+                                    35,
+                                    22.5
+                              ],
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    45244,
+                                    1312.0,
+                                    25,
+                                    20.7
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "LEON",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    58040,
+                                    1701.0,
+                                    50,
+                                    28.5
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    40377,
+                                    1022.0,
+                                    27,
+                                    19.8
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    24259,
+                                    703.0,
+                                    24,
+                                    11.9
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "CJ",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    111708,
+                                    3349.0,
+                                    59,
+                                    34.0
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    46277,
+                                    1181.0,
+                                    27,
+                                    14.1
+                              ],
+                              [
+                                    "IMP-001",
+                                    "IMP-001",
+                                    42246,
+                                    1261.0,
+                                    35,
+                                    12.9
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "KEE",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    106176,
+                                    3156.0,
+                                    46,
+                                    34.8
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    36595,
+                                    904.0,
+                                    27,
+                                    12.0
+                              ],
+                              [
+                                    "TR20",
+                                    "TR20",
+                                    28105,
+                                    513.0,
+                                    15,
+                                    9.2
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "KW",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    99035,
+                                    2928.0,
+                                    62,
+                                    28.9
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    70015,
+                                    1742.0,
+                                    36,
+                                    20.4
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    49024,
+                                    1459.0,
+                                    29,
+                                    14.3
+                              ]
+                        ]
+                  ]
+            ]
+      },
+      "2026-02": {
+            "label": "Feb 2026",
+            "states": [
+                  {
+                        "state": "Pahang",
+                        "sales": 1098802,
+                        "qty": 29527.0,
+                        "customers": 379,
+                        "docs": 865
+                  },
+                  {
+                        "state": "Terengganu",
+                        "sales": 512394,
+                        "qty": 13092.0,
+                        "customers": 334,
+                        "docs": 808
+                  },
+                  {
+                        "state": "Kelantan",
+                        "sales": 377124,
+                        "qty": 9769.75,
+                        "customers": 340,
+                        "docs": 766
+                  }
+            ],
+            "stateSkus": [
+                  [
+                        "Terengganu",
+                        1,
+                        "EVO",
+                        "EVO",
+                        157349,
+                        4470.0,
+                        162,
+                        30.7
+                  ],
+                  [
+                        "Terengganu",
+                        2,
+                        "CM-002",
+                        "CLASS MILD",
+                        121306,
+                        2795.0,
+                        151,
+                        23.7
+                  ],
+                  [
+                        "Terengganu",
+                        3,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        56906,
+                        1528.0,
+                        119,
+                        11.1
+                  ],
+                  [
+                        "Terengganu",
+                        4,
+                        "90",
+                        "90MINUTE",
+                        21913,
+                        564.0,
+                        46,
+                        4.3
+                  ],
+                  [
+                        "Terengganu",
+                        5,
+                        "JDB",
+                        "JOHN D-BLEND",
+                        20690,
+                        307.0,
+                        30,
+                        4.0
+                  ],
+                  [
+                        "Kelantan",
+                        1,
+                        "CM-002",
+                        "CLASS MILD",
+                        99128,
+                        2359.0,
+                        118,
+                        26.3
+                  ],
+                  [
+                        "Kelantan",
+                        2,
+                        "EVO",
+                        "EVO",
+                        83253,
+                        2387.0,
+                        105,
+                        22.1
+                  ],
+                  [
+                        "Kelantan",
+                        3,
+                        "TR-002",
+                        "TR-002",
+                        52940,
+                        1529.0,
+                        56,
+                        14.0
+                  ],
+                  [
+                        "Kelantan",
+                        4,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        38543,
+                        1039.0,
+                        137,
+                        10.2
+                  ],
+                  [
+                        "Kelantan",
+                        5,
+                        "JDB",
+                        "JOHN D-BLEND",
+                        20278,
+                        294.0,
+                        38,
+                        5.4
+                  ],
+                  [
+                        "Pahang",
+                        1,
+                        "TR-002",
+                        "TR-002",
+                        324529,
+                        9625.0,
+                        210,
+                        29.5
+                  ],
+                  [
+                        "Pahang",
+                        2,
+                        "CM-002",
+                        "CLASS MILD",
+                        188611,
+                        4778.0,
+                        113,
+                        17.2
+                  ],
+                  [
+                        "Pahang",
+                        3,
+                        "EVO",
+                        "EVO",
+                        95018,
+                        2797.0,
+                        87,
+                        8.6
+                  ],
+                  [
+                        "Pahang",
+                        4,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        86894,
+                        2347.0,
+                        149,
+                        7.9
+                  ],
+                  [
+                        "Pahang",
+                        5,
+                        "IMP-001",
+                        "IMP-001",
+                        74371,
+                        2203.0,
+                        62,
+                        6.8
+                  ]
+            ],
+            "agents": [
+                  [
+                        "Terengganu",
+                        "KF",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    70259,
+                                    1982.0,
+                                    57,
+                                    29.1
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    61428,
+                                    1433.0,
+                                    58,
+                                    25.4
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    24765,
+                                    665.0,
+                                    39,
+                                    10.3
+                              ]
+                        ]
+                  ],
+                  [
+                        "Terengganu",
+                        "JAMES",
+                        [
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    25763,
+                                    587.0,
+                                    41,
+                                    22.2
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    24256,
+                                    682.0,
+                                    45,
+                                    20.9
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    12915,
+                                    345.0,
+                                    46,
+                                    11.1
+                              ]
+                        ]
+                  ],
+                  [
+                        "Terengganu",
+                        "NMK",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    62834,
+                                    1806.0,
+                                    60,
+                                    40.6
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    34115,
+                                    775.0,
+                                    52,
+                                    22.1
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    19226,
+                                    518.0,
+                                    34,
+                                    12.4
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "YI",
+                        [
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    38037,
+                                    898.0,
+                                    43,
+                                    37.7
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    16246,
+                                    438.0,
+                                    37,
+                                    16.1
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    14856,
+                                    420.0,
+                                    31,
+                                    14.7
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "KI-MI",
+                        [
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    13044,
+                                    352.0,
+                                    57,
+                                    28.3
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    10670,
+                                    241.0,
+                                    27,
+                                    23.1
+                              ],
+                              [
+                                    "CMP",
+                                    "CLASMILD PURPLE",
+                                    3028,
+                                    72.0,
+                                    11,
+                                    6.6
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "BEN",
+                        [
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    5775,
+                                    155.0,
+                                    24,
+                                    28.2
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    4425,
+                                    98.0,
+                                    13,
+                                    21.6
+                              ],
+                              [
+                                    "CMP",
+                                    "CLASMILD PURPLE",
+                                    2222,
+                                    50.0,
+                                    8,
+                                    10.9
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "JACKY",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    64662,
+                                    1866.0,
+                                    48,
+                                    30.8
+                              ],
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    48913,
+                                    1419.0,
+                                    25,
+                                    23.3
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    45996,
+                                    1122.0,
+                                    35,
+                                    21.9
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "LEON",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    55759,
+                                    1636.0,
+                                    51,
+                                    26.9
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    36899,
+                                    940.0,
+                                    29,
+                                    17.8
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    25850,
+                                    751.0,
+                                    28,
+                                    12.5
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "CJ",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    91582,
+                                    2748.0,
+                                    51,
+                                    29.1
+                              ],
+                              [
+                                    "IMP-001",
+                                    "IMP-001",
+                                    46625,
+                                    1402.0,
+                                    29,
+                                    14.8
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    40882,
+                                    1045.0,
+                                    22,
+                                    13.0
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "KEE",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    89797,
+                                    2644.0,
+                                    47,
+                                    36.3
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    34381,
+                                    854.0,
+                                    27,
+                                    13.9
+                              ],
+                              [
+                                    "TR20",
+                                    "TR20",
+                                    21438,
+                                    390.0,
+                                    12,
+                                    8.7
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "KW",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    87391,
+                                    2597.0,
+                                    61,
+                                    26.5
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    76449,
+                                    1939.0,
+                                    35,
+                                    23.2
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    50899,
+                                    1533.0,
+                                    28,
+                                    15.4
+                              ]
+                        ]
+                  ]
+            ]
+      },
+      "2026-03": {
+            "label": "Mar 2026",
+            "states": [
+                  {
+                        "state": "Pahang",
+                        "sales": 1596646,
+                        "qty": 42996.0,
+                        "customers": 391,
+                        "docs": 1139
+                  },
+                  {
+                        "state": "Terengganu",
+                        "sales": 694146,
+                        "qty": 17725.0,
+                        "customers": 340,
+                        "docs": 970
+                  },
+                  {
+                        "state": "Kelantan",
+                        "sales": 563634,
+                        "qty": 14625.75,
+                        "customers": 353,
+                        "docs": 997
+                  }
+            ],
+            "stateSkus": [
+                  [
+                        "Terengganu",
+                        1,
+                        "EVO",
+                        "EVO",
+                        233515,
+                        6631.0,
+                        183,
+                        33.6
+                  ],
+                  [
+                        "Terengganu",
+                        2,
+                        "CM-002",
+                        "CLASS MILD",
+                        159611,
+                        3734.0,
+                        154,
+                        23.0
+                  ],
+                  [
+                        "Terengganu",
+                        3,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        63595,
+                        1710.0,
+                        118,
+                        9.2
+                  ],
+                  [
+                        "Terengganu",
+                        4,
+                        "JDB",
+                        "JOHN D-BLEND",
+                        36996,
+                        550.0,
+                        34,
+                        5.3
+                  ],
+                  [
+                        "Terengganu",
+                        5,
+                        "90",
+                        "90MINUTE",
+                        36253,
+                        932.0,
+                        46,
+                        5.2
+                  ],
+                  [
+                        "Kelantan",
+                        1,
+                        "CM-002",
+                        "CLASS MILD",
+                        135610,
+                        3219.0,
+                        126,
+                        24.1
+                  ],
+                  [
+                        "Kelantan",
+                        2,
+                        "EVO",
+                        "EVO",
+                        119829,
+                        3448.0,
+                        111,
+                        21.3
+                  ],
+                  [
+                        "Kelantan",
+                        3,
+                        "TR-002",
+                        "TR-002",
+                        79975,
+                        2310.0,
+                        62,
+                        14.2
+                  ],
+                  [
+                        "Kelantan",
+                        4,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        54345,
+                        1465.0,
+                        152,
+                        9.6
+                  ],
+                  [
+                        "Kelantan",
+                        5,
+                        "JDB",
+                        "JOHN D-BLEND",
+                        28015,
+                        407.0,
+                        43,
+                        5.0
+                  ],
+                  [
+                        "Pahang",
+                        1,
+                        "TR-002",
+                        "TR-002",
+                        484606,
+                        14391.0,
+                        237,
+                        30.4
+                  ],
+                  [
+                        "Pahang",
+                        2,
+                        "CM-002",
+                        "CLASS MILD",
+                        286191,
+                        7213.0,
+                        136,
+                        17.9
+                  ],
+                  [
+                        "Pahang",
+                        3,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        133429,
+                        3604.0,
+                        165,
+                        8.4
+                  ],
+                  [
+                        "Pahang",
+                        4,
+                        "EVO",
+                        "EVO",
+                        120490,
+                        3475.0,
+                        92,
+                        7.5
+                  ],
+                  [
+                        "Pahang",
+                        5,
+                        "IMP-001",
+                        "IMP-001",
+                        97930,
+                        2890.0,
+                        72,
+                        6.1
+                  ]
+            ],
+            "agents": [
+                  [
+                        "Terengganu",
+                        "KF",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    119314,
+                                    3376.0,
+                                    70,
+                                    36.1
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    84907,
+                                    2012.0,
+                                    59,
+                                    25.7
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    26299,
+                                    707.0,
+                                    35,
+                                    8.0
+                              ]
+                        ]
+                  ],
+                  [
+                        "Terengganu",
+                        "JAMES",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    40103,
+                                    1137.0,
+                                    53,
+                                    22.4
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    38093,
+                                    882.0,
+                                    42,
+                                    21.3
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    16425,
+                                    440.0,
+                                    51,
+                                    9.2
+                              ]
+                        ]
+                  ],
+                  [
+                        "Terengganu",
+                        "NMK",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    74098,
+                                    2118.0,
+                                    60,
+                                    40.1
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    36611,
+                                    840.0,
+                                    53,
+                                    19.8
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    20871,
+                                    563.0,
+                                    33,
+                                    11.3
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "YI",
+                        [
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    68595,
+                                    1623.0,
+                                    46,
+                                    39.2
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    29692,
+                                    850.0,
+                                    35,
+                                    17.0
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    19709,
+                                    532.0,
+                                    43,
+                                    11.3
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "KI-MI",
+                        [
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    18037,
+                                    486.0,
+                                    61,
+                                    27.2
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    14590,
+                                    330.0,
+                                    31,
+                                    22.0
+                              ],
+                              [
+                                    "CMP",
+                                    "CLASMILD PURPLE",
+                                    5577,
+                                    131.0,
+                                    14,
+                                    8.4
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "BEN",
+                        [
+                              [
+                                    "LF-002",
+                                    "LF-002",
+                                    12942,
+                                    304.0,
+                                    3,
+                                    26.1
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    11850,
+                                    320.0,
+                                    31,
+                                    23.9
+                              ],
+                              [
+                                    "SKNW",
+                                    "SUKUN EXECUTIVE (WHITE)",
+                                    9559,
+                                    257.0,
+                                    12,
+                                    19.2
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "JACKY",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    87182,
+                                    2518.0,
+                                    53,
+                                    32.0
+                              ],
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    74393,
+                                    2158.0,
+                                    29,
+                                    27.3
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    46714,
+                                    1138.0,
+                                    35,
+                                    17.1
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "LEON",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    68461,
+                                    2011.0,
+                                    52,
+                                    22.3
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    59162,
+                                    1517.0,
+                                    29,
+                                    19.3
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    41704,
+                                    1207.0,
+                                    30,
+                                    13.6
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "CJ",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    156131,
+                                    4707.0,
+                                    66,
+                                    32.2
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    73016,
+                                    1868.0,
+                                    29,
+                                    15.0
+                              ],
+                              [
+                                    "IMP-001",
+                                    "IMP-001",
+                                    59652,
+                                    1794.0,
+                                    30,
+                                    12.3
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "KEE",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    129230,
+                                    3831.0,
+                                    49,
+                                    37.2
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    46635,
+                                    1142.0,
+                                    36,
+                                    13.4
+                              ],
+                              [
+                                    "TR20",
+                                    "TR20",
+                                    35598,
+                                    649.0,
+                                    18,
+                                    10.2
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "KW",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    130784,
+                                    3842.0,
+                                    70,
+                                    28.6
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    107378,
+                                    2686.0,
+                                    42,
+                                    23.5
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    49234,
+                                    1330.0,
+                                    47,
+                                    10.8
+                              ]
+                        ]
+                  ]
+            ]
+      },
+      "2026-04": {
+            "label": "Apr 2026",
+            "states": [
+                  {
+                        "state": "Pahang",
+                        "sales": 1191494,
+                        "qty": 29885.8,
+                        "customers": 383,
+                        "docs": 1062
+                  },
+                  {
+                        "state": "Terengganu",
+                        "sales": 567038,
+                        "qty": 13164.0,
+                        "customers": 366,
+                        "docs": 1024
+                  },
+                  {
+                        "state": "Kelantan",
+                        "sales": 465706,
+                        "qty": 11052.3,
+                        "customers": 354,
+                        "docs": 963
+                  }
+            ],
+            "stateSkus": [
+                  [
+                        "Terengganu",
+                        1,
+                        "EVO",
+                        "EVO",
+                        156772,
+                        3986.0,
+                        179,
+                        27.6
+                  ],
+                  [
+                        "Terengganu",
+                        2,
+                        "CM-002",
+                        "CLASS MILD",
+                        124005,
+                        2718.0,
+                        147,
+                        21.9
+                  ],
+                  [
+                        "Terengganu",
+                        3,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        67401,
+                        1708.0,
+                        123,
+                        11.9
+                  ],
+                  [
+                        "Terengganu",
+                        4,
+                        "JDB",
+                        "JOHN D-BLEND",
+                        31316,
+                        422.0,
+                        43,
+                        5.5
+                  ],
+                  [
+                        "Terengganu",
+                        5,
+                        "AMR12",
+                        "AMARAN 12S",
+                        26669,
+                        350.0,
+                        40,
+                        4.7
+                  ],
+                  [
+                        "Kelantan",
+                        1,
+                        "CM-002",
+                        "CLASS MILD",
+                        112596,
+                        2573.0,
+                        115,
+                        24.2
+                  ],
+                  [
+                        "Kelantan",
+                        2,
+                        "EVO",
+                        "EVO",
+                        92437,
+                        2358.0,
+                        108,
+                        19.8
+                  ],
+                  [
+                        "Kelantan",
+                        3,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        49699,
+                        1253.0,
+                        155,
+                        10.7
+                  ],
+                  [
+                        "Kelantan",
+                        4,
+                        "TR-002",
+                        "TR-002",
+                        48999,
+                        1308.3,
+                        62,
+                        10.5
+                  ],
+                  [
+                        "Kelantan",
+                        5,
+                        "JDB",
+                        "JOHN D-BLEND",
+                        28762,
+                        379.0,
+                        52,
+                        6.2
+                  ],
+                  [
+                        "Pahang",
+                        1,
+                        "TR-002",
+                        "TR-002",
+                        384251,
+                        10838.8,
+                        231,
+                        32.2
+                  ],
+                  [
+                        "Pahang",
+                        2,
+                        "CM-002",
+                        "CLASS MILD",
+                        254377,
+                        6163.0,
+                        132,
+                        21.3
+                  ],
+                  [
+                        "Pahang",
+                        3,
+                        "EVO",
+                        "EVO",
+                        84528,
+                        2284.0,
+                        84,
+                        7.1
+                  ],
+                  [
+                        "Pahang",
+                        4,
+                        "SKNR",
+                        "SUKUN SPECIAL (RED)",
+                        76719,
+                        1941.0,
+                        136,
+                        6.4
+                  ],
+                  [
+                        "Pahang",
+                        5,
+                        "IMP-001",
+                        "IMP-001",
+                        70870,
+                        1957.0,
+                        73,
+                        5.9
+                  ]
+            ],
+            "agents": [
+                  [
+                        "Terengganu",
+                        "KF",
+                        [
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    63896,
+                                    1400.0,
+                                    58,
+                                    23.5
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    63329,
+                                    1582.0,
+                                    67,
+                                    23.3
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    29090,
+                                    731.0,
+                                    37,
+                                    10.7
+                              ]
+                        ]
+                  ],
+                  [
+                        "Terengganu",
+                        "JAMES",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    30409,
+                                    781.0,
+                                    48,
+                                    23.7
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    23910,
+                                    521.0,
+                                    37,
+                                    18.7
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    16885,
+                                    426.0,
+                                    48,
+                                    13.2
+                              ]
+                        ]
+                  ],
+                  [
+                        "Terengganu",
+                        "NMK",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    63034,
+                                    1623.0,
+                                    64,
+                                    37.7
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    36199,
+                                    797.0,
+                                    52,
+                                    21.6
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    21426,
+                                    551.0,
+                                    38,
+                                    12.8
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "YI",
+                        [
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    50432,
+                                    1149.0,
+                                    39,
+                                    37.6
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    21760,
+                                    568.0,
+                                    33,
+                                    16.2
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    19919,
+                                    509.0,
+                                    42,
+                                    14.8
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "KI-MI",
+                        [
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    16461,
+                                    411.0,
+                                    65,
+                                    26.9
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    12249,
+                                    262.0,
+                                    27,
+                                    20.0
+                              ],
+                              [
+                                    "CMP",
+                                    "CLASMILD PURPLE",
+                                    4488,
+                                    99.0,
+                                    15,
+                                    7.3
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "BEN",
+                        [
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    18515,
+                                    456.0,
+                                    15,
+                                    38.2
+                              ],
+                              [
+                                    "SKNR",
+                                    "SUKUN SPECIAL (RED)",
+                                    6849,
+                                    173.0,
+                                    23,
+                                    14.1
+                              ],
+                              [
+                                    "DPM EVO",
+                                    "DPM EVO",
+                                    5929,
+                                    176.0,
+                                    6,
+                                    12.2
+                              ]
+                        ]
+                  ],
+                  [
+                        "Kelantan",
+                        "JACKY",
+                        [
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    62682,
+                                    1576.0,
+                                    49,
+                                    28.3
+                              ],
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    40278,
+                                    1071.0,
+                                    28,
+                                    18.2
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    31400,
+                                    706.0,
+                                    34,
+                                    14.2
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "LEON",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    62673,
+                                    1705.0,
+                                    52,
+                                    28.5
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    44606,
+                                    1070.0,
+                                    31,
+                                    20.3
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    26625,
+                                    679.0,
+                                    27,
+                                    12.1
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "CJ",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    107512,
+                                    3012.8,
+                                    65,
+                                    34.2
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    56436,
+                                    1364.0,
+                                    28,
+                                    18.0
+                              ],
+                              [
+                                    "IMP-001",
+                                    "IMP-001",
+                                    47605,
+                                    1315.0,
+                                    31,
+                                    15.1
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "KEE",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    87261,
+                                    2467.0,
+                                    51,
+                                    34.6
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    43722,
+                                    1038.0,
+                                    35,
+                                    17.4
+                              ],
+                              [
+                                    "TR20",
+                                    "TR20",
+                                    20280,
+                                    346.0,
+                                    16,
+                                    8.0
+                              ]
+                        ]
+                  ],
+                  [
+                        "Pahang",
+                        "KW",
+                        [
+                              [
+                                    "TR-002",
+                                    "TR-002",
+                                    126805,
+                                    3654.0,
+                                    63,
+                                    31.3
+                              ],
+                              [
+                                    "CM-002",
+                                    "CLASS MILD",
+                                    109612,
+                                    2691.0,
+                                    38,
+                                    27.1
+                              ],
+                              [
+                                    "EVO",
+                                    "EVO",
+                                    37169,
+                                    1056.0,
+                                    31,
+                                    9.2
+                              ]
+                        ]
+                  ]
+            ]
+      },
+      "2026-05": {
             "label": "May 2026",
             "states": [
                   {
@@ -995,28 +4504,28 @@
             ]
       },
       "all": {
-            "label": "Feb-May 2026",
+            "label": "Oct 2025-May 2026",
             "states": [
                   {
                         "state": "Pahang",
-                        "sales": 4870290,
-                        "qty": 126187.05,
-                        "customers": 606,
-                        "docs": 3862
+                        "sales": 9459191,
+                        "qty": 251049.45,
+                        "customers": 706,
+                        "docs": 8155
                   },
                   {
                         "state": "Terengganu",
-                        "sales": 2212836,
-                        "qty": 54009.0,
-                        "customers": 457,
-                        "docs": 3429
+                        "sales": 4136998,
+                        "qty": 104423.0,
+                        "customers": 547,
+                        "docs": 7107
                   },
                   {
                         "state": "Kelantan",
-                        "sales": 1726712,
-                        "qty": 42961.8,
-                        "customers": 440,
-                        "docs": 3278
+                        "sales": 3387925,
+                        "qty": 86632.8,
+                        "customers": 563,
+                        "docs": 7324
                   }
             ],
             "stateSkus": [
@@ -1025,150 +4534,150 @@
                         1,
                         "EVO",
                         "EVO",
-                        687668,
-                        18542.0,
-                        258,
-                        31.1
+                        1336763,
+                        36903.0,
+                        344,
+                        32.3
                   ],
                   [
                         "Terengganu",
                         2,
                         "CM-002",
                         "CLASS MILD",
-                        500245,
-                        11302.0,
-                        211,
-                        22.6
+                        972455,
+                        22254.0,
+                        244,
+                        23.5
                   ],
                   [
                         "Terengganu",
                         3,
                         "SKNR",
                         "SUKUN SPECIAL (RED)",
-                        234022,
-                        6091.0,
-                        186,
-                        10.6
+                        423385,
+                        11165.0,
+                        236,
+                        10.2
                   ],
                   [
                         "Terengganu",
                         4,
-                        "JDB",
-                        "JOHN D-BLEND",
-                        110448,
-                        1568.0,
-                        80,
-                        5.0
-                  ],
-                  [
-                        "Terengganu",
-                        5,
                         "90",
                         "90MINUTE",
-                        99257,
-                        2438.0,
-                        60,
-                        4.5
+                        189596,
+                        4759.0,
+                        70,
+                        4.6
+                  ],
+                  [
+                        "Terengganu",
+                        5,
+                        "JDB",
+                        "JOHN D-BLEND",
+                        144631,
+                        2076.0,
+                        89,
+                        3.5
                   ],
                   [
                         "Kelantan",
                         1,
                         "CM-002",
                         "CLASS MILD",
-                        427218,
-                        9916.0,
-                        176,
-                        24.7
+                        901430,
+                        21101.0,
+                        247,
+                        26.6
                   ],
                   [
                         "Kelantan",
                         2,
                         "EVO",
                         "EVO",
-                        366011,
-                        9963.0,
-                        159,
-                        21.2
+                        720607,
+                        20095.0,
+                        238,
+                        21.3
                   ],
                   [
                         "Kelantan",
                         3,
                         "TR-002",
                         "TR-002",
-                        215011,
-                        6014.3,
-                        95,
-                        12.5
+                        430302,
+                        12239.3,
+                        145,
+                        12.7
                   ],
                   [
                         "Kelantan",
                         4,
                         "SKNR",
                         "SUKUN SPECIAL (RED)",
-                        178682,
-                        4655.0,
-                        209,
-                        10.3
+                        367821,
+                        9751.0,
+                        301,
+                        10.9
                   ],
                   [
                         "Kelantan",
                         5,
                         "JDB",
                         "JOHN D-BLEND",
-                        92394,
-                        1282.0,
-                        70,
-                        5.4
+                        119547,
+                        1677.0,
+                        81,
+                        3.5
                   ],
                   [
                         "Pahang",
                         1,
                         "TR-002",
                         "TR-002",
-                        1495709,
-                        43109.8,
-                        378,
-                        30.7
+                        3001933,
+                        87724.8,
+                        421,
+                        31.7
                   ],
                   [
                         "Pahang",
                         2,
                         "CM-002",
                         "CLASS MILD",
-                        952186,
-                        23370.0,
-                        245,
-                        19.6
+                        1784277,
+                        44220.0,
+                        326,
+                        18.9
                   ],
                   [
                         "Pahang",
                         3,
                         "SKNR",
                         "SUKUN SPECIAL (RED)",
-                        376679,
-                        9879.0,
-                        277,
-                        7.7
+                        772995,
+                        20584.4,
+                        355,
+                        8.2
                   ],
                   [
                         "Pahang",
                         4,
                         "EVO",
                         "EVO",
-                        355869,
-                        9950.0,
-                        176,
-                        7.3
+                        743518,
+                        21197.0,
+                        267,
+                        7.9
                   ],
                   [
                         "Pahang",
                         5,
                         "IMP-001",
                         "IMP-001",
-                        304074,
-                        8695.0,
-                        116,
-                        6.2
+                        631777,
+                        18346.0,
+                        158,
+                        6.7
                   ]
             ],
             "agents": [
@@ -1179,26 +4688,26 @@
                               [
                                     "EVO",
                                     "EVO",
-                                    317017,
-                                    8511.0,
-                                    101,
-                                    29.7
+                                    661382,
+                                    18195.0,
+                                    140,
+                                    31.9
                               ],
                               [
                                     "CM-002",
                                     "CLASS MILD",
-                                    260178,
-                                    5930.0,
-                                    86,
-                                    24.4
+                                    530591,
+                                    12270.0,
+                                    101,
+                                    25.6
                               ],
                               [
                                     "SKNR",
                                     "SUKUN SPECIAL (RED)",
-                                    100694,
-                                    2613.0,
-                                    66,
-                                    9.4
+                                    191799,
+                                    5063.0,
+                                    93,
+                                    9.2
                               ]
                         ]
                   ],
@@ -1209,26 +4718,26 @@
                               [
                                     "EVO",
                                     "EVO",
-                                    115789,
-                                    3121.0,
-                                    73,
-                                    22.8
+                                    248192,
+                                    6847.0,
+                                    108,
+                                    23.6
                               ],
                               [
                                     "CM-002",
                                     "CLASS MILD",
-                                    107356,
-                                    2411.0,
-                                    57,
-                                    21.1
+                                    230394,
+                                    5221.0,
+                                    68,
+                                    21.9
                               ],
                               [
                                     "SKNR",
                                     "SUKUN SPECIAL (RED)",
-                                    56545,
-                                    1467.0,
-                                    65,
-                                    11.1
+                                    123195,
+                                    3237.0,
+                                    79,
+                                    11.7
                               ]
                         ]
                   ],
@@ -1239,26 +4748,26 @@
                               [
                                     "EVO",
                                     "EVO",
-                                    254862,
-                                    6910.0,
-                                    85,
-                                    40.0
+                                    427189,
+                                    11861.0,
+                                    100,
+                                    42.3
                               ],
                               [
                                     "CM-002",
                                     "CLASS MILD",
-                                    132711,
-                                    2961.0,
-                                    70,
-                                    20.8
+                                    211470,
+                                    4763.0,
+                                    79,
+                                    21.0
                               ],
                               [
                                     "SKNR",
                                     "SUKUN SPECIAL (RED)",
-                                    76783,
-                                    2011.0,
-                                    56,
-                                    12.1
+                                    108391,
+                                    2865.0,
+                                    66,
+                                    10.7
                               ]
                         ]
                   ],
@@ -1269,26 +4778,26 @@
                               [
                                     "CM-002",
                                     "CLASS MILD",
-                                    193450,
-                                    4470.0,
-                                    61,
-                                    37.6
+                                    395142,
+                                    9202.0,
+                                    77,
+                                    38.1
                               ],
                               [
                                     "EVO",
                                     "EVO",
-                                    86739,
-                                    2350.0,
-                                    49,
-                                    16.9
+                                    165265,
+                                    4561.0,
+                                    81,
+                                    15.9
                               ],
                               [
                                     "SKNR",
                                     "SUKUN SPECIAL (RED)",
-                                    71674,
-                                    1872.0,
-                                    56,
-                                    13.9
+                                    147561,
+                                    3918.0,
+                                    88,
+                                    14.2
                               ]
                         ]
                   ],
@@ -1299,26 +4808,26 @@
                               [
                                     "SKNR",
                                     "SUKUN SPECIAL (RED)",
-                                    60807,
-                                    1579.0,
-                                    82,
-                                    28.2
+                                    120205,
+                                    3183.0,
+                                    109,
+                                    27.9
                               ],
                               [
                                     "CM-002",
                                     "CLASS MILD",
-                                    44318,
-                                    977.0,
-                                    43,
-                                    20.6
+                                    97257,
+                                    2147.0,
+                                    71,
+                                    22.5
                               ],
                               [
-                                    "CMP",
-                                    "CLASMILD PURPLE",
-                                    15305,
-                                    351.0,
-                                    18,
-                                    7.1
+                                    "SKNW",
+                                    "SUKUN EXECUTIVE (WHITE)",
+                                    26578,
+                                    705.0,
+                                    64,
+                                    6.2
                               ]
                         ]
                   ],
@@ -1329,26 +4838,26 @@
                               [
                                     "CM-002",
                                     "CLASS MILD",
-                                    33987,
-                                    794.0,
-                                    26,
-                                    25.2
+                                    74962,
+                                    1714.0,
+                                    45,
+                                    24.6
                               ],
                               [
                                     "SKNR",
                                     "SUKUN SPECIAL (RED)",
-                                    27874,
-                                    733.0,
-                                    40,
-                                    20.6
+                                    65478,
+                                    1745.0,
+                                    59,
+                                    21.5
                               ],
                               [
                                     "LF-002",
                                     "LF-002",
-                                    13399,
-                                    313.0,
+                                    28994,
+                                    678.0,
                                     4,
-                                    9.9
+                                    9.5
                               ]
                         ]
                   ],
@@ -1359,26 +4868,26 @@
                               [
                                     "EVO",
                                     "EVO",
-                                    261959,
-                                    7155.0,
-                                    69,
-                                    30.4
+                                    519449,
+                                    14583.0,
+                                    91,
+                                    32.2
                               ],
                               [
                                     "TR-002",
                                     "TR-002",
-                                    192876,
-                                    5420.0,
-                                    36,
-                                    22.4
+                                    372469,
+                                    10625.0,
+                                    46,
+                                    23.1
                               ],
                               [
                                     "CM-002",
                                     "CLASS MILD",
-                                    155464,
-                                    3675.0,
-                                    46,
-                                    18.0
+                                    334070,
+                                    8038.0,
+                                    59,
+                                    20.7
                               ]
                         ]
                   ],
@@ -1389,25 +4898,25 @@
                               [
                                     "TR-002",
                                     "TR-002",
-                                    222680,
-                                    6314.0,
-                                    71,
-                                    25.4
+                                    467096,
+                                    13490.0,
+                                    80,
+                                    26.5
                               ],
                               [
                                     "CM-002",
                                     "CLASS MILD",
-                                    163317,
-                                    4063.0,
-                                    52,
-                                    18.6
+                                    349124,
+                                    8755.0,
+                                    77,
+                                    19.8
                               ],
                               [
                                     "EVO",
                                     "EVO",
-                                    116968,
-                                    3208.0,
-                                    65,
+                                    233411,
+                                    6566.0,
+                                    87,
                                     13.3
                               ]
                         ]
@@ -1419,26 +4928,26 @@
                               [
                                     "TR-002",
                                     "TR-002",
-                                    434807,
-                                    12645.8,
-                                    90,
-                                    32.0
+                                    851343,
+                                    25154.8,
+                                    100,
+                                    32.6
                               ],
                               [
                                     "CM-002",
                                     "CLASS MILD",
-                                    216111,
-                                    5359.0,
-                                    42,
-                                    15.9
+                                    419631,
+                                    10577.0,
+                                    59,
+                                    16.1
                               ],
                               [
                                     "IMP-001",
                                     "IMP-001",
-                                    192012,
-                                    5557.0,
-                                    41,
-                                    14.1
+                                    394251,
+                                    11627.0,
+                                    58,
+                                    15.1
                               ]
                         ]
                   ],
@@ -1449,26 +4958,26 @@
                               [
                                     "TR-002",
                                     "TR-002",
-                                    380434,
-                                    10982.0,
-                                    77,
-                                    37.3
+                                    806988,
+                                    23592.0,
+                                    89,
+                                    39.1
                               ],
                               [
                                     "CM-002",
                                     "CLASS MILD",
-                                    141858,
-                                    3421.0,
-                                    54,
-                                    13.9
+                                    291139,
+                                    7080.0,
+                                    82,
+                                    14.1
                               ],
                               [
                                     "TR20",
                                     "TR20",
-                                    94144,
-                                    1669.0,
-                                    27,
-                                    9.2
+                                    202334,
+                                    3641.0,
+                                    41,
+                                    9.8
                               ]
                         ]
                   ],
@@ -1479,26 +4988,26 @@
                               [
                                     "TR-002",
                                     "TR-002",
-                                    425672,
-                                    12301.0,
-                                    90,
-                                    28.9
+                                    844391,
+                                    24621.0,
+                                    102,
+                                    29.3
                               ],
                               [
                                     "CM-002",
                                     "CLASS MILD",
-                                    391716,
-                                    9628.0,
-                                    56,
-                                    26.6
+                                    685200,
+                                    16909.0,
+                                    67,
+                                    23.8
                               ],
                               [
                                     "EVO",
                                     "EVO",
-                                    151093,
-                                    4376.0,
-                                    46,
-                                    10.3
+                                    324532,
+                                    9505.0,
+                                    68,
+                                    11.3
                               ]
                         ]
                   ],
@@ -1540,7 +5049,17 @@
     const rm = value => `RM ${fmt.format(value)}`;
     const pct = value => `${value.toFixed(1)}%`;
 
-    let currentPeriod = "may";
+    let currentPeriod = "2026-05";
+
+    function initPeriodSelect() {
+      const periodSelect = document.getElementById("periodSelect");
+      const keys = Object.keys(data).filter(key => key !== "all").sort();
+      const options = keys.map(key => `<option value="${key}">${data[key].label}</option>`);
+      if (data.all) options.push(`<option value="all">${data.all.label || "All months"}</option>`);
+      periodSelect.innerHTML = options.join("");
+      if (!data[currentPeriod]) currentPeriod = keys[keys.length - 1] || "all";
+      periodSelect.value = currentPeriod;
+    }
 
     function statePill(state) {
       return `<span class="state-pill ${state}">${state}</span>`;
@@ -1729,12 +5248,11 @@
       agentSelect.value = agents.includes(currentAgent) ? currentAgent : "";
     }
 
-    document.querySelectorAll(".segmented button").forEach(button => {
-      button.addEventListener("click", () => {
-        currentPeriod = button.dataset.period;
-        document.querySelectorAll(".segmented button").forEach(b => b.classList.toggle("active", b === button));
-        render();
-      });
+    document.getElementById("periodSelect").addEventListener("change", event => {
+      currentPeriod = event.target.value;
+      document.getElementById("stateSelect").value = "";
+      document.getElementById("agentSelect").value = "";
+      render();
     });
     document.getElementById("stateSelect").addEventListener("change", () => {
       document.getElementById("agentSelect").value = "";
@@ -1749,6 +5267,7 @@
       renderAgents();
     });
     document.getElementById("agentSearch").addEventListener("input", renderAgents);
+    initPeriodSelect();
     render();
   </script>
 </body>

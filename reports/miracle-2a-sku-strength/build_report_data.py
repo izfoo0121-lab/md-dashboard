@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime
 from pathlib import Path
 import json
 import re
@@ -79,14 +78,21 @@ def load_debtors():
 
 
 def period_frame(df, period):
-    if period == "may":
-        return df[(df["date"].dt.year == 2026) & (df["date"].dt.month == 5)].copy()
-    return df[(df["date"] >= pd.Timestamp("2026-02-01")) & (df["date"] <= pd.Timestamp("2026-05-31"))].copy()
+    if period == "all":
+        return df.copy()
+    return df[df["period_key"] == period].copy()
+
+
+def month_label(period_key):
+    return pd.Timestamp(period_key + "-01").strftime("%b %Y")
 
 
 def build_strength(df):
     data = {}
-    for period, label in (("may", "May 2026"), ("all", "Feb-May 2026")):
+    periods = sorted(df["period_key"].dropna().unique())
+    period_labels = [(period, month_label(period)) for period in periods]
+    period_labels.append(("all", f"{month_label(periods[0])}-{month_label(periods[-1])}" if periods else "All months"))
+    for period, label in period_labels:
         view = period_frame(df, period)
         states = []
         state_skus = []
@@ -147,7 +153,8 @@ def build_strength(df):
 
 def build_debtor_status(df, debtors):
     result = {}
-    for period in ("may", "all"):
+    periods = list(sorted(df["period_key"].dropna().unique())) + ["all"]
+    for period in periods:
         view = period_frame(df, period)
         state_summary = defaultdict(lambda: {"total": set(), "active": set(), "inactive": set(), "missing": set(), "sales": 0.0})
         agent_summary = defaultdict(lambda: {"total": set(), "active": set(), "inactive": set(), "missing": set(), "sales": 0.0})
@@ -217,7 +224,7 @@ def build_debtor_status(df, debtors):
 
 
 def build_monthly(df):
-    rows = period_frame(df, "all")
+    rows = df.copy()
     rows["month"] = rows["date"].dt.strftime("%Y-%m")
     months = sorted(rows["month"].unique())
     state_months = rows.groupby(["state", "month"])["sales"].sum()
@@ -247,7 +254,14 @@ def build_monthly(df):
 def replace_index_data(data):
     text = INDEX_HTML.read_text(encoding="utf-8")
     replacement = "const data = " + json.dumps(data, ensure_ascii=False, indent=6) + ";"
-    text = re.sub(r"const data = \{.*?\n    \};", replacement, text, flags=re.S)
+    text = re.sub(r"const data = \{.*?\};\s*(?=\n\s*const fmt)", replacement + "\n", text, flags=re.S)
+    latest = next((key for key in reversed(list(data.keys())) if key != "all"), "all")
+    text = re.sub(r'let currentPeriod = "[^"]+";', f'let currentPeriod = "{latest}";', text)
+    text = re.sub(
+        r"Current view defaults to .*? all-month view covers .*?\.",
+        "Use the month selector to inspect any available month, or choose All months for the full workbook range.",
+        text,
+    )
     text = text.replace(
         "Source workbook: C:\\Users\\tgy_3\\Downloads\\20260519 MD Sales Report.xlsx.",
         "Source workbook: C:\\Users\\tgy_3\\Desktop\\md-dashboard\\MD Sales Report.xlsx. Quantity uses column W, QTY(CTN).",
@@ -261,6 +275,7 @@ def replace_index_data(data):
 
 def main():
     sales = load_sales()
+    sales["period_key"] = sales["date"].dt.strftime("%Y-%m")
     debtors = load_debtors()
     replace_index_data(build_strength(sales))
     DEBTOR_STATUS_JS.write_text(
