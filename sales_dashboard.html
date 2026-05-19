@@ -204,6 +204,25 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .page-btn:disabled{opacity:.3;cursor:default;}
 .page-info{font-family:var(--mono);font-size:10px;color:var(--muted);}
 
+@media (max-width: 620px) {
+  .camp-debtor-head{display:none!important;}
+  .camp-debtor-row{
+    grid-template-columns:26px minmax(0,1fr) auto!important;
+    gap:5px 8px!important;
+    align-items:start!important;
+    padding:9px 8px!important;
+  }
+  .camp-debtor-idx{grid-column:1;grid-row:1 / 4;padding-top:2px;}
+  .camp-debtor-main{grid-column:2;grid-row:1;min-width:0;}
+  .camp-debtor-code{grid-column:2;grid-row:2;font-size:9px!important;}
+  .camp-debtor-status{grid-column:3;grid-row:1;justify-self:end;}
+  .camp-debtor-lookback{grid-column:2;grid-row:3;text-align:left!important;font-size:9px!important;}
+  .camp-debtor-current{grid-column:3;grid-row:3;text-align:right!important;font-size:11px!important;font-weight:700;white-space:nowrap;}
+  .camp-debtor-lookback::before{content:'Feb-Apr ';color:var(--muted);font-size:8px;}
+  .camp-debtor-current::before{content:'May ';color:var(--muted);font-size:8px;font-weight:400;}
+  .camp-debtor-claim{grid-column:2 / 4;grid-row:4;justify-self:start;margin-top:2px;}
+}
+
 /* ── View 2: Sales Progression ── */
 .prog-hero{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px;position:relative;overflow:hidden;}
 .prog-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--green));}
@@ -4620,17 +4639,17 @@ function renderCampaignDebtorPanel(camp) {
     const claimBg = claimed ? 'rgba(61,220,132,.2)' : 'rgba(255,255,255,.08)';
     const claimColor = claimed ? 'var(--green)' : 'var(--muted)';
     const claimBorder = claimed ? 'var(--green)' : 'var(--border)';
-    return header + `<div style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 88px 82px 82px 112px;gap:8px;align-items:center;padding:7px 8px;background:${rowBg};border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;">
-      <div style="font-family:var(--mono);color:var(--muted);">${start + i + 1}</div>
-      <div style="min-width:0;">
+    return header + `<div class="camp-debtor-row" style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 88px 82px 82px 112px;gap:8px;align-items:center;padding:7px 8px;background:${rowBg};border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;">
+      <div class="camp-debtor-idx" style="font-family:var(--mono);color:var(--muted);">${start + i + 1}</div>
+      <div class="camp-debtor-main" style="min-width:0;">
         <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;">${campEsc(d.company_name || d.debtor_code)}</div>
         <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">${campEsc(d.phone || '')}</div>
       </div>
-      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">${campEsc(d.debtor_code || '')}</div>
-      <div><span style="font-family:var(--mono);font-size:8px;color:${t.color};background:${t.bg};border:1px solid ${t.border};padding:2px 6px;border-radius:8px;white-space:nowrap;">${campEsc(t.label)}</span></div>
-      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-align:right;">${fmtNum(t.lookback)} CTN</div>
-      <div style="font-family:var(--mono);font-size:10px;color:${t.current > 0 ? 'var(--green)' : 'var(--muted)'};text-align:right;">${campEsc(t.currentText)}</div>
-      <button onclick='toggleCampClaim(event,${JSON.stringify(d.debtor_code || '')},${JSON.stringify(campId)},${JSON.stringify(d.company_name || d.debtor_code || '')},${JSON.stringify(camp.promo_detail || camp.name || '')},${JSON.stringify(camp.type || 'other')})'
+      <div class="camp-debtor-code" style="font-family:var(--mono);font-size:9px;color:var(--muted);">${campEsc(d.debtor_code || '')}</div>
+      <div class="camp-debtor-status"><span style="font-family:var(--mono);font-size:8px;color:${t.color};background:${t.bg};border:1px solid ${t.border};padding:2px 6px;border-radius:8px;white-space:nowrap;">${campEsc(t.label)}</span></div>
+      <div class="camp-debtor-lookback" style="font-family:var(--mono);font-size:10px;color:var(--muted);text-align:right;">${fmtNum(t.lookback)} CTN</div>
+      <div class="camp-debtor-current" style="font-family:var(--mono);font-size:10px;color:${t.current > 0 ? 'var(--green)' : 'var(--muted)'};text-align:right;">${campEsc(t.currentText)}</div>
+      <button class="camp-debtor-claim" onclick='toggleCampClaim(event,${JSON.stringify(d.debtor_code || '')},${JSON.stringify(campId)},${JSON.stringify(d.company_name || d.debtor_code || '')},${JSON.stringify(camp.promo_detail || camp.name || '')},${JSON.stringify(camp.type || 'other')})'
         style="background:${claimBg};border:1px solid ${claimBorder};color:${claimColor};font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;">${claimLabel}</button>
     </div>`;
   }).join('');
@@ -4641,7 +4660,7 @@ function renderCampaignDebtorPanel(camp) {
   </div>`;
   return toggle + `<div style="padding:0 16px 14px;">
     <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:rgba(255,255,255,.025);">
-      <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 88px 82px 82px 112px;gap:8px;padding:6px 8px;background:rgba(255,255,255,.045);font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">
+      <div class="camp-debtor-head" style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 88px 82px 82px 112px;gap:8px;padding:6px 8px;background:rgba(255,255,255,.045);font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">
         <div>#</div><div>Company</div><div>Code</div><div>Status</div><div style="text-align:right;">Feb-Apr</div><div style="text-align:right;">May</div><div>Claim</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;padding:7px 8px;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:9px;color:var(--muted);">
