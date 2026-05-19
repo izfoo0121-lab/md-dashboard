@@ -352,6 +352,47 @@
       font-size: 16px;
     }
 
+    .portfolio-items {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+    }
+
+    .portfolio-items-label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-bottom: 7px;
+    }
+
+    .sku-chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-height: 92px;
+      overflow: auto;
+    }
+
+    .sku-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border-radius: 999px;
+      padding: 3px 7px;
+      font-size: 11px;
+      font-weight: 800;
+      background: #edf1ed;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+
+    .sku-chip-up { background: var(--soft-green); color: var(--green); }
+    .sku-chip-down { background: #f8e4df; color: var(--red); }
+    .sku-chip-new { background: var(--soft-teal); color: var(--teal); }
+    .sku-chip-flat { background: #edf1ed; color: var(--muted); }
+
     .portfolio-wrap {
       max-height: 620px;
       overflow: auto;
@@ -50248,6 +50289,21 @@
       return `<span class="movement ${status.klass}">${status.label}</span>`;
     }
 
+    function movementMarker(trend) {
+      const status = movementStatus(trend).key;
+      if (status === "up") return "&uarr;";
+      if (status === "down") return "&darr;";
+      if (status === "new") return "+";
+      return "0";
+    }
+
+    function skuChip(item) {
+      const status = movementStatus(item.trend).key;
+      const klass = status === "up" ? "sku-chip-up" : status === "down" ? "sku-chip-down" : status === "new" ? "sku-chip-new" : "sku-chip-flat";
+      const title = `${skuLabel(item.code, item.desc)} | ${rm(item.sales)} | ${fmt.format(item.qty)} CTN`;
+      return `<span class="sku-chip ${klass}" title="${escapeHtml(title)}">${escapeHtml(item.code)} <span>${movementMarker(item.trend)}</span></span>`;
+    }
+
     let currentPeriods = ["2026-05"];
 
     function escapeHtml(value) {
@@ -50526,7 +50582,7 @@
       rows.forEach(row => {
         const key = `${row.state}||${row.agent}`;
         if (!summaries.has(key)) {
-          summaries.set(key, { state: row.state, agent: row.agent, sales: 0, qty: 0, skuCount: 0, up: 0, down: 0, new: 0, flat: 0, na: 0 });
+          summaries.set(key, { state: row.state, agent: row.agent, sales: 0, qty: 0, skuCount: 0, up: 0, down: 0, new: 0, flat: 0, na: 0, items: [] });
         }
         const summary = summaries.get(key);
         const status = movementStatus(row.trend).key;
@@ -50534,6 +50590,7 @@
         summary.qty += row.qty;
         summary.skuCount += 1;
         summary[status] += 1;
+        summary.items.push(row);
       });
 
       const summaryRows = [...summaries.values()].sort((a, b) => b.sales - a.sales);
@@ -50549,6 +50606,13 @@
               <span><b>${fmt.format(row.qty)}</b>CTN</span>
               <span><b>${fmt.format(row.skuCount)}</b>SKU items</span>
               <span><b>${fmt.format(row.up + row.new)} / ${fmt.format(row.down)}</b>Up / down</span>
+            </div>
+            <div class="portfolio-items">
+              <div class="portfolio-items-label">Items Carried</div>
+              <div class="sku-chip-list">${row.items
+                .sort((a, b) => b.sales - a.sales)
+                .map(item => skuChip(item))
+                .join("")}</div>
             </div>
           </div>
         `).join("")
