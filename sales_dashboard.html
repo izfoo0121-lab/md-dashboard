@@ -42,8 +42,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .agent-select{width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);font-family:var(--body);font-size:14px;padding:8px 12px;border-radius:10px;appearance:none;-webkit-appearance:none;}
 
 /* ── Bottom Nav ── */
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--nav-bg);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 0 12px;z-index:100;}
-.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;opacity:.4;transition:opacity .2s;min-width:50px;}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--nav-bg);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;justify-content:flex-start;padding:8px 0 12px;z-index:100;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.bottom-nav::-webkit-scrollbar{display:none;}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;opacity:.4;transition:opacity .2s;min-width:56px;flex-shrink:0;}
 .nav-item.active{opacity:1;}
 .nav-icon{font-size:18px;}
 .nav-label{font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
