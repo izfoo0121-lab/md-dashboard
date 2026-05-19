@@ -291,6 +291,16 @@
       overflow: auto;
     }
 
+    .mini-bar {
+      min-width: 82px;
+      color: var(--ink);
+    }
+
+    .mini-bar .bar {
+      min-width: 82px;
+      height: 6px;
+    }
+
     .agent-card {
       background: var(--panel);
       border: 1px solid var(--line);
@@ -418,6 +428,14 @@
       </section>
     </div>
 
+    <section style="margin-bottom:20px">
+      <div class="section-head">
+        <h2>Monthly Revenue by Agent</h2>
+        <span class="hint">Feb-May 2026 sales revenue</span>
+      </div>
+      <div id="monthlyRevenue"></div>
+    </section>
+
     <section>
       <div class="section-head">
         <h2>Every Agent SKU Strength</h2>
@@ -433,6 +451,7 @@
   </footer>
 
   <script src="debtor_status.js"></script>
+  <script src="agent_monthly_revenue.js"></script>
   <script>
     const data = {
       may: {
@@ -561,6 +580,7 @@
         </table>`;
 
       renderDebtorStatus();
+      renderMonthlyRevenue();
       renderAgents();
     }
 
@@ -626,6 +646,64 @@
         </table>` : `<div style="padding:18px;color:var(--muted)">No inactive or missing debtors for the selected filter.</div>`;
     }
 
+    function monthLabel(month) {
+      const [year, value] = month.split("-");
+      const date = new Date(Number(year), Number(value) - 1, 1);
+      return date.toLocaleString("en-MY", { month: "short" });
+    }
+
+    function renderMonthlyRevenue() {
+      const monthly = window.agentMonthlyRevenue;
+      if (!monthly) return;
+      const selectedState = document.getElementById("stateSelect").value;
+      const selectedAgent = document.getElementById("agentSelect").value;
+      const months = monthly.months;
+      const rows = monthly.agents
+        .filter(row => (!selectedState || row.state === selectedState) && (!selectedAgent || row.agent === selectedAgent))
+        .sort((a, b) => b.total - a.total);
+      const visibleMax = Math.max(1, ...rows.flatMap(row => months.map(month => row.months[month] || 0)));
+      const stateRows = monthly.states
+        .filter(row => !selectedState || row.state === selectedState)
+        .sort((a, b) => b.total - a.total);
+
+      document.getElementById("monthlyRevenue").innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Agent</th>
+              <th>State</th>
+              ${months.map(month => `<th class="num">${monthLabel(month)}</th>`).join("")}
+              <th class="num">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${stateRows.map(row => `
+              <tr>
+                <td><b>${row.state} Total</b></td>
+                <td>${statePill(row.state)}</td>
+                ${months.map(month => `<td class="num"><b>${rm(row.months[month] || 0)}</b></td>`).join("")}
+                <td class="num"><b>${rm(row.total)}</b></td>
+              </tr>
+            `).join("")}
+            ${rows.map(row => `
+              <tr>
+                <td><b>${row.agent}</b></td>
+                <td>${statePill(row.state)}</td>
+                ${months.map(month => `
+                  <td class="num">
+                    <div class="mini-bar">
+                      ${rm(row.months[month] || 0)}
+                      ${bar(row.months[month] || 0, visibleMax, row.state)}
+                    </div>
+                  </td>
+                `).join("")}
+                <td class="num score">${rm(row.total)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>`;
+    }
+
     function syncDropdownOptions() {
       const view = data[currentPeriod];
       const stateSelect = document.getElementById("stateSelect");
@@ -660,10 +738,12 @@
       document.getElementById("agentSelect").value = "";
       syncDropdownOptions();
       renderDebtorStatus();
+      renderMonthlyRevenue();
       renderAgents();
     });
     document.getElementById("agentSelect").addEventListener("change", () => {
       renderDebtorStatus();
+      renderMonthlyRevenue();
       renderAgents();
     });
     document.getElementById("agentSearch").addEventListener("input", renderAgents);
