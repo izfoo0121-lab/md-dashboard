@@ -247,6 +247,22 @@
     .trend-down { background: #f8e4df; color: var(--red); }
     .trend-flat { background: #edf1ed; color: var(--muted); }
 
+    .movement {
+      display: inline-flex;
+      justify-content: center;
+      min-width: 78px;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .movement-up { background: var(--soft-green); color: var(--green); }
+    .movement-down { background: #f8e4df; color: var(--red); }
+    .movement-new { background: var(--soft-teal); color: var(--teal); }
+    .movement-flat { background: #edf1ed; color: var(--muted); }
+
     .bar {
       height: 8px;
       background: #edf1ed;
@@ -300,6 +316,48 @@
     .callout:nth-child(3) { border-color: var(--teal); }
     .callout b { display: block; margin-bottom: 5px; }
     .callout span { color: var(--muted); font-size: 13px; }
+
+    .portfolio-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+      gap: 12px;
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcf8;
+    }
+
+    .portfolio-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: var(--panel);
+    }
+
+    .portfolio-card .agent-name {
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+
+    .portfolio-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .portfolio-stats b {
+      display: block;
+      color: var(--ink);
+      font-size: 16px;
+    }
+
+    .portfolio-wrap {
+      max-height: 620px;
+      overflow: auto;
+    }
+
+    .portfolio-wrap table { min-width: 1040px; }
 
     #stateSkus,
     .agent-card {
@@ -371,7 +429,7 @@
 
     @media (max-width: 980px) {
       header, main, footer { padding-left: 18px; padding-right: 18px; }
-      .kpis, .two-col, .callouts, .agent-grid { grid-template-columns: 1fr; }
+      .kpis, .two-col, .callouts, .agent-grid, .portfolio-summary { grid-template-columns: 1fr; }
       .hint { white-space: normal; }
       table { font-size: 12px; }
       th, td { padding: 8px; }
@@ -464,6 +522,15 @@
         <span class="hint">Workbook monthly sales revenue</span>
       </div>
       <div id="monthlyRevenue"></div>
+    </section>
+
+    <section style="margin-bottom:20px">
+      <div class="section-head">
+        <h2>Agent SKU Portfolio Monitor</h2>
+        <span class="hint">Every item, sales mix, and increasing / dropping signal</span>
+      </div>
+      <div class="portfolio-summary" id="portfolioSummary"></div>
+      <div class="portfolio-wrap" id="portfolioMonitor"></div>
     </section>
 
     <section>
@@ -50167,6 +50234,20 @@
       return `<span class="trend ${cls}" title="Previous month: ${fmt.format(trend.prevQty || 0)} CTN">${marker} ${signed(delta)} (${pctText})</span>`;
     }
 
+    function movementStatus(trend) {
+      if (!trend) return { key: "na", label: "n/a", klass: "movement-flat" };
+      const delta = trend.qtyDelta || 0;
+      if ((trend.prevQty || 0) === 0 && delta > 0) return { key: "new", label: "New", klass: "movement-new" };
+      if (delta > 0) return { key: "up", label: "Increasing", klass: "movement-up" };
+      if (delta < 0) return { key: "down", label: "Dropping", klass: "movement-down" };
+      return { key: "flat", label: "Stable", klass: "movement-flat" };
+    }
+
+    function movementBadge(trend) {
+      const status = movementStatus(trend);
+      return `<span class="movement ${status.klass}">${status.label}</span>`;
+    }
+
     let currentPeriods = ["2026-05"];
 
     function escapeHtml(value) {
@@ -50423,7 +50504,91 @@
 
       renderDebtorStatus();
       renderMonthlyRevenue();
+      renderPortfolio(view);
       renderAgents();
+    }
+
+    function renderPortfolio(view = currentView()) {
+      const selectedState = document.getElementById("stateSelect").value;
+      const selectedAgent = document.getElementById("agentSelect").value;
+      const selectedSku = document.getElementById("skuSelect").value;
+      const rows = [];
+      view.agents.forEach(([state, agent, skus]) => {
+        if (selectedState && state !== selectedState) return;
+        if (selectedAgent && agent !== selectedAgent) return;
+        skus.forEach(([code, desc, sales, rowQty, customers, mix, trend]) => {
+          if (!skuMatches(code, desc, selectedSku)) return;
+          rows.push({ state, agent, code, desc, sales, qty: rowQty, customers, mix, trend });
+        });
+      });
+
+      const summaries = new Map();
+      rows.forEach(row => {
+        const key = `${row.state}||${row.agent}`;
+        if (!summaries.has(key)) {
+          summaries.set(key, { state: row.state, agent: row.agent, sales: 0, qty: 0, skuCount: 0, up: 0, down: 0, new: 0, flat: 0, na: 0 });
+        }
+        const summary = summaries.get(key);
+        const status = movementStatus(row.trend).key;
+        summary.sales += row.sales;
+        summary.qty += row.qty;
+        summary.skuCount += 1;
+        summary[status] += 1;
+      });
+
+      const summaryRows = [...summaries.values()].sort((a, b) => b.sales - a.sales);
+      document.getElementById("portfolioSummary").innerHTML = summaryRows.length
+        ? summaryRows.map(row => `
+          <div class="portfolio-card">
+            <div class="agent-head" style="padding:0;border:0;margin-bottom:8px">
+              <div class="agent-name">${row.agent}</div>
+              ${statePill(row.state)}
+            </div>
+            <div class="portfolio-stats">
+              <span><b>${rm(row.sales)}</b>Sales</span>
+              <span><b>${fmt.format(row.qty)}</b>CTN</span>
+              <span><b>${fmt.format(row.skuCount)}</b>SKU items</span>
+              <span><b>${fmt.format(row.up + row.new)} / ${fmt.format(row.down)}</b>Up / down</span>
+            </div>
+          </div>
+        `).join("")
+        : `<div style="color:var(--muted)">No agent SKU portfolio rows match the selected filters.</div>`;
+
+      const sortedRows = rows.sort((a, b) => {
+        if (selectedAgent) return Math.abs((b.trend?.qtyDelta || 0)) - Math.abs((a.trend?.qtyDelta || 0)) || b.sales - a.sales;
+        return a.state.localeCompare(b.state) || a.agent.localeCompare(b.agent) || b.sales - a.sales;
+      });
+
+      document.getElementById("portfolioMonitor").innerHTML = sortedRows.length ? `
+        <table>
+          <thead>
+            <tr>
+              <th>Agent</th>
+              <th>State</th>
+              <th>SKU Item</th>
+              <th class="num">Sales</th>
+              <th class="num">CTN</th>
+              <th class="num">Mix</th>
+              <th class="num">MoM CTN</th>
+              <th>Status</th>
+              <th class="num">Customers</th>
+            </tr>
+          </thead>
+          <tbody>${sortedRows.map(row => `
+            <tr>
+              <td><b>${row.agent}</b></td>
+              <td>${statePill(row.state)}</td>
+              <td><b>${row.code}</b><br><span style="color:var(--muted)">${row.desc}</span></td>
+              <td class="num">${rm(row.sales)}</td>
+              <td class="num">${fmt.format(row.qty)}</td>
+              <td class="num score">${pct(row.mix)}</td>
+              <td class="num">${trendBadge(row.trend)}</td>
+              <td>${movementBadge(row.trend)}</td>
+              <td class="num">${fmt.format(row.customers)}</td>
+            </tr>
+          `).join("")}</tbody>
+        </table>`
+        : `<div style="padding:18px;color:var(--muted)">No SKU movement rows match the selected filters.</div>`;
     }
 
     function renderAgents(view = currentView()) {
