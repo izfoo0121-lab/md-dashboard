@@ -4589,15 +4589,18 @@ function changeCampaignDebtorPage(campId, dir) {
 
 function renderCampaignDebtorPanel(camp) {
   const campId = camp.id || camp.name || 'campaign';
+  const debtorOrder = new Map((DATA.agents[currentAgent]?.debtor_cards?.debtors || [])
+    .map((d, idx) => [d.debtor_code, idx]));
   const rowsData = (camp.debtors || []).map(d => ({
     debtor: d,
-    info: campDebtorConversionInfo(camp, d)
+    info: campDebtorConversionInfo(camp, d),
+    order: debtorOrder.has(d.debtor_code) ? debtorOrder.get(d.debtor_code) : Number.MAX_SAFE_INTEGER
   })).sort((a, b) => {
     const aDone = a.info.label === 'Converted';
     const bDone = b.info.label === 'Converted';
     if (aDone !== bDone) return aDone ? -1 : 1;
-    return String(a.debtor.company_name || a.debtor.debtor_code || '')
-      .localeCompare(String(b.debtor.company_name || b.debtor.debtor_code || ''));
+    if (a.order !== b.order) return a.order - b.order;
+    return String(a.debtor.debtor_code || '').localeCompare(String(b.debtor.debtor_code || ''));
   });
   const convertedTotal = rowsData.filter(x => x.info.label === 'Converted').length;
   const notYetTotal = rowsData.length - convertedTotal;
