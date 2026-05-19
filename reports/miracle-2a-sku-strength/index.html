@@ -72,6 +72,13 @@
       margin-bottom: 18px;
     }
 
+    .filters {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
     .segmented {
       display: inline-flex;
       border: 1px solid var(--line);
@@ -96,7 +103,7 @@
       color: white;
     }
 
-    .search {
+    .search, .select {
       min-width: 260px;
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -104,6 +111,11 @@
       font: inherit;
       background: white;
       color: var(--ink);
+    }
+
+    .select {
+      min-width: 180px;
+      cursor: pointer;
     }
 
     .grid {
@@ -305,6 +317,8 @@
       .hint { white-space: normal; }
       table { font-size: 12px; }
       th, td { padding: 8px; }
+      .search, .select { width: 100%; min-width: 0; }
+      .filters { width: 100%; }
     }
   </style>
 </head>
@@ -321,7 +335,15 @@
         <button type="button" class="active" data-period="may">May 2026</button>
         <button type="button" data-period="all">Feb-May 2026</button>
       </div>
-      <input class="search" id="agentSearch" type="search" placeholder="Filter agent or SKU">
+      <div class="filters">
+        <select class="select" id="stateSelect" aria-label="Select state">
+          <option value="">All states</option>
+        </select>
+        <select class="select" id="agentSelect" aria-label="Select agent">
+          <option value="">All agents</option>
+        </select>
+        <input class="search" id="agentSearch" type="search" placeholder="Filter SKU text">
+      </div>
     </div>
 
     <div class="grid kpis" id="kpis"></div>
@@ -473,6 +495,7 @@
 
     function render() {
       const view = data[currentPeriod];
+      syncDropdownOptions();
       const maxSales = Math.max(...view.states.map(s => s.sales));
       document.getElementById("kpis").innerHTML = view.states.map(s => `
         <div class="kpi">
@@ -505,9 +528,13 @@
     function renderAgents() {
       const view = data[currentPeriod];
       const query = document.getElementById("agentSearch").value.trim().toLowerCase();
+      const selectedState = document.getElementById("stateSelect").value;
+      const selectedAgent = document.getElementById("agentSelect").value;
       const filtered = view.agents.filter(([state, agent, skus]) => {
         const text = `${state} ${agent} ${skus.flat().join(" ")}`.toLowerCase();
-        return !query || text.includes(query);
+        return (!selectedState || state === selectedState)
+          && (!selectedAgent || agent === selectedAgent)
+          && (!query || text.includes(query));
       });
 
       document.getElementById("emptyState").style.display = filtered.length ? "none" : "block";
@@ -527,6 +554,29 @@
       `).join("");
     }
 
+    function syncDropdownOptions() {
+      const view = data[currentPeriod];
+      const stateSelect = document.getElementById("stateSelect");
+      const agentSelect = document.getElementById("agentSelect");
+      const currentState = stateSelect.value;
+      const currentAgent = agentSelect.value;
+      const states = [...new Set(view.agents.map(([state]) => state))].sort();
+
+      stateSelect.innerHTML = `<option value="">All states</option>` + states
+        .map(state => `<option value="${state}">${state}</option>`)
+        .join("");
+      stateSelect.value = states.includes(currentState) ? currentState : "";
+
+      const agents = view.agents
+        .filter(([state]) => !stateSelect.value || state === stateSelect.value)
+        .map(([, agent]) => agent)
+        .sort();
+      agentSelect.innerHTML = `<option value="">All agents</option>` + agents
+        .map(agent => `<option value="${agent}">${agent}</option>`)
+        .join("");
+      agentSelect.value = agents.includes(currentAgent) ? currentAgent : "";
+    }
+
     document.querySelectorAll(".segmented button").forEach(button => {
       button.addEventListener("click", () => {
         currentPeriod = button.dataset.period;
@@ -534,6 +584,12 @@
         render();
       });
     });
+    document.getElementById("stateSelect").addEventListener("change", () => {
+      document.getElementById("agentSelect").value = "";
+      syncDropdownOptions();
+      renderAgents();
+    });
+    document.getElementById("agentSelect").addEventListener("change", renderAgents);
     document.getElementById("agentSearch").addEventListener("input", renderAgents);
     render();
   </script>
