@@ -246,6 +246,20 @@
       color: var(--green);
     }
 
+    .status {
+      display: inline-flex;
+      justify-content: center;
+      min-width: 70px;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .status-active { background: var(--soft-green); color: var(--green); }
+    .status-inactive { background: #f7dfd9; color: var(--red); }
+    .status-missing { background: #eef0f3; color: #5b6570; }
+
     .callouts {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -270,6 +284,11 @@
       grid-template-columns: repeat(3, minmax(320px, 1fr));
       gap: 14px;
       margin-top: 20px;
+    }
+
+    .watchlist-wrap {
+      max-height: 470px;
+      overflow: auto;
     }
 
     .agent-card {
@@ -381,6 +400,24 @@
       </div>
     </div>
 
+    <div class="grid two-col" style="margin-bottom:20px">
+      <section>
+        <div class="section-head">
+          <h2>Debtor Status by State</h2>
+          <span class="hint">Matched to Debtor Maintenance</span>
+        </div>
+        <div id="debtorStateStatus"></div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>Inactive / Missing Debtor Watchlist</h2>
+          <span class="hint">Filtered by selected state and agent</span>
+        </div>
+        <div class="watchlist-wrap" id="debtorWatchlist"></div>
+      </section>
+    </div>
+
     <section>
       <div class="section-head">
         <h2>Every Agent SKU Strength</h2>
@@ -395,6 +432,7 @@
     Source workbook: C:\Users\tgy_3\Downloads\20260519 MD Sales Report.xlsx. State split: Terengganu (KF, JAMES, NMK), Kelantan (YI, KI-MI, BEN, JACKY), Pahang (LEON, CJ, KEE, KW, XIAN). GRP 2A agents outside this mapping were excluded.
   </footer>
 
+  <script src="debtor_status.js"></script>
   <script>
     const data = {
       may: {
@@ -522,6 +560,7 @@
           `).join("")}</tbody>
         </table>`;
 
+      renderDebtorStatus();
       renderAgents();
     }
 
@@ -552,6 +591,39 @@
           </table>
         </article>
       `).join("");
+    }
+
+    function statusBadge(status) {
+      const klass = status === "Inactive" ? "status-inactive" : status === "Missing" ? "status-missing" : "status-active";
+      return `<span class="status ${klass}">${status}</span>`;
+    }
+
+    function renderDebtorStatus() {
+      const debtorData = window.debtorStatusData?.[currentPeriod];
+      if (!debtorData) return;
+      const selectedState = document.getElementById("stateSelect").value;
+      const selectedAgent = document.getElementById("agentSelect").value;
+
+      const stateRows = debtorData.stateStatus
+        .filter(row => !selectedState || row.state === selectedState);
+      document.getElementById("debtorStateStatus").innerHTML = `
+        <table>
+          <thead><tr><th>State</th><th class="num">Total</th><th class="num">Active</th><th class="num">Inactive</th><th class="num">Missing</th><th class="num">Active %</th></tr></thead>
+          <tbody>${stateRows.map(row => `
+            <tr><td>${statePill(row.state)}</td><td class="num">${fmt.format(row.total)}</td><td class="num">${fmt.format(row.active)}</td><td class="num">${fmt.format(row.inactive)}</td><td class="num">${fmt.format(row.missing)}</td><td class="num score">${pct(row.activeRate)}</td></tr>
+          `).join("")}</tbody>
+        </table>`;
+
+      const watchRows = debtorData.watchlist
+        .filter(row => (!selectedState || row.state === selectedState) && (!selectedAgent || row.agent === selectedAgent))
+        .slice(0, 40);
+      document.getElementById("debtorWatchlist").innerHTML = watchRows.length ? `
+        <table>
+          <thead><tr><th>Status</th><th>Agent</th><th>Debtor</th><th>Name</th><th>Top SKU</th><th class="num">Sales</th><th class="num">Docs</th><th>Last</th></tr></thead>
+          <tbody>${watchRows.map(row => `
+            <tr><td>${statusBadge(row.status)}</td><td><b>${row.agent}</b><br><span style="color:var(--muted)">${row.state}</span></td><td>${row.code}</td><td>${row.name || "<span style='color:var(--muted)'>Not in maintenance</span>"}</td><td>${row.topSku}</td><td class="num">${rm(row.sales)}</td><td class="num">${fmt.format(row.docs)}</td><td>${row.lastDate}</td></tr>
+          `).join("")}</tbody>
+        </table>` : `<div style="padding:18px;color:var(--muted)">No inactive or missing debtors for the selected filter.</div>`;
     }
 
     function syncDropdownOptions() {
@@ -587,9 +659,13 @@
     document.getElementById("stateSelect").addEventListener("change", () => {
       document.getElementById("agentSelect").value = "";
       syncDropdownOptions();
+      renderDebtorStatus();
       renderAgents();
     });
-    document.getElementById("agentSelect").addEventListener("change", renderAgents);
+    document.getElementById("agentSelect").addEventListener("change", () => {
+      renderDebtorStatus();
+      renderAgents();
+    });
     document.getElementById("agentSearch").addEventListener("input", renderAgents);
     render();
   </script>
