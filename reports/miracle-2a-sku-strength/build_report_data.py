@@ -72,6 +72,7 @@ def load_sales():
     df["agent"] = df["agent"].astype(str).str.upper().str.strip()
     df = df[df["agent"].isin(MIRACLE_AGENTS)].copy()
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df["doc_no"] = df["doc_no"].astype(str).str.strip()
     df["debtor_code"] = df["debtor_code"].astype(str).str.strip()
     df["sku"] = df["sku"].astype(str).str.strip()
     df["desc"] = df["desc"].astype(str).str.strip()
@@ -133,11 +134,23 @@ def build_strength(df):
         view = period_frame(df, period)
         prev_period = periods[periods.index(period) - 1] if period in periods and periods.index(period) > 0 else None
         prev_view = period_frame(df, prev_period) if prev_period else df.iloc[0:0].copy()
-        prev_state_skus = grouped_lookup(prev_view, ["state", "sku"])
-        prev_agent_skus = grouped_lookup(prev_view, ["state", "agent", "sku"])
+        prev_state_skus = grouped_lookup(prev_view, ["state", "sku", "desc"])
+        prev_agent_skus = grouped_lookup(prev_view, ["state", "agent", "sku", "desc"])
         states = []
         state_skus = []
         agents = []
+        sku_options = []
+        if not view.empty:
+            sku_options = [
+                [row.sku, row.desc]
+                for row in (
+                    view.groupby(["sku", "desc"], dropna=False)
+                    .agg(sales=("sales", "sum"))
+                    .reset_index()
+                    .sort_values(["sku", "desc"])
+                    .itertuples(index=False)
+                )
+            ]
         for state in STATE_MAP:
             srows = view[view["state"] == state]
             if srows.empty:
@@ -152,13 +165,16 @@ def build_strength(df):
             })
             sku_rows = (
                 srows.groupby(["sku", "desc"], dropna=False)
-                .agg(sales=("sales", "sum"), qty=("qty_ctn", "sum"), customers=("debtor_code", "nunique"))
+                .agg(
+                    sales=("sales", "sum"),
+                    qty=("qty_ctn", "sum"),
+                    customers=("debtor_code", "nunique"),
+                )
                 .reset_index()
                 .sort_values("sales", ascending=False)
-                .head(5)
             )
             for rank, row in enumerate(sku_rows.itertuples(index=False), start=1):
-                trend = build_trend(row.sales, row.qty, prev_state_skus.get((state, row.sku))) if prev_period else None
+                trend = build_trend(row.sales, row.qty, prev_state_skus.get((state, row.sku, row.desc))) if prev_period else None
                 state_skus.append([
                     state, rank, row.sku, row.desc, money(row.sales), qty(row.qty),
                     int(row.customers), round(float(row.sales) / total_sales * 100, 1) if total_sales else 0,
@@ -173,17 +189,22 @@ def build_strength(df):
                 total_sales = float(arows["sales"].sum())
                 sku_rows = (
                     arows.groupby(["sku", "desc"], dropna=False)
-                    .agg(sales=("sales", "sum"), qty=("qty_ctn", "sum"), customers=("debtor_code", "nunique"))
+                    .agg(
+                        sales=("sales", "sum"),
+                        qty=("qty_ctn", "sum"),
+                        customers=("debtor_code", "nunique"),
+                    )
                     .reset_index()
                     .sort_values("sales", ascending=False)
-                    .head(3)
                 )
-                skus = [
-                    [row.sku, row.desc, money(row.sales), qty(row.qty), int(row.customers),
-                     round(float(row.sales) / total_sales * 100, 1) if total_sales else 0,
-                     build_trend(row.sales, row.qty, prev_agent_skus.get((state, agent, row.sku))) if prev_period else None]
-                    for row in sku_rows.itertuples(index=False)
-                ]
+                skus = []
+                for row in sku_rows.itertuples(index=False):
+                    agent_sku = [
+                        row.sku, row.desc, money(row.sales), qty(row.qty), int(row.customers),
+                        round(float(row.sales) / total_sales * 100, 1) if total_sales else 0,
+                        build_trend(row.sales, row.qty, prev_agent_skus.get((state, agent, row.sku, row.desc))) if prev_period else None,
+                    ]
+                    skus.append(agent_sku)
                 agents.append([state, agent, skus])
 
         data[period] = {
@@ -191,6 +212,7 @@ def build_strength(df):
             "states": sorted(states, key=lambda x: x["sales"], reverse=True),
             "stateSkus": state_skus,
             "agents": agents,
+            "skuOptions": sku_options,
         }
     return data
 
@@ -300,7 +322,10 @@ def replace_index_data(data):
     replacement = "const data = " + json.dumps(data, ensure_ascii=False, indent=6) + ";"
     text = re.sub(r"const data = \{.*?\};\s*(?=\n\s*const fmt)", replacement + "\n", text, flags=re.S)
     latest = next((key for key in reversed(list(data.keys())) if key != "all"), "all")
-    text = re.sub(r'let currentPeriod = "[^"]+";', f'let currentPeriod = "{latest}";', text)
+    if "let currentPeriods" in text:
+        text = re.sub(r'let currentPeriods = \[[^\]]*\];', f'let currentPeriods = ["{latest}"];', text)
+    else:
+        text = re.sub(r'let currentPeriod = "[^"]+";', f'let currentPeriods = ["{latest}"];', text)
     text = re.sub(
         r"Current view defaults to .*? all-month view covers .*?\.",
         "Use the month selector to inspect any available month, or choose All months for the full workbook range.",
