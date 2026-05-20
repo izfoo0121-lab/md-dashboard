@@ -879,9 +879,18 @@ const pc = p => p==null?'var(--ink3)':p>=80?'var(--green)':p>=50?'var(--gold)':'
 const bc = p => p==null?'var(--border)':p>=80?'#2a7a4b':p>=50?'#c8860a':'#c8381a';
 
 async function loadData() {
+  let loadedData = null;
   try {
     const r = await fetch('dashboard_data.json?v='+Date.now());
-    DATA = await r.json();
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    loadedData = await r.json();
+  } catch(e) {
+    document.body.innerHTML = `<div style="padding:40px;text-align:center;font-family:monospace;color:#c8381a;">\u274c Could not load dashboard_data.json<br><small style="color:#999">${e.message}</small></div>`;
+    return;
+  }
+
+  try {
+    DATA = loadedData;
     // Apply admin-entered kpi_manual overrides from Supabase
     await SupabaseKpiSync.apply(DATA);
     window.__DATA__ = DATA;
@@ -889,7 +898,8 @@ async function loadData() {
     initMonthSelector();
     renderOverview();
   } catch(e) {
-    document.body.innerHTML = `<div style="padding:40px;text-align:center;font-family:monospace;color:#c8381a;">\u274c Could not load dashboard_data.json<br><small style="color:#999">${e.message}</small></div>`;
+    console.error('[mgmt] render failed:', e);
+    document.body.innerHTML = `<div style="padding:40px;text-align:center;font-family:monospace;color:#c8381a;">\u274c Could not render management dashboard<br><small style="color:#999">${e.message}</small></div>`;
     return;
   }
   // Secondary loads — isolated, never kill login/page
@@ -1504,7 +1514,9 @@ async function renderMonthlySummary() {
   const D = CURRENT_DATA || DATA;
   const agents = Object.keys(D.agents||{}).sort();
   const el = document.getElementById('monthly-summary-table');
-  document.getElementById('monthly-month-label').textContent =
+  const label = document.getElementById('monthly-month-label');
+  if (!el || !label) return;
+  label.textContent =
     `${D.current_month || ''} · Day ${D.working_days?.elapsed_working_days||'?'} of ${D.working_days?.total_working_days||'?'}`;
 
   // ── Fetch per-agent workdays from Supabase agent_workdays ──────────────────
@@ -2701,6 +2713,7 @@ function renderCampaignsMgmt() {
   AGENTS.forEach(ag => {
     const cards = VIEW_DATA?.agents?.[ag]?.debtor_cards || {};
     Object.entries(cards).forEach(([code, d]) => {
+      if (!d || typeof d !== 'object' || Array.isArray(d)) return;
       const key = (code || '').toUpperCase();
       if (!debtorNameMap[key]) {
         debtorNameMap[key] = { name: d.company_name || d.name || '', owner: ag };
