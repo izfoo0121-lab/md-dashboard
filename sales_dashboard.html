@@ -1692,6 +1692,7 @@ function colorHex(color) {
 function fmtNum(n) { return n == null ? '—' : parseFloat(n).toLocaleString('en-MY', {minimumFractionDigits:0, maximumFractionDigits:2}); }
 function fmtPct(p) { return p == null ? '—' : p.toFixed(1) + '%'; }
 function fmtRM(n) { return 'RM ' + parseFloat(n||0).toFixed(2); }
+function fmtRM0(n) { return 'RM ' + parseFloat(n||0).toLocaleString('en-MY', {minimumFractionDigits:0, maximumFractionDigits:0}); }
 
 // Build/repaint the Type filter chip row.
 // typeCounts: { 'SH-SHOP': 33, 'D-DEALER/DISTRIBUTOR': 1, ... }
@@ -3604,14 +3605,19 @@ function renderAging() {
 
   const debtorList = ag.debtor_outstanding || [];
   const totalUnpaidCtn = ag.canggih_unpaid_ctn || 0;
+  const totalUnpaidAmount = ag.canggih_unpaid_amount || debtorList.reduce((s, d) => s + Number(d.total_amount || 0), 0);
   const overdueCount   = ag.overdue_count || 0;
 
   // ── Summary strip ──────────────────────────────────────────────
   const summaryHtml = `
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px;">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
         <div style="font-family:var(--display);font-size:22px;color:var(--accent);">${fmtNum(totalUnpaidCtn)}</div>
         <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">Unpaid CTN</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-family:var(--display);font-size:22px;color:var(--orange);">${fmtRM0(totalUnpaidAmount)}</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">Outstanding RM</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
         <div style="font-family:var(--display);font-size:22px;color:${overdueCount>0?'var(--red)':'var(--green)'};">${overdueCount}</div>
@@ -3656,8 +3662,13 @@ function renderAging() {
             ${inv.overdue?'<span style="color:var(--red);"> ⚠ OVERDUE</span>':''}
           </div>
         </div>
-        <div style="font-family:var(--display);font-size:14px;color:${inv.overdue?'var(--red)':'var(--accent)'};">
-          ${inv.qty_ctn} CTN
+        <div style="text-align:right;">
+          <div style="font-family:var(--display);font-size:14px;color:${inv.overdue?'var(--red)':'var(--accent)'};">
+            ${inv.qty_ctn} CTN
+          </div>
+          <div style="font-family:var(--mono);font-size:9px;color:${inv.overdue?'var(--red)':'var(--orange)'};margin-top:2px;">
+            ${fmtRM0(inv.amount)}
+          </div>
         </div>
       </div>`).join('');
 
@@ -3680,6 +3691,9 @@ function renderAging() {
           <div style="text-align:right;margin-left:10px;">
             <div style="font-family:var(--display);font-size:18px;color:${isOverdue?'var(--red)':'var(--accent)'};">
               ${d.total_ctn} CTN
+            </div>
+            <div style="font-family:var(--mono);font-size:10px;color:${isOverdue?'var(--red)':'var(--orange)'};margin-top:2px;">
+              ${fmtRM0(d.total_amount)}
             </div>
             ${phoneClean ? `<a href="tel:${phoneClean}" onclick="event.stopPropagation()"
               style="font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;">📞 Call</a>` : ''}

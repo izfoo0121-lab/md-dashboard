@@ -1198,12 +1198,14 @@ def calc_aging(df, agents, cur_month):
         canggih_paid   = round(float(ag_c[ag_c["paid_on"] != ""]["qty_ctn"].sum()), 2)
         canggih_unpaid_rows = ag_c[ag_c["paid_on"] == ""]
         canggih_unpaid = round(float(canggih_unpaid_rows["qty_ctn"].sum()), 2)
+        canggih_unpaid_amount = round(float(canggih_unpaid_rows["local_subtotal"].sum()), 2)
 
         # ── 8COM ───────────────────────────────────────────────────
         ag_8 = eightcom[eightcom["agent"] == agent]
         eightcom_paid   = round(float(ag_8[ag_8["paid_on"] != ""]["qty_ctn"].sum()), 2)
         eightcom_unpaid_rows = ag_8[ag_8["paid_on"] == ""]
         eightcom_unpaid = round(float(eightcom_unpaid_rows["qty_ctn"].sum()), 2)
+        eightcom_unpaid_amount = round(float(eightcom_unpaid_rows["local_subtotal"].sum()), 2)
 
         # ── Aging: all unpaid rows ──────────────────────────────────
         all_unpaid = ag_c[ag_c["paid_on"] == ""].copy()
@@ -1222,6 +1224,7 @@ def calc_aging(df, agents, cur_month):
                 "invoice_date":     inv_date.strftime("%d/%m/%Y"),
                 "days_outstanding": days_outstanding,
                 "qty_ctn":          round(float(row.get("qty_ctn", 0)), 2),
+                "amount":           round(float(row.get("local_subtotal", 0)), 2),
                 "item_code":        row.get("item_code", ""),
                 "overdue":          days_outstanding >= OVERDUE_DAYS,
             }
@@ -1241,7 +1244,9 @@ def calc_aging(df, agents, cur_month):
                     "debtor_code":   dcode,
                     "company_name":  inv["company_name"],
                     "total_ctn":     0,
+                    "total_amount":  0,
                     "overdue_ctn":   0,
+                    "overdue_amount":0,
                     "invoice_count": 0,
                     "overdue_count": 0,
                     "oldest_days":   0,
@@ -1249,10 +1254,12 @@ def calc_aging(df, agents, cur_month):
                 }
             d = debtor_outstanding[dcode]
             d["total_ctn"]     = round(d["total_ctn"] + inv["qty_ctn"], 2)
+            d["total_amount"]  = round(d["total_amount"] + inv["amount"], 2)
             d["invoice_count"] += 1
             d["oldest_days"]    = max(d["oldest_days"], inv["days_outstanding"])
             if inv["overdue"]:
                 d["overdue_ctn"]   = round(d["overdue_ctn"] + inv["qty_ctn"], 2)
+                d["overdue_amount"]= round(d["overdue_amount"] + inv["amount"], 2)
                 d["overdue_count"] += 1
             d["invoices"].append(inv)
 
@@ -1262,8 +1269,10 @@ def calc_aging(df, agents, cur_month):
         result[agent] = {
             "canggih_paid_ctn":      canggih_paid,
             "canggih_unpaid_ctn":    canggih_unpaid,
+            "canggih_unpaid_amount": canggih_unpaid_amount,
             "eightcom_paid_ctn":     eightcom_paid,
             "eightcom_unpaid_ctn":   eightcom_unpaid,
+            "eightcom_unpaid_amount":eightcom_unpaid_amount,
             "overdue_count":         len(overdue_invoices),
             "overdue_invoices":      overdue_invoices,
             "all_unpaid_invoices":   all_unpaid_invoices,
