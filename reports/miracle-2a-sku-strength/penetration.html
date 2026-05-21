@@ -272,6 +272,26 @@
     .trend-down { background: #f8e4df; color: var(--red); }
     .trend-flat { background: #edf1ed; color: var(--muted); }
 
+    .trend-button {
+      border: 0;
+      padding: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .trend-button .trend {
+      box-shadow: 0 0 0 1px transparent;
+      transition: box-shadow .15s ease, transform .15s ease;
+    }
+
+    .trend-button:hover .trend,
+    .trend-button:focus-visible .trend {
+      box-shadow: 0 0 0 2px rgba(35,100,74,.22);
+      transform: translateY(-1px);
+    }
+
     .bar-cell {
       min-width: 160px;
     }
@@ -373,6 +393,53 @@
     .cell-low { background: #f8e4df; color: var(--red); }
     .cell-zero { background: #f3f5f1; color: var(--muted); }
 
+    .drill-section[hidden] {
+      display: none;
+    }
+
+    .drill-tools {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcf8;
+    }
+
+    .drill-tab {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 11px;
+      background: white;
+      color: var(--muted);
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .drill-tab.active {
+      background: var(--green);
+      border-color: var(--green);
+      color: white;
+    }
+
+    .drill-wrap {
+      max-height: 520px;
+    }
+
+    .drill-table {
+      min-width: 1080px;
+    }
+
+    .debtor-cell b,
+    .debtor-cell span {
+      display: block;
+    }
+
+    .debtor-cell span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
     .empty {
       padding: 26px;
       color: var(--muted);
@@ -463,6 +530,15 @@
       </div>
       <div class="table-wrap" id="rankingTable"></div>
     </section>
+
+    <section class="drill-section" id="drilldownSection" hidden>
+      <div class="section-head">
+        <h2 id="drilldownTitle">SKU Debtor Movement</h2>
+        <span class="hint" id="drilldownHint">Click a MoM Deb. pill to inspect debtor movement</span>
+      </div>
+      <div class="drill-tools" id="drilldownTabs"></div>
+      <div class="table-wrap drill-wrap" id="drilldownTable"></div>
+    </section>
   </main>
 
   <footer>
@@ -476,6 +552,8 @@
     const pct = value => `${Number(value || 0).toFixed(1)}%`;
     const DEFAULT_TYPE_ORDER = ["SH-Shop", "SL-Stall", "ST-Site", "D-Dealer/Distributor", "FL-Freelancer"];
     const DEFAULT_TYPES = new Set(DEFAULT_TYPE_ORDER);
+    let lastSummary = null;
+    let activeDrilldown = null;
 
     function gapData() {
       return window.skuPenetrationData || window.skuGapData || { months: [], skuOptions: [], debtors: {}, records: [] };
@@ -555,6 +633,15 @@
       const marker = delta > 0 ? "&uarr;" : delta < 0 ? "&darr;" : "0";
       const label = delta === 0 ? "0" : `${marker} ${signed(delta)}`;
       return `<span class="trend ${klass}" title="${escapeHtml(title)}">${label}</span>`;
+    }
+
+    function trendDrillButton(row) {
+      const mode = row.buyerDelta < 0 ? "lost" : row.buyerDelta > 0 ? "new" : "missing";
+      return `
+        <button class="trend-button" type="button" data-drill-sku="${escapeHtml(row.key)}" data-drill-mode="${mode}" title="Show debtor movement for ${escapeHtml(row.code)}">
+          ${trendBadge(row.buyerDelta, "Click to see debtor movement")}
+        </button>
+      `;
     }
 
     function cellClass(value) {
@@ -984,6 +1071,153 @@
       `;
     }
 
+    function aggregateDebtorSkuRows(rows, skuKey, allowedCodes) {
+      const map = new Map();
+      rows.forEach(row => {
+        if (!skuMatches(row, skuKey) || (allowedCodes && !allowedCodes.has(row.code))) return;
+        if (!map.has(row.code)) {
+          map.set(row.code, {
+            code: row.code,
+            name: row.name || "",
+            rowAgent: row.agent || "",
+            qty: 0,
+            sales: 0,
+            docs: 0,
+            lastDate: "",
+          });
+        }
+        const entry = map.get(row.code);
+        entry.qty += Number(row.qty || 0);
+        entry.sales += Number(row.sales || 0);
+        entry.docs += Number(row.docs || 0);
+        if (row.lastDate && (!entry.lastDate || row.lastDate > entry.lastDate)) entry.lastDate = row.lastDate;
+      });
+      return map;
+    }
+
+    function debtorMeta(code) {
+      const meta = gapData().debtors?.[code] || {};
+      return {
+        name: meta.name || "",
+        agent: meta.maintAgent || "",
+        state: meta.state || "",
+        type: meta.maintType || "",
+      };
+    }
+
+    function movementRows(summary, skuKey) {
+      const current = aggregateDebtorSkuRows(summary.currentRows, skuKey, summary.base);
+      const previous = aggregateDebtorSkuRows(summary.previousRows, skuKey, summary.prevBase);
+      const codes = new Set([...summary.base, ...current.keys(), ...previous.keys()]);
+      const rows = [...codes].map(code => {
+        const meta = debtorMeta(code);
+        const cur = current.get(code);
+        const prev = previous.get(code);
+        const currentQty = Number(cur?.qty || 0);
+        const previousQty = Number(prev?.qty || 0);
+        return {
+          code,
+          name: meta.name || cur?.name || prev?.name || "",
+          agent: meta.agent || cur?.rowAgent || prev?.rowAgent || "",
+          state: meta.state || "",
+          type: meta.type || "",
+          previousQty,
+          currentQty,
+          qtyDelta: Number((currentQty - previousQty).toFixed(2)),
+          previousSales: Number(prev?.sales || 0),
+          currentSales: Number(cur?.sales || 0),
+          lastDate: cur?.lastDate || prev?.lastDate || "",
+        };
+      });
+      return {
+        lost: rows.filter(row => row.previousQty > 0 && row.currentQty === 0)
+          .sort((a, b) => a.qtyDelta - b.qtyDelta || b.previousQty - a.previousQty || a.name.localeCompare(b.name)),
+        reduced: rows.filter(row => row.previousQty > 0 && row.currentQty > 0 && row.qtyDelta < 0)
+          .sort((a, b) => a.qtyDelta - b.qtyDelta || b.previousQty - a.previousQty || a.name.localeCompare(b.name)),
+        new: rows.filter(row => row.previousQty === 0 && row.currentQty > 0)
+          .sort((a, b) => b.currentQty - a.currentQty || a.name.localeCompare(b.name)),
+        missing: rows.filter(row => summary.base.has(row.code) && row.currentQty === 0)
+          .sort((a, b) => b.previousQty - a.previousQty || a.agent.localeCompare(b.agent) || a.name.localeCompare(b.name)),
+      };
+    }
+
+    function drillModeLabel(mode) {
+      return {
+        lost: "Lost buyers",
+        reduced: "Reduced CTN",
+        new: "New buyers",
+        missing: "Missing base",
+      }[mode] || "Lost buyers";
+    }
+
+    function renderDrilldown() {
+      const section = document.getElementById("drilldownSection");
+      if (!activeDrilldown || !lastSummary) {
+        section.hidden = true;
+        return;
+      }
+      const sku = skuFromValue(activeDrilldown.skuKey);
+      const groups = movementRows(lastSummary, activeDrilldown.skuKey);
+      const modes = ["lost", "reduced", "new", "missing"];
+      if (!modes.includes(activeDrilldown.mode)) activeDrilldown.mode = "lost";
+      const rows = groups[activeDrilldown.mode] || [];
+      section.hidden = false;
+      document.getElementById("drilldownTitle").textContent = `${sku.label} debtor movement`;
+      const netBuyers = groups.new.length - groups.lost.length;
+      document.getElementById("drilldownHint").textContent = `${monthLabel(lastSummary.month)} vs ${lastSummary.prev ? monthLabel(lastSummary.prev) : "previous month unavailable"} | Net ${signed(netBuyers)} = ${fmt.format(groups.new.length)} new - ${fmt.format(groups.lost.length)} lost`;
+      document.getElementById("drilldownTabs").innerHTML = modes.map(mode => `
+        <button class="drill-tab ${mode === activeDrilldown.mode ? "active" : ""}" type="button" data-drill-tab="${mode}">
+          ${drillModeLabel(mode)} (${fmt.format(groups[mode].length)})
+        </button>
+      `).join("");
+      document.querySelectorAll("[data-drill-tab]").forEach(button => {
+        button.addEventListener("click", () => {
+          activeDrilldown.mode = button.dataset.drillTab;
+          renderDrilldown();
+        });
+      });
+      document.getElementById("drilldownTable").innerHTML = rows.length ? `
+        <table class="drill-table">
+          <thead>
+            <tr>
+              <th>Debtor</th>
+              <th>Agent</th>
+              <th>State</th>
+              <th>Type</th>
+              <th class="num">Prev CTN</th>
+              <th class="num">Current CTN</th>
+              <th class="num">Change</th>
+              <th class="num">Prev Sales</th>
+              <th class="num">Current Sales</th>
+              <th>Last Purchase</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(row => `
+              <tr>
+                <td class="debtor-cell"><b>${escapeHtml(row.name || row.code)}</b><span>${escapeHtml(row.code)}</span></td>
+                <td><b>${escapeHtml(row.agent || "-")}</b></td>
+                <td>${statePill(row.state)}</td>
+                <td>${escapeHtml(typeLabel(row.type) || "-")}</td>
+                <td class="num">${fmt.format(row.previousQty)}</td>
+                <td class="num">${fmt.format(row.currentQty)}</td>
+                <td class="num">${trendBadge(row.qtyDelta)}</td>
+                <td class="num">${rm(row.previousSales)}</td>
+                <td class="num">${rm(row.currentSales)}</td>
+                <td>${escapeHtml(row.lastDate || "-")}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      ` : `<div class="empty">No ${drillModeLabel(activeDrilldown.mode).toLowerCase()} for ${escapeHtml(sku.label)} in this filter.</div>`;
+    }
+
+    function showSkuDrilldown(skuKey, mode) {
+      activeDrilldown = { skuKey, mode };
+      renderDrilldown();
+      document.getElementById("drilldownSection").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
     function renderRanking(skuRows) {
       if (!skuRows.length) {
         document.getElementById("rankingTable").innerHTML = `<div class="empty">No SKU ranking data for this selection.</div>`;
@@ -1019,23 +1253,28 @@
                 <td class="num">${fmt.format(row.qty)}</td>
                 <td class="num">${fmt.format(row.ctnPerBuyer)}</td>
                 <td class="num">${fmt.format(row.new3m)}</td>
-                <td class="num">${trendBadge(row.buyerDelta)}</td>
+                <td class="num">${trendDrillButton(row)}</td>
                 <td class="num">${trendBadge(Number(row.qtyDelta.toFixed(2)))}</td>
               </tr>
             `).join("")}
           </tbody>
         </table>
       `;
+      document.querySelectorAll("[data-drill-sku]").forEach(button => {
+        button.addEventListener("click", () => showSkuDrilldown(button.dataset.drillSku, button.dataset.drillMode));
+      });
     }
 
     function render() {
       const summary = buildSummary();
       const agentRows = buildAgentRows(summary);
       const skuRows = buildSkuRows(summary.currentRows, summary.previousRows, summary.previous3Rows, summary.base, summary.prevBase);
+      lastSummary = summary;
       renderSummary(summary);
       renderAgentTable(agentRows, !!summary.targetSku);
       renderMatrix(summary, skuRows);
       renderRanking(skuRows);
+      renderDrilldown();
     }
 
     initControls();
