@@ -7,6 +7,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co'
 SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw'
+TABLE = 'debtor_locations'
 HEADERS = {
     'apikey': SUPABASE_KEY,
     'Authorization': f'Bearer {SUPABASE_KEY}',
@@ -55,7 +56,7 @@ ok = 0
 for i in range(total_batches):
     batch = records[i*BATCH:(i+1)*BATCH]
     r = requests.post(
-        f'{SUPABASE_URL}/rest/v1/debtor_locations',
+        f'{SUPABASE_URL}/rest/v1/{TABLE}?on_conflict=code',
         headers=HEADERS,
         json=batch
     )
