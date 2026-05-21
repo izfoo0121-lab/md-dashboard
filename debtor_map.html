@@ -440,55 +440,34 @@ let st;
 document.getElementById('search').addEventListener('input', () => { clearTimeout(st); st=setTimeout(applyFilters,300); });
 
 // ── Supabase fetch ───────────────────────────────────────────────────────────
-const PAGE = 1000;
-async function fetchPage(agentName, cols, from) {
-  let url = `${SUPABASE_URL}/rest/v1/debtor_locations?select=${cols}&order=code`;
-  if (agentName !== 'ALL') url += `&agent=eq.${encodeURIComponent(agentName)}`;
-  return fetch(url, {
-    headers:{ 'apikey':SUPABASE_KEY, 'Authorization':`Bearer ${SUPABASE_KEY}`,
-              'Range-Unit':'items', 'Range':`${from}-${from+PAGE-1}` }
-  });
-}
-
 async function fetchDebtors(agentName) {
-  // Try with purchase columns first; fall back to base columns if they don't exist yet
+  const LIMIT = 1000;
   const FULL_COLS = 'code,name,phone,agent,day,active,area,lat,lng,purchased,ctn_cur,last_purchase';
   const BASE_COLS = 'code,name,phone,agent,day,active,area,lat,lng';
+  const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
 
-  let useFull = true;
-  // Quick probe to check columns exist
-  const probe = await fetchPage(agentName, FULL_COLS, 0);
-  if (!probe.ok) {
-    const txt = await probe.text();
-    if (txt.includes('PGRST204') || txt.includes('column') || probe.status === 400) {
-      useFull = false;
-    } else {
-      throw new Error(`Supabase ${probe.status}: ${txt}`);
-    }
-  }
-
+  // Detect if purchase columns exist
+  const probe = await fetch(
+    SUPABASE_URL + '/rest/v1/debtor_locations?select=' + FULL_COLS + '&limit=1',
+    { headers: hdrs }
+  );
+  const useFull = probe.ok;
   const cols = useFull ? FULL_COLS : BASE_COLS;
-  let all = [], from = 0;
 
-  // If probe succeeded, use those rows
-  if (useFull) {
-    const rows = await probe.json();
-    all = rows;
-    if (rows.length < PAGE) return all;
-    from = PAGE;
-  }
-
+  // Paginate with limit/offset
+  var all = [], offset = 0;
   while (true) {
-    const r = await fetchPage(agentName, cols, from);
-    if (!r.ok) throw new Error(`Supabase ${r.status}: ${await r.text()}`);
-    const rows = await r.json();
+    var url = SUPABASE_URL + '/rest/v1/debtor_locations?select=' + cols + '&order=code&limit=' + LIMIT + '&offset=' + offset;
+    if (agentName !== 'ALL') url += '&agent=eq.' + encodeURIComponent(agentName);
+    var res = await fetch(url, { headers: hdrs });
+    if (!res.ok) throw new Error('Supabase ' + res.status + ': ' + await res.text());
+    var rows = await res.json();
     all = all.concat(rows);
-    if (rows.length < PAGE) break;
-    from += PAGE;
+    if (rows.length < LIMIT) break;
+    offset += LIMIT;
   }
 
-  // Normalise missing purchase fields
-  if (!useFull) all.forEach(r => { r.purchased = null; r.ctn_cur = null; r.last_purchase = null; });
+  if (!useFull) all.forEach(function(r) { r.purchased = null; r.ctn_cur = null; r.last_purchase = null; });
   return all;
 }
 
