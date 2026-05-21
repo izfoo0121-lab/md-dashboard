@@ -211,6 +211,12 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 function setLoadMsg(t) { document.getElementById('load-msg').textContent = t; }
 
+function hasValidCoords(r) {
+  const lat = Number(r?.lat);
+  const lng = Number(r?.lng);
+  return Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+}
+
 // ── Pin design ───────────────────────────────────────────────────────────────
 // Fill = purchase status | Ring = day color
 function makeIcon(day, active, purchased) {
@@ -253,6 +259,7 @@ function buildClusterGroup() {
 function addMarkers(records) {
   clusterGroup = buildClusterGroup();
   records.forEach(r => {
+    if (!hasValidCoords(r)) return;
     const isActive   = r.active === 'Checked';
     const purchased  = r.purchased ?? null; // Bug 2 fix: keep null/true/false as-is
     const m = L.marker([r.lat, r.lng], {icon: makeIcon(r.day, r.active, purchased)});
@@ -457,7 +464,7 @@ async function fetchDebtors(agentName) {
   // Paginate with limit/offset
   var all = [], offset = 0;
   while (true) {
-    var url = SUPABASE_URL + '/rest/v1/debtor_locations?select=' + cols + '&order=code&limit=' + LIMIT + '&offset=' + offset;
+    var url = SUPABASE_URL + '/rest/v1/debtor_locations?select=' + cols + '&lat=not.is.null&lng=not.is.null&order=code&limit=' + LIMIT + '&offset=' + offset;
     if (agentName !== 'ALL') url += '&agent=eq.' + encodeURIComponent(agentName);
     var res = await fetch(url, { headers: hdrs });
     if (!res.ok) throw new Error('Supabase ' + res.status + ': ' + await res.text());

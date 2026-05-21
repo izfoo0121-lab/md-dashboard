@@ -18,10 +18,19 @@ src = 'miracle debtor all active inactive.xlsx'
 print(f"Reading: {src}")
 df = pd.read_excel(src)
 
+
+def clean(value):
+    return str(value).strip() if pd.notna(value) else ''
+
+
 records = []
 skipped = 0
 for _, row in df.iterrows():
-    coord = str(row.get('Email Address', '')).strip() if pd.notna(row.get('Email Address')) else ''
+    code = clean(row.get('Code'))
+    coord = clean(row.get('Email Address'))
+    if not code:
+        skipped += 1
+        continue
     if not coord or coord == 'nan':
         skipped += 1
         continue
@@ -37,13 +46,13 @@ for _, row in df.iterrows():
         continue
 
     records.append({
-        'code':   str(row.get('Code', ''))         if pd.notna(row.get('Code')) else '',
-        'name':   str(row.get('Company Name', '')) if pd.notna(row.get('Company Name')) else '',
-        'phone':  str(row.get('Phone 1', ''))      if pd.notna(row.get('Phone 1')) else '',
-        'agent':  str(row.get('Agent', ''))        if pd.notna(row.get('Agent')) else '',
-        'day':    str(row.get('Time', ''))         if pd.notna(row.get('Time')) else '',
-        'active': str(row.get('Active', ''))       if pd.notna(row.get('Active')) else '',
-        'area':   str(row.get('Area', ''))         if pd.notna(row.get('Area')) else '',
+        'code':   code,
+        'name':   clean(row.get('Company Name')),
+        'phone':  clean(row.get('Phone 1')),
+        'agent':  clean(row.get('Agent')).upper(),
+        'day':    clean(row.get('Time')),
+        'active': clean(row.get('Active')),
+        'area':   clean(row.get('Area')),
         'lat':    lat,
         'lng':    lng,
     })
@@ -57,7 +66,7 @@ ok = 0
 for i in range(total_batches):
     batch = records[i*BATCH:(i+1)*BATCH]
     r = requests.post(
-        f'{SUPABASE_URL}/rest/v1/{TABLE}',
+        f'{SUPABASE_URL}/rest/v1/{TABLE}?on_conflict=code',
         headers=HEADERS,
         data=json.dumps(batch, ensure_ascii=False).encode('utf-8')
     )
