@@ -440,6 +440,7 @@ let st;
 document.getElementById('search').addEventListener('input', () => { clearTimeout(st); st=setTimeout(applyFilters,300); });
 
 // ── Supabase fetch ───────────────────────────────────────────────────────────
+const PAGE = 1000;
 async function fetchPage(agentName, cols, from) {
   let url = `${SUPABASE_URL}/rest/v1/debtor_locations?select=${cols}&order=code`;
   if (agentName !== 'ALL') url += `&agent=eq.${encodeURIComponent(agentName)}`;
@@ -450,7 +451,6 @@ async function fetchPage(agentName, cols, from) {
 }
 
 async function fetchDebtors(agentName) {
-  const PAGE = 1000;
   // Try with purchase columns first; fall back to base columns if they don't exist yet
   const FULL_COLS = 'code,name,phone,agent,day,active,area,lat,lng,purchased,ctn_cur,last_purchase';
   const BASE_COLS = 'code,name,phone,agent,day,active,area,lat,lng';
