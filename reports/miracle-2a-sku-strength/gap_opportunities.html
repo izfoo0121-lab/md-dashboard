@@ -135,7 +135,7 @@
 
     .summary {
       display: grid;
-      grid-template-columns: repeat(4, minmax(160px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
       gap: 12px;
       padding: 14px;
       border-bottom: 1px solid var(--line);
@@ -186,6 +186,34 @@
     .agent-card span {
       color: var(--muted);
       font-size: 12px;
+    }
+
+    .agent-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 9px;
+    }
+
+    .agent-metric b {
+      display: block;
+      font-size: 18px;
+      line-height: 1.15;
+    }
+
+    .activation-bar {
+      height: 7px;
+      margin: 10px 0 6px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #edf1ed;
+    }
+
+    .activation-bar span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--green);
     }
 
     .state-pill {
@@ -383,6 +411,21 @@
       return window.skuGapData || { months: [], skuOptions: [], debtors: {}, records: [] };
     }
 
+    function buildCustomerBase(data, state, agent) {
+      return Object.entries(data.debtors || {})
+        .map(([code, debtor]) => ({
+          code,
+          name: debtor.name || "",
+          state: debtor.state || "",
+          agent: debtor.maintAgent || "",
+          status: debtor.status || "Missing",
+          active: debtor.active === true,
+        }))
+        .filter(row => row.active)
+        .filter(row => !state || row.state === state)
+        .filter(row => !agent || row.agent === agent);
+    }
+
     function selected(id) {
       return document.getElementById(id)?.value || "";
     }
@@ -489,8 +532,10 @@
       const windowEndIndex = anchorIndex - 1;
 
       if (!records.length) {
-        return { sourceRows: [], gapRows: [], targetBuyerCodes: new Set(), previousTargetByCode: new Map(), windowMonths };
+        return { sourceRows: [], gapRows: [], targetBuyerCodes: new Set(), previousTargetByCode: new Map(), windowMonths, customerBase: [] };
       }
+
+      const customerBase = buildCustomerBase(data, state, agent);
 
       const targetBuyerCodes = new Set();
       const previousTargetByCode = new Map();
@@ -561,11 +606,11 @@
       const gapRows = (targetSku ? sourceRows.filter(row => !targetBuyerCodes.has(row.code)) : sourceRows)
         .sort((a, b) => b.sourceQty - a.sourceQty || b.sourceSales - a.sourceSales);
 
-      return { sourceRows, gapRows, targetBuyerCodes, previousTargetByCode, windowMonths };
+      return { sourceRows, gapRows, targetBuyerCodes, previousTargetByCode, windowMonths, customerBase };
     }
 
     function render() {
-      const { sourceRows, gapRows, targetBuyerCodes, previousTargetByCode, windowMonths } = buildRows();
+      const { sourceRows, gapRows, targetBuyerCodes, previousTargetByCode, windowMonths, customerBase } = buildRows();
       const sourceSku = selected("sourceSkuSelect");
       const targetSku = selected("targetSkuSelect");
       const hasTarget = !!targetSku;
@@ -573,44 +618,74 @@
       const targetLabel = hasTarget ? gapSkuLabel(targetSku) : "";
       const targetBuyers = hasTarget ? sourceRows.length - gapRows.length : 0;
       const gapRate = sourceRows.length ? gapRows.length / sourceRows.length * 100 : 0;
+      const customerBaseCount = customerBase.length;
+      const currentBuyerCount = sourceRows.length;
+      const unactivatedCount = Math.max(customerBaseCount - currentBuyerCount, 0);
+      const activationRate = customerBaseCount ? currentBuyerCount / customerBaseCount * 100 : 0;
       const windowLabel = windowMonths.map(monthLabel).join(", ");
       const anchorLabel = monthLabel(selected("anchorSelect"));
+      const sourceQtyTotal = sourceRows.reduce((sum, row) => sum + row.sourceQty, 0);
+      const sourceSalesTotal = sourceRows.reduce((sum, row) => sum + row.sourceSales, 0);
 
       document.getElementById("summary").innerHTML = hasTarget ? `
         <div class="summary-card"><b>${fmt.format(sourceRows.length)}</b><span>${escapeHtml(sourceLabel)} current buyers</span></div>
+        <div class="summary-card"><b>${fmt.format(customerBaseCount)}</b><span>Active customer base</span></div>
+        <div class="summary-card"><b>${fmt.format(unactivatedCount)}</b><span>Not buying ${escapeHtml(sourceLabel)}</span></div>
+        <div class="summary-card"><b>${pct(activationRate)}</b><span>Activation rate</span></div>
         <div class="summary-card"><b>${fmt.format(gapRows.length)}</b><span>No ${escapeHtml(targetLabel)} in 3 months</span></div>
         <div class="summary-card"><b>${fmt.format(targetBuyers)}</b><span>Bought ${escapeHtml(targetLabel)} in window</span></div>
         <div class="summary-card"><b>${pct(gapRate)}</b><span>Gap rate | ${escapeHtml(windowLabel)}</span></div>
       ` : `
         <div class="summary-card"><b>${fmt.format(sourceRows.length)}</b><span>${escapeHtml(sourceLabel)} current buyers</span></div>
-        <div class="summary-card"><b>${fmt.format(gapRows.length)}</b><span>Shown in buyer list</span></div>
-        <div class="summary-card"><b>${fmt.format(sourceRows.reduce((sum, row) => sum + row.sourceQty, 0))}</b><span>Anchor CTN</span></div>
-        <div class="summary-card"><b>${rm(sourceRows.reduce((sum, row) => sum + row.sourceSales, 0))}</b><span>Anchor sales</span></div>
+        <div class="summary-card"><b>${fmt.format(customerBaseCount)}</b><span>Active customer base</span></div>
+        <div class="summary-card"><b>${fmt.format(unactivatedCount)}</b><span>Not buying ${escapeHtml(sourceLabel)}</span></div>
+        <div class="summary-card"><b>${pct(activationRate)}</b><span>Activation rate</span></div>
+        <div class="summary-card"><b>${fmt.format(sourceQtyTotal)}</b><span>Anchor CTN</span></div>
+        <div class="summary-card"><b>${rm(sourceSalesTotal)}</b><span>Anchor sales</span></div>
       `;
 
       const agentSummaries = new Map();
+      customerBase.forEach(row => {
+        const key = `${row.state}||${row.agent}`;
+        if (!agentSummaries.has(key)) {
+          agentSummaries.set(key, { state: row.state, agent: row.agent, customers: 0, buyers: 0, gaps: 0, gapQty: 0, gapSales: 0 });
+        }
+        agentSummaries.get(key).customers += 1;
+      });
       sourceRows.forEach(row => {
         const key = `${row.state}||${row.agent}`;
-        if (!agentSummaries.has(key)) agentSummaries.set(key, { state: row.state, agent: row.agent, buyers: 0, gaps: 0, gapQty: 0 });
+        if (!agentSummaries.has(key)) {
+          agentSummaries.set(key, { state: row.state, agent: row.agent, customers: 0, buyers: 0, gaps: 0, gapQty: 0, gapSales: 0 });
+        }
         const summary = agentSummaries.get(key);
         summary.buyers += 1;
         if (!hasTarget || !targetBuyerCodes.has(row.code)) {
           summary.gaps += 1;
           summary.gapQty += row.sourceQty;
+          summary.gapSales += row.sourceSales;
         }
       });
 
       document.getElementById("agentSummary").innerHTML = [...agentSummaries.values()]
-        .sort((a, b) => b.gaps - a.gaps || b.gapQty - a.gapQty || a.agent.localeCompare(b.agent))
+        .sort((a, b) => b.gaps - a.gaps || b.buyers - a.buyers || b.customers - a.customers || a.agent.localeCompare(b.agent))
         .slice(0, 10)
-        .map(row => `
+        .map(row => {
+          const rate = row.customers ? row.buyers / row.customers * 100 : 0;
+          const notBuying = Math.max(row.customers - row.buyers, 0);
+          return `
           <div class="agent-card">
             <strong>${escapeHtml(row.agent)}</strong>
             ${statePill(row.state)}
-            <div style="margin-top:7px"><b>${fmt.format(row.gaps)}</b> <span>${hasTarget ? "gap debtors" : "buyers"} / ${fmt.format(row.buyers)} buyers</span></div>
-            <span>${fmt.format(row.gapQty)} anchor CTN ${hasTarget ? "in gap list" : "from buyers"}</span>
+            <div class="agent-metrics">
+              <div class="agent-metric"><b>${fmt.format(row.buyers)}</b><span>buyers</span></div>
+              <div class="agent-metric"><b>${fmt.format(row.customers)}</b><span>customers</span></div>
+            </div>
+            <div class="activation-bar" title="${pct(rate)} activation"><span style="width:${Math.min(rate, 100).toFixed(1)}%"></span></div>
+            <span>${pct(rate)} activation · ${fmt.format(notBuying)} not buying</span><br>
+            <span><b>${fmt.format(row.gaps)}</b> ${hasTarget ? "gap debtors" : "current buyers"} · ${fmt.format(row.gapQty)} CTN · ${rm(row.gapSales)}</span>
           </div>
-        `).join("") || `<div class="empty">No current buyers match this scope.</div>`;
+        `;
+        }).join("") || `<div class="empty">No active customers match this scope.</div>`;
 
       const shownRows = gapRows.slice(0, 250);
       document.getElementById("gapTable").innerHTML = shownRows.length ? `
