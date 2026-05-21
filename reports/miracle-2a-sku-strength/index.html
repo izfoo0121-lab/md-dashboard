@@ -130387,13 +130387,13 @@
 
     function renderSignalPanel(title, meta, rows, mode) {
       const headers = mode === "top"
-        ? `<th>SKU</th><th class="num">Sales</th><th class="num">CTN</th><th class="num">CTN Mix</th><th class="num">Debtors</th><th class="num">MoM Deb.</th>`
+        ? `<th>SKU</th><th class="num">CTN</th><th class="num">CTN Mix</th><th class="num">Sales</th><th class="num">Debtors</th><th class="num">MoM Deb.</th>`
         : `<th>SKU</th><th class="num">CTN</th><th class="num">MoM CTN</th><th class="num">Debtors</th><th class="num">MoM Deb.</th>`;
       const body = rows.length ? rows.map(row => `
         <tr>
           <td class="signal-sku"><b>${escapeHtml(row.code)}</b><span title="${escapeHtml(row.desc)}">${escapeHtml(row.desc)}</span></td>
           ${mode === "top"
-            ? `<td class="num">${rm(row.sales)}</td><td class="num">${fmt.format(row.qty)}</td><td class="num score">${pct(row.mix)}</td><td class="num">${fmt.format(row.customers)}</td><td class="num">${debtorTrendBadge(row.trend)}</td>`
+            ? `<td class="num">${fmt.format(row.qty)}</td><td class="num score">${pct(row.mix)}</td><td class="num">${rm(row.sales)}</td><td class="num">${fmt.format(row.customers)}</td><td class="num">${debtorTrendBadge(row.trend)}</td>`
             : `<td class="num">${fmt.format(row.qty)}</td><td class="num">${trendBadge(row.trend)}</td><td class="num">${fmt.format(row.customers)}</td><td class="num">${debtorTrendBadge(row.trend)}</td>`}
         </tr>
       `).join("") : `<tr><td colspan="${mode === "top" ? 6 : 5}" style="padding:16px;color:var(--muted)">No matching movement for this view.</td></tr>`;
@@ -130410,7 +130410,7 @@
 
     function renderTeamSignals(view = currentView()) {
       const rows = aggregateTeamSkus(view);
-      const topRows = [...rows].sort((a, b) => b.sales - a.sales || b.qty - a.qty).slice(0, 5);
+      const topRows = [...rows].sort((a, b) => b.qty - a.qty || b.sales - a.sales).slice(0, 5);
       const upRows = [...rows]
         .filter(row => row.trend && row.qtyDelta > 0)
         .sort((a, b) => b.qtyDelta - a.qtyDelta || b.qty - a.qty)
@@ -130420,7 +130420,7 @@
         .sort((a, b) => a.qtyDelta - b.qtyDelta || b.qty - a.qty)
         .slice(0, 5);
       document.getElementById("teamSkuSignals").innerHTML = [
-        renderSignalPanel("Group Top 5 SKU", "By sales RM · mix by CTN", topRows, "top"),
+        renderSignalPanel("Group Top 5 SKU", "Ranked by CTN volume", topRows, "top"),
         renderSignalPanel("Top Increasing SKU", "MoM CTN gain", upRows, "movement"),
         renderSignalPanel("Top Dropping SKU", "MoM CTN drop", downRows, "movement"),
       ].join("");
