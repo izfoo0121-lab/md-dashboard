@@ -184,6 +184,8 @@ def build_strength(df, history_df=None):
         view = period_frame(df, period)
         prev_period = periods[periods.index(period) - 1] if period in periods and periods.index(period) > 0 else None
         prev_view = period_frame(history_df, prev_period) if prev_period else history_df.iloc[0:0].copy()
+        prev_state_sku_lookup = grouped_lookup(prev_view, ["state", "sku", "desc"]) if prev_period else {}
+        prev_agent_sku_lookup = grouped_lookup(prev_view, ["state", "agent", "sku", "desc"]) if prev_period else {}
         states = []
         state_skus = []
         agents = []
@@ -225,7 +227,7 @@ def build_strength(df, history_df=None):
                 current_codes = sorted(set(
                     srows[(srows["sku"] == row.sku) & (srows["desc"] == row.desc)]["debtor_code"]
                 ))
-                previous_metrics = debtor_sku_metrics(prev_view, current_codes, row.sku, row.desc) if prev_period else None
+                previous_metrics = prev_state_sku_lookup.get((state, row.sku, row.desc)) if prev_period else None
                 trend = build_trend(row.sales, row.qty, previous_metrics, row.customers) if prev_period else None
                 state_skus.append([
                     state, rank, row.sku, row.desc, money(row.sales), qty(row.qty),
@@ -254,7 +256,7 @@ def build_strength(df, history_df=None):
                     current_codes = sorted(set(
                         arows[(arows["sku"] == row.sku) & (arows["desc"] == row.desc)]["debtor_code"]
                     ))
-                    previous_metrics = debtor_sku_metrics(prev_view, current_codes, row.sku, row.desc) if prev_period else None
+                    previous_metrics = prev_agent_sku_lookup.get((state, agent, row.sku, row.desc)) if prev_period else None
                     agent_sku = [
                         row.sku, row.desc, money(row.sales), qty(row.qty), int(row.customers),
                         round(float(row.sales) / total_sales * 100, 1) if total_sales else 0,

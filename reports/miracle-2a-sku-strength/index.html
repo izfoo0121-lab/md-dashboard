@@ -130138,11 +130138,12 @@
     }
 
     function combineViews(periods) {
-      if (periods.length === 1) return data[periods[0]];
       const views = periods.map(period => data[period]).filter(Boolean);
       const prev = previousPeriods(periods);
       const previousViews = prev.map(period => data[period]).filter(Boolean);
       const hasPrevious = previousViews.length === periods.length;
+      const previousStateSkuMap = aggregateStateSkuMap(previousViews);
+      const previousAgentSkuMap = aggregateAgentSkuMap(previousViews);
       const states = new Map();
       const skuOptions = new Map();
 
@@ -130179,7 +130180,7 @@
       stateGroups.forEach((rows, state) => {
         rows.sort((a, b) => b.sales - a.sales).forEach((row, index) => {
           const total = stateSales.get(state) || 0;
-          const previous = previousDebtorSkuMetrics(prev, row.debtors, row.code, row.desc);
+          const previous = previousStateSkuMap.get(`${state}||${skuValue(row.code, row.desc)}`);
           stateSkus.push([
             state,
             index + 1,
@@ -130207,7 +130208,7 @@
           const skus = agentRow.skus
             .sort((a, b) => b.sales - a.sales)
             .map(row => {
-              const previous = previousDebtorSkuMetrics(prev, row.debtors, row.code, row.desc);
+              const previous = previousAgentSkuMap.get(`${row.state}||${row.agent}||${skuValue(row.code, row.desc)}`);
               return [
                 row.code,
                 row.desc,
