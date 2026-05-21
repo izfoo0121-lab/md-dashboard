@@ -16,6 +16,7 @@ DEBTOR_STATUS_JS = Path(__file__).with_name("debtor_status.js")
 AGENT_MONTHLY_JS = Path(__file__).with_name("agent_monthly_revenue.js")
 SKU_GAP_JS = Path(__file__).with_name("sku_gap_opportunities.js")
 SKU_PENETRATION_JS = Path(__file__).with_name("sku_penetration_data.js")
+SKU_DEBTOR_HISTORY_JS = Path(__file__).with_name("sku_debtor_history.js")
 
 STATE_MAP = {
     "Terengganu": ["KF", "JAMES", "NMK"],
@@ -133,7 +134,48 @@ def grouped_lookup(frame, keys):
     return lookup
 
 
-def build_strength(df):
+def debtor_sku_metrics(frame, debtor_codes, sku, desc):
+    if frame.empty or not debtor_codes:
+        return None
+    rows = frame[
+        frame["debtor_code"].isin(debtor_codes)
+        & (frame["sku"] == sku)
+        & (frame["desc"] == desc)
+    ]
+    if rows.empty:
+        return None
+    return {
+        "sales": float(rows["sales"].sum()),
+        "qty": float(rows["qty_ctn"].sum()),
+        "customers": int(rows["debtor_code"].nunique()),
+    }
+
+
+def build_debtor_skus(frame):
+    if frame.empty:
+        return []
+    grouped = (
+        frame.groupby(["debtor_code", "sku", "desc"], dropna=False)
+        .agg(sales=("sales", "sum"), qty=("qty_ctn", "sum"))
+        .reset_index()
+        .sort_values(["debtor_code", "sku", "desc"])
+    )
+    return [
+        [str(row.debtor_code), str(row.sku), str(row.desc), money(row.sales), qty(row.qty)]
+        for row in grouped.itertuples(index=False)
+    ]
+
+
+def build_debtor_sku_history(history_df, periods, debtor_codes):
+    scoped_history = history_df[history_df["debtor_code"].isin(debtor_codes)].copy()
+    return {
+        period: build_debtor_skus(period_frame(scoped_history, period))
+        for period in periods
+    }
+
+
+def build_strength(df, history_df=None):
+    history_df = history_df if history_df is not None else df
     data = {}
     periods = sorted(df["period_key"].dropna().unique())
     period_labels = [(period, month_label(period)) for period in periods]
@@ -141,9 +183,7 @@ def build_strength(df):
     for period, label in period_labels:
         view = period_frame(df, period)
         prev_period = periods[periods.index(period) - 1] if period in periods and periods.index(period) > 0 else None
-        prev_view = period_frame(df, prev_period) if prev_period else df.iloc[0:0].copy()
-        prev_state_skus = grouped_lookup(prev_view, ["state", "sku", "desc"])
-        prev_agent_skus = grouped_lookup(prev_view, ["state", "agent", "sku", "desc"])
+        prev_view = period_frame(history_df, prev_period) if prev_period else history_df.iloc[0:0].copy()
         states = []
         state_skus = []
         agents = []
@@ -182,11 +222,15 @@ def build_strength(df):
                 .sort_values("sales", ascending=False)
             )
             for rank, row in enumerate(sku_rows.itertuples(index=False), start=1):
-                trend = build_trend(row.sales, row.qty, prev_state_skus.get((state, row.sku, row.desc)), row.customers) if prev_period else None
+                current_codes = sorted(set(
+                    srows[(srows["sku"] == row.sku) & (srows["desc"] == row.desc)]["debtor_code"]
+                ))
+                previous_metrics = debtor_sku_metrics(prev_view, current_codes, row.sku, row.desc) if prev_period else None
+                trend = build_trend(row.sales, row.qty, previous_metrics, row.customers) if prev_period else None
                 state_skus.append([
                     state, rank, row.sku, row.desc, money(row.sales), qty(row.qty),
                     int(row.customers), round(float(row.sales) / total_sales * 100, 1) if total_sales else 0,
-                    trend,
+                    trend, current_codes,
                 ])
 
         for state, state_agents in STATE_MAP.items():
@@ -207,10 +251,15 @@ def build_strength(df):
                 )
                 skus = []
                 for row in sku_rows.itertuples(index=False):
+                    current_codes = sorted(set(
+                        arows[(arows["sku"] == row.sku) & (arows["desc"] == row.desc)]["debtor_code"]
+                    ))
+                    previous_metrics = debtor_sku_metrics(prev_view, current_codes, row.sku, row.desc) if prev_period else None
                     agent_sku = [
                         row.sku, row.desc, money(row.sales), qty(row.qty), int(row.customers),
                         round(float(row.sales) / total_sales * 100, 1) if total_sales else 0,
-                        build_trend(row.sales, row.qty, prev_agent_skus.get((state, agent, row.sku, row.desc)), row.customers) if prev_period else None,
+                        build_trend(row.sales, row.qty, previous_metrics, row.customers) if prev_period else None,
+                        current_codes,
                     ]
                     skus.append(agent_sku)
                 agents.append([state, agent, skus])
@@ -439,7 +488,16 @@ def main():
     sales["period_key"] = sales["date"].dt.strftime("%Y-%m")
     all_sales["period_key"] = all_sales["date"].dt.strftime("%Y-%m")
     debtors = load_debtors()
-    replace_index_data(build_strength(sales))
+    strength_data = build_strength(sales, all_sales)
+    replace_index_data(strength_data)
+    SKU_DEBTOR_HISTORY_JS.write_text(
+        "window.skuDebtorHistory = " + json.dumps(
+            build_debtor_sku_history(all_sales, [period for period in strength_data if period != "all"], set(sales["debtor_code"])),
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ) + ";\n",
+        encoding="utf-8",
+    )
     DEBTOR_STATUS_JS.write_text(
         "window.debtorStatusData = " + json.dumps(build_debtor_status(sales, debtors), ensure_ascii=False, indent=2) + ";\n",
         encoding="utf-8",
