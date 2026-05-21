@@ -37,6 +37,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--text);height:100vh
 @keyframes spin{to{transform:rotate(360deg);}}
 #loading p{font-family:var(--mono);font-size:10px;color:var(--muted);}
 
+/* Header */
 #header{background:var(--surface);padding:8px 12px 6px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;}
 #header h1{font-family:var(--display);font-size:20px;letter-spacing:.05em;color:var(--text);}
 .sub{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-top:1px;}
@@ -46,26 +47,39 @@ body{font-family:var(--body);background:var(--bg);color:var(--text);height:100vh
 #header.agent-mode h1{font-size:16px;}
 #header.agent-mode .sub{display:none;}
 
+/* Legend bar — agent mode only */
+#legend-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:6px 12px;display:none;gap:12px;align-items:center;flex-wrap:wrap;}
+.leg{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--muted);}
+.leg-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+
+/* Day route strip — agent mode */
+#day-strip{background:var(--surface);border-bottom:1px solid var(--border);padding:5px 10px;display:none;gap:5px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+#day-strip::-webkit-scrollbar{display:none;}
+.day-strip-btn{padding:5px 12px;border-radius:20px;border:2px solid var(--dc,#555);background:transparent;color:var(--dc,#555);font-family:var(--mono);font-size:11px;cursor:pointer;font-weight:600;white-space:nowrap;opacity:.45;transition:all .15s;flex-shrink:0;}
+.day-strip-btn.active{background:var(--dc,#555);color:#fff;opacity:1;}
+.day-strip-btn.today-btn{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--dc,#555);}
+
+/* Admin controls */
 #controls{background:var(--surface);padding:6px 12px;border-bottom:1px solid var(--border);flex-shrink:0;}
 #search-row{display:flex;gap:6px;margin-bottom:6px;}
 #search{flex:1;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-family:var(--body);font-size:13px;outline:none;}
 #search::placeholder{color:var(--muted);}
 #search:focus{border-color:var(--accent);}
 #clear-btn{padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--accent);font-family:var(--mono);font-size:11px;cursor:pointer;white-space:nowrap;}
-
 .filter-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px;align-items:center;}
 .filter-label{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-right:2px;min-width:30px;}
 .day-btn{padding:4px 9px;border-radius:20px;border:2px solid var(--dc,#555);background:var(--dc,#555);font-family:var(--mono);font-size:10px;cursor:pointer;font-weight:500;color:#fff;opacity:0.35;transition:opacity .15s;}
 .day-btn.active{opacity:1;}
-.all-btn{padding:4px 9px;border-radius:20px;border:1px solid var(--border);background:var(--card);color:var(--muted);font-family:var(--mono);font-size:10px;cursor:pointer;font-weight:500;opacity:0.6;transition:all .15s;}
+.all-btn{padding:4px 9px;border-radius:20px;border:1px solid var(--border);background:var(--card);color:var(--muted);font-family:var(--mono);font-size:10px;cursor:pointer;font-weight:500;opacity:0.6;}
 .all-btn.active{border-color:var(--accent);color:var(--accent);opacity:1;}
 .agent-select{padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-family:var(--mono);font-size:11px;outline:none;}
-.agent-select:focus{border-color:var(--accent);}
 .toggle-btn{padding:4px 11px;border-radius:20px;border:2px solid;font-family:var(--mono);font-size:10px;cursor:pointer;font-weight:500;transition:all .15s;}
-.toggle-btn.active-on{border-color:var(--green);background:var(--green);color:#000;}
-.toggle-btn.active-off{border-color:var(--green);background:transparent;color:var(--green);opacity:0.4;}
-.toggle-btn.inactive-on{border-color:var(--red);background:var(--red);color:#fff;}
-.toggle-btn.inactive-off{border-color:var(--red);background:transparent;color:var(--red);opacity:0.4;}
+.toggle-btn.on-g{border-color:var(--green);background:var(--green);color:#000;}
+.toggle-btn.off-g{border-color:var(--green);background:transparent;color:var(--green);opacity:0.4;}
+.toggle-btn.on-r{border-color:var(--red);background:var(--red);color:#fff;}
+.toggle-btn.off-r{border-color:var(--red);background:transparent;color:var(--red);opacity:0.4;}
+.toggle-btn.on-o{border-color:var(--orange);background:var(--orange);color:#000;}
+.toggle-btn.off-o{border-color:var(--orange);background:transparent;color:var(--orange);opacity:0.4;}
 #stats{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
 
 #map{flex:1;margin-bottom:64px;}
@@ -77,13 +91,15 @@ body{font-family:var(--body);background:var(--bg);color:var(--text);height:100vh
 .nav-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
 .nav-item.active .nav-label{color:var(--accent);}
 
+/* Popup */
 .popup-box{font-family:'DM Sans',Arial,sans-serif;font-size:13px;min-width:200px;}
 .popup-box .pname{font-weight:600;font-size:14px;margin-bottom:5px;word-break:break-word;line-height:1.3;}
 .popup-box .prow{margin:3px 0;font-size:12px;color:#555;}
 .popup-box .prow b{color:#222;}
-.popup-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:bold;color:#fff;margin-top:5px;}
-.pbadge-active{background:#3ddc84;color:#000;}
-.pbadge-inactive{background:#ff5f5f;}
+.popup-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:bold;color:#fff;margin-top:5px;margin-right:4px;}
+.pb-bought{background:#3ddc84;color:#000;}
+.pb-notbought{background:#ff9a3c;color:#000;}
+.pb-inactive{background:#aaa;}
 .nav-btns{display:flex;gap:6px;margin-top:8px;}
 .nav-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 6px;border-radius:8px;font-size:12px;font-weight:600;color:#fff;text-decoration:none;}
 .nav-btn-gmaps{background:#4285F4;}
@@ -116,6 +132,17 @@ body{font-family:var(--body);background:var(--bg);color:var(--text);height:100vh
   </div>
 </div>
 
+<!-- Agent legend -->
+<div id="legend-bar">
+  <div class="leg"><div class="leg-dot" style="background:#3ddc84;"></div>Bought this month</div>
+  <div class="leg"><div class="leg-dot" style="background:#ff9a3c;"></div>Not yet bought</div>
+  <div class="leg"><div class="leg-dot" style="background:#aaaaaa;opacity:.5"></div>Inactive</div>
+</div>
+
+<!-- Agent day route strip -->
+<div id="day-strip"></div>
+
+<!-- Admin controls -->
 <div id="controls">
   <div id="search-row">
     <input id="search" type="search" placeholder="Search debtor name or code...">
@@ -126,9 +153,10 @@ body{font-family:var(--body);background:var(--bg);color:var(--text);height:100vh
     <button class="all-btn active" data-day="ALL" onclick="toggleDay(this)">All</button>
   </div>
   <div class="filter-row">
-    <span class="filter-label">Status</span>
-    <button class="toggle-btn active-on" id="btn-active" onclick="toggleActive()">✓ Active</button>
-    <button class="toggle-btn inactive-on" id="btn-inactive" onclick="toggleInactive()">✗ Inactive</button>
+    <span class="filter-label">Show</span>
+    <button class="toggle-btn on-g" id="btn-bought"    onclick="toggleFilter('bought')"   >✓ Bought</button>
+    <button class="toggle-btn on-o" id="btn-notbought" onclick="toggleFilter('notbought')">⚠ Not Yet</button>
+    <button class="toggle-btn on-r" id="btn-inactive"  onclick="toggleFilter('inactive')" >✗ Inactive</button>
     <div id="admin-agent-wrap" style="margin-left:auto;display:none;">
       <select class="agent-select" id="admin-agent-select" onchange="applyFilters()">
         <option value="ALL">All Agents</option>
@@ -157,8 +185,10 @@ const DAY_COLORS = {
   Thursday:'#4da6ff', Friday:'#a78bfa', Saturday:'#16a085',
   Sunday:'#f0c040',  Random:'#7070a0'
 };
+const DAY_JS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const TODAY  = DAY_JS[new Date().getDay()];
 
-// Sync theme with dashboard
+// Theme
 const savedTheme = localStorage.getItem('md_dashboard_theme') || 'dark';
 if (savedTheme === 'light') document.documentElement.setAttribute('data-theme','light');
 function toggleTheme() {
@@ -167,10 +197,12 @@ function toggleTheme() {
   try { localStorage.setItem('md_dashboard_theme', next || 'dark'); } catch {}
 }
 
-let showActive = true, showInactive = true;
+let showBought = true, showNotBought = true, showInactive = true;
 let activeDays = new Set(['ALL', ...DAYS_ORDER]);
 let searchTerm = '', allMarkers = [], clusterGroup;
 let currentAgent = null, isAdmin = false;
+// Agent day filter (single day)
+let agentDayFilter = 'ALL';
 
 const map = L.map('map').setView([5.85, 102.05], 10);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -179,15 +211,27 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 function setLoadMsg(t) { document.getElementById('load-msg').textContent = t; }
 
-function makeIcon(day, isActive) {
-  const color = DAY_COLORS[day] || '#7070a0';
-  const op    = isActive ? '1' : '0.4';
-  const cross = isActive ? '' : '<line x1="5" y1="5" x2="19" y2="19" stroke="#fff" stroke-width="2.5"/><line x1="19" y1="5" x2="5" y2="19" stroke="#fff" stroke-width="2.5"/>';
+// ── Pin design ───────────────────────────────────────────────────────────────
+// Fill = purchase status | Ring = day color
+function makeIcon(day, active, purchased) {
+  const ring  = DAY_COLORS[day] || '#7070a0';
+  let fill, op, cross = '';
+  if (!active || active === 'Unchecked') {
+    fill = '#aaaaaa'; op = '0.4';
+    cross = '<line x1="5" y1="5" x2="19" y2="19" stroke="#fff" stroke-width="2.5"/><line x1="19" y1="5" x2="5" y2="19" stroke="#fff" stroke-width="2.5"/>';
+  } else if (purchased) {
+    fill = '#3ddc84'; op = '1';   // green = bought
+  } else {
+    fill = '#ff9a3c'; op = '1';   // orange = not yet bought
+  }
   return L.divIcon({
-    html:`<svg xmlns="http://www.w3.org/2000/svg" width="26" height="34" viewBox="0 0 26 34">
-      <path d="M13 0C5.8 0 0 5.8 0 13c0 9.5 13 21 13 21S26 22.5 26 13C26 5.8 20.2 0 13 0z" fill="${color}" opacity="${op}"/>
-      <circle cx="13" cy="13" r="6" fill="#fff" opacity="${op}"/>${cross}</svg>`,
-    iconSize:[26,34], iconAnchor:[13,34], popupAnchor:[0,-32], className:''
+    html:`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
+      <path d="M14 0C6.3 0 0 6.3 0 14c0 10 14 22 14 22S28 24 28 14C28 6.3 21.7 0 14 0z" fill="${ring}"/>
+      <path d="M14 2C7.4 2 2 7.4 2 14c0 9 12 20 12 20S26 23 26 14C26 7.4 20.6 2 14 2z" fill="${fill}" opacity="${op}"/>
+      <circle cx="14" cy="14" r="6" fill="#fff" opacity="${op}"/>
+      ${cross}
+    </svg>`,
+    iconSize:[28,36], iconAnchor:[14,36], popupAnchor:[0,-34], className:''
   });
 }
 
@@ -195,7 +239,7 @@ function buildClusterGroup() {
   return L.markerClusterGroup({
     maxClusterRadius:55, spiderfyOnMaxZoom:true, showCoverageOnHover:false, zoomToBoundsOnClick:true,
     iconCreateFunction(c) {
-      const n=c.getChildCount(), sz=n<10?34:n<100?40:48;
+      const n = c.getChildCount(), sz = n<10?34:n<100?40:48;
       return L.divIcon({
         html:`<div style="background:rgba(240,192,64,.9);color:#000;border-radius:50%;width:${sz}px;height:${sz}px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${n<10?13:11}px;border:2px solid rgba(255,255,255,.5);box-shadow:0 2px 8px rgba(0,0,0,.5);">${n}</div>`,
         iconSize:[sz,sz], className:''
@@ -207,13 +251,17 @@ function buildClusterGroup() {
 function addMarkers(records) {
   clusterGroup = buildClusterGroup();
   records.forEach(r => {
-    const isActive = r.active === 'Checked';
-    const m = L.marker([r.lat, r.lng], {icon: makeIcon(r.day, isActive)});
-    const dc = DAY_COLORS[r.day] || '#7070a0';
-    const ph = r.phone ? `<a href="tel:${r.phone}" style="color:#4da6ff;font-weight:600;text-decoration:none;">${r.phone}</a>` : '-';
-    const badge = isActive
-      ? `<span class="popup-badge pbadge-active">✓ Active</span>`
-      : `<span class="popup-badge pbadge-inactive">✗ Inactive</span>`;
+    const isActive   = r.active === 'Checked';
+    const purchased  = r.purchased === true;
+    const m = L.marker([r.lat, r.lng], {icon: makeIcon(r.day, r.active, purchased)});
+    const dc  = DAY_COLORS[r.day] || '#7070a0';
+    const ph  = r.phone ? `<a href="tel:${r.phone}" style="color:#4da6ff;font-weight:600;text-decoration:none;">${r.phone}</a>` : '-';
+    const ctnBadge = !isActive
+      ? `<span class="popup-badge pb-inactive">✗ Inactive</span>`
+      : purchased
+        ? `<span class="popup-badge pb-bought">✓ Bought ${r.ctn_cur > 0 ? r.ctn_cur+'ctn' : ''}</span>`
+        : `<span class="popup-badge pb-notbought">⚠ Not Yet Bought</span>`;
+    const lpDate = r.last_purchase ? `<div class="prow"><b>Last Purchase:</b> ${r.last_purchase}</div>` : '';
     const gm = `https://www.google.com/maps/dir/?api=1&destination=${r.lat},${r.lng}`;
     const wz = `https://waze.com/ul?ll=${r.lat},${r.lng}&navigate=yes`;
     m.bindPopup(`
@@ -224,7 +272,8 @@ function addMarkers(records) {
         <div class="prow"><b>Visit Day:</b> <span style="color:${dc};font-weight:600;">${r.day}</span></div>
         <div class="prow"><b>Area:</b> ${r.area}</div>
         <div class="prow"><b>Phone:</b> ${ph}</div>
-        <div>${badge}</div>
+        ${lpDate}
+        <div style="margin-top:4px;">${ctnBadge}</div>
         <div class="nav-btns">
           <a class="nav-btn nav-btn-gmaps" href="${gm}" target="_blank">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
@@ -238,12 +287,52 @@ function addMarkers(records) {
       </div>`, {maxWidth:280});
     m._data = r;
     m._isActive = isActive;
+    m._purchased = purchased;
     allMarkers.push(m);
   });
   map.addLayer(clusterGroup);
 }
 
-function buildDayButtons(records) {
+// ── Agent day strip ─────────────────────────────────────────────────────────
+function buildDayStrip(records) {
+  const strip = document.getElementById('day-strip');
+  strip.style.display = 'flex';
+  const days = DAYS_ORDER.filter(d => records.some(r => r.day === d));
+  // ALL button
+  const allBtn = document.createElement('button');
+  allBtn.className = 'day-strip-btn active';
+  allBtn.dataset.day = 'ALL';
+  allBtn.style.cssText = '--dc:#7070a0';
+  allBtn.textContent = 'All Days';
+  allBtn.onclick = () => setAgentDay('ALL', allBtn);
+  strip.appendChild(allBtn);
+
+  days.forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'day-strip-btn' + (d === TODAY ? ' today-btn' : '');
+    btn.dataset.day = d;
+    btn.style.cssText = `--dc:${DAY_COLORS[d]}`;
+    btn.textContent = d + (d === TODAY ? ' · Today' : '');
+    btn.onclick = () => setAgentDay(d, btn);
+    strip.appendChild(btn);
+  });
+
+  // Auto-select today if agent has visits today
+  if (days.includes(TODAY)) {
+    const todayBtn = strip.querySelector(`[data-day="${TODAY}"]`);
+    if (todayBtn) setAgentDay(TODAY, todayBtn);
+  }
+}
+
+function setAgentDay(day, btn) {
+  agentDayFilter = day;
+  document.querySelectorAll('.day-strip-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilters();
+}
+
+// ── Admin day buttons ───────────────────────────────────────────────────────
+function buildAdminDayButtons(records) {
   const present = new Set(records.map(r => r.day));
   const row = document.getElementById('day-row');
   DAYS_ORDER.forEach(d => {
@@ -265,30 +354,43 @@ function buildAdminDropdown(records) {
   document.getElementById('admin-agent-wrap').style.display = 'block';
 }
 
+// ── Filters ─────────────────────────────────────────────────────────────────
 function applyFilters() {
-  searchTerm = document.getElementById('search').value.trim().toLowerCase();
-  const agentFilter = isAdmin ? document.getElementById('admin-agent-select').value : currentAgent;
-  const allOn = activeDays.has('ALL');
+  searchTerm = isAdmin ? document.getElementById('search').value.trim().toLowerCase() : '';
+  const agentF = isAdmin ? document.getElementById('admin-agent-select').value : currentAgent;
+  const allOn  = activeDays.has('ALL');
+
   clusterGroup.clearLayers();
-  let shown = 0;
+  let shown = 0, bought = 0, notBought = 0;
+
   allMarkers.forEach(m => {
     const r = m._data;
-    if ((allOn || activeDays.has(r.day))
-      && (agentFilter === 'ALL' || r.agent === agentFilter)
-      && ((m._isActive && showActive) || (!m._isActive && showInactive))
-      && (!searchTerm || r.name.toLowerCase().includes(searchTerm) || r.code.toLowerCase().includes(searchTerm))
-    ) { clusterGroup.addLayer(m); shown++; }
+    const dayMatch   = isAdmin ? (allOn || activeDays.has(r.day)) : (agentDayFilter === 'ALL' || r.day === agentDayFilter);
+    const agentMatch = agentF === 'ALL' || r.agent === agentF;
+    const boughtMatch = (m._purchased && showBought) || (!m._purchased && m._isActive && showNotBought) || (!m._isActive && showInactive);
+    const srchMatch  = !searchTerm || r.name.toLowerCase().includes(searchTerm) || r.code.toLowerCase().includes(searchTerm);
+    if (dayMatch && agentMatch && boughtMatch && srchMatch) {
+      clusterGroup.addLayer(m); shown++;
+      if (m._isActive && m._purchased) bought++;
+      else if (m._isActive && !m._purchased) notBought++;
+    }
   });
   map.addLayer(clusterGroup);
-  document.getElementById('stats').textContent = `${shown.toLocaleString()} / ${allMarkers.length.toLocaleString()} debtors`;
+
+  if (isAdmin) {
+    document.getElementById('stats').textContent = `${shown.toLocaleString()} debtors`;
+  } else {
+    const nb = notBought > 0 ? ` · ⚠ ${notBought} not yet` : '';
+    document.getElementById('stats').textContent = `${shown} shown · ✓ ${bought}${nb}`;
+  }
 }
 
 function toggleDay(btn) {
   const day = btn.dataset.day;
   if (day === 'ALL') {
     const allOn = activeDays.has('ALL');
-    activeDays = allOn ? new Set() : new Set(['ALL', ...DAYS_ORDER]);
-    document.querySelectorAll('.day-btn,.all-btn').forEach(b => b.classList.toggle('active', !allOn));
+    activeDays = allOn ? new Set() : new Set(['ALL',...DAYS_ORDER]);
+    document.querySelectorAll('.day-btn,.all-btn').forEach(b => b.classList.toggle('active',!allOn));
   } else {
     if (activeDays.has(day)) {
       activeDays.delete(day); activeDays.delete('ALL');
@@ -306,35 +408,38 @@ function toggleDay(btn) {
   applyFilters();
 }
 
-function toggleActive()  { showActive   = !showActive;   document.getElementById('btn-active').className   = 'toggle-btn '+(showActive   ?'active-on':'active-off');   applyFilters(); }
-function toggleInactive(){ showInactive = !showInactive; document.getElementById('btn-inactive').className = 'toggle-btn '+(showInactive?'inactive-on':'inactive-off'); applyFilters(); }
+function toggleFilter(type) {
+  if (type==='bought')    { showBought    = !showBought;    document.getElementById('btn-bought').className    = 'toggle-btn '+(showBought    ?'on-g':'off-g'); }
+  if (type==='notbought') { showNotBought = !showNotBought; document.getElementById('btn-notbought').className = 'toggle-btn '+(showNotBought ?'on-o':'off-o'); }
+  if (type==='inactive')  { showInactive  = !showInactive;  document.getElementById('btn-inactive').className  = 'toggle-btn '+(showInactive  ?'on-r':'off-r'); }
+  applyFilters();
+}
 
 function clearFilters() {
   document.getElementById('search').value = '';
-  if (isAdmin) document.getElementById('admin-agent-select').value = 'ALL';
-  showActive = true; showInactive = true;
-  activeDays = new Set(['ALL', ...DAYS_ORDER]);
+  document.getElementById('admin-agent-select').value = 'ALL';
+  showBought = true; showNotBought = true; showInactive = true;
+  activeDays = new Set(['ALL',...DAYS_ORDER]);
   document.querySelectorAll('.day-btn,.all-btn').forEach(b => b.classList.add('active'));
-  document.getElementById('btn-active').className   = 'toggle-btn active-on';
-  document.getElementById('btn-inactive').className = 'toggle-btn inactive-on';
+  document.getElementById('btn-bought').className    = 'toggle-btn on-g';
+  document.getElementById('btn-notbought').className = 'toggle-btn on-o';
+  document.getElementById('btn-inactive').className  = 'toggle-btn on-r';
   applyFilters();
 }
 
 let st;
-document.getElementById('search').addEventListener('input', () => { clearTimeout(st); st = setTimeout(applyFilters,300); });
+document.getElementById('search').addEventListener('input', () => { clearTimeout(st); st=setTimeout(applyFilters,300); });
 
-// ── Supabase fetch (paginated) ───────────────────────────────────────────────
+// ── Supabase fetch ───────────────────────────────────────────────────────────
 async function fetchDebtors(agentName) {
   const PAGE = 1000;
   let all = [], from = 0;
   while (true) {
-    let url = `${SUPABASE_URL}/rest/v1/debtor_locations?select=code,name,phone,agent,day,active,area,lat,lng&order=code`;
+    let url = `${SUPABASE_URL}/rest/v1/debtor_locations?select=code,name,phone,agent,day,active,area,lat,lng,purchased,ctn_cur,last_purchase&order=code`;
     if (agentName !== 'ALL') url += `&agent=eq.${encodeURIComponent(agentName)}`;
     const r = await fetch(url, {
-      headers: {
-        'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Range-Unit':'items', 'Range':`${from}-${from+PAGE-1}`
-      }
+      headers:{ 'apikey':SUPABASE_KEY, 'Authorization':`Bearer ${SUPABASE_KEY}`,
+                'Range-Unit':'items', 'Range':`${from}-${from+PAGE-1}` }
     });
     if (!r.ok) throw new Error(`Supabase ${r.status}: ${await r.text()}`);
     const rows = await r.json();
@@ -363,21 +468,25 @@ async function boot() {
   if (!isAdmin) {
     document.getElementById('controls').style.display = 'none';
     document.getElementById('header').classList.add('agent-mode');
+    document.getElementById('legend-bar').style.display = 'flex';
   }
 
   try {
-    setLoadMsg(isAdmin ? 'Fetching all debtors...' : `Fetching debtors for ${agent}...`);
+    setLoadMsg(isAdmin ? 'Fetching all debtors...' : `Loading your debtors, ${agent}...`);
     const records = await fetchDebtors(isAdmin ? 'ALL' : agent);
 
     setLoadMsg(`Building map — ${records.length} debtors...`);
-    buildDayButtons(records);
-    if (isAdmin) buildAdminDropdown(records);
+    if (isAdmin) {
+      buildAdminDayButtons(records);
+      buildAdminDropdown(records);
+    } else {
+      buildDayStrip(records);
+    }
     addMarkers(records);
     applyFilters();
-
     document.getElementById('loading').style.display = 'none';
   } catch(e) {
-    setLoadMsg('Error loading data: ' + e.message);
+    setLoadMsg('Error: ' + e.message);
     console.error(e);
   }
 }
