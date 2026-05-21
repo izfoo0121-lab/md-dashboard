@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Miracle 2A SKU Gap Opportunities</title>
+  <style>
+    :root {
+      --bg: #f7f8f5;
+      --panel: #ffffff;
+      --ink: #20251f;
+      --muted: #627064;
+      --line: #dce3da;
+      --green: #23644a;
+      --teal: #287985;
+      --red: #c6533c;
+      --amber: #d9972d;
+      --soft-green: #e9f2df;
+      --soft-teal: #e1f0f2;
+      --soft-amber: #f6edd8;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.45;
+    }
+
+    header {
+      padding: 28px 32px 18px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcf8;
+    }
+
+    .eyebrow {
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 6px 0 8px;
+      font-size: 32px;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .sub {
+      color: var(--muted);
+      max-width: 1020px;
+      margin: 0;
+    }
+
+    main {
+      padding: 24px 32px 42px;
+      max-width: 1480px;
+      margin: 0 auto;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .filters {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .select, .search {
+      min-width: 210px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font: inherit;
+      background: white;
+      color: var(--ink);
+    }
+
+    .search { min-width: 310px; }
+
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 12px;
+      background: white;
+      color: var(--green);
+      font-weight: 800;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 18px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      padding: 15px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(160px, 1fr));
+      gap: 12px;
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcf8;
+    }
+
+    .summary-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 13px 14px;
+      background: var(--panel);
+    }
+
+    .summary-card b {
+      display: block;
+      font-size: 27px;
+      line-height: 1.1;
+      margin-bottom: 5px;
+    }
+
+    .summary-card span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .agent-summary {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(170px, 1fr));
+      gap: 10px;
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .agent-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 11px;
+      background: var(--panel);
+    }
+
+    .agent-card strong {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 7px;
+    }
+
+    .agent-card span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .state-pill {
+      display: inline-flex;
+      align-items: center;
+      min-width: 96px;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    .Pahang { background: var(--soft-teal); color: var(--teal); }
+    .Terengganu { background: var(--soft-green); color: var(--green); }
+    .Kelantan { background: var(--soft-amber); color: #8a5a06; }
+
+    .status {
+      display: inline-flex;
+      justify-content: center;
+      min-width: 70px;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .status-active { background: var(--soft-green); color: var(--green); }
+    .status-inactive { background: #f7dfd9; color: var(--red); }
+    .status-missing { background: #eef0f3; color: #5b6570; }
+
+    .sku-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border-radius: 999px;
+      padding: 3px 7px;
+      margin: 2px;
+      font-size: 11px;
+      font-weight: 800;
+      background: #edf1ed;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+
+    .table-wrap {
+      max-height: 660px;
+      overflow: auto;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 1240px;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      background: #fbfcf8;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    td.num, th.num { text-align: right; }
+    tr:last-child td { border-bottom: 0; }
+
+    .empty {
+      padding: 26px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    footer {
+      color: var(--muted);
+      font-size: 12px;
+      padding: 18px 32px 32px;
+      max-width: 1480px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 980px) {
+      header, main, footer { padding-left: 18px; padding-right: 18px; }
+      .summary, .agent-summary { grid-template-columns: 1fr; }
+      .filters, .select, .search, .nav-link { width: 100%; min-width: 0; }
+      .hint { white-space: normal; }
+      table { font-size: 12px; }
+      th, td { padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="eyebrow">MD Sales Report | Miracle 2A</div>
+    <h1>SKU Gap Opportunities</h1>
+    <p class="sub">Find current buyers who did not purchase a selected SKU in the three completed workbook months before the anchor month. Example: May CM-002 buyers who did not buy EVO in Feb, Mar, or Apr.</p>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <div class="filters">
+        <select class="select" id="anchorSelect" aria-label="Anchor month"></select>
+        <select class="select" id="stateSelect" aria-label="State">
+          <option value="">All states</option>
+        </select>
+        <select class="select" id="agentSelect" aria-label="Agent">
+          <option value="">All agents</option>
+        </select>
+      </div>
+      <div class="filters">
+        <a class="nav-link" href="index.html">SKU Strength</a>
+        <a class="nav-link" href="penetration.html">SKU Penetration</a>
+        <a class="nav-link" href="../../debtor_analysis.html?report=sku-gap">Debtor Analysis</a>
+      </div>
+    </div>
+
+    <section>
+      <div class="section-head">
+        <h2>Gap Query</h2>
+        <span class="hint">Current buyer SKU, optionally checked against a missing SKU window</span>
+      </div>
+      <div class="toolbar" style="padding:14px;margin:0;border-bottom:1px solid var(--line);background:#fbfcf8">
+        <div class="filters">
+          <select class="select" id="sourceSkuSelect" aria-label="Current buyer SKU"></select>
+          <select class="select" id="targetSkuSelect" aria-label="Not purchased SKU"></select>
+          <input class="search" id="searchInput" placeholder="Search debtor, agent, SKU..." aria-label="Search debtor">
+        </div>
+      </div>
+      <div class="summary" id="summary"></div>
+      <div class="agent-summary" id="agentSummary"></div>
+      <div class="table-wrap" id="gapTable"></div>
+    </section>
+  </main>
+
+  <footer>
+    Source workbook: C:\Users\tgy_3\Desktop\md-dashboard\MD Sales Report.xlsx. Quantity uses column W, QTY(CTN). A gap debtor bought the current-buyer SKU in the anchor month but has zero target SKU purchase in the previous 3 completed months.
+  </footer>
+
+  <script src="sku_gap_opportunities.js"></script>
+  <script>
+    const fmt = new Intl.NumberFormat("en-MY", { maximumFractionDigits: 2 });
+    const rm = value => `RM ${fmt.format(value || 0)}`;
+    const pct = value => `${Number(value || 0).toFixed(1)}%`;
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      }[char]));
+    }
+
+    function skuValue(code, desc) {
+      return `${code}||${desc}`;
+    }
+
+    function skuLabel(code, desc) {
+      return code === desc ? code : `${code} - ${desc}`;
+    }
+
+    function skuMatches(code, desc, selectedSku) {
+      return !selectedSku || skuValue(code, desc) === selectedSku;
+    }
+
+    function monthLabel(month) {
+      const [year, value] = month.split("-");
+      const date = new Date(Number(year), Number(value) - 1, 1);
+      return date.toLocaleString("en-MY", { month: "short", year: "numeric" });
+    }
+
+    function statePill(state) {
+      return state ? `<span class="state-pill ${escapeHtml(state)}">${escapeHtml(state)}</span>` : "-";
+    }
+
+    function statusBadge(status) {
+      const value = status || "Missing";
+      const klass = value === "Inactive" ? "status-inactive" : value === "Missing" ? "status-missing" : "status-active";
+      return `<span class="status ${klass}">${escapeHtml(value)}</span>`;
+    }
+
+    function gapData() {
+      return window.skuGapData || { months: [], skuOptions: [], debtors: {}, records: [] };
+    }
+
+    function selected(id) {
+      return document.getElementById(id)?.value || "";
+    }
+
+    function gapSkuLabel(value) {
+      const found = (gapData().skuOptions || []).find(([code, desc]) => skuValue(code, desc) === value);
+      return found ? skuLabel(found[0], found[1]) : "selected SKU";
+    }
+
+    function gapWindowMonths(anchor) {
+      const months = gapData().months || [];
+      const anchorIndex = months.indexOf(anchor);
+      if (anchorIndex < 0) return [];
+      return months.slice(Math.max(0, anchorIndex - 3), anchorIndex);
+    }
+
+    function addItem(map, row) {
+      const key = skuValue(row.sku, row.desc);
+      if (!map.has(key)) map.set(key, { code: row.sku, desc: row.desc, qty: 0, sales: 0 });
+      const item = map.get(key);
+      item.qty += Number(row.qty || 0);
+      item.sales += Number(row.sales || 0);
+    }
+
+    function updateLatestTarget(map, row) {
+      const existing = map.get(row.code);
+      if (!existing || String(row.lastDate || "") > existing.date) {
+        map.set(row.code, { date: row.lastDate || "", qty: Number(row.qty || 0) });
+      }
+    }
+
+    function rowMatchesSearch(row, query) {
+      if (!query) return true;
+      const itemText = [...row.items, ...row.currentItems]
+        .map(item => `${item.code} ${item.desc}`)
+        .join(" ");
+      return `${row.code} ${row.name} ${row.state} ${row.agent} ${row.status} ${itemText}`.toLowerCase().includes(query);
+    }
+
+    function initControls() {
+      const data = gapData();
+      const months = data.months || [];
+      const skuOptions = data.skuOptions || [];
+
+      document.getElementById("anchorSelect").innerHTML = months
+        .map(month => `<option value="${month}">${escapeHtml(monthLabel(month))}</option>`)
+        .join("");
+      document.getElementById("anchorSelect").value = months[months.length - 1] || "";
+
+      const records = data.records || [];
+      const states = [...new Set(records.map(row => row.state).filter(Boolean))].sort();
+      document.getElementById("stateSelect").innerHTML = `<option value="">All states</option>` + states
+        .map(state => `<option value="${escapeHtml(state)}">${escapeHtml(state)}</option>`)
+        .join("");
+
+      const skuOptionsHtml = skuOptions
+        .map(([code, desc]) => `<option value="${escapeHtml(skuValue(code, desc))}">${escapeHtml(skuLabel(code, desc))}</option>`)
+        .join("");
+      document.getElementById("sourceSkuSelect").innerHTML = `<option value="">Any SKU current buyer</option>${skuOptionsHtml}`;
+      document.getElementById("targetSkuSelect").innerHTML = `<option value="">No missing SKU filter</option>${skuOptionsHtml}`;
+
+      const evo = skuOptions.find(([code]) => String(code).toUpperCase() === "EVO");
+      if (evo) document.getElementById("targetSkuSelect").value = skuValue(evo[0], evo[1]);
+
+      ["anchorSelect", "stateSelect", "agentSelect", "sourceSkuSelect", "targetSkuSelect"].forEach(id => {
+        document.getElementById(id).addEventListener("change", () => {
+          if (id === "stateSelect") document.getElementById("agentSelect").value = "";
+          syncAgentOptions();
+          render();
+        });
+      });
+      document.getElementById("searchInput").addEventListener("input", render);
+      syncAgentOptions();
+    }
+
+    function syncAgentOptions() {
+      const data = gapData();
+      const current = selected("agentSelect");
+      const state = selected("stateSelect");
+      const agents = [...new Set((data.records || [])
+        .filter(row => !state || row.state === state)
+        .map(row => row.agent)
+        .filter(Boolean))]
+        .sort();
+      document.getElementById("agentSelect").innerHTML = `<option value="">All agents</option>` + agents
+        .map(agent => `<option value="${escapeHtml(agent)}">${escapeHtml(agent)}</option>`)
+        .join("");
+      document.getElementById("agentSelect").value = agents.includes(current) ? current : "";
+    }
+
+    function buildRows() {
+      const data = gapData();
+      const records = data.records || [];
+      const months = data.months || [];
+      const anchor = selected("anchorSelect") || months[months.length - 1];
+      const sourceSku = selected("sourceSkuSelect");
+      const targetSku = selected("targetSkuSelect");
+      const state = selected("stateSelect");
+      const agent = selected("agentSelect");
+      const query = selected("searchInput").trim().toLowerCase();
+      const windowMonths = gapWindowMonths(anchor);
+      const anchorIndex = months.indexOf(anchor);
+      const windowStartIndex = Math.max(0, anchorIndex - 3);
+      const windowEndIndex = anchorIndex - 1;
+
+      if (!records.length) {
+        return { sourceRows: [], gapRows: [], targetBuyerCodes: new Set(), previousTargetByCode: new Map(), windowMonths };
+      }
+
+      const targetBuyerCodes = new Set();
+      const previousTargetByCode = new Map();
+      if (targetSku && windowMonths.length) {
+        records.forEach(row => {
+          if (!skuMatches(row.sku, row.desc, targetSku) || Number(row.qty || 0) <= 0) return;
+          const rowIndex = months.indexOf(row.month);
+          if (rowIndex >= windowStartIndex && rowIndex <= windowEndIndex) targetBuyerCodes.add(row.code);
+          if (rowIndex >= 0 && rowIndex < windowStartIndex) updateLatestTarget(previousTargetByCode, row);
+        });
+      }
+
+      const currentItemsByCode = new Map();
+      records.forEach(row => {
+        if (row.month !== anchor || Number(row.qty || 0) <= 0) return;
+        if (state && row.state !== state) return;
+        if (agent && row.agent !== agent) return;
+        if (!currentItemsByCode.has(row.code)) currentItemsByCode.set(row.code, new Map());
+        addItem(currentItemsByCode.get(row.code), row);
+      });
+
+      const sourceByCode = new Map();
+      records.forEach(row => {
+        if (row.month !== anchor || Number(row.qty || 0) <= 0) return;
+        if (state && row.state !== state) return;
+        if (agent && row.agent !== agent) return;
+        if (!skuMatches(row.sku, row.desc, sourceSku)) return;
+        if (!sourceByCode.has(row.code)) {
+          const debtor = (data.debtors || {})[row.code] || {};
+          sourceByCode.set(row.code, {
+            code: row.code,
+            name: debtor.name || row.name || "",
+            status: debtor.status || "Missing",
+            sourceSales: 0,
+            sourceQty: 0,
+            docs: 0,
+            itemsMap: new Map(),
+            agentTotals: new Map(),
+          });
+        }
+        const entry = sourceByCode.get(row.code);
+        entry.sourceSales += Number(row.sales || 0);
+        entry.sourceQty += Number(row.qty || 0);
+        entry.docs += Number(row.docs || 0);
+        addItem(entry.itemsMap, row);
+        const agentKey = `${row.state}||${row.agent}`;
+        if (!entry.agentTotals.has(agentKey)) entry.agentTotals.set(agentKey, { state: row.state, agent: row.agent, qty: 0, sales: 0 });
+        const agentTotal = entry.agentTotals.get(agentKey);
+        agentTotal.qty += Number(row.qty || 0);
+        agentTotal.sales += Number(row.sales || 0);
+      });
+
+      const sourceRows = [...sourceByCode.values()].map(row => {
+        const primary = [...row.agentTotals.values()].sort((a, b) => b.qty - a.qty || b.sales - a.sales)[0] || { state: "", agent: "" };
+        const items = [...row.itemsMap.values()].sort((a, b) => b.qty - a.qty || b.sales - a.sales);
+        const currentItems = [...(currentItemsByCode.get(row.code)?.values() || [])].sort((a, b) => b.qty - a.qty || b.sales - a.sales);
+        return {
+          ...row,
+          state: primary.state,
+          agent: primary.agent,
+          sourceQty: Number(row.sourceQty.toFixed(2)),
+          sourceSales: Math.round(row.sourceSales),
+          items,
+          currentItems,
+        };
+      }).filter(row => rowMatchesSearch(row, query));
+
+      const gapRows = (targetSku ? sourceRows.filter(row => !targetBuyerCodes.has(row.code)) : sourceRows)
+        .sort((a, b) => b.sourceQty - a.sourceQty || b.sourceSales - a.sourceSales);
+
+      return { sourceRows, gapRows, targetBuyerCodes, previousTargetByCode, windowMonths };
+    }
+
+    function render() {
+      const { sourceRows, gapRows, targetBuyerCodes, previousTargetByCode, windowMonths } = buildRows();
+      const sourceSku = selected("sourceSkuSelect");
+      const targetSku = selected("targetSkuSelect");
+      const hasTarget = !!targetSku;
+      const sourceLabel = sourceSku ? gapSkuLabel(sourceSku) : "Any SKU";
+      const targetLabel = hasTarget ? gapSkuLabel(targetSku) : "";
+      const targetBuyers = hasTarget ? sourceRows.length - gapRows.length : 0;
+      const gapRate = sourceRows.length ? gapRows.length / sourceRows.length * 100 : 0;
+      const windowLabel = windowMonths.map(monthLabel).join(", ");
+      const anchorLabel = monthLabel(selected("anchorSelect"));
+
+      document.getElementById("summary").innerHTML = hasTarget ? `
+        <div class="summary-card"><b>${fmt.format(sourceRows.length)}</b><span>${escapeHtml(sourceLabel)} current buyers</span></div>
+        <div class="summary-card"><b>${fmt.format(gapRows.length)}</b><span>No ${escapeHtml(targetLabel)} in 3 months</span></div>
+        <div class="summary-card"><b>${fmt.format(targetBuyers)}</b><span>Bought ${escapeHtml(targetLabel)} in window</span></div>
+        <div class="summary-card"><b>${pct(gapRate)}</b><span>Gap rate | ${escapeHtml(windowLabel)}</span></div>
+      ` : `
+        <div class="summary-card"><b>${fmt.format(sourceRows.length)}</b><span>${escapeHtml(sourceLabel)} current buyers</span></div>
+        <div class="summary-card"><b>${fmt.format(gapRows.length)}</b><span>Shown in buyer list</span></div>
+        <div class="summary-card"><b>${fmt.format(sourceRows.reduce((sum, row) => sum + row.sourceQty, 0))}</b><span>Anchor CTN</span></div>
+        <div class="summary-card"><b>${rm(sourceRows.reduce((sum, row) => sum + row.sourceSales, 0))}</b><span>Anchor sales</span></div>
+      `;
+
+      const agentSummaries = new Map();
+      sourceRows.forEach(row => {
+        const key = `${row.state}||${row.agent}`;
+        if (!agentSummaries.has(key)) agentSummaries.set(key, { state: row.state, agent: row.agent, buyers: 0, gaps: 0, gapQty: 0 });
+        const summary = agentSummaries.get(key);
+        summary.buyers += 1;
+        if (!hasTarget || !targetBuyerCodes.has(row.code)) {
+          summary.gaps += 1;
+          summary.gapQty += row.sourceQty;
+        }
+      });
+
+      document.getElementById("agentSummary").innerHTML = [...agentSummaries.values()]
+        .sort((a, b) => b.gaps - a.gaps || b.gapQty - a.gapQty || a.agent.localeCompare(b.agent))
+        .slice(0, 10)
+        .map(row => `
+          <div class="agent-card">
+            <strong>${escapeHtml(row.agent)}</strong>
+            ${statePill(row.state)}
+            <div style="margin-top:7px"><b>${fmt.format(row.gaps)}</b> <span>${hasTarget ? "gap debtors" : "buyers"} / ${fmt.format(row.buyers)} buyers</span></div>
+            <span>${fmt.format(row.gapQty)} anchor CTN ${hasTarget ? "in gap list" : "from buyers"}</span>
+          </div>
+        `).join("") || `<div class="empty">No current buyers match this scope.</div>`;
+
+      const shownRows = gapRows.slice(0, 250);
+      document.getElementById("gapTable").innerHTML = shownRows.length ? `
+        <table>
+          <thead>
+            <tr>
+              <th>Agent</th>
+              <th>State</th>
+              <th>Debtor</th>
+              <th>Status</th>
+              <th>Anchor buyer</th>
+              <th>Anchor SKU bought</th>
+              <th class="num">Anchor CTN</th>
+              <th class="num">Anchor sales</th>
+              ${hasTarget ? `<th>Last ${escapeHtml(targetLabel)}</th>` : ""}
+              <th>All anchor SKUs</th>
+            </tr>
+          </thead>
+          <tbody>${shownRows.map(row => {
+            const previous = previousTargetByCode.get(row.code);
+            const itemChips = row.items.slice(0, 4).map(item => `<span class="sku-chip" title="${escapeHtml(item.desc)}">${escapeHtml(item.code)} ${fmt.format(item.qty)}</span>`).join(" ");
+            const currentChips = row.currentItems.slice(0, 5).map(item => `<span class="sku-chip" title="${escapeHtml(item.desc)}">${escapeHtml(item.code)} ${fmt.format(item.qty)}</span>`).join(" ");
+            return `
+              <tr>
+                <td><b>${escapeHtml(row.agent || "-")}</b></td>
+                <td>${statePill(row.state)}</td>
+                <td><b>${escapeHtml(row.name || "-")}</b><br><span style="color:var(--muted)">${escapeHtml(row.code)}</span></td>
+                <td>${statusBadge(row.status || "Missing")}</td>
+                <td><b>${escapeHtml(anchorLabel)}</b><br><span style="color:var(--muted)">${escapeHtml(sourceLabel)} buyer</span></td>
+                <td>${itemChips}</td>
+                <td class="num">${fmt.format(row.sourceQty)}</td>
+                <td class="num">${rm(row.sourceSales)}</td>
+                ${hasTarget ? `<td>${previous ? `${escapeHtml(previous.date)}<br><span style="color:var(--muted)">${fmt.format(previous.qty)} CTN</span>` : "<span style='color:var(--muted)'>Never before window</span>"}</td>` : ""}
+                <td>${currentChips}</td>
+              </tr>
+            `;
+          }).join("")}</tbody>
+        </table>
+        ${gapRows.length > shownRows.length ? `<div class="empty">Showing first ${fmt.format(shownRows.length)} of ${fmt.format(gapRows.length)} matching debtors.</div>` : ""}`
+        : `<div class="empty">${hasTarget ? `No current buyers are missing ${escapeHtml(targetLabel)} in the selected 3-month window.` : "No current buyers match the selected scope."}</div>`;
+    }
+
+    initControls();
+    render();
+  </script>
+</body>
+</html>

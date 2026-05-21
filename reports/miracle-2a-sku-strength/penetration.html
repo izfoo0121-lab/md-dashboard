@@ -1,0 +1,1045 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Miracle 2A SKU Penetration Monitor</title>
+  <style>
+    :root {
+      --bg: #f7f8f5;
+      --panel: #ffffff;
+      --ink: #20251f;
+      --muted: #627064;
+      --line: #dce3da;
+      --green: #23644a;
+      --teal: #287985;
+      --red: #c6533c;
+      --amber: #d9972d;
+      --soft-green: #e9f2df;
+      --soft-teal: #e1f0f2;
+      --soft-amber: #f6edd8;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.45;
+    }
+
+    header {
+      padding: 28px 32px 18px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcf8;
+    }
+
+    .eyebrow {
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 6px 0 8px;
+      font-size: 32px;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .sub {
+      color: var(--muted);
+      max-width: 980px;
+      margin: 0;
+    }
+
+    main {
+      padding: 24px 32px 42px;
+      max-width: 1480px;
+      margin: 0 auto;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .filters {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .select {
+      min-width: 210px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font: inherit;
+      background: white;
+      color: var(--ink);
+    }
+
+    .wide-select { min-width: 330px; }
+
+    .type-menu {
+      position: relative;
+      min-width: 280px;
+    }
+
+    .type-menu summary {
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: white;
+      color: var(--ink);
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .type-menu summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .type-menu summary::after {
+      content: "v";
+      float: right;
+      color: var(--muted);
+    }
+
+    .type-options {
+      position: absolute;
+      z-index: 5;
+      left: 0;
+      top: calc(100% + 6px);
+      min-width: 300px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      background: white;
+      box-shadow: 0 12px 28px rgba(32,37,31,.12);
+    }
+
+    .type-options label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .type-options label:hover {
+      background: #fbfcf8;
+    }
+
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 12px;
+      background: white;
+      color: var(--green);
+      font-weight: 800;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 18px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      padding: 15px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(160px, 1fr));
+      gap: 12px;
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcf8;
+    }
+
+    .summary-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 13px 14px;
+      background: var(--panel);
+    }
+
+    .summary-card b {
+      display: block;
+      font-size: 28px;
+      line-height: 1.1;
+      margin-bottom: 6px;
+    }
+
+    .summary-card span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .mini-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: var(--panel);
+    }
+
+    .mini-card strong {
+      display: block;
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    .mini-card span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .state-pill {
+      display: inline-flex;
+      align-items: center;
+      min-width: 96px;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    .Pahang { background: var(--soft-teal); color: var(--teal); }
+    .Terengganu { background: var(--soft-green); color: var(--green); }
+    .Kelantan { background: var(--soft-amber); color: #8a5a06; }
+
+    .trend {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 72px;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .trend-up { background: var(--soft-green); color: var(--green); }
+    .trend-down { background: #f8e4df; color: var(--red); }
+    .trend-flat { background: #edf1ed; color: var(--muted); }
+
+    .bar-cell {
+      min-width: 160px;
+    }
+
+    .bar-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 5px;
+      font-weight: 800;
+    }
+
+    .progress {
+      height: 8px;
+      border-radius: 999px;
+      background: #edf1ed;
+      overflow: hidden;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--green);
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: 720px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 1100px;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      background: #fbfcf8;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    td.num, th.num { text-align: right; }
+    tr:last-child td { border-bottom: 0; }
+
+    .sku-name b,
+    .sku-name span {
+      display: block;
+    }
+
+    .sku-name span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .matrix-table {
+      min-width: 1180px;
+      table-layout: fixed;
+    }
+
+    .matrix-table th:first-child,
+    .matrix-table td:first-child {
+      width: 150px;
+    }
+
+    .matrix-cell {
+      border-radius: 0;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .matrix-cell b,
+    .matrix-cell span {
+      display: block;
+    }
+
+    .matrix-cell span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .cell-high { background: #dcefd3; color: var(--green); }
+    .cell-mid { background: #f6edd8; color: #8a5a06; }
+    .cell-low { background: #f8e4df; color: var(--red); }
+    .cell-zero { background: #f3f5f1; color: var(--muted); }
+
+    .empty {
+      padding: 26px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    footer {
+      color: var(--muted);
+      font-size: 12px;
+      padding: 18px 32px 32px;
+      max-width: 1480px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 980px) {
+      header, main, footer { padding-left: 18px; padding-right: 18px; }
+      .summary, .mini-grid { grid-template-columns: 1fr; }
+      .filters, .select, .wide-select, .type-menu, .nav-link { width: 100%; min-width: 0; }
+      .hint { white-space: normal; }
+      table { font-size: 12px; }
+      th, td { padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="eyebrow">MD Sales Report | Miracle 2A</div>
+    <h1>SKU Penetration Monitor</h1>
+    <p class="sub">Measure how many active debtor accounts carry a selected SKU, then compare coverage by agent, state, type, and item.</p>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <div class="filters">
+        <select class="select" id="monthSelect" aria-label="Month"></select>
+        <select class="select" id="stateSelect" aria-label="State">
+          <option value="">All states</option>
+        </select>
+        <select class="select" id="agentSelect" aria-label="Agent">
+          <option value="">All agents</option>
+        </select>
+        <details class="type-menu" id="typeFilter">
+          <summary id="typeSummary">Debtor types</summary>
+          <div class="type-options" id="typeOptions"></div>
+        </details>
+      </div>
+      <div class="filters">
+        <a class="nav-link" href="index.html">SKU Strength</a>
+        <a class="nav-link" href="gap_opportunities.html">Gap Opportunities</a>
+      </div>
+    </div>
+
+    <section>
+      <div class="section-head">
+        <h2>Penetration Query</h2>
+        <span class="hint">Active debtor base vs selected SKU buyers in the same month</span>
+      </div>
+      <div class="toolbar" style="padding:14px;margin:0;border-bottom:1px solid var(--line);background:#fbfcf8">
+        <div class="filters">
+          <select class="select wide-select" id="baseSkuSelect" aria-label="Buyer base SKU"></select>
+          <select class="select wide-select" id="targetSkuSelect" aria-label="Target SKU"></select>
+        </div>
+      </div>
+      <div class="summary" id="summary"></div>
+      <div class="mini-grid" id="movementSummary"></div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>Agent Penetration</h2>
+        <span class="hint">Sorted by missing buyers, then lowest penetration</span>
+      </div>
+      <div class="table-wrap" id="agentTable"></div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>SKU Penetration Matrix</h2>
+        <span class="hint">Top SKUs by CTN in the selected scope</span>
+      </div>
+      <div class="table-wrap" id="matrixTable"></div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>SKU Ranking</h2>
+        <span class="hint">Coverage, CTN, and month-to-month debtor movement</span>
+      </div>
+      <div class="table-wrap" id="rankingTable"></div>
+    </section>
+  </main>
+
+  <footer>
+    Source workbook: C:\Users\tgy_3\Desktop\md-dashboard\MD Sales Report.xlsx. Quantity uses column W, QTY(CTN).
+  </footer>
+
+  <script src="sku_penetration_data.js"></script>
+  <script>
+    const fmt = new Intl.NumberFormat("en-MY", { maximumFractionDigits: 2 });
+    const rm = value => `RM ${fmt.format(value || 0)}`;
+    const pct = value => `${Number(value || 0).toFixed(1)}%`;
+    const DEFAULT_TYPE_ORDER = ["SH-Shop", "SL-Stall", "ST-Site", "D-Dealer/Distributor", "FL-Freelancer"];
+    const DEFAULT_TYPES = new Set(DEFAULT_TYPE_ORDER);
+
+    function gapData() {
+      return window.skuPenetrationData || window.skuGapData || { months: [], skuOptions: [], debtors: {}, records: [] };
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      }[char]));
+    }
+
+    function selected(id) {
+      return document.getElementById(id)?.value || "";
+    }
+
+    function skuValue(code, desc) {
+      return `${code}||${desc}`;
+    }
+
+    function skuLabel(code, desc) {
+      return code === desc ? code : `${code} - ${desc}`;
+    }
+
+    function skuMatches(row, value) {
+      return !value || skuValue(row.sku, row.desc) === value;
+    }
+
+    function skuFromValue(value) {
+      const found = (gapData().skuOptions || []).find(([code, desc]) => skuValue(code, desc) === value);
+      return found ? { code: found[0], desc: found[1], label: skuLabel(found[0], found[1]) } : { code: "", desc: "", label: "selected SKU" };
+    }
+
+    function typeLabel(type) {
+      return String(type || "")
+        .replace(/^SH-/, "")
+        .replace(/^SL-/, "")
+        .replace(/^ST-/, "")
+        .replace(/^D-/, "")
+        .replace(/^FL-/, "")
+        .replace(/^P-/, "");
+    }
+
+    function monthLabel(month) {
+      const [year, value] = month.split("-");
+      const date = new Date(Number(year), Number(value) - 1, 1);
+      return date.toLocaleString("en-MY", { month: "short", year: "numeric" });
+    }
+
+    function previousMonth(month) {
+      const months = gapData().months || [];
+      const index = months.indexOf(month);
+      return index > 0 ? months[index - 1] : "";
+    }
+
+    function previousMonths(month, count = 3) {
+      const months = gapData().months || [];
+      const index = months.indexOf(month);
+      if (index <= 0) return [];
+      return months.slice(Math.max(0, index - count), index);
+    }
+
+    function statePill(state) {
+      return state ? `<span class="state-pill ${escapeHtml(state)}">${escapeHtml(state)}</span>` : "-";
+    }
+
+    function signed(value) {
+      return `${value > 0 ? "+" : ""}${fmt.format(value || 0)}`;
+    }
+
+    function trendBadge(value, title = "") {
+      const delta = Number(value || 0);
+      const klass = delta > 0 ? "trend-up" : delta < 0 ? "trend-down" : "trend-flat";
+      const marker = delta > 0 ? "&uarr;" : delta < 0 ? "&darr;" : "0";
+      const label = delta === 0 ? "0" : `${marker} ${signed(delta)}`;
+      return `<span class="trend ${klass}" title="${escapeHtml(title)}">${label}</span>`;
+    }
+
+    function cellClass(value) {
+      if (value >= 50) return "cell-high";
+      if (value >= 25) return "cell-mid";
+      if (value > 0) return "cell-low";
+      return "cell-zero";
+    }
+
+    function scopeRecords(month) {
+      return (gapData().records || []).filter(row => {
+        if (row.month !== month || Number(row.qty || 0) <= 0) return false;
+        return true;
+      });
+    }
+
+    function selectedTypeSet() {
+      return new Set([...document.querySelectorAll("#typeOptions input[type=checkbox]:checked")].map(input => input.value));
+    }
+
+    function activeDebtors(state = selected("stateSelect"), agent = selected("agentSelect"), typeSet = selectedTypeSet()) {
+      return Object.entries(gapData().debtors || {})
+        .map(([code, meta]) => ({ code, ...meta }))
+        .filter(debtor => {
+          if (!debtor.active || debtor.status !== "Active") return false;
+          if (!debtor.state || !debtor.maintAgent) return false;
+          if (state && debtor.state !== state) return false;
+          if (agent && debtor.maintAgent !== agent) return false;
+          if (typeSet.size && !typeSet.has(debtor.maintType || "")) return false;
+          return true;
+        });
+    }
+
+    function activeCodeSet(state = selected("stateSelect"), agent = selected("agentSelect"), typeSet = selectedTypeSet()) {
+      return new Set(activeDebtors(state, agent, typeSet).map(debtor => debtor.code));
+    }
+
+    function rowsForCodes(rows, codes) {
+      return rows.filter(row => codes.has(row.code));
+    }
+
+    function rowCodes(rows) {
+      return new Set(rows.map(row => row.code).filter(Boolean));
+    }
+
+    function baseCodes(rows, baseSku) {
+      return rowCodes(baseSku ? rows.filter(row => skuMatches(row, baseSku)) : rows);
+    }
+
+    function intersectSet(left, right) {
+      return new Set([...left].filter(code => right.has(code)));
+    }
+
+    function subtractSet(left, right) {
+      return new Set([...left].filter(code => !right.has(code)));
+    }
+
+    function sumRows(rows) {
+      return rows.reduce((acc, row) => {
+        acc.qty += Number(row.qty || 0);
+        acc.sales += Number(row.sales || 0);
+        return acc;
+      }, { qty: 0, sales: 0 });
+    }
+
+    function rowsForSku(rows, sku, allowedCodes = null) {
+      if (!sku) return [];
+      return rows.filter(row => skuMatches(row, sku) && (!allowedCodes || allowedCodes.has(row.code)));
+    }
+
+    function groupRows(rows, keyFn) {
+      const map = new Map();
+      rows.forEach(row => {
+        const key = keyFn(row);
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(row);
+      });
+      return map;
+    }
+
+    function updateTypeSummary() {
+      const checked = [...document.querySelectorAll("#typeOptions input[type=checkbox]:checked")];
+      const summary = document.getElementById("typeSummary");
+      if (!checked.length) {
+        summary.textContent = "All debtor types";
+      } else if (checked.length <= 2) {
+        summary.textContent = checked.map(input => typeLabel(input.value)).join(", ");
+      } else {
+        summary.textContent = `${checked.length} debtor types`;
+      }
+    }
+
+    function initTypeOptions(typeOptions) {
+      const typeOrder = new Map(DEFAULT_TYPE_ORDER.map((type, index) => [type, index]));
+      const options = (typeOptions.length ? [...typeOptions] : [...DEFAULT_TYPE_ORDER])
+        .sort((a, b) => (typeOrder.get(a) ?? 99) - (typeOrder.get(b) ?? 99) || typeLabel(a).localeCompare(typeLabel(b)));
+      document.getElementById("typeOptions").innerHTML = options
+        .map(type => `
+          <label>
+            <input type="checkbox" value="${escapeHtml(type)}" ${DEFAULT_TYPES.has(type) ? "checked" : ""}>
+            <span>${escapeHtml(typeLabel(type))}</span>
+          </label>
+        `)
+        .join("");
+      document.querySelectorAll("#typeOptions input").forEach(input => {
+        input.addEventListener("change", () => {
+          updateTypeSummary();
+          syncAgentOptions();
+          render();
+        });
+      });
+      updateTypeSummary();
+    }
+
+    function initControls() {
+      const data = gapData();
+      const months = data.months || [];
+      const skuOptions = data.skuOptions || [];
+      const typeOptions = data.typeOptions || [...new Set(Object.values(data.debtors || {}).map(debtor => debtor.maintType).filter(Boolean))].sort();
+      const skuOptionsHtml = skuOptions
+        .map(([code, desc]) => `<option value="${escapeHtml(skuValue(code, desc))}">${escapeHtml(skuLabel(code, desc))}</option>`)
+        .join("");
+
+      document.getElementById("monthSelect").innerHTML = months
+        .map(month => `<option value="${month}">${escapeHtml(monthLabel(month))}</option>`)
+        .join("");
+      document.getElementById("monthSelect").value = months[months.length - 1] || "";
+
+      initTypeOptions(typeOptions);
+
+      const states = [...new Set(activeDebtors("", "", new Set(typeOptions)).map(debtor => debtor.state).filter(Boolean))].sort();
+      document.getElementById("stateSelect").innerHTML = `<option value="">All states</option>` + states
+        .map(state => `<option value="${escapeHtml(state)}">${escapeHtml(state)}</option>`)
+        .join("");
+
+      document.getElementById("baseSkuSelect").innerHTML = `<option value="">All active accounts</option>${skuOptionsHtml}`;
+      document.getElementById("targetSkuSelect").innerHTML = `<option value="">Select target SKU</option>${skuOptionsHtml}`;
+
+      ["monthSelect", "stateSelect", "agentSelect", "baseSkuSelect", "targetSkuSelect"].forEach(id => {
+        document.getElementById(id).addEventListener("change", () => {
+          if (id === "stateSelect") document.getElementById("agentSelect").value = "";
+          syncAgentOptions();
+          render();
+        });
+      });
+
+      syncAgentOptions();
+    }
+
+    function syncAgentOptions() {
+      const current = selected("agentSelect");
+      const state = selected("stateSelect");
+      const agents = [...new Set(activeDebtors(state)
+        .map(debtor => debtor.maintAgent)
+        .filter(Boolean))]
+        .sort();
+      document.getElementById("agentSelect").innerHTML = `<option value="">All agents</option>` + agents
+        .map(agent => `<option value="${escapeHtml(agent)}">${escapeHtml(agent)}</option>`)
+        .join("");
+      document.getElementById("agentSelect").value = agents.includes(current) ? current : "";
+    }
+
+    function buildSummary() {
+      const month = selected("monthSelect");
+      const prev = previousMonth(month);
+      const newWindowMonths = previousMonths(month, 3);
+      const state = selected("stateSelect");
+      const agent = selected("agentSelect");
+      const baseSku = selected("baseSkuSelect");
+      const targetSku = selected("targetSkuSelect");
+      const activeAccounts = activeDebtors(state, agent);
+      const activeCodes = new Set(activeAccounts.map(debtor => debtor.code));
+      const currentRows = rowsForCodes(scopeRecords(month), activeCodes);
+      const previousRows = prev ? rowsForCodes(scopeRecords(prev), activeCodes) : [];
+      const previous3Rows = rowsForCodes((gapData().records || []).filter(row => newWindowMonths.includes(row.month) && Number(row.qty || 0) > 0), activeCodes);
+      const base = baseSku ? baseCodes(currentRows, baseSku) : activeCodes;
+      const prevBase = baseSku ? baseCodes(previousRows, baseSku) : activeCodes;
+      const targetRows = rowsForSku(currentRows, targetSku, base);
+      const prevTargetRows = rowsForSku(previousRows, targetSku, prevBase);
+      const previous3TargetRows = rowsForSku(previous3Rows, targetSku, activeCodes);
+      const targetCodes = rowCodes(targetRows);
+      const prevTargetCodes = rowCodes(prevTargetRows);
+      const previous3TargetCodes = rowCodes(previous3TargetRows);
+      const penetrated = intersectSet(base, targetCodes);
+      const prevPenetrated = intersectSet(prevBase, prevTargetCodes);
+      const missing = subtractSet(base, targetCodes);
+      const currentTotals = sumRows(targetRows);
+      const prevTotals = sumRows(prevTargetRows);
+      const newBuyers = subtractSet(targetCodes, prevTargetCodes);
+      const lostBuyers = subtractSet(prevTargetCodes, targetCodes);
+      const retainedBuyers = intersectSet(targetCodes, prevTargetCodes);
+      const new3mBuyers = subtractSet(targetCodes, previous3TargetCodes);
+      const repeat3mBuyers = intersectSet(targetCodes, previous3TargetCodes);
+
+      return {
+        month,
+        prev,
+        newWindowMonths,
+        state,
+        agent,
+        baseSku,
+        targetSku,
+        activeAccounts,
+        activeCodes,
+        currentRows,
+        previousRows,
+        previous3Rows,
+        base,
+        prevBase,
+        targetRows,
+        prevTargetRows,
+        previous3TargetRows,
+        targetCodes,
+        prevTargetCodes,
+        previous3TargetCodes,
+        penetrated,
+        prevPenetrated,
+        missing,
+        currentTotals,
+        prevTotals,
+        newBuyers,
+        lostBuyers,
+        retainedBuyers,
+        new3mBuyers,
+        repeat3mBuyers,
+      };
+    }
+
+    function buildAgentRows(summary) {
+      const targetSku = summary.targetSku;
+      const baseSku = summary.baseSku;
+      const activeGroups = groupRows(summary.activeAccounts, debtor => `${debtor.state}||${debtor.maintAgent}`);
+      return [...activeGroups.entries()].map(([key, debtors]) => {
+        const [state, agent] = key.split("||");
+        const activeCodes = new Set(debtors.map(debtor => debtor.code));
+        const rows = rowsForCodes(summary.currentRows, activeCodes);
+        const prevRows = rowsForCodes(summary.previousRows, activeCodes);
+        const prev3Rows = rowsForCodes(summary.previous3Rows, activeCodes);
+        const base = baseSku ? baseCodes(rows, baseSku) : activeCodes;
+        const prevBase = baseSku ? baseCodes(prevRows, baseSku) : activeCodes;
+        const targetRows = rowsForSku(rows, targetSku, base);
+        const prevTargetRows = rowsForSku(prevRows, targetSku, prevBase);
+        const prev3TargetRows = rowsForSku(prev3Rows, targetSku, activeCodes);
+        const buyers = rowCodes(targetRows);
+        const prevBuyers = rowCodes(prevTargetRows);
+        const prev3Buyers = rowCodes(prev3TargetRows);
+        const totals = sumRows(targetRows);
+        const prevTotals = sumRows(prevTargetRows);
+        const buyerCount = buyers.size;
+        const missingCount = Math.max(0, base.size - buyerCount);
+        const new3m = subtractSet(buyers, prev3Buyers).size;
+        return {
+          state,
+          agent,
+          base: base.size,
+          buyers: buyerCount,
+          missing: missingCount,
+          penetration: base.size ? buyerCount / base.size * 100 : 0,
+          qty: totals.qty,
+          sales: totals.sales,
+          ctnPerBuyer: buyerCount ? totals.qty / buyerCount : 0,
+          buyerDelta: buyerCount - prevBuyers.size,
+          new3m,
+          qtyDelta: totals.qty - prevTotals.qty,
+        };
+      }).sort((a, b) => b.missing - a.missing || a.penetration - b.penetration || b.base - a.base);
+    }
+
+    function buildSkuRows(currentRows, previousRows, previous3Rows, base, prevBase) {
+      const currentSkuGroups = groupRows(currentRows.filter(row => base.has(row.code)), row => skuValue(row.sku, row.desc));
+      const previousSkuGroups = groupRows(previousRows.filter(row => prevBase.has(row.code)), row => skuValue(row.sku, row.desc));
+      const previous3SkuGroups = groupRows(previous3Rows.filter(row => base.has(row.code)), row => skuValue(row.sku, row.desc));
+      return [...currentSkuGroups.entries()].map(([key, rows]) => {
+        const [code, desc] = key.split("||");
+        const prevRows = previousSkuGroups.get(key) || [];
+        const prev3Rows = previous3SkuGroups.get(key) || [];
+        const buyers = rowCodes(rows);
+        const prevBuyers = rowCodes(prevRows);
+        const prev3Buyers = rowCodes(prev3Rows);
+        const totals = sumRows(rows);
+        const prevTotals = sumRows(prevRows);
+        return {
+          key,
+          code,
+          desc,
+          buyers: buyers.size,
+          prevBuyers: prevBuyers.size,
+          missing: Math.max(0, base.size - buyers.size),
+          penetration: base.size ? buyers.size / base.size * 100 : 0,
+          qty: totals.qty,
+          sales: totals.sales,
+          ctnPerBuyer: buyers.size ? totals.qty / buyers.size : 0,
+          buyerDelta: buyers.size - prevBuyers.size,
+          new3m: subtractSet(buyers, prev3Buyers).size,
+          qtyDelta: totals.qty - prevTotals.qty,
+        };
+      }).sort((a, b) => b.qty - a.qty || b.buyers - a.buyers || a.code.localeCompare(b.code));
+    }
+
+    function renderSummary(summary) {
+      const targetLabel = skuFromValue(summary.targetSku).label;
+      const baseLabel = summary.baseSku ? `active ${skuFromValue(summary.baseSku).label} buyers` : "active accounts";
+      if (!summary.targetSku) {
+        const baseTotals = sumRows(summary.currentRows.filter(row => summary.base.has(row.code)));
+        document.getElementById("summary").innerHTML = `
+          <div class="summary-card"><b>${fmt.format(summary.base.size)}</b><span>Active account base | ${escapeHtml(baseLabel)}</span></div>
+          <div class="summary-card"><b>${fmt.format(baseTotals.qty)}</b><span>Base CTN in selected month</span></div>
+          <div class="summary-card"><b>-</b><span>Select a target SKU to calculate penetration</span></div>
+          <div class="summary-card"><b>-</b><span>Agent target coverage will appear after selection</span></div>
+        `;
+        document.getElementById("movementSummary").innerHTML = `
+          <div class="mini-card"><strong>Matrix ready</strong><span>Top SKU coverage by agent is shown below</span></div>
+          <div class="mini-card"><strong>Ranking ready</strong><span>SKU ranking uses the current buyer base</span></div>
+          <div class="mini-card"><strong>No default target</strong><span>Pick EVO, CM-002, TR-002, or any SKU manually</span></div>
+          <div class="mini-card"><strong>New 3M ready</strong><span>Select a target to see buyers absent in the prior 3 months</span></div>
+        `;
+        return;
+      }
+      const penetration = summary.base.size ? summary.penetrated.size / summary.base.size * 100 : 0;
+      const buyerDelta = summary.penetrated.size - summary.prevPenetrated.size;
+      const qtyDelta = summary.currentTotals.qty - summary.prevTotals.qty;
+      const ctnPerBuyer = summary.penetrated.size ? summary.currentTotals.qty / summary.penetrated.size : 0;
+      const prevLabel = summary.prev ? monthLabel(summary.prev) : "no previous month";
+      const newWindowLabel = summary.newWindowMonths.length ? summary.newWindowMonths.map(monthLabel).join(", ") : "no previous 3-month window";
+
+      document.getElementById("summary").innerHTML = `
+        <div class="summary-card"><b>${pct(penetration)}</b><span>${escapeHtml(targetLabel)} penetration from ${escapeHtml(baseLabel)}</span></div>
+        <div class="summary-card"><b>${fmt.format(summary.penetrated.size)}</b><span>Target buyers ${trendBadge(buyerDelta, `Compared with ${prevLabel}`)}</span></div>
+        <div class="summary-card"><b>${fmt.format(summary.missing.size)}</b><span>Active base not carrying target SKU</span></div>
+        <div class="summary-card"><b>${fmt.format(summary.currentTotals.qty)}</b><span>Target CTN ${trendBadge(qtyDelta, `Compared with ${prevLabel}`)}</span></div>
+      `;
+
+      document.getElementById("movementSummary").innerHTML = `
+        <div class="mini-card"><strong>${fmt.format(summary.base.size)}</strong><span>Active account base | ${escapeHtml(baseLabel)}</span></div>
+        <div class="mini-card"><strong>${fmt.format(ctnPerBuyer)}</strong><span>CTN per target buyer</span></div>
+        <div class="mini-card"><strong>${fmt.format(summary.newBuyers.size)} new / ${fmt.format(summary.lostBuyers.size)} lost</strong><span>${fmt.format(summary.retainedBuyers.size)} retained target buyers vs previous month</span></div>
+        <div class="mini-card"><strong>${fmt.format(summary.new3mBuyers.size)} New 3M</strong><span>${fmt.format(summary.repeat3mBuyers.size)} bought in prior window | ${escapeHtml(newWindowLabel)}</span></div>
+      `;
+    }
+
+    function renderAgentTable(rows, hasTarget) {
+      if (!hasTarget) {
+        document.getElementById("agentTable").innerHTML = `<div class="empty">Select a target SKU to view agent penetration.</div>`;
+        return;
+      }
+      if (!rows.length) {
+        document.getElementById("agentTable").innerHTML = `<div class="empty">No agent penetration data for this selection.</div>`;
+        return;
+      }
+      document.getElementById("agentTable").innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Agent</th>
+              <th>State</th>
+              <th class="num">Base</th>
+              <th class="num">Target buyers</th>
+              <th class="num">Missing</th>
+              <th>Penetration</th>
+              <th class="num">CTN</th>
+              <th class="num">CTN / buyer</th>
+              <th class="num">New 3M</th>
+              <th class="num">MoM Deb.</th>
+              <th class="num">MoM CTN</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(row => `
+              <tr>
+                <td><b>${escapeHtml(row.agent)}</b></td>
+                <td>${statePill(row.state)}</td>
+                <td class="num">${fmt.format(row.base)}</td>
+                <td class="num">${fmt.format(row.buyers)}</td>
+                <td class="num">${fmt.format(row.missing)}</td>
+                <td class="bar-cell">
+                  <div class="bar-label"><span>${pct(row.penetration)}</span><span>${fmt.format(row.buyers)} / ${fmt.format(row.base)}</span></div>
+                  <div class="progress"><span style="width:${Math.max(2, Math.min(100, row.penetration))}%"></span></div>
+                </td>
+                <td class="num">${fmt.format(row.qty)}</td>
+                <td class="num">${fmt.format(row.ctnPerBuyer)}</td>
+                <td class="num">${fmt.format(row.new3m)}</td>
+                <td class="num">${trendBadge(row.buyerDelta)}</td>
+                <td class="num">${trendBadge(Number(row.qtyDelta.toFixed(2)))}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function renderMatrix(summary, skuRows) {
+      const topSkus = skuRows.slice(0, 8);
+      const agentRows = buildAgentRows(summary).filter(row => row.base > 0);
+      const activeGroups = groupRows(summary.activeAccounts, debtor => `${debtor.state}||${debtor.maintAgent}`);
+      if (!topSkus.length || !agentRows.length) {
+        document.getElementById("matrixTable").innerHTML = `<div class="empty">No matrix data for this selection.</div>`;
+        return;
+      }
+      document.getElementById("matrixTable").innerHTML = `
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th>Agent</th>
+              <th class="num">Base</th>
+              ${topSkus.map(sku => `<th title="${escapeHtml(sku.desc)}">${escapeHtml(sku.code)}</th>`).join("")}
+            </tr>
+          </thead>
+          <tbody>
+            ${agentRows.map(agentRow => {
+              const activeCodes = new Set((activeGroups.get(`${agentRow.state}||${agentRow.agent}`) || []).map(debtor => debtor.code));
+              const rows = rowsForCodes(summary.currentRows, activeCodes);
+              const base = summary.baseSku ? baseCodes(rows, summary.baseSku) : activeCodes;
+              return `
+                <tr>
+                  <td><b>${escapeHtml(agentRow.agent)}</b><br>${statePill(agentRow.state)}</td>
+                  <td class="num">${fmt.format(base.size)}</td>
+                  ${topSkus.map(sku => {
+                    const buyers = rowCodes(rows.filter(row => base.has(row.code) && skuValue(row.sku, row.desc) === sku.key));
+                    const value = base.size ? buyers.size / base.size * 100 : 0;
+                    return `<td class="matrix-cell ${cellClass(value)}"><b>${pct(value)}</b><span>${fmt.format(buyers.size)} / ${fmt.format(base.size)}</span></td>`;
+                  }).join("")}
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function renderRanking(skuRows) {
+      if (!skuRows.length) {
+        document.getElementById("rankingTable").innerHTML = `<div class="empty">No SKU ranking data for this selection.</div>`;
+        return;
+      }
+      document.getElementById("rankingTable").innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th class="num">Rank</th>
+              <th>SKU</th>
+              <th class="num">Buyers</th>
+              <th>Penetration</th>
+              <th class="num">Missing base</th>
+              <th class="num">CTN</th>
+              <th class="num">CTN / buyer</th>
+              <th class="num">New 3M</th>
+              <th class="num">MoM Deb.</th>
+              <th class="num">MoM CTN</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${skuRows.slice(0, 40).map((row, index) => `
+              <tr>
+                <td class="num"><b>${index + 1}</b></td>
+                <td class="sku-name"><b>${escapeHtml(row.code)}</b><span>${escapeHtml(row.desc)}</span></td>
+                <td class="num">${fmt.format(row.buyers)}</td>
+                <td class="bar-cell">
+                  <div class="bar-label"><span>${pct(row.penetration)}</span><span>${fmt.format(row.buyers)} buyers</span></div>
+                  <div class="progress"><span style="width:${Math.max(2, Math.min(100, row.penetration))}%"></span></div>
+                </td>
+                <td class="num">${fmt.format(row.missing)}</td>
+                <td class="num">${fmt.format(row.qty)}</td>
+                <td class="num">${fmt.format(row.ctnPerBuyer)}</td>
+                <td class="num">${fmt.format(row.new3m)}</td>
+                <td class="num">${trendBadge(row.buyerDelta)}</td>
+                <td class="num">${trendBadge(Number(row.qtyDelta.toFixed(2)))}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function render() {
+      const summary = buildSummary();
+      const agentRows = buildAgentRows(summary);
+      const skuRows = buildSkuRows(summary.currentRows, summary.previousRows, summary.previous3Rows, summary.base, summary.prevBase);
+      renderSummary(summary);
+      renderAgentTable(agentRows, !!summary.targetSku);
+      renderMatrix(summary, skuRows);
+      renderRanking(skuRows);
+    }
+
+    initControls();
+    render();
+  </script>
+</body>
+</html>
