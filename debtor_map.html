@@ -51,6 +51,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--text);height:100vh
 #legend-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:6px 12px;display:none;gap:12px;align-items:center;flex-wrap:wrap;}
 .leg{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--muted);}
 .leg-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+.leg-day-code{font-weight:900;color:var(--accent);letter-spacing:.02em;}
 
 /* Day route strip — agent mode */
 #day-strip{background:var(--surface);border-bottom:1px solid var(--border);padding:5px 10px;display:none;gap:5px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
@@ -137,6 +138,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--text);height:100vh
   <div class="leg"><div class="leg-dot" style="background:#3ddc84;"></div>Bought this month</div>
   <div class="leg"><div class="leg-dot" style="background:#ff9a3c;"></div>Not yet bought</div>
   <div class="leg"><div class="leg-dot" style="background:#aaaaaa;opacity:.5"></div>Inactive</div>
+  <div class="leg"><span class="leg-day-code">M/Tu/W/Th/F/Sa/Su</span>Route day</div>
 </div>
 
 <!-- Agent day route strip -->
@@ -185,6 +187,10 @@ const DAY_COLORS = {
   Thursday:'#4da6ff', Friday:'#a78bfa', Saturday:'#16a085',
   Sunday:'#f0c040',  Random:'#7070a0'
 };
+const DAY_LABELS = {
+  Monday:'M', Tuesday:'Tu', Wednesday:'W', Thursday:'Th',
+  Friday:'F', Saturday:'Sa', Sunday:'Su', Random:'R'
+};
 const DAY_JS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const TODAY  = DAY_JS[new Date().getDay()];
 
@@ -218,9 +224,12 @@ function hasValidCoords(r) {
 }
 
 // ── Pin design ───────────────────────────────────────────────────────────────
-// Fill = purchase status | Ring = day color
+// Fill = purchase status | Ring/letter = route day
 function makeIcon(day, active, purchased) {
   const ring  = DAY_COLORS[day] || '#7070a0';
+  const label = DAY_LABELS[day] || '?';
+  const dayText = (!active || active === 'Unchecked') ? '' :
+    `<text x="14" y="16.8" text-anchor="middle" font-family="Arial, sans-serif" font-size="${label.length > 1 ? 6 : 8}" font-weight="900" fill="#1f2823">${label}</text>`;
   let fill, op, cross = '';
   if (!active || active === 'Unchecked') {
     fill = '#aaaaaa'; op = '0.4';
@@ -237,6 +246,7 @@ function makeIcon(day, active, purchased) {
       <path d="M14 0C6.3 0 0 6.3 0 14c0 10 14 22 14 22S28 24 28 14C28 6.3 21.7 0 14 0z" fill="${ring}"/>
       <path d="M14 2C7.4 2 2 7.4 2 14c0 9 12 20 12 20S26 23 26 14C26 7.4 20.6 2 14 2z" fill="${fill}" opacity="${op}"/>
       <circle cx="14" cy="14" r="6" fill="#fff" opacity="${op}"/>
+      ${dayText}
       ${cross}
     </svg>`,
     iconSize:[28,36], iconAnchor:[14,36], popupAnchor:[0,-34], className:''
