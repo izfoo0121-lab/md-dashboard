@@ -462,6 +462,8 @@
 
     .mix-table {
       width: 100%;
+      min-width: 0;
+      table-layout: fixed;
       font-size: 12px;
     }
 
@@ -472,6 +474,25 @@
     }
 
     .mix-table tr + tr td { border-top: 1px solid var(--line); }
+    .mix-table td:first-child { width: auto; min-width: 0; }
+    .mix-table td:nth-child(2) { width: 68px; }
+    .mix-table td:nth-child(3) { width: 86px; }
+    .mix-table td:nth-child(4) { width: 118px; }
+    .mix-table td:first-child b,
+    .mix-table td:first-child span:not(.mix-sku) {
+      display: inline-block;
+      max-width: calc(100% - 20px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: bottom;
+    }
+    .mix-table .trend {
+      min-width: 0;
+      max-width: 100%;
+      padding: 4px 6px;
+      font-size: 11px;
+    }
 
     .mix-sku {
       display: inline-flex;
@@ -832,7 +853,7 @@
         <span class="hint">Every item, sales mix, and increasing / dropping signal</span>
       </div>
       <div class="portfolio-summary" id="portfolioSummary"></div>
-      <div class="portfolio-wrap" id="portfolioMix"></div>
+      <div id="portfolioMix"></div>
       <div class="portfolio-chart" id="portfolioChart"></div>
       <div class="portfolio-wrap" id="portfolioMonitor"></div>
     </section>
@@ -853,7 +874,7 @@
 
   <script src="debtor_status.js"></script>
   <script src="agent_monthly_revenue.js"></script>
-  <script src="sku_debtor_history.js?v=20260521-sku-portfolio"></script>
+  <script src="sku_debtor_history.js?v=20260521-mix-fit"></script>
   <script>
     const data = {
       "2025-10": {
