@@ -333,6 +333,9 @@
         <select class="select" id="agentSelect" aria-label="Agent">
           <option value="">All agents</option>
         </select>
+        <select class="select" id="typeSelect" aria-label="Customer type">
+          <option value="business">Business types</option>
+        </select>
       </div>
       <div class="filters">
         <a class="nav-link" href="index.html">SKU Strength</a>
@@ -368,6 +371,7 @@
     const fmt = new Intl.NumberFormat("en-MY", { maximumFractionDigits: 2 });
     const rm = value => `RM ${fmt.format(value || 0)}`;
     const pct = value => `${Number(value || 0).toFixed(1)}%`;
+    const BUSINESS_TYPES = new Set(["D-Dealer/Distributor", "FL-Freelancer", "SH-Shop", "SL-Stall", "ST-Site"]);
 
     function escapeHtml(value) {
       return String(value ?? "").replace(/[&<>"']/g, char => ({
@@ -411,17 +415,36 @@
       return window.skuGapData || { months: [], skuOptions: [], debtors: {}, records: [] };
     }
 
-    function buildCustomerBase(data, state, agent) {
+    function debtorMatchesType(debtor, typeMode) {
+      const type = debtor?.maintType || debtor?.type || "";
+      if (!typeMode || typeMode === "all") return true;
+      if (typeMode === "business") return BUSINESS_TYPES.has(type);
+      return type === typeMode;
+    }
+
+    function typeLabel(typeMode) {
+      if (!typeMode || typeMode === "all") return "All types";
+      if (typeMode === "business") return "Business types";
+      return typeMode.replace(/^[A-Z]+-/, "");
+    }
+
+    function recordMatchesType(data, row, typeMode) {
+      return debtorMatchesType((data.debtors || {})[row.code], typeMode);
+    }
+
+    function buildCustomerBase(data, state, agent, typeMode) {
       return Object.entries(data.debtors || {})
         .map(([code, debtor]) => ({
           code,
           name: debtor.name || "",
           state: debtor.state || "",
           agent: debtor.maintAgent || "",
+          type: debtor.maintType || "",
           status: debtor.status || "Missing",
           active: debtor.active === true,
         }))
         .filter(row => row.active)
+        .filter(row => debtorMatchesType(row, typeMode))
         .filter(row => !state || row.state === state)
         .filter(row => !agent || row.agent === agent);
     }
@@ -469,6 +492,7 @@
       const data = gapData();
       const months = data.months || [];
       const skuOptions = data.skuOptions || [];
+      const typeOptions = data.typeOptions || [];
 
       document.getElementById("anchorSelect").innerHTML = months
         .map(month => `<option value="${month}">${escapeHtml(monthLabel(month))}</option>`)
@@ -486,13 +510,19 @@
         .join("");
       document.getElementById("sourceSkuSelect").innerHTML = `<option value="">Any SKU current buyer</option>${skuOptionsHtml}`;
       document.getElementById("targetSkuSelect").innerHTML = `<option value="">No missing SKU filter</option>${skuOptionsHtml}`;
+      document.getElementById("typeSelect").innerHTML = `
+        <option value="business">Business types (Dealer, Freelancer, Shop, Stall, Site)</option>
+        <option value="all">All types including Personal</option>
+        ${typeOptions.map(type => `<option value="${escapeHtml(type)}">${escapeHtml(typeLabel(type))}</option>`).join("")}
+      `;
+      document.getElementById("typeSelect").value = "business";
 
       const evo = skuOptions.find(([code]) => String(code).toUpperCase() === "EVO");
       if (evo) document.getElementById("targetSkuSelect").value = skuValue(evo[0], evo[1]);
 
-      ["anchorSelect", "stateSelect", "agentSelect", "sourceSkuSelect", "targetSkuSelect"].forEach(id => {
+      ["anchorSelect", "stateSelect", "agentSelect", "typeSelect", "sourceSkuSelect", "targetSkuSelect"].forEach(id => {
         document.getElementById(id).addEventListener("change", () => {
-          if (id === "stateSelect") document.getElementById("agentSelect").value = "";
+          if (id === "stateSelect" || id === "typeSelect") document.getElementById("agentSelect").value = "";
           syncAgentOptions();
           render();
         });
@@ -505,8 +535,8 @@
       const data = gapData();
       const current = selected("agentSelect");
       const state = selected("stateSelect");
-      const agents = [...new Set((data.records || [])
-        .filter(row => !state || row.state === state)
+      const typeMode = selected("typeSelect") || "business";
+      const agents = [...new Set(buildCustomerBase(data, state, "", typeMode)
         .map(row => row.agent)
         .filter(Boolean))]
         .sort();
@@ -525,6 +555,7 @@
       const targetSku = selected("targetSkuSelect");
       const state = selected("stateSelect");
       const agent = selected("agentSelect");
+      const typeMode = selected("typeSelect") || "business";
       const query = selected("searchInput").trim().toLowerCase();
       const windowMonths = gapWindowMonths(anchor);
       const anchorIndex = months.indexOf(anchor);
@@ -535,13 +566,14 @@
         return { sourceRows: [], gapRows: [], targetBuyerCodes: new Set(), previousTargetByCode: new Map(), windowMonths, customerBase: [] };
       }
 
-      const customerBase = buildCustomerBase(data, state, agent);
+      const customerBase = buildCustomerBase(data, state, agent, typeMode);
 
       const targetBuyerCodes = new Set();
       const previousTargetByCode = new Map();
       if (targetSku && windowMonths.length) {
         records.forEach(row => {
           if (!skuMatches(row.sku, row.desc, targetSku) || Number(row.qty || 0) <= 0) return;
+          if (!recordMatchesType(data, row, typeMode)) return;
           const rowIndex = months.indexOf(row.month);
           if (rowIndex >= windowStartIndex && rowIndex <= windowEndIndex) targetBuyerCodes.add(row.code);
           if (rowIndex >= 0 && rowIndex < windowStartIndex) updateLatestTarget(previousTargetByCode, row);
@@ -553,6 +585,7 @@
         if (row.month !== anchor || Number(row.qty || 0) <= 0) return;
         if (state && row.state !== state) return;
         if (agent && row.agent !== agent) return;
+        if (!recordMatchesType(data, row, typeMode)) return;
         if (!currentItemsByCode.has(row.code)) currentItemsByCode.set(row.code, new Map());
         addItem(currentItemsByCode.get(row.code), row);
       });
@@ -562,6 +595,7 @@
         if (row.month !== anchor || Number(row.qty || 0) <= 0) return;
         if (state && row.state !== state) return;
         if (agent && row.agent !== agent) return;
+        if (!recordMatchesType(data, row, typeMode)) return;
         if (!skuMatches(row.sku, row.desc, sourceSku)) return;
         if (!sourceByCode.has(row.code)) {
           const debtor = (data.debtors || {})[row.code] || {};
@@ -569,6 +603,7 @@
             code: row.code,
             name: debtor.name || row.name || "",
             status: debtor.status || "Missing",
+            type: debtor.maintType || "",
             sourceSales: 0,
             sourceQty: 0,
             docs: 0,
@@ -613,9 +648,11 @@
       const { sourceRows, gapRows, targetBuyerCodes, previousTargetByCode, windowMonths, customerBase } = buildRows();
       const sourceSku = selected("sourceSkuSelect");
       const targetSku = selected("targetSkuSelect");
+      const typeMode = selected("typeSelect") || "business";
       const hasTarget = !!targetSku;
       const sourceLabel = sourceSku ? gapSkuLabel(sourceSku) : "Any SKU";
       const targetLabel = hasTarget ? gapSkuLabel(targetSku) : "";
+      const selectedTypeLabel = typeLabel(typeMode);
       const targetBuyers = hasTarget ? sourceRows.length - gapRows.length : 0;
       const gapRate = sourceRows.length ? gapRows.length / sourceRows.length * 100 : 0;
       const customerBaseCount = customerBase.length;
@@ -629,7 +666,7 @@
 
       document.getElementById("summary").innerHTML = hasTarget ? `
         <div class="summary-card"><b>${fmt.format(sourceRows.length)}</b><span>${escapeHtml(sourceLabel)} current buyers</span></div>
-        <div class="summary-card"><b>${fmt.format(customerBaseCount)}</b><span>Active customer base</span></div>
+        <div class="summary-card"><b>${fmt.format(customerBaseCount)}</b><span>${escapeHtml(selectedTypeLabel)} customer base</span></div>
         <div class="summary-card"><b>${fmt.format(unactivatedCount)}</b><span>Not buying ${escapeHtml(sourceLabel)}</span></div>
         <div class="summary-card"><b>${pct(activationRate)}</b><span>Activation rate</span></div>
         <div class="summary-card"><b>${fmt.format(gapRows.length)}</b><span>No ${escapeHtml(targetLabel)} in 3 months</span></div>
@@ -637,7 +674,7 @@
         <div class="summary-card"><b>${pct(gapRate)}</b><span>Gap rate | ${escapeHtml(windowLabel)}</span></div>
       ` : `
         <div class="summary-card"><b>${fmt.format(sourceRows.length)}</b><span>${escapeHtml(sourceLabel)} current buyers</span></div>
-        <div class="summary-card"><b>${fmt.format(customerBaseCount)}</b><span>Active customer base</span></div>
+        <div class="summary-card"><b>${fmt.format(customerBaseCount)}</b><span>${escapeHtml(selectedTypeLabel)} customer base</span></div>
         <div class="summary-card"><b>${fmt.format(unactivatedCount)}</b><span>Not buying ${escapeHtml(sourceLabel)}</span></div>
         <div class="summary-card"><b>${pct(activationRate)}</b><span>Activation rate</span></div>
         <div class="summary-card"><b>${fmt.format(sourceQtyTotal)}</b><span>Anchor CTN</span></div>
