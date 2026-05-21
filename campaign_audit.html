@@ -102,6 +102,12 @@
     .agent-toggle{font-family:var(--mono);font-size:10px;color:var(--muted);min-width:18px;text-align:center;}
     .audit-mini-btn{font-family:var(--mono);font-size:10px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;}
     .audit-mini-btn:hover{color:var(--text);border-color:rgba(255,255,255,.25);}
+    .birthday-import{background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:12px;margin:10px 14px;padding:10px;}
+    .birthday-import-title{font-family:var(--mono);font-size:10px;color:var(--text);font-weight:700;margin-bottom:6px;}
+    .birthday-import textarea{width:100%;min-height:82px;resize:vertical;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--mono);font-size:10px;padding:8px;}
+    .birthday-import textarea:focus{outline:none;border-color:var(--blue);}
+    .birthday-import-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;}
+    .birthday-import-result{font-family:var(--mono);font-size:9px;color:var(--muted);}
 
     /* Empty */
     .empty{text-align:center;padding:40px 20px;color:var(--muted);font-family:var(--mono);font-size:11px;}
@@ -275,6 +281,8 @@ let DASH_DATA  = null;   // current month data
 let CAMP_DATA  = null;   // campaigns.json
 let activeCampId = 'ALL';
 let _lastAuditExport = null;  // populated by render functions, consumed by export
+let _lastBirthdayAuditState = null;
+let _lastBirthdayImportPlan = null;
 
 // Supabase config (same as admin / sales_dashboard)
 const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
@@ -968,6 +976,13 @@ function auditBirthdayMonthLabel(month) {
   return `${mon || ''} ${2000 + parseInt(yy || '0', 10)}`.trim();
 }
 
+function auditBirthdayCampaignMonthKey() {
+  const raw = String(DASH_DATA?.birthday_campaign?.month || '').trim();
+  const m = raw.match(/^([A-Za-z]{3,9})\s+(\d{4})$/);
+  if (!m) return DASH_DATA?.current_month || '';
+  return `${m[1].slice(0, 3)} ${m[2].slice(-2)}`;
+}
+
 function auditHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
@@ -1068,6 +1083,135 @@ async function birthdayAuditAdd(month, presetCode) {
   }
 }
 
+function parseBirthdayApprovedCodes(raw) {
+  const matches = String(raw || '').toUpperCase().match(/[A-Z0-9]{2,4}-[A-Z0-9]+/g) || [];
+  const seen = new Set();
+  return matches.filter(code => {
+    if (seen.has(code)) return false;
+    seen.add(code);
+    return true;
+  });
+}
+
+function normalizeBirthdayBaseRow(row, lookup) {
+  const code = (row.code || row.debtor_code || '').toUpperCase();
+  const fallback = lookup[code] || {};
+  return {
+    code,
+    name: row.name || row.company_name || fallback.name || code,
+    agent: row.agent || fallback.agent || '',
+    type: row.type || row.debtor_type || fallback.type || '',
+    phone: row.phone || fallback.phone || '',
+    source: row.source || 'auto',
+    status: row.source === 'manual' ? 'added' : 'auto'
+  };
+}
+
+function applyBirthdayOverridesToRows(baseRows, overrides, lookup) {
+  const activeMap = new Map();
+  const removedMap = new Map();
+
+  (baseRows || []).forEach(row => {
+    const d = normalizeBirthdayBaseRow(row, lookup);
+    if (!d.code) return;
+    if (overrides[d.code] === 'remove') {
+      removedMap.set(d.code, { ...d, source: 'override', status: 'removed' });
+    } else {
+      activeMap.set(d.code, d);
+    }
+  });
+
+  Object.entries(overrides || {}).forEach(([rawCode, action]) => {
+    const code = String(rawCode || '').toUpperCase();
+    if (!code) return;
+    const fallback = lookup[code] || {};
+    if (action === 'remove') {
+      const existing = activeMap.get(code) || removedMap.get(code) || {
+        code,
+        name: fallback.name || code,
+        agent: fallback.agent || '',
+        type: fallback.type || '',
+        phone: fallback.phone || '',
+        source: 'override',
+        status: 'removed'
+      };
+      activeMap.delete(code);
+      removedMap.set(code, { ...existing, source: 'override', status: 'removed' });
+    } else if (action === 'add') {
+      const existing = activeMap.get(code) || removedMap.get(code) || {
+        code,
+        name: fallback.name || code,
+        agent: fallback.agent || '',
+        type: fallback.type || '',
+        phone: fallback.phone || '',
+        source: 'manual',
+        status: 'added'
+      };
+      removedMap.delete(code);
+      activeMap.set(code, { ...existing, source: 'manual', status: 'added' });
+    }
+  });
+
+  return {
+    finalRows: [...activeMap.values()],
+    removedRows: [...removedMap.values()],
+  };
+}
+
+function birthdayAuditCompareApproved(month) {
+  const input = document.getElementById('bday-approved-codes');
+  const resultEl = document.getElementById('bday-import-result');
+  const state = _lastBirthdayAuditState;
+  if (!input || !resultEl || !state || state.month !== month) return;
+
+  const approvedCodes = parseBirthdayApprovedCodes(input.value);
+  if (!approvedCodes.length) {
+    resultEl.textContent = 'No debtor codes found in pasted text.';
+    _lastBirthdayImportPlan = null;
+    return;
+  }
+
+  const approvedSet = new Set(approvedCodes);
+  const currentCodes = new Set(state.finalRows.map(d => d.code));
+  const toRemove = state.finalRows.map(d => d.code).filter(code => !approvedSet.has(code));
+  const toAdd = approvedCodes.filter(code => !currentCodes.has(code));
+  const keepCount = approvedCodes.filter(code => currentCodes.has(code)).length;
+  const unknownAdd = toAdd.filter(code => !state.lookup[code]);
+
+  _lastBirthdayImportPlan = { month, toRemove, toAdd };
+  resultEl.innerHTML = `
+    Approved ${approvedCodes.length}; current ${currentCodes.size}; keep ${keepCount};
+    remove ${toRemove.length}; add ${toAdd.length}${unknownAdd.length ? `; unknown ${unknownAdd.slice(0, 8).join(', ')}${unknownAdd.length > 8 ? '...' : ''}` : ''}.
+    <button class="audit-btn verify" onclick="birthdayAuditApplyApproved('${auditJs(month)}')">Apply as official list</button>`;
+}
+
+async function birthdayAuditApplyApproved(month) {
+  const plan = _lastBirthdayImportPlan;
+  const resultEl = document.getElementById('bday-import-result');
+  if (!plan || plan.month !== month) {
+    if (resultEl) resultEl.textContent = 'Compare the approved list first.';
+    return;
+  }
+  const totalActions = plan.toRemove.length + plan.toAdd.length;
+  if (!totalActions) {
+    if (resultEl) resultEl.textContent = 'No changes needed. Current list already matches.';
+    return;
+  }
+  if (!confirm(`Apply approved list for ${month}? This will remove ${plan.toRemove.length} and add ${plan.toAdd.length}.`)) return;
+
+  if (resultEl) resultEl.textContent = `Saving ${totalActions} birthday overrides...`;
+  let saved = 0;
+  for (const code of plan.toRemove) {
+    if (await saveBirthdayOverride(month, code, 'remove')) saved++;
+  }
+  for (const code of plan.toAdd) {
+    if (await saveBirthdayOverride(month, code, 'add')) saved++;
+  }
+  _lastBirthdayImportPlan = null;
+  showToast(`Saved ${saved}/${totalActions} birthday overrides`);
+  await renderBirthdayDebtorList(month, document.getElementById('agent-select').value);
+}
+
 async function renderBirthdayDebtorList(month, agentSel) {
   const contentEl = document.getElementById('audit-content');
   const summaryEl = document.getElementById('summary-row');
@@ -1077,37 +1221,12 @@ async function renderBirthdayDebtorList(month, agentSel) {
   const lookup = buildAuditDebtorLookup();
   // Read per-month birthday list for the selected month, with backward-compat fallback
   const monthList = DASH_DATA?.birthday_by_month?.[month]?.debtors
-                 ?? DASH_DATA?.birthday_campaign?.debtors
+                 ?? (month === auditBirthdayCampaignMonthKey() ? DASH_DATA?.birthday_campaign?.debtors : [])
                  ?? [];
-  const finalRows = monthList.map(d => {
-    const code = (d.code || d.debtor_code || '').toUpperCase();
-    const fallback = lookup[code] || {};
-    return {
-      code,
-      name: d.name || d.company_name || fallback.name || code,
-      agent: d.agent || fallback.agent || '',
-      type: d.type || d.debtor_type || fallback.type || '',
-      phone: d.phone || fallback.phone || '',
-      source: d.source || 'auto',
-      status: d.source === 'manual' ? 'added' : 'auto'
-    };
-  }).filter(d => d.code);
-
-  const visibleCodes = new Set(finalRows.map(d => d.code));
-  const removedRows = Object.entries(overrides)
-    .filter(([code, action]) => action === 'remove' && !visibleCodes.has(code))
-    .map(([code]) => {
-      const d = lookup[code] || {};
-      return {
-        code,
-        name: d.name || code,
-        agent: d.agent || '',
-        type: d.type || '',
-        phone: d.phone || '',
-        source: 'override',
-        status: 'removed'
-      };
-    });
+  const adjustedBirthdayRows = applyBirthdayOverridesToRows(monthList, overrides, lookup);
+  const finalRows = adjustedBirthdayRows.finalRows.filter(d => d.code);
+  const removedRows = adjustedBirthdayRows.removedRows.filter(d => d.code);
+  _lastBirthdayAuditState = { month, finalRows, removedRows, lookup };
 
   const allRows = [...finalRows, ...removedRows]
     .filter(d => agentSel === 'ALL' || d.agent === agentSel)
@@ -1249,6 +1368,14 @@ async function renderBirthdayDebtorList(month, agentSel) {
         </div>
         <div class="agent-stats">
           <button class="audit-btn verify" onclick="birthdayAuditAdd('${auditJs(month)}')">+ Add debtor</button>
+        </div>
+      </div>
+      <div class="birthday-import">
+        <div class="birthday-import-title">Approved list compare</div>
+        <textarea id="bday-approved-codes" placeholder="Paste your approved debtor codes here, one per line or copied from Excel."></textarea>
+        <div class="birthday-import-actions">
+          <button class="audit-btn undo" onclick="birthdayAuditCompareApproved('${auditJs(month)}')">Compare approved list</button>
+          <span id="bday-import-result" class="birthday-import-result">This only saves month-scoped add/remove overrides after you click apply.</span>
         </div>
       </div>
       <div class="claims-body">${rowsHtml || `<div class="empty">No birthday debtors${agentSel !== 'ALL' ? ' for ' + auditHtml(agentSel) : ''}</div>`}</div>
