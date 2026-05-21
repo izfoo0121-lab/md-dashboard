@@ -913,6 +913,111 @@ async function loadData() {
 // shadowed copies for backward compat — no conflict.
 const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
+let BIRTHDAY_OVERRIDES_BY_MONTH = {};
+
+function mgmtBirthdayMonthToIso(month) {
+  const [mon, yy] = String(month || '').split(' ');
+  const idx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(mon);
+  if (idx < 0) return '';
+  return `${2000 + parseInt(yy || '0', 10)}-${String(idx + 1).padStart(2, '0')}`;
+}
+
+async function ensureBirthdayOverridesForMonth(month) {
+  const iso = mgmtBirthdayMonthToIso(month);
+  if (!iso) return {};
+  if (BIRTHDAY_OVERRIDES_BY_MONTH[iso]) return BIRTHDAY_OVERRIDES_BY_MONTH[iso];
+  try {
+    const url = `${SUPABASE_URL}/rest/v1/targets_birthday_overrides?select=debtor_code,action&month=eq.${encodeURIComponent(iso)}`;
+    const r = await fetch(url, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const rows = await r.json();
+    const out = {};
+    (rows || []).forEach(row => {
+      const code = String(row.debtor_code || '').toUpperCase();
+      if (code && ['add','remove'].includes(row.action)) out[code] = row.action;
+    });
+    BIRTHDAY_OVERRIDES_BY_MONTH[iso] = out;
+    return out;
+  } catch (e) {
+    console.warn('[birthday] override fetch failed:', e.message);
+    BIRTHDAY_OVERRIDES_BY_MONTH[iso] = {};
+    return {};
+  }
+}
+
+function birthdayDebtorLookup(dataObj) {
+  const out = {};
+  Object.entries(dataObj?.agents || {}).forEach(([agent, adata]) => {
+    (adata?.debtor_cards?.debtors || []).forEach(d => {
+      const code = String(d.debtor_code || '').toUpperCase();
+      if (!code || out[code]) return;
+      out[code] = {
+        code,
+        agent,
+        name: d.company_name || d.name || code,
+        type: d.debtor_type || '',
+        phone: d.phone || '',
+      };
+    });
+  });
+  return out;
+}
+
+function birthdayCampaignMonthLabel(dataObj) {
+  const raw = String(dataObj?.birthday_campaign?.month || '').trim();
+  const m = raw.match(/^([A-Za-z]{3,9})\s+(\d{4})$/);
+  if (!m) return dataObj?.current_month || '';
+  return `${m[1].slice(0, 3)} ${m[2].slice(-2)}`;
+}
+
+function birthdayRowsForMonth(dataObj, month, overrides) {
+  const monthLabel = month || dataObj?.current_month || '';
+  const iso = mgmtBirthdayMonthToIso(monthLabel);
+  const monthOverrides = overrides || BIRTHDAY_OVERRIDES_BY_MONTH[iso] || {};
+  const lookup = birthdayDebtorLookup(dataObj);
+  const baseRows = dataObj?.birthday_by_month?.[monthLabel]?.debtors
+                ?? (monthLabel === birthdayCampaignMonthLabel(dataObj) ? dataObj?.birthday_campaign?.debtors : [])
+                ?? [];
+  const active = new Map();
+
+  baseRows.forEach(row => {
+    const code = String(row.code || row.debtor_code || '').toUpperCase();
+    if (!code || monthOverrides[code] === 'remove') return;
+    const fallback = lookup[code] || {};
+    active.set(code, {
+      code,
+      agent: row.agent || fallback.agent || '',
+      name: row.name || row.company_name || fallback.name || code,
+      type: row.type || row.debtor_type || fallback.type || '',
+      phone: row.phone || fallback.phone || '',
+      source: row.source || 'auto',
+    });
+  });
+
+  Object.entries(monthOverrides).forEach(([code, action]) => {
+    const cleanCode = String(code || '').toUpperCase();
+    if (action === 'remove') {
+      active.delete(cleanCode);
+      return;
+    }
+    if (action === 'add') {
+      const fallback = lookup[cleanCode] || {};
+      const existing = active.get(cleanCode) || {};
+      active.set(cleanCode, {
+        code: cleanCode,
+        agent: existing.agent || fallback.agent || '',
+        name: existing.name || fallback.name || cleanCode,
+        type: existing.type || fallback.type || '',
+        phone: existing.phone || fallback.phone || '',
+        source: 'manual',
+      });
+    }
+  });
+
+  return [...active.values()];
+}
 
 const ACTIVITY_AGENT_ORDER = ['BEN','CJ','JACKY','JAMES','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','XIAN','YI'];
 let activityMonthOffset = 0;
@@ -1137,15 +1242,18 @@ const SupabaseKpiSync = (() => {
     agentData.kpi.max_abc   = maxABC;
     agentData.kpi.total_pct = maxABC > 0 ? Math.round(totalABC / maxABC * 100 * 10) / 10 : 0;
   }
-  async function fetch_birthday_claims(month) {
+  async function fetch_birthday_claims(month, birthdayRows) {
     if (!month) return {};
-    const url = `${SUPABASE_URL}/rest/v1/claims?select=agent,status&month=eq.${encodeURIComponent(month)}&camp_id=eq.birthday_gift_auto`;
+    const listCodes = new Set((birthdayRows || []).map(d => String(d.code || d.debtor_code || '').toUpperCase()).filter(Boolean));
+    const url = `${SUPABASE_URL}/rest/v1/claims?select=agent,status,debtor_code&month=eq.${encodeURIComponent(month)}&camp_id=eq.birthday_gift_auto`;
     try {
       const r = await fetch(url, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } });
       if (!r.ok) { console.warn(`[SupabaseKpiSync] birthday claims fetch failed: HTTP ${r.status}`); return {}; }
       const rows = await r.json();
       const byAgent = {};
       rows.forEach(r => {
+        const code = String(r.debtor_code || '').toUpperCase();
+        if (listCodes.size && !listCodes.has(code)) return;
         const a = (r.agent || '').toUpperCase();
         if (!byAgent[a]) byAgent[a] = { verified: 0, excluded: 0 };
         if (r.status === 'excluded') byAgent[a].excluded++;
@@ -1154,15 +1262,21 @@ const SupabaseKpiSync = (() => {
       return byAgent;
     } catch (e) { console.warn('[SupabaseKpiSync] birthday fetch error:', e.message); return {}; }
   }
-  function applyBirthdayOverride(dataObj, byAgent) {
+  function applyBirthdayOverride(dataObj, byAgent, birthdayRows) {
     if (!dataObj?.agents) return 0;
     let applied = 0;
+    const poolByAgent = {};
+    (birthdayRows || []).forEach(row => {
+      const agent = String(row.agent || '').toUpperCase();
+      if (!agent) return;
+      poolByAgent[agent] = (poolByAgent[agent] || 0) + 1;
+    });
     Object.entries(dataObj.agents).forEach(([agent, agentData]) => {
       const bdayItem = agentData?.kpi?.items?.birthday_campaign;
       if (!bdayItem) return;
       const counts = byAgent[agent] || { verified: 0, excluded: 0 };
       if (bdayItem.base_target == null) bdayItem.base_target = Number(bdayItem.target || 0);
-      const baseTarget = Number(bdayItem.base_target || 0);
+      const baseTarget = Number(poolByAgent[agent] || 0);
       const effectiveTarget = Math.max(0, baseTarget - counts.excluded);
       bdayItem.excluded_count = counts.excluded;
       bdayItem.target = effectiveTarget;
@@ -1213,8 +1327,10 @@ const SupabaseKpiSync = (() => {
       });
       console.log(`[SupabaseKpiSync] Applied ${applied}/${rows.length} kpi_manual overrides for ${month}`);
     } else { console.log(`[SupabaseKpiSync] No kpi_manual rows for ${month}`); }
-    const bdayByAgent = await fetch_birthday_claims(month);
-    const bdayApplied = applyBirthdayOverride(dataObj, bdayByAgent);
+    const birthdayOverrides = await ensureBirthdayOverridesForMonth(month);
+    const birthdayRows = birthdayRowsForMonth(dataObj, month, birthdayOverrides);
+    const bdayByAgent = await fetch_birthday_claims(month, birthdayRows);
+    const bdayApplied = applyBirthdayOverride(dataObj, bdayByAgent, birthdayRows);
     console.log(`[SupabaseKpiSync] Applied birthday claim counts for ${bdayApplied} agents`);
     if (bdayApplied || rows.length) recomputeAllTotals(dataObj);
   }
@@ -1224,6 +1340,7 @@ const SupabaseKpiSync = (() => {
 async function loadCampaignSection() {
   // Fetch campaigns.json + claims for selected month plus campaign months.
   const month = (CURRENT_DATA || DATA)?.current_month || '';
+  await ensureBirthdayOverridesForMonth(month);
   const campsRes = await fetch('campaigns.json?v=' + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null);
   // campaigns.json shape is { campaigns: [...] } — unwrap to array
   if (Array.isArray(campsRes)) {
@@ -2742,11 +2859,7 @@ function renderCampaignsMgmt() {
     if (isBday) {
       const D = VIEW_DATA;
       const month = D.current_month || DATA?.current_month || '';
-      const bdayRows = D?.birthday_by_month?.[month]?.debtors
-                    || D?.birthday_campaign?.debtors
-                    || DATA?.birthday_by_month?.[month]?.debtors
-                    || DATA?.birthday_campaign?.debtors
-                    || [];
+      const bdayRows = birthdayRowsForMonth(D, month);
       return bdayRows.map(d => ({
         agent: d.agent,
         code:  (d.code || d.debtor_code || '').toUpperCase(),

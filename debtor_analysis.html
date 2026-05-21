@@ -90,6 +90,8 @@
         <a class="btn" href="management.html">Management</a>
         <a class="btn" href="sales_dashboard.html">Sales Dashboard</a>
         <a class="btn gold" href="debtor_analysis.html?report=sku-strength">Miracle 2A SKU</a>
+        <a class="btn gold" href="debtor_analysis.html?report=sku-gap">SKU Gap</a>
+        <a class="btn gold" href="debtor_analysis.html?report=sku-penetration">SKU Penetration</a>
         <button class="btn" onclick="toggleTheme()">Dark / Light</button>
         <button class="btn primary" onclick="exportRows()">Export Excel</button>
       </div>
@@ -100,6 +102,8 @@
     <nav class="report-tabs" aria-label="Debtor analysis reports">
       <button type="button" class="report-tab active" id="tabMovement" onclick="switchAnalysisReport('movement')">Debtor Movement</button>
       <button type="button" class="report-tab" id="tabSkuStrength" onclick="switchAnalysisReport('sku-strength')">Miracle 2A SKU Strength</button>
+      <button type="button" class="report-tab" id="tabSkuGap" onclick="switchAnalysisReport('sku-gap')">SKU Gap Opportunities</button>
+      <button type="button" class="report-tab" id="tabSkuPenetration" onclick="switchAnalysisReport('sku-penetration')">SKU Penetration</button>
     </nav>
 
     <div class="report-panel" id="movementPanel">
@@ -164,6 +168,24 @@
         <iframe class="sku-frame" title="Miracle 2A SKU Strength" src="reports/miracle-2a-sku-strength/index.html"></iframe>
       </div>
     </div>
+
+    <div class="report-panel" id="skuGapPanel" hidden>
+      <div class="sku-report-tools">
+        <a class="btn gold" href="reports/miracle-2a-sku-strength/gap_opportunities.html" target="_blank" rel="noopener">Open full page</a>
+      </div>
+      <div class="sku-frame-wrap">
+        <iframe class="sku-frame" title="Miracle 2A SKU Gap Opportunities" src="reports/miracle-2a-sku-strength/gap_opportunities.html"></iframe>
+      </div>
+    </div>
+
+    <div class="report-panel" id="skuPenetrationPanel" hidden>
+      <div class="sku-report-tools">
+        <a class="btn gold" href="reports/miracle-2a-sku-strength/penetration.html" target="_blank" rel="noopener">Open full page</a>
+      </div>
+      <div class="sku-frame-wrap">
+        <iframe class="sku-frame" title="Miracle 2A SKU Penetration" src="reports/miracle-2a-sku-strength/penetration.html"></iframe>
+      </div>
+    </div>
   </main>
 
 <script>
@@ -179,12 +201,20 @@ function unique(vals){ return [...new Set(vals.filter(Boolean))].sort((a,b)=>Str
 
 function switchAnalysisReport(report){
   const isSku = report === 'sku-strength';
-  byId('movementPanel').hidden = isSku;
+  const isGap = report === 'sku-gap';
+  const isPenetration = report === 'sku-penetration';
+  byId('movementPanel').hidden = isSku || isGap || isPenetration;
   byId('skuStrengthPanel').hidden = !isSku;
-  byId('tabMovement').classList.toggle('active', !isSku);
+  byId('skuGapPanel').hidden = !isGap;
+  byId('skuPenetrationPanel').hidden = !isPenetration;
+  byId('tabMovement').classList.toggle('active', !isSku && !isGap && !isPenetration);
   byId('tabSkuStrength').classList.toggle('active', isSku);
+  byId('tabSkuGap').classList.toggle('active', isGap);
+  byId('tabSkuPenetration').classList.toggle('active', isPenetration);
   const url = new URL(window.location.href);
   if(isSku) url.searchParams.set('report', 'sku-strength');
+  else if(isGap) url.searchParams.set('report', 'sku-gap');
+  else if(isPenetration) url.searchParams.set('report', 'sku-penetration');
   else url.searchParams.delete('report');
   history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
 }
@@ -441,7 +471,12 @@ function toggleTheme(){
   localStorage.setItem('debtor-analysis-theme', document.body.classList.contains('light')?'light':'dark');
 }
 if(localStorage.getItem('debtor-analysis-theme')==='light') document.body.classList.add('light');
-if(new URLSearchParams(window.location.search).get('report')==='sku-strength' || location.hash==='#sku-strength') {
+const initialReport = new URLSearchParams(window.location.search).get('report');
+if(initialReport === 'sku-gap' || location.hash === '#sku-gap') {
+  switchAnalysisReport('sku-gap');
+} else if(initialReport === 'sku-penetration' || location.hash === '#sku-penetration') {
+  switchAnalysisReport('sku-penetration');
+} else if(initialReport === 'sku-strength' || location.hash === '#sku-strength') {
   switchAnalysisReport('sku-strength');
 }
 init();

@@ -1,6 +1,6 @@
 {
   "_comment": "MD Sales Dashboard — loaded from Supabase",
-  "_loaded_at": "2026-05-20T10:52:32.753900",
+  "_loaded_at": "2026-05-21T10:22:52.849806",
   "agents": {
     "XIAN": {
       "is_newbie": false,
@@ -26,7 +26,7 @@
         "BISON": {
           "pen_auto": true,
           "ctn_target": 148,
-          "penetration_target": 5
+          "penetration_target": 4
         },
         "SUKUN": {
           "pen_auto": true,
@@ -437,7 +437,7 @@
         "iFACE": {
           "pen_auto": true,
           "ctn_target": 44,
-          "penetration_target": 5
+          "penetration_target": 6
         },
         "LAM+LWM": {
           "pen_auto": false,
@@ -524,7 +524,7 @@
         "iFACE": {
           "pen_auto": true,
           "ctn_target": 320,
-          "penetration_target": 6
+          "penetration_target": 5
         },
         "LAM+LWM": {
           "pen_auto": false,
@@ -806,88 +806,6 @@
         "prev_inactive": 16
       }
     },
-    "SAM": {
-      "is_newbie": false,
-      "active": true,
-      "is_new_this_month": false,
-      "sales_progression": {
-        "ga": 0,
-        "ma": 163,
-        "normal_t1": 878,
-        "normal_t2": 1028
-      },
-      "brand_commission": {
-        "EVO": {
-          "pen_auto": false,
-          "ctn_target": 89,
-          "penetration_target": 5
-        },
-        "TR20": {
-          "pen_auto": true,
-          "ctn_target": 5,
-          "penetration_target": 2
-        },
-        "BISON": {
-          "pen_auto": true,
-          "ctn_target": 89,
-          "penetration_target": 2
-        },
-        "SUKUN": {
-          "pen_auto": true,
-          "ctn_target": 250,
-          "penetration_target": 1
-        },
-        "iFACE": {
-          "pen_auto": true,
-          "ctn_target": 7,
-          "penetration_target": 2
-        },
-        "LAM+LWM": {
-          "pen_auto": false,
-          "ctn_target": 18,
-          "penetration_target": 6
-        }
-      },
-      "kpi_targets": {
-        "event": 16,
-        "new_sku": 17,
-        "vip_count": 9,
-        "new_accounts": 3,
-        "reactivation": 8,
-        "activation_rate": 1
-      },
-      "campaign_targets": {
-        "camp_1777773301331_count": 5
-      },
-      "newbie_tiers": [
-        {
-          "reward": 0,
-          "threshold": 0
-        },
-        {
-          "reward": 0,
-          "threshold": 0
-        },
-        {
-          "reward": 0,
-          "threshold": 0
-        }
-      ],
-      "newbie_account_tiers": [
-        {
-          "count": 0,
-          "reward": 0
-        },
-        {
-          "count": 0,
-          "reward": 0
-        },
-        {
-          "count": 0,
-          "reward": 0
-        }
-      ]
-    },
     "JACKY": {
       "is_newbie": false,
       "active": true,
@@ -945,6 +863,88 @@
         "month": "Mar 26",
         "non_personal": 142,
         "prev_inactive": 65
+      },
+      "newbie_tiers": [
+        {
+          "reward": 0,
+          "threshold": 0
+        },
+        {
+          "reward": 0,
+          "threshold": 0
+        },
+        {
+          "reward": 0,
+          "threshold": 0
+        }
+      ],
+      "newbie_account_tiers": [
+        {
+          "count": 0,
+          "reward": 0
+        },
+        {
+          "count": 0,
+          "reward": 0
+        },
+        {
+          "count": 0,
+          "reward": 0
+        }
+      ]
+    },
+    "SAM": {
+      "is_newbie": false,
+      "active": true,
+      "is_new_this_month": false,
+      "sales_progression": {
+        "ga": 0,
+        "ma": 163,
+        "normal_t1": 878,
+        "normal_t2": 1028
+      },
+      "brand_commission": {
+        "EVO": {
+          "pen_auto": false,
+          "ctn_target": 89,
+          "penetration_target": 5
+        },
+        "TR20": {
+          "pen_auto": true,
+          "ctn_target": 5,
+          "penetration_target": 2
+        },
+        "BISON": {
+          "pen_auto": true,
+          "ctn_target": 89,
+          "penetration_target": 2
+        },
+        "SUKUN": {
+          "pen_auto": true,
+          "ctn_target": 250,
+          "penetration_target": 1
+        },
+        "iFACE": {
+          "pen_auto": true,
+          "ctn_target": 7,
+          "penetration_target": 2
+        },
+        "LAM+LWM": {
+          "pen_auto": false,
+          "ctn_target": 18,
+          "penetration_target": 6
+        }
+      },
+      "kpi_targets": {
+        "event": 16,
+        "new_sku": 17,
+        "vip_count": 9,
+        "new_accounts": 3,
+        "reactivation": 8,
+        "activation_rate": 1
+      },
+      "campaign_targets": {
+        "camp_1777773301331_count": 5
       },
       "newbie_tiers": [
         {
@@ -4057,6 +4057,86 @@
         "total_debtors": 139
       }
     },
+    "Mar 26": {
+      "CJ": {
+        "non_personal": 116,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 27,
+        "total_debtors": 129
+      },
+      "JW": {
+        "non_personal": 49,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 16,
+        "total_debtors": 110
+      },
+      "KF": {
+        "non_personal": 159,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 60,
+        "total_debtors": 224
+      },
+      "KW": {
+        "non_personal": 140,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 36,
+        "total_debtors": 182
+      },
+      "YI": {
+        "non_personal": 169,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 82,
+        "total_debtors": 265
+      },
+      "BEN": {
+        "non_personal": 91,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 46,
+        "total_debtors": 139
+      },
+      "KEE": {
+        "non_personal": 124,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 50,
+        "total_debtors": 162
+      },
+      "NMK": {
+        "non_personal": 122,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 34,
+        "total_debtors": 152
+      },
+      "KEAN": {
+        "non_personal": 118,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 28,
+        "total_debtors": 215
+      },
+      "LEON": {
+        "non_personal": 114,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 27,
+        "total_debtors": 159
+      },
+      "JACKY": {
+        "non_personal": 142,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 65,
+        "total_debtors": 189
+      },
+      "JAMES": {
+        "non_personal": 128,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 19,
+        "total_debtors": 200
+      },
+      "KI-MI": {
+        "non_personal": 157,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 60,
+        "total_debtors": 256
+      }
+    },
     "May 26": {
       "CJ": {
         "non_personal": 104,
@@ -4141,86 +4221,6 @@
         "captured_date": "2026-05-07",
         "prev_inactive": 66,
         "total_debtors": 264
-      }
-    },
-    "Mar 26": {
-      "CJ": {
-        "non_personal": 116,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 27,
-        "total_debtors": 129
-      },
-      "JW": {
-        "non_personal": 49,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 16,
-        "total_debtors": 110
-      },
-      "KF": {
-        "non_personal": 159,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 60,
-        "total_debtors": 224
-      },
-      "KW": {
-        "non_personal": 140,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 36,
-        "total_debtors": 182
-      },
-      "YI": {
-        "non_personal": 169,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 82,
-        "total_debtors": 265
-      },
-      "BEN": {
-        "non_personal": 91,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 46,
-        "total_debtors": 139
-      },
-      "KEE": {
-        "non_personal": 124,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 50,
-        "total_debtors": 162
-      },
-      "NMK": {
-        "non_personal": 122,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 34,
-        "total_debtors": 152
-      },
-      "KEAN": {
-        "non_personal": 118,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 28,
-        "total_debtors": 215
-      },
-      "LEON": {
-        "non_personal": 114,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 27,
-        "total_debtors": 159
-      },
-      "JACKY": {
-        "non_personal": 142,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 65,
-        "total_debtors": 189
-      },
-      "JAMES": {
-        "non_personal": 128,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 19,
-        "total_debtors": 200
-      },
-      "KI-MI": {
-        "non_personal": 157,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 60,
-        "total_debtors": 256
       }
     }
   },
@@ -4447,12 +4447,12 @@
     },
     "May 26": {
       "XIAN": {
-        "EVO": 99,
-        "TR20": 99,
-        "BISON": 91,
-        "SUKUN": 63,
-        "iFACE": 108,
-        "LAM+LWM": 116
+        "EVO": 97,
+        "TR20": 98,
+        "BISON": 90,
+        "SUKUN": 62,
+        "iFACE": 106,
+        "LAM+LWM": 114
       },
       "KI-MI": {
         "EVO": 133,
@@ -4471,12 +4471,12 @@
         "LAM+LWM": 90
       },
       "KF": {
-        "EVO": 77,
-        "TR20": 158,
-        "BISON": 135,
-        "SUKUN": 102,
-        "iFACE": 132,
-        "LAM+LWM": 145
+        "EVO": 80,
+        "TR20": 161,
+        "BISON": 138,
+        "SUKUN": 105,
+        "iFACE": 135,
+        "LAM+LWM": 148
       },
       "KEE": {
         "EVO": 108,
@@ -4487,20 +4487,20 @@
         "LAM+LWM": 127
       },
       "NMK": {
-        "EVO": 49,
-        "TR20": 121,
-        "BISON": 113,
-        "SUKUN": 76,
-        "iFACE": 109,
-        "LAM+LWM": 113
+        "EVO": 50,
+        "TR20": 122,
+        "BISON": 114,
+        "SUKUN": 77,
+        "iFACE": 110,
+        "LAM+LWM": 114
       },
       "KW": {
-        "EVO": 99,
-        "TR20": 127,
-        "BISON": 117,
-        "SUKUN": 82,
-        "iFACE": 110,
-        "LAM+LWM": 130
+        "EVO": 92,
+        "TR20": 120,
+        "BISON": 111,
+        "SUKUN": 75,
+        "iFACE": 103,
+        "LAM+LWM": 123
       },
       "YI": {
         "EVO": 128,
@@ -4526,14 +4526,6 @@
         "iFACE": 0,
         "LAM+LWM": 0
       },
-      "SAM": {
-        "EVO": 35,
-        "TR20": 49,
-        "BISON": 35,
-        "SUKUN": 25,
-        "iFACE": 48,
-        "LAM+LWM": 47
-      },
       "JACKY": {
         "EVO": 80,
         "TR20": 141,
@@ -4541,6 +4533,14 @@
         "SUKUN": 110,
         "iFACE": 134,
         "LAM+LWM": 130
+      },
+      "SAM": {
+        "EVO": 35,
+        "TR20": 49,
+        "BISON": 35,
+        "SUKUN": 25,
+        "iFACE": 48,
+        "LAM+LWM": 47
       },
       "JAMES": {
         "EVO": 67,
@@ -4571,7 +4571,7 @@
   "penetration_snapshot_meta": {
     "May 26": {
       "pool_version": "dm_active_nonpersonal_debtorwide_v2",
-      "updated_at": "2026-05-20T10:53:29"
+      "updated_at": "2026-05-21T10:24:03"
     }
   }
 }

@@ -14,6 +14,8 @@ DEBTOR_XLSX = ROOT / "Debtor Maintenance.xlsx"
 INDEX_HTML = Path(__file__).with_name("index.html")
 DEBTOR_STATUS_JS = Path(__file__).with_name("debtor_status.js")
 AGENT_MONTHLY_JS = Path(__file__).with_name("agent_monthly_revenue.js")
+SKU_GAP_JS = Path(__file__).with_name("sku_gap_opportunities.js")
+SKU_PENETRATION_JS = Path(__file__).with_name("sku_penetration_data.js")
 
 STATE_MAP = {
     "Terengganu": ["KF", "JAMES", "NMK"],
@@ -39,22 +41,27 @@ def pct_delta(current, previous):
     return round((float(current or 0) - previous) / abs(previous) * 100, 1)
 
 
-def build_trend(current_sales, current_qty, previous_metrics):
+def build_trend(current_sales, current_qty, previous_metrics, current_customers=0):
     previous_sales = float(previous_metrics["sales"]) if previous_metrics else 0
     previous_qty = float(previous_metrics["qty"]) if previous_metrics else 0
+    previous_customers = int(previous_metrics.get("customers", 0)) if previous_metrics else 0
     current_sales = float(current_sales or 0)
     current_qty = float(current_qty or 0)
+    current_customers = int(current_customers or 0)
     return {
         "prevSales": money(previous_sales),
         "prevQty": qty(previous_qty),
+        "prevCustomers": previous_customers,
         "salesDelta": money(current_sales - previous_sales),
         "qtyDelta": qty(current_qty - previous_qty),
+        "customerDelta": current_customers - previous_customers,
         "salesPct": pct_delta(current_sales, previous_sales),
         "qtyPct": pct_delta(current_qty, previous_qty),
+        "customerPct": pct_delta(current_customers, previous_customers),
     }
 
 
-def load_sales():
+def load_sales(miracle_only=True):
     df = pd.read_excel(SALES_XLSX, sheet_name=0)
     df.columns = [str(c).strip() for c in df.columns]
     df = df.rename(columns={
@@ -70,7 +77,8 @@ def load_sales():
         "QTY (CTN)": "qty_ctn",
     })
     df["agent"] = df["agent"].astype(str).str.upper().str.strip()
-    df = df[df["agent"].isin(MIRACLE_AGENTS)].copy()
+    if miracle_only:
+        df = df[df["agent"].isin(MIRACLE_AGENTS)].copy()
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df["doc_no"] = df["doc_no"].astype(str).str.strip()
     df["debtor_code"] = df["debtor_code"].astype(str).str.strip()
@@ -115,13 +123,13 @@ def grouped_lookup(frame, keys):
         return {}
     grouped = (
         frame.groupby(keys, dropna=False)
-        .agg(sales=("sales", "sum"), qty=("qty_ctn", "sum"))
+        .agg(sales=("sales", "sum"), qty=("qty_ctn", "sum"), customers=("debtor_code", "nunique"))
         .reset_index()
     )
     lookup = {}
     for row in grouped.itertuples(index=False):
         key = tuple(getattr(row, column) for column in keys)
-        lookup[key] = {"sales": row.sales, "qty": row.qty}
+        lookup[key] = {"sales": row.sales, "qty": row.qty, "customers": row.customers}
     return lookup
 
 
@@ -174,7 +182,7 @@ def build_strength(df):
                 .sort_values("sales", ascending=False)
             )
             for rank, row in enumerate(sku_rows.itertuples(index=False), start=1):
-                trend = build_trend(row.sales, row.qty, prev_state_skus.get((state, row.sku, row.desc))) if prev_period else None
+                trend = build_trend(row.sales, row.qty, prev_state_skus.get((state, row.sku, row.desc)), row.customers) if prev_period else None
                 state_skus.append([
                     state, rank, row.sku, row.desc, money(row.sales), qty(row.qty),
                     int(row.customers), round(float(row.sales) / total_sales * 100, 1) if total_sales else 0,
@@ -202,7 +210,7 @@ def build_strength(df):
                     agent_sku = [
                         row.sku, row.desc, money(row.sales), qty(row.qty), int(row.customers),
                         round(float(row.sales) / total_sales * 100, 1) if total_sales else 0,
-                        build_trend(row.sales, row.qty, prev_agent_skus.get((state, agent, row.sku, row.desc))) if prev_period else None,
+                        build_trend(row.sales, row.qty, prev_agent_skus.get((state, agent, row.sku, row.desc)), row.customers) if prev_period else None,
                     ]
                     skus.append(agent_sku)
                 agents.append([state, agent, skus])
@@ -317,6 +325,89 @@ def build_monthly(df):
     }
 
 
+def build_sku_gap(df, debtors):
+    rows = df.copy()
+    grouped = (
+        rows.groupby(["period_key", "state", "agent", "debtor_code", "sku", "desc"], dropna=False)
+        .agg(
+            company_name=("company_name", "last"),
+            sales=("sales", "sum"),
+            qty=("qty_ctn", "sum"),
+            docs=("doc_no", "nunique"),
+            last_date=("date", "max"),
+        )
+        .reset_index()
+    )
+
+    debtor_names = (
+        rows.sort_values("date")
+        .groupby("debtor_code")["company_name"]
+        .last()
+        .to_dict()
+    )
+    debtor_meta = {}
+    for code, debtor in debtors.items():
+        agent = str(debtor.get("agent") or "").upper().strip()
+        if agent not in MIRACLE_AGENTS:
+            continue
+        debtor_meta[code] = {
+            "name": debtor["name"],
+            "status": debtor["status"],
+            "active": debtor["status"] == "Active",
+            "maintAgent": agent,
+            "maintType": debtor["type"],
+            "state": AGENT_STATE.get(agent, ""),
+        }
+
+    for code, name in debtor_names.items():
+        debtor = debtors.get(code)
+        agent = str(debtor.get("agent") or "").upper().strip() if debtor else ""
+        debtor_meta[code] = {
+            "name": debtor["name"] if debtor and debtor["name"] else str(name or ""),
+            "status": debtor["status"] if debtor else "Missing",
+            "active": debtor["status"] == "Active" if debtor else False,
+            "maintAgent": agent,
+            "maintType": debtor["type"] if debtor else "",
+            "state": AGENT_STATE.get(agent, ""),
+            **debtor_meta.get(code, {}),
+        }
+
+    sku_options = [
+        [row.sku, row.desc]
+        for row in (
+            rows.groupby(["sku", "desc"], dropna=False)
+            .agg(sales=("sales", "sum"))
+            .reset_index()
+            .sort_values(["sku", "desc"])
+            .itertuples(index=False)
+        )
+    ]
+
+    records = []
+    for row in grouped.itertuples(index=False):
+        records.append({
+            "month": row.period_key,
+            "state": "" if pd.isna(row.state) else row.state,
+            "agent": row.agent,
+            "code": row.debtor_code,
+            "name": debtor_meta.get(row.debtor_code, {}).get("name") or str(row.company_name or ""),
+            "sku": row.sku,
+            "desc": row.desc,
+            "sales": round(float(row.sales or 0), 2),
+            "qty": qty(row.qty),
+            "docs": int(row.docs),
+            "lastDate": row.last_date.date().isoformat() if pd.notna(row.last_date) else "",
+        })
+
+    return {
+        "months": sorted(rows["period_key"].dropna().unique()),
+        "skuOptions": sku_options,
+        "typeOptions": sorted({meta["maintType"] for meta in debtor_meta.values() if meta.get("maintType")}),
+        "debtors": debtor_meta,
+        "records": records,
+    }
+
+
 def replace_index_data(data):
     text = INDEX_HTML.read_text(encoding="utf-8")
     replacement = "const data = " + json.dumps(data, ensure_ascii=False, indent=6) + ";"
@@ -344,7 +435,9 @@ def replace_index_data(data):
 
 def main():
     sales = load_sales()
+    all_sales = load_sales(miracle_only=False)
     sales["period_key"] = sales["date"].dt.strftime("%Y-%m")
+    all_sales["period_key"] = all_sales["date"].dt.strftime("%Y-%m")
     debtors = load_debtors()
     replace_index_data(build_strength(sales))
     DEBTOR_STATUS_JS.write_text(
@@ -353,6 +446,14 @@ def main():
     )
     AGENT_MONTHLY_JS.write_text(
         "window.agentMonthlyRevenue = " + json.dumps(build_monthly(sales), ensure_ascii=False, indent=2) + ";\n",
+        encoding="utf-8",
+    )
+    SKU_GAP_JS.write_text(
+        "window.skuGapData = " + json.dumps(build_sku_gap(sales, debtors), ensure_ascii=False, separators=(",", ":")) + ";\n",
+        encoding="utf-8",
+    )
+    SKU_PENETRATION_JS.write_text(
+        "window.skuPenetrationData = " + json.dumps(build_sku_gap(all_sales, debtors), ensure_ascii=False, separators=(",", ":")) + ";\n",
         encoding="utf-8",
     )
     print("Rebuilt SKU strength report with QTY(CTN).")
