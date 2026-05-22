@@ -4856,14 +4856,20 @@ function campDebtorConversionInfo(camp, debtor) {
   const converted = !!cc.converted;
   const lookback = Number(cc.lookback_ctn ?? 0);
   const current = Number(cc.current_ctn ?? cc.ctn_this_month ?? cc.progress_ctn ?? debtor.ctn_cur ?? 0);
+  const unpaid = Number(cc.current_unpaid_ctn ?? 0);
+  const label = converted ? 'Converted' : (unpaid > 0 ? 'Unpaid' : 'Not yet');
+  const color = converted ? 'var(--green)' : (unpaid > 0 ? 'var(--orange)' : 'var(--muted)');
+  const bg = converted ? 'rgba(61,220,132,.12)' : (unpaid > 0 ? 'rgba(255,154,60,.12)' : 'rgba(255,255,255,.06)');
+  const border = converted ? 'rgba(61,220,132,.4)' : (unpaid > 0 ? 'rgba(255,154,60,.35)' : 'rgba(255,255,255,.12)');
   return {
-    label: converted ? 'Converted' : 'Not yet',
-    color: converted ? 'var(--green)' : 'var(--muted)',
-    bg: converted ? 'rgba(61,220,132,.12)' : 'rgba(255,255,255,.06)',
-    border: converted ? 'rgba(61,220,132,.4)' : 'rgba(255,255,255,.12)',
+    label,
+    color,
+    bg,
+    border,
     lookback,
     current,
-    currentText: current > 0 ? `${fmtNum(current)} CTN` : '0 CTN'
+    unpaid,
+    currentText: current > 0 ? `${fmtNum(current)} CTN` : (unpaid > 0 ? `${fmtNum(unpaid)} CTN unpaid` : '0 CTN')
   };
 }
 
@@ -4945,7 +4951,7 @@ function renderCampaignDebtorPanel(camp) {
       <div class="camp-debtor-code" style="font-family:var(--mono);font-size:9px;color:var(--muted);">${campEsc(d.debtor_code || '')}</div>
       <div class="camp-debtor-status"><span style="font-family:var(--mono);font-size:8px;color:${t.color};background:${t.bg};border:1px solid ${t.border};padding:2px 6px;border-radius:8px;white-space:nowrap;">${campEsc(t.label)}</span></div>
       <div class="camp-debtor-lookback" style="font-family:var(--mono);font-size:10px;color:var(--muted);text-align:right;">${fmtNum(t.lookback)} CTN</div>
-      <div class="camp-debtor-current" style="font-family:var(--mono);font-size:10px;color:${t.current > 0 ? 'var(--green)' : 'var(--muted)'};text-align:right;">${campEsc(t.currentText)}</div>
+      <div class="camp-debtor-current" style="font-family:var(--mono);font-size:10px;color:${t.current > 0 ? 'var(--green)' : (t.unpaid > 0 ? 'var(--orange)' : 'var(--muted)')};text-align:right;">${campEsc(t.currentText)}</div>
       <button class="camp-debtor-claim" onclick='toggleCampClaim(event,${JSON.stringify(d.debtor_code || '')},${JSON.stringify(campId)},${JSON.stringify(d.company_name || d.debtor_code || '')},${JSON.stringify(camp.promo_detail || camp.name || '')},${JSON.stringify(camp.type || 'other')})'
         style="background:${claimBg};border:1px solid ${claimBorder};color:${claimColor};font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;">${claimLabel}</button>
     </div>`;

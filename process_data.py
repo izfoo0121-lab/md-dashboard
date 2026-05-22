@@ -1348,7 +1348,9 @@ def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups, 
             conv_rows = invoice_rows if invoice_rows is not None else d_rows
             if conv_rows.empty or not qual_group or "item_group" not in conv_rows.columns:
                 lookback_ctn = 0.0
-                current_ctn  = 0.0
+                current_ctn = 0.0
+                current_invoice_ctn = 0.0
+                current_unpaid_ctn = 0.0
             else:
                 group_mask = conv_rows["item_group"] == qual_group
                 if "item_code" in conv_rows.columns:
@@ -1366,11 +1368,23 @@ def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups, 
                     rm_num = pd.to_numeric(current_rows["rm_ctn"], errors="coerce")
                     current_rows = current_rows[rm_num >= price_floor]
                 lookback_ctn = round(float(lookback_rows["qty_ctn"].sum()), 2)
-                current_ctn  = round(float(current_rows["qty_ctn"].sum()), 2)
+                current_invoice_ctn = round(float(current_rows["qty_ctn"].sum()), 2)
+                if not current_rows.empty and "paid_on" in current_rows.columns:
+                    paid_mask = current_rows["paid_on"].fillna("").astype(str).str.strip() != ""
+                    paid_current_rows = current_rows[paid_mask]
+                    unpaid_current_rows = current_rows[~paid_mask]
+                else:
+                    paid_current_rows = current_rows
+                    unpaid_current_rows = current_rows.iloc[0:0]
+                current_ctn = round(float(paid_current_rows["qty_ctn"].sum()), 2)
+                current_unpaid_ctn = round(float(unpaid_current_rows["qty_ctn"].sum()), 2)
 
             camp["lookback_ctn"]   = lookback_ctn
             camp["current_ctn"]    = current_ctn
             camp["converted"]      = (lookback_ctn == 0) and (current_ctn > 0)
+            camp["current_paid_ctn"] = current_ctn
+            camp["current_unpaid_ctn"] = current_unpaid_ctn
+            camp["current_invoice_ctn"] = current_invoice_ctn
             camp["price_floor"]    = price_floor
             camp["ctn_this_month"] = current_ctn
             camp["foc_earned"]     = 0
