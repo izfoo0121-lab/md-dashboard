@@ -174,8 +174,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .dc-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
 .dc-phone{color:var(--blue);text-decoration:none;font-family:var(--mono);font-size:10px;display:flex;align-items:center;gap:3px;}
 .dc-badges{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;}
+.movement-summary{margin:8px 0 2px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.04);}
+.movement-summary-row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+.movement-summary-left,.movement-summary-right{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.movement-summary-label{font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
 :root[data-theme="light"] .debtor-card{border-bottom:1px solid var(--border);}
 :root[data-theme="light"] .dc-collapsible.expanded{background:rgba(255,255,255,.38);border-top:1px solid var(--border);padding-top:10px;margin-top:10px;}
+:root[data-theme="light"] .movement-summary{background:rgba(255,250,240,.7);}
 :root[data-theme="light"] .dc-badges > div{background:#fffdf8!important;border:1px solid #d8cdb8!important;box-shadow:0 1px 0 rgba(60,45,20,.05);}
 :root[data-theme="light"] .dc-badges button{background:#fff8e8!important;border-color:#cdbd9e!important;color:var(--text)!important;}
 :root[data-theme="light"] .status-inline{border:1px solid rgba(120,105,75,.18);}
@@ -2017,6 +2022,24 @@ function setDropSkuFilter(val, el) {
   renderDebtors();
 }
 
+function renderDropMovementExtra(r, skuPillsHtml = '') {
+  const lostCtn = (Number(r.prev_ctn) || 0) - (Number(r.cur_ctn) || 0);
+  return `<div class="movement-summary">
+    <div class="movement-summary-row">
+      <div class="movement-summary-left">
+        <span class="movement-summary-label">Drop movement</span>
+        <span class="status-inline" style="background:rgba(77,166,255,.15);color:var(--blue);">${r.sku}</span>
+      </div>
+      <div class="movement-summary-right">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--text);white-space:nowrap;">${fmtNum(r.prev_ctn)} -> ${fmtNum(r.cur_ctn)} CTN</span>
+        <span class="status-inline" style="background:rgba(255,95,95,.15);color:var(--red);">-${fmtNum(lostCtn)} CTN</span>
+        <span class="status-inline" style="background:rgba(255,95,95,.15);color:var(--red);">-${r.drop_pct}%</span>
+      </div>
+    </div>
+    ${skuPillsHtml}
+  </div>`;
+}
+
 function renderDropMode(debtors) {
   const skuOptions = buildDropSkuOptions(debtors);
   let dropRows = buildDroppingSkuRows(debtors, dropSkuFilter);
@@ -2035,10 +2058,10 @@ function renderDropMode(debtors) {
     return `<button class="filter-chip ${sku === dropSkuFilter ? 'active' : ''}" onclick="setDropSkuFilter('${sku.replace(/'/g,"\\'")}',this)">${label}</button>`;
   }).join('');
 
-  const dropHtml = shownDropRows.length ? shownDropRows.map(r => {
+  const dropHtml = shownDropRows.length ? shownDropRows.map((r, idx) => {
+    const orig = debtors.find(d => d.debtor_code === r.debtor_code);
     let skuPillsHtml = '';
     if (dropSkuFilter === 'all') {
-      const orig = debtors.find(d => d.debtor_code === r.debtor_code);
       if (orig) {
         const { stopped, reduced } = getDebtorSkuDrops(orig);
         const stoppedPills = stopped.map(s =>
@@ -2056,21 +2079,16 @@ function renderDropMode(debtors) {
         }
       }
     }
-    return `
-    <div class="debtor-card" style="padding:12px 14px;">
-      <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
-        <div style="min-width:0;">
-          <div class="debtor-name">${r.company_name || ''}</div>
-          <div class="debtor-meta">${r.debtor_code || ''} · ${r.debtor_type || ''}</div>
-          ${skuPillsHtml}
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
-          <span class="status-inline" style="background:rgba(77,166,255,.15);color:var(--blue);">${r.sku}</span>
-          <span style="font-family:var(--mono);font-size:11px;color:var(--text);white-space:nowrap;">${r.prev_ctn} → ${r.cur_ctn}</span>
-          <span class="status-inline" style="background:rgba(255,95,95,.15);color:var(--red);">-${r.drop_pct}%</span>
-        </div>
-      </div>
-    </div>`;
+    const cardDebtor = orig || {
+      debtor_code: r.debtor_code,
+      company_name: r.company_name,
+      debtor_type: r.debtor_type,
+      ctn_prev1: r.prev_ctn,
+      ctn_cur: r.cur_ctn,
+      month_breakdown: {},
+      sku_status: {}
+    };
+    return renderDebtorCard(cardDebtor, idx + 1, renderDropMovementExtra(r, skuPillsHtml));
   }).join('') : `<div class="empty-state">No dropping SKU rows</div>`;
 
   document.getElementById('debtor-list').innerHTML = `
@@ -2147,6 +2165,27 @@ function setGainSkuFilter(val, el) {
   renderDebtors();
 }
 
+function renderGainMovementExtra(r, skuPillsHtml = '') {
+  const gainedCtn = (Number(r.cur_ctn) || 0) - (Number(r.prev_ctn) || 0);
+  const pctLabel = r.is_new ? 'NEW' : `+${r.gain_pct}%`;
+  const pctColor = r.is_new ? 'var(--green)' : 'var(--blue)';
+  const pctBg    = r.is_new ? 'rgba(61,220,132,.15)' : 'rgba(77,166,255,.15)';
+  return `<div class="movement-summary">
+    <div class="movement-summary-row">
+      <div class="movement-summary-left">
+        <span class="movement-summary-label">Gain movement</span>
+        <span class="status-inline" style="background:rgba(77,166,255,.15);color:var(--blue);">${r.sku}</span>
+      </div>
+      <div class="movement-summary-right">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--text);white-space:nowrap;">${fmtNum(r.prev_ctn)} -> ${fmtNum(r.cur_ctn)} CTN</span>
+        <span class="status-inline" style="background:rgba(61,220,132,.15);color:var(--green);">+${fmtNum(gainedCtn)} CTN</span>
+        <span class="status-inline" style="background:${pctBg};color:${pctColor};">${pctLabel}</span>
+      </div>
+    </div>
+    ${skuPillsHtml}
+  </div>`;
+}
+
 function renderGainMode(debtors) {
   const skuOptions = buildDropSkuOptions(debtors); // reuse same SKU list builder
   let gainRows = buildGainingSkuRows(debtors, gainSkuFilter);
@@ -2164,10 +2203,10 @@ function renderGainMode(debtors) {
     return `<button class="filter-chip ${sku === gainSkuFilter ? 'active' : ''}" onclick="setGainSkuFilter('${sku.replace(/'/g,"\\'")}',this)">${label}</button>`;
   }).join('');
 
-  const gainHtml = shownRows.length ? shownRows.map(r => {
+  const gainHtml = shownRows.length ? shownRows.map((r, idx) => {
+    const orig = debtors.find(d => d.debtor_code === r.debtor_code);
     let skuPillsHtml = '';
     if (gainSkuFilter === 'all') {
-      const orig = debtors.find(d => d.debtor_code === r.debtor_code);
       if (orig) {
         const { newsku, increased } = getDebtorSkuGains(orig);
         const newPills = newsku.map(s =>
@@ -2183,24 +2222,16 @@ function renderGainMode(debtors) {
         }
       }
     }
-    const pctLabel = r.is_new ? 'NEW' : `+${r.gain_pct}%`;
-    const pctColor = r.is_new ? 'var(--green)' : 'var(--blue)';
-    const pctBg    = r.is_new ? 'rgba(61,220,132,.15)' : 'rgba(77,166,255,.15)';
-    return `
-    <div class="debtor-card" style="padding:12px 14px;">
-      <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
-        <div style="min-width:0;">
-          <div class="debtor-name">${r.company_name || ''}</div>
-          <div class="debtor-meta">${r.debtor_code || ''} · ${r.debtor_type || ''}</div>
-          ${skuPillsHtml}
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
-          <span class="status-inline" style="background:rgba(77,166,255,.15);color:var(--blue);">${r.sku}</span>
-          <span style="font-family:var(--mono);font-size:11px;color:var(--text);white-space:nowrap;">${r.prev_ctn} → ${r.cur_ctn}</span>
-          <span class="status-inline" style="background:${pctBg};color:${pctColor};">${pctLabel}</span>
-        </div>
-      </div>
-    </div>`;
+    const cardDebtor = orig || {
+      debtor_code: r.debtor_code,
+      company_name: r.company_name,
+      debtor_type: r.debtor_type,
+      ctn_prev1: r.prev_ctn,
+      ctn_cur: r.cur_ctn,
+      month_breakdown: {},
+      sku_status: {}
+    };
+    return renderDebtorCard(cardDebtor, idx + 1, renderGainMovementExtra(r, skuPillsHtml));
   }).join('') : `<div class="empty-state">No gaining SKU rows</div>`;
 
   document.getElementById('debtor-list').innerHTML = `
@@ -2557,7 +2588,7 @@ function changeNonVipPage(dir) {
   renderNonVipMode(debtors);
 }
 
-function renderDebtorCard(d, runNo) {
+function renderDebtorCard(d, runNo, extraHtml = '') {
     // Status label — Chinese
     // Chip rules:
     //   is_pending_activation -> pending activation (new strict definition)
@@ -2808,6 +2839,8 @@ function renderDebtorCard(d, runNo) {
           ${brandTierBadges ? `<div class="dc-badges" style="margin-top:2px;">${brandTierBadges}</div>` : ''}
         </div>
       </div>
+
+      ${extraHtml || ''}
 
       <div class="dc-collapsible collapsed" id="dc-body-${mbKey}">
         <div class="ctn-section">
