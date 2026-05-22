@@ -1970,6 +1970,22 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
         # Summary counts — ALL exclude Personal
         active_count   = sum(1 for d in non_personal if d["status"] == "active")
         pending_count  = sum(1 for d in non_personal if d["status"] == "pending")
+        opened_this_month_codes = []
+        if anchor is not None:
+            for code in dm_non_personal_live:
+                info = debtor_info.get(code, {})
+                dtype = (info.get("type", "") or "").strip()
+                if not dtype:
+                    continue
+                open_date = info.get("open_date")
+                if not open_date or not pd.notnull(open_date):
+                    continue
+                try:
+                    od = pd.to_datetime(open_date)
+                    if od.year == anchor.year and od.month == anchor.month:
+                        opened_this_month_codes.append(code)
+                except Exception:
+                    continue
         inactive_count = sum(
             1 for d in non_personal
             if (d.get("ctn_prev2", 0) or 0) > 0
@@ -2016,6 +2032,8 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             "activation_snapshot_date": patronage_snapshot_date if np_total_uses_baseline else None,
             "activation_active":  np_active,
             "pending_activation": pending_activation_count,
+            "opened_this_month": len(opened_this_month_codes),
+            "opened_this_month_codes": opened_this_month_codes,
             "total_new_sku":      total_new_sku,
             "exclusion_note":     "Summary counts exclude P-Personal",
         }
@@ -3001,7 +3019,9 @@ def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_cam
         normal_pct = (sp.get("tiers", {}).get("normal_t1", {}).get("pct", 0) or 0)
         debtors    = dc.get("debtors", [])
         PERSONAL_TYPES_KPI = {"P-Personal","P-PERSONAL","personal","Personal","PERSONAL"}
-        new_acc_count = sum(1 for d in debtors if d.get("is_new", False) and d.get("debtor_type","") not in PERSONAL_TYPES_KPI)
+        new_acc_count = dc.get("opened_this_month")
+        if new_acc_count is None:
+            new_acc_count = sum(1 for d in debtors if d.get("is_new", False) and d.get("debtor_type","") not in PERSONAL_TYPES_KPI)
         vip_count     = sum(1 for d in debtors if d.get("vip", False))
         reactiv_count = dc.get("reactivation_count", 0) or 0
         new_sku_count = dc.get("total_new_sku", 0) or 0

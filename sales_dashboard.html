@@ -3052,11 +3052,11 @@ function renderDebtors() {
   const isFrozen      = agData.activation_base_frozen === true;
   const isBaselinePending = agData.activation_base_frozen === false;
   const snapDate      = agData.activation_snapshot_date || null;
-  const delta         = isFrozen ? Math.max(0, npTotalLive - npTotalFrozen) : 0;
+  const openedThisMonth = agData.opened_this_month ?? 0;
   const npActive      = agData.activation_active ?? active;
 
   const sumTotalEl = document.getElementById('sum-total');
-  sumTotalEl.textContent = npTotalFrozen;
+  sumTotalEl.textContent = npTotalLive;
   let deltaEl = document.getElementById('sum-total-delta');
   if (!deltaEl) {
     deltaEl = document.createElement('div');
@@ -3064,8 +3064,8 @@ function renderDebtors() {
     deltaEl.style.cssText = 'font-family:var(--mono);font-size:9px;color:var(--green);margin-top:2px;line-height:1;';
     sumTotalEl.parentNode.appendChild(deltaEl);
   }
-  if (isFrozen && delta > 0) {
-    deltaEl.textContent = `+${delta} 新增`;
+  if (openedThisMonth > 0) {
+    deltaEl.textContent = `+${openedThisMonth} 新增`;
     deltaEl.style.color = 'var(--green)';
     deltaEl.style.display = '';
   } else if (isBaselinePending) {
@@ -3078,10 +3078,10 @@ function renderDebtors() {
   const sumTotalBox = sumTotalEl.closest('.summary-box');
   if (sumTotalBox) {
     sumTotalBox.title = isFrozen && snapDate
-      ? `Total accounts frozen at month start (${snapDate}). New onboards count toward next month's denominator.`
+      ? `Live non-Personal account count. +新增 uses Open Acct in the current month. Activation KPI denominator remains ${npTotalFrozen} from ${snapDate}.`
       : isBaselinePending
-        ? `Live count — baseline will be locked on next business day.`
-        : `Live active non-Personal account count.`;
+        ? `Live non-Personal account count. Baseline will be locked on next business day.`
+        : `Live non-Personal account count. +新增 uses Open Acct in the current month.`;
   }
   document.getElementById('sum-active').textContent  = active;
   document.getElementById('sum-reactiv').textContent = inactive;  // show 待激活 count
@@ -3407,7 +3407,7 @@ function renderMonthlyPersonalCard(sp) {
     {lbl:'交易次数',      val:sp.txn_count||0,         sub:`${elapsed} of ${total_wd} working days`,  color:'var(--text)'},
     {lbl:'平均/天',       val:(sp.avg_txn_per_day||0).toFixed(1), sub:'CTN per working day',           color:'var(--accent)'},
     {lbl:'🏆 Ranking',    val:`#${rank}`,              sub:`of ${rankTotal} agents (Normal CTN)`,    color:rank<=3?'var(--gold)':rank<=6?'var(--green)':'var(--muted)'},
-    {lbl:'开新户口',      val:dc.debtors?.filter(d=>d.is_new&&d.debtor_type!=='P-Personal').length||0, sub:'new accounts (excl Personal)', color:'var(--green)'},
+    {lbl:'开新户口',      val:(dc.opened_this_month ?? (dc.debtors?.filter(d=>d.is_new&&d.debtor_type!=='P-Personal').length || 0)), sub:'new accounts (Open Acct)', color:'var(--green)'},
     {lbl:'VIP',          val:dc.debtors?.filter(d=>d.vip).length||0, sub:'VIP debtors',              color:'var(--accent)'},
     {lbl:'激活户口',      val:dc.reactivation_count||0, sub:'reactivated this month',                color:'var(--orange)'},
     {lbl:'加SKU',        val:dc.total_new_sku||0,     sub:'new SKU debtors',                         color:'var(--purple)'},
@@ -3415,9 +3415,9 @@ function renderMonthlyPersonalCard(sp) {
   ];
 
   // New account override display
-  const newAccountStatIdx = stats.findIndex(s => s.sub === 'new accounts (excl Personal)' && s.color === 'var(--green)');
+  const newAccountStatIdx = stats.findIndex(s => s.sub === 'new accounts (Open Acct)' && s.color === 'var(--green)');
   if (newAccountStatIdx >= 0) {
-    const auto = dc.debtors?.filter(d=>d.is_new && d.debtor_type!=='P-Personal').length || 0;
+    const auto = dc.opened_this_month ?? (dc.debtors?.filter(d=>d.is_new && d.debtor_type!=='P-Personal').length || 0);
     const overrides = DATA.agents[currentAgent]?.kpi_manual_overrides || {};
     const hasOverride = overrides.has_override === true && (overrides.new_accounts ?? 0) > 0;
     const override = hasOverride ? Number(overrides.new_accounts || 0) : auto;
@@ -3436,7 +3436,7 @@ function renderMonthlyPersonalCard(sp) {
       }
     } else {
       valDisplay = String(auto);
-      subDisplay = 'new accounts (excl Personal)';
+      subDisplay = 'new accounts (Open Acct)';
     }
     stats[newAccountStatIdx] = {
       lbl: stats[newAccountStatIdx].lbl,
