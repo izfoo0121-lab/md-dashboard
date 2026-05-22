@@ -7659,7 +7659,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 19
           },
           {
             "debtor_code": "300-C126",
@@ -9233,7 +9234,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 24,
+            "eightcom_ctn_prev1": 32,
+            "eightcom_ctn_prev2": 6
           },
           {
             "debtor_code": "300-C208",
@@ -9482,7 +9486,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2
           },
           {
             "debtor_code": "300-C209",
@@ -12592,7 +12597,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 5,
+            "eightcom_ctn_prev2": 52
           },
           {
             "debtor_code": "300-H073",
@@ -17054,7 +17061,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 10,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-H199",
@@ -17494,7 +17503,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 70,
+            "eightcom_ctn_prev1": 95,
+            "eightcom_ctn_prev2": 72
           },
           {
             "debtor_code": "300-H214",
@@ -18383,7 +18395,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 15,
+            "eightcom_ctn_prev1": 4
           },
           {
             "debtor_code": "300-H232",
@@ -18944,7 +18958,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 5,
+            "eightcom_ctn_prev2": 25
           },
           {
             "debtor_code": "300-H247",
@@ -19523,7 +19539,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 6,
+            "eightcom_ctn_prev1": 8,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "300-H264",
@@ -19847,7 +19866,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2,
+            "eightcom_ctn_prev2": 2
           },
           {
             "debtor_code": "300-H272",
@@ -20703,7 +20724,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 6,
+            "eightcom_ctn_prev2": 25
           },
           {
             "debtor_code": "300-H277",
@@ -21394,7 +21417,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1
           },
           {
             "debtor_code": "300-H281",
@@ -21959,7 +21983,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1
           },
           {
             "debtor_code": "300-H292",
@@ -22177,7 +22202,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 25
           },
           {
             "debtor_code": "300-H293",
@@ -22415,7 +22441,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 6
           },
           {
             "debtor_code": "300-H294",
@@ -22615,7 +22642,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 4
           },
           {
             "debtor_code": "300-H296",
@@ -22907,7 +22935,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 7
           },
           {
             "debtor_code": "300-JK002",
@@ -23722,7 +23751,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-JK008",
@@ -24777,7 +24808,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 28,
+            "eightcom_ctn_prev1": 20,
+            "eightcom_ctn_prev2": 35
           },
           {
             "debtor_code": "300-JK031",
@@ -25048,7 +25082,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev1": 23,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "300-JK036",
@@ -25512,7 +25549,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 58,
+            "eightcom_ctn_prev1": 45,
+            "eightcom_ctn_prev2": 78
           },
           {
             "debtor_code": "300-JK054",
@@ -25767,7 +25807,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2,
+            "eightcom_ctn_prev1": 27,
+            "eightcom_ctn_prev2": 7
           },
           {
             "debtor_code": "300-JK056",
@@ -26413,7 +26456,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1
           },
           {
             "debtor_code": "300-JK093",
@@ -28558,7 +28602,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 18
           },
           {
             "debtor_code": "300-H124",
@@ -44835,7 +44880,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 4
           },
           {
             "debtor_code": "300-KB092",
@@ -46155,7 +46201,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 3
           },
           {
             "debtor_code": "300-KM017",
@@ -50916,7 +50963,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 4
           },
           {
             "debtor_code": "300-KM086",
@@ -55700,7 +55748,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 15,
+            "eightcom_ctn_prev1": 14,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-KM167",
@@ -57605,7 +57656,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2,
+            "eightcom_ctn_prev1": 6,
+            "eightcom_ctn_prev2": 2
           },
           {
             "debtor_code": "300-KM184",
@@ -58625,7 +58679,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1,
+            "eightcom_ctn_prev1": 2
           },
           {
             "debtor_code": "300-KM191",
@@ -60739,7 +60795,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2
           },
           {
             "debtor_code": "3EV-E0253",
@@ -62103,7 +62160,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1,
+            "eightcom_ctn_prev1": 5,
+            "eightcom_ctn_prev2": 3
           },
           {
             "debtor_code": "3EV-J0403",
@@ -62288,7 +62348,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "3EV-J0424",
@@ -65051,7 +65112,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2,
+            "eightcom_ctn_prev2": 3
           },
           {
             "debtor_code": "300-KM082",
@@ -65917,7 +65980,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1
           },
           {
             "debtor_code": "300-KM185",
@@ -88310,7 +88374,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 3
           },
           {
             "debtor_code": "300-JS006",
@@ -89692,7 +89757,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 7,
+            "eightcom_ctn_prev1": 9
           },
           {
             "debtor_code": "300-JS016",
@@ -89862,7 +89929,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1,
+            "eightcom_ctn_prev1": 1
           },
           {
             "debtor_code": "300-JS019",
@@ -90448,7 +90517,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 29,
+            "eightcom_ctn_prev1": 25,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "300-JS022",
@@ -90717,7 +90789,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 11,
+            "eightcom_ctn_prev1": 11,
+            "eightcom_ctn_prev2": 12
           },
           {
             "debtor_code": "300-JS024",
@@ -90893,7 +90968,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 3
           },
           {
             "debtor_code": "300-JS026",
@@ -91800,7 +91876,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1
           },
           {
             "debtor_code": "300-JS030",
@@ -91997,7 +92074,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2,
+            "eightcom_ctn_prev1": 1
           },
           {
             "debtor_code": "300-JS032",
@@ -92206,7 +92285,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 3
           },
           {
             "debtor_code": "300-JS035",
@@ -93894,7 +93974,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 5,
+            "eightcom_ctn_prev2": 40
           },
           {
             "debtor_code": "300-JS054",
@@ -95634,7 +95716,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 13,
+            "eightcom_ctn_prev1": 20,
+            "eightcom_ctn_prev2": 32
           },
           {
             "debtor_code": "300-JS065",
@@ -97368,7 +97453,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 21,
+            "eightcom_ctn_prev1": 28,
+            "eightcom_ctn_prev2": 29
           },
           {
             "debtor_code": "300-JS084",
@@ -97624,7 +97712,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1
           },
           {
             "debtor_code": "300-JS087",
@@ -98199,7 +98288,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 3
           },
           {
             "debtor_code": "300-JS093",
@@ -98586,7 +98676,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 3,
+            "eightcom_ctn_prev1": 1
           },
           {
             "debtor_code": "300-JS096",
@@ -101361,7 +101453,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "300-JS144",
@@ -101537,7 +101631,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 12,
+            "eightcom_ctn_prev1": 2,
+            "eightcom_ctn_prev2": 8
           },
           {
             "debtor_code": "300-JS145",
@@ -103762,7 +103859,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1,
+            "eightcom_ctn_prev1": 12,
+            "eightcom_ctn_prev2": 56
           },
           {
             "debtor_code": "300-JS207",
@@ -105530,7 +105630,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 26,
+            "eightcom_ctn_prev1": 5
           },
           {
             "debtor_code": "300-JS279",
@@ -110180,7 +110282,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1,
+            "eightcom_ctn_prev1": 4,
+            "eightcom_ctn_prev2": 20
           },
           {
             "debtor_code": "300-JS326",
@@ -110420,7 +110525,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 14
           },
           {
             "debtor_code": "300-JS327",
@@ -112288,7 +112394,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1,
+            "eightcom_ctn_prev1": 1,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "3EV-L0013",
@@ -113814,7 +113923,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 6,
+            "eightcom_ctn_prev1": 18,
+            "eightcom_ctn_prev2": 25
           },
           {
             "debtor_code": "3EV-L0376",
@@ -115922,7 +116034,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 15
           },
           {
             "debtor_code": "300-JS330",
@@ -122852,7 +122965,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-BY004",
@@ -123596,7 +123710,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 3
           },
           {
             "debtor_code": "300-BY021",
@@ -123918,7 +124033,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 50,
+            "eightcom_ctn_prev1": 40,
+            "eightcom_ctn_prev2": 85
           },
           {
             "debtor_code": "300-BY028",
@@ -125193,7 +125311,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 10,
+            "eightcom_ctn_prev2": 35
           },
           {
             "debtor_code": "300-BY045",
@@ -125331,7 +125451,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 19,
+            "eightcom_ctn_prev1": 39,
+            "eightcom_ctn_prev2": 38
           },
           {
             "debtor_code": "300-BY046",
@@ -125518,7 +125641,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1
           },
           {
             "debtor_code": "300-BY047",
@@ -127405,7 +127529,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 63,
+            "eightcom_ctn_prev1": 41,
+            "eightcom_ctn_prev2": 38
           },
           {
             "debtor_code": "300-BY073",
@@ -127796,7 +127923,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 14,
+            "eightcom_ctn_prev1": 10
           },
           {
             "debtor_code": "300-BY076",
@@ -128421,7 +128550,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 3,
+            "eightcom_ctn_prev1": 10
           },
           {
             "debtor_code": "300-BY087",
@@ -128619,7 +128750,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 7,
+            "eightcom_ctn_prev1": 3,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-BY088",
@@ -129903,7 +130037,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 30,
+            "eightcom_ctn_prev2": 20
           },
           {
             "debtor_code": "300-BY108",
@@ -130288,7 +130424,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "300-BY123",
@@ -131000,7 +131137,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 20,
+            "eightcom_ctn_prev1": 35
           },
           {
             "debtor_code": "300-BY152",
@@ -131134,7 +131273,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 25,
+            "eightcom_ctn_prev1": 20,
+            "eightcom_ctn_prev2": 46
           },
           {
             "debtor_code": "300-BY179",
@@ -131476,7 +131618,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 7,
+            "eightcom_ctn_prev1": 12
           },
           {
             "debtor_code": "300-BY182",
@@ -131717,7 +131861,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 10,
+            "eightcom_ctn_prev1": 6,
+            "eightcom_ctn_prev2": 7
           },
           {
             "debtor_code": "300-BY183",
@@ -132859,7 +133006,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 13,
+            "eightcom_ctn_prev1": 13
           },
           {
             "debtor_code": "300-BY230",
@@ -133643,7 +133792,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 6,
+            "eightcom_ctn_prev1": 4
           },
           {
             "debtor_code": "300-BY238",
@@ -134039,7 +134190,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 11,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-BY244",
@@ -135374,7 +135527,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 10
           },
           {
             "debtor_code": "300-BY258",
@@ -135855,7 +136009,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 12
           },
           {
             "debtor_code": "300-BY264",
@@ -136258,7 +136413,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1
           },
           {
             "debtor_code": "300-BY268",
@@ -136522,7 +136678,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev1": 3
           },
           {
             "debtor_code": "300-BY270",
@@ -137312,7 +137470,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 25,
+            "eightcom_ctn_prev1": 27,
+            "eightcom_ctn_prev2": 54
           },
           {
             "debtor_code": "300-BY273",
@@ -137852,7 +138013,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2
           },
           {
             "debtor_code": "300-BY280",
@@ -139166,7 +139328,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 15
           },
           {
             "debtor_code": "300-BY302",
@@ -139861,7 +140024,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 30,
+            "eightcom_ctn_prev1": 14
           },
           {
             "debtor_code": "300-BY307",
@@ -140155,7 +140320,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev2": 8
           },
           {
             "debtor_code": "300-BY308",
@@ -140292,7 +140459,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5
           },
           {
             "debtor_code": "300-BY309",
@@ -140547,7 +140715,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 38,
+            "eightcom_ctn_prev1": 44,
+            "eightcom_ctn_prev2": 27
           },
           {
             "debtor_code": "300-BY310",
@@ -140789,7 +140960,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev1": 5,
+            "eightcom_ctn_prev2": 20
           },
           {
             "debtor_code": "300-BY311",
@@ -141690,7 +141864,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2
           },
           {
             "debtor_code": "300-BY318",
@@ -142227,7 +142402,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 23,
+            "eightcom_ctn_prev1": 32
           },
           {
             "debtor_code": "300-BY323",
@@ -142458,7 +142635,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 38,
+            "eightcom_ctn_prev1": 30
           },
           {
             "debtor_code": "300-BY325",
@@ -142718,7 +142897,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev1": 8
           },
           {
             "debtor_code": "300-BY326",
@@ -142931,7 +143112,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 5
           },
           {
             "debtor_code": "300-BY327",
@@ -144825,7 +145007,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 16
           },
           {
             "debtor_code": "300-BY338",
@@ -145458,7 +145641,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 10
           },
           {
             "debtor_code": "300-BY341",
@@ -147509,7 +147693,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 20,
+            "eightcom_ctn_prev1": 32,
+            "eightcom_ctn_prev2": 39
           },
           {
             "debtor_code": "3EV-L0669",
@@ -147847,7 +148034,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 25
           },
           {
             "debtor_code": "3EV-Q0091",
@@ -148625,7 +148813,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 2
           },
           {
             "debtor_code": "300-BY157",
@@ -149549,7 +149738,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 20
           },
           {
             "debtor_code": "300-BY314",
@@ -150856,7 +151046,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 30,
+            "eightcom_ctn_prev1": 20
           },
           {
             "debtor_code": "3EV-L0774",
@@ -151290,7 +151482,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 9
           },
           {
             "debtor_code": "300-BY090",
@@ -154955,7 +155148,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 50,
+            "eightcom_ctn_prev1": 90
           },
           {
             "debtor_code": "300-BY329",
@@ -155142,7 +155337,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2
           },
           {
             "debtor_code": "300-BY332",
@@ -155329,7 +155525,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2
           },
           {
             "debtor_code": "300-C171",
@@ -156680,7 +156877,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev1": 4,
+            "eightcom_ctn_prev2": 7
           },
           {
             "debtor_code": "3EV-L0519",
@@ -157327,7 +157527,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 32,
+            "eightcom_ctn_prev2": 15
           },
           {
             "debtor_code": "3EV-L0548",
@@ -164102,7 +164304,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2,
+            "eightcom_ctn_prev1": 2,
+            "eightcom_ctn_prev2": 3
           },
           {
             "debtor_code": "300-H020",
@@ -164371,7 +164576,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 13,
+            "eightcom_ctn_prev1": 9,
+            "eightcom_ctn_prev2": 14
           },
           {
             "debtor_code": "300-H028",
@@ -165088,7 +165296,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 8
           },
           {
             "debtor_code": "300-H053",
@@ -165284,7 +165493,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 24,
+            "eightcom_ctn_prev1": 16,
+            "eightcom_ctn_prev2": 28
           },
           {
             "debtor_code": "300-H096",
@@ -165443,7 +165655,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "300-H106",
@@ -165645,7 +165859,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 20,
+            "eightcom_ctn_prev1": 11,
+            "eightcom_ctn_prev2": 20
           },
           {
             "debtor_code": "300-H116",
@@ -165832,7 +166049,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev1": 5,
+            "eightcom_ctn_prev2": 36
           },
           {
             "debtor_code": "300-H118",
@@ -166092,7 +166312,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 58,
+            "eightcom_ctn_prev1": 100,
+            "eightcom_ctn_prev2": 62
           },
           {
             "debtor_code": "300-H122",
@@ -166313,7 +166536,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 5,
+            "eightcom_ctn_prev2": 2
           },
           {
             "debtor_code": "300-H123",
@@ -166572,7 +166797,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 12,
+            "eightcom_ctn_prev1": 30,
+            "eightcom_ctn_prev2": 4
           },
           {
             "debtor_code": "300-H125",
@@ -166786,7 +167014,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 7
           },
           {
             "debtor_code": "300-H129",
@@ -167276,7 +167505,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 6,
+            "eightcom_ctn_prev1": 10,
+            "eightcom_ctn_prev2": 35
           },
           {
             "debtor_code": "300-H160",
@@ -168849,7 +169081,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-J139",
@@ -169068,7 +169302,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 29,
+            "eightcom_ctn_prev2": 27
           },
           {
             "debtor_code": "300-J147",
@@ -169356,7 +169592,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 34,
+            "eightcom_ctn_prev1": 41,
+            "eightcom_ctn_prev2": 76
           },
           {
             "debtor_code": "300-J148",
@@ -169958,7 +170197,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2
           },
           {
             "debtor_code": "300-WK003",
@@ -170209,7 +170449,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev1": 10,
+            "eightcom_ctn_prev2": 24
           },
           {
             "debtor_code": "300-WK013",
@@ -170411,7 +170654,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 22,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "300-WK017",
@@ -171932,7 +172177,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 38,
+            "eightcom_ctn_prev1": 34,
+            "eightcom_ctn_prev2": 75
           },
           {
             "debtor_code": "300-WK033",
@@ -172398,7 +172646,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 50,
+            "eightcom_ctn_prev2": 70
           },
           {
             "debtor_code": "300-WK036",
@@ -172562,7 +172812,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 30,
+            "eightcom_ctn_prev1": 12,
+            "eightcom_ctn_prev2": 17
           },
           {
             "debtor_code": "300-WK038",
@@ -172757,7 +173010,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 12,
+            "eightcom_ctn_prev1": 6,
+            "eightcom_ctn_prev2": 15
           },
           {
             "debtor_code": "300-WK042",
@@ -173440,7 +173696,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 50
           },
           {
             "debtor_code": "300-WK056",
@@ -173910,7 +174167,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 20,
+            "eightcom_ctn_prev2": 36
           },
           {
             "debtor_code": "300-WK063",
@@ -174422,7 +174681,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 47,
+            "eightcom_ctn_prev1": 20,
+            "eightcom_ctn_prev2": 49
           },
           {
             "debtor_code": "300-WK069",
@@ -174730,7 +174992,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 12,
+            "eightcom_ctn_prev1": 3,
+            "eightcom_ctn_prev2": 11
           },
           {
             "debtor_code": "300-WK070",
@@ -175230,7 +175495,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev1": 21,
+            "eightcom_ctn_prev2": 17
           },
           {
             "debtor_code": "300-WK072",
@@ -175412,7 +175680,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 7,
+            "eightcom_ctn_prev1": 32,
+            "eightcom_ctn_prev2": 13
           },
           {
             "debtor_code": "300-WK073",
@@ -175612,7 +175883,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 6
           },
           {
             "debtor_code": "300-WK074",
@@ -175848,7 +176120,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2
           },
           {
             "debtor_code": "300-WK075",
@@ -176018,7 +176291,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 24
           },
           {
             "debtor_code": "300-WK078",
@@ -176369,7 +176643,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 12,
+            "eightcom_ctn_prev1": 28,
+            "eightcom_ctn_prev2": 18
           },
           {
             "debtor_code": "300-WK081",
@@ -176618,7 +176895,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev1": 6
           },
           {
             "debtor_code": "300-WK082",
@@ -176849,7 +177128,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 5
           },
           {
             "debtor_code": "300-WK086",
@@ -177099,7 +177379,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2,
+            "eightcom_ctn_prev1": 4
           },
           {
             "debtor_code": "3EV-B0163",
@@ -177876,7 +178158,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 6
           },
           {
             "debtor_code": "300-D065",
@@ -178053,7 +178336,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2,
+            "eightcom_ctn_prev1": 5
           },
           {
             "debtor_code": "300-D222",
@@ -178284,7 +178569,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 7
           },
           {
             "debtor_code": "300-H009",
@@ -178446,7 +178732,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2
           },
           {
             "debtor_code": "300-H010",
@@ -178556,7 +178843,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-H030",
@@ -178912,7 +179200,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "300-H034",
@@ -179121,7 +179411,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 4
           },
           {
             "debtor_code": "300-H042",
@@ -179845,7 +180136,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 6
           },
           {
             "debtor_code": "300-J090",
@@ -180260,7 +180552,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 15,
+            "eightcom_ctn_prev2": 40
           },
           {
             "debtor_code": "300-J125",
@@ -180531,7 +180825,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 4,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-J152",
@@ -181033,7 +181329,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 10
           },
           {
             "debtor_code": "300-WK008",
@@ -181525,7 +181822,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2
           },
           {
             "debtor_code": "300-WK012",
@@ -181676,7 +181974,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "300-WK014",
@@ -182187,7 +182487,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2
           },
           {
             "debtor_code": "300-WK057",
@@ -182520,7 +182821,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-WK068",
@@ -182693,7 +182995,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2,
+            "eightcom_ctn_prev2": 9
           },
           {
             "debtor_code": "300-WK077",
@@ -182902,7 +183206,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 38,
+            "eightcom_ctn_prev1": 5,
+            "eightcom_ctn_prev2": 18
           },
           {
             "debtor_code": "300-WK079",
@@ -183129,7 +183436,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-WK080",
@@ -183561,7 +183869,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 4
           },
           {
             "debtor_code": "300-WK085",
@@ -183768,7 +184077,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 8
           },
           {
             "debtor_code": "300-WK089",
@@ -184411,7 +184721,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": true,
-            "overdue_ctn": 18.0
+            "overdue_ctn": 18.0,
+            "eightcom_ctn_prev2": 4
           },
           {
             "debtor_code": "300-H008",
@@ -184598,7 +184909,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1
           },
           {
             "debtor_code": "300-H044",
@@ -184864,7 +185176,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-J008",
@@ -185308,7 +185621,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-J145",
@@ -186222,7 +186536,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 4
           },
           {
             "debtor_code": "300-JK049",
@@ -186707,7 +187022,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 18
           },
           {
             "debtor_code": "300-WK004",
@@ -187614,7 +187930,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 12
           },
           {
             "debtor_code": "300-WK018",
@@ -188484,7 +188801,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-WK029",
@@ -188987,7 +189305,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 6
           },
           {
             "debtor_code": "300-WK040",
@@ -190171,7 +190490,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 6
           },
           {
             "debtor_code": "300-WK083",
@@ -190358,7 +190678,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 20
           },
           {
             "debtor_code": "300-WK087",
@@ -190732,7 +191053,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2
           },
           {
             "debtor_code": "3EV-B0010",
@@ -197439,7 +197761,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 2
           },
           {
             "debtor_code": "300-KH016",
@@ -197732,7 +198055,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 57,
+            "eightcom_ctn_prev1": 37,
+            "eightcom_ctn_prev2": 67
           },
           {
             "debtor_code": "300-KH021",
@@ -199972,7 +200298,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 23,
+            "eightcom_ctn_prev1": 40,
+            "eightcom_ctn_prev2": 30
           },
           {
             "debtor_code": "300-KH044",
@@ -204111,7 +204440,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2
           },
           {
             "debtor_code": "300-KH102",
@@ -205557,7 +205887,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-KH126",
@@ -208359,7 +208691,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1
           },
           {
             "debtor_code": "300-KH209",
@@ -210289,7 +210622,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 7,
+            "eightcom_ctn_prev1": 10
           },
           {
             "debtor_code": "300-KH274",
@@ -211255,7 +211590,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 14,
+            "eightcom_ctn_prev1": 2
           },
           {
             "debtor_code": "300-KH287",
@@ -211529,7 +211866,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2
           },
           {
             "debtor_code": "300-KH289",
@@ -211781,7 +212119,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5
           },
           {
             "debtor_code": "300-KH292",
@@ -212021,7 +212360,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 4,
+            "eightcom_ctn_prev1": 3
           },
           {
             "debtor_code": "300-KH297",
@@ -212935,7 +213276,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 7,
+            "eightcom_ctn_prev2": 4
           },
           {
             "debtor_code": "3EV-L0059",
@@ -213538,7 +213881,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 10,
+            "eightcom_ctn_prev1": 17,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "3EV-L0252",
@@ -214182,7 +214528,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1
           },
           {
             "debtor_code": "3EV-Q0161",
@@ -215355,7 +215702,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 3
           },
           {
             "debtor_code": "300-KH079",
@@ -216285,7 +216633,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 10
           },
           {
             "debtor_code": "300-KH230",
@@ -216624,7 +216973,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2,
+            "eightcom_ctn_prev2": 18
           },
           {
             "debtor_code": "300-KH259",
@@ -217297,7 +217648,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "300-KH293",
@@ -218550,7 +218902,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 4
           },
           {
             "debtor_code": "3EV-L0510",
@@ -220588,7 +220941,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1
           },
           {
             "debtor_code": "300-KH298",
@@ -220775,7 +221129,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1
           },
           {
             "debtor_code": "300-KH299",
@@ -220962,7 +221317,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1
           },
           {
             "debtor_code": "3EV-L0039",
@@ -221397,7 +221753,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 3
           },
           {
             "debtor_code": "3EV-L0122",
@@ -221837,7 +222194,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2
           },
           {
             "debtor_code": "3EV-L0225",
@@ -227477,7 +227835,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-C112",
@@ -228387,7 +228746,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-C118",
@@ -229914,7 +230274,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2
           },
           {
             "debtor_code": "300-C133",
@@ -230201,7 +230562,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 4
           },
           {
             "debtor_code": "300-C135",
@@ -230371,7 +230733,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 18,
+            "eightcom_ctn_prev1": 37,
+            "eightcom_ctn_prev2": 16
           },
           {
             "debtor_code": "300-C142",
@@ -232431,7 +232796,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1,
+            "eightcom_ctn_prev1": 1,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-C196",
@@ -232704,7 +233072,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 10,
+            "eightcom_ctn_prev1": 40,
+            "eightcom_ctn_prev2": 25
           },
           {
             "debtor_code": "300-C200",
@@ -232870,7 +233241,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2,
+            "eightcom_ctn_prev1": 5,
+            "eightcom_ctn_prev2": 2
           },
           {
             "debtor_code": "300-C225",
@@ -233912,7 +234286,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-C261",
@@ -234470,7 +234846,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 12,
+            "eightcom_ctn_prev1": 22,
+            "eightcom_ctn_prev2": 11
           },
           {
             "debtor_code": "300-C264",
@@ -234692,7 +235071,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1,
+            "eightcom_ctn_prev1": 1
           },
           {
             "debtor_code": "300-C266",
@@ -235527,7 +235908,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 3
           },
           {
             "debtor_code": "300-C333",
@@ -235688,7 +236070,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 2
           },
           {
             "debtor_code": "300-C402",
@@ -235927,7 +236310,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 3
           },
           {
             "debtor_code": "300-C405",
@@ -236199,7 +236583,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 20
           },
           {
             "debtor_code": "300-C407",
@@ -236892,7 +237277,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 50
           },
           {
             "debtor_code": "300-C412",
@@ -237912,7 +238298,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 20,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-C417",
@@ -238048,7 +238436,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 4,
+            "eightcom_ctn_prev1": 3
           },
           {
             "debtor_code": "300-C421",
@@ -238301,7 +238691,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 30,
+            "eightcom_ctn_prev1": 148,
+            "eightcom_ctn_prev2": 110
           },
           {
             "debtor_code": "300-C422",
@@ -239690,7 +240083,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 28,
+            "eightcom_ctn_prev2": 11
           },
           {
             "debtor_code": "300-C523",
@@ -240160,7 +240555,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2,
+            "eightcom_ctn_prev1": 4
           },
           {
             "debtor_code": "300-C527",
@@ -240936,7 +241333,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1
           },
           {
             "debtor_code": "300-C531",
@@ -241132,7 +241530,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 45,
+            "eightcom_ctn_prev1": 105
           },
           {
             "debtor_code": "300-C533",
@@ -242378,7 +242778,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 6,
+            "eightcom_ctn_prev1": 5,
+            "eightcom_ctn_prev2": 8
           },
           {
             "debtor_code": "300-C539",
@@ -243306,7 +243709,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 7,
+            "eightcom_ctn_prev1": 9,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "300-C602",
@@ -243726,7 +244132,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 12,
+            "eightcom_ctn_prev1": 26,
+            "eightcom_ctn_prev2": 15
           },
           {
             "debtor_code": "300-C607",
@@ -243954,7 +244363,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 14,
+            "eightcom_ctn_prev1": 16,
+            "eightcom_ctn_prev2": 4
           },
           {
             "debtor_code": "300-C610",
@@ -245503,7 +245915,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2
           },
           {
             "debtor_code": "300-C635",
@@ -246559,7 +246972,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 3
           },
           {
             "debtor_code": "300-M016",
@@ -255376,7 +255790,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 5
           },
           {
             "debtor_code": "300-C248",
@@ -263433,7 +263848,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1
           },
           {
             "debtor_code": "300-KV013",
@@ -263742,7 +264158,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 17,
+            "eightcom_ctn_prev1": 19,
+            "eightcom_ctn_prev2": 11
           },
           {
             "debtor_code": "300-KV014",
@@ -264706,7 +265125,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 10,
+            "eightcom_ctn_prev1": 14
           },
           {
             "debtor_code": "300-KV022",
@@ -265223,7 +265644,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 2
           },
           {
             "debtor_code": "300-KV028",
@@ -265459,7 +265881,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2
           },
           {
             "debtor_code": "300-KV029",
@@ -265646,7 +266069,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 9,
+            "eightcom_ctn_prev1": 18,
+            "eightcom_ctn_prev2": 3
           },
           {
             "debtor_code": "300-KV032",
@@ -266773,7 +267199,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1,
+            "eightcom_ctn_prev1": 3,
+            "eightcom_ctn_prev2": 4
           },
           {
             "debtor_code": "300-KV046",
@@ -266985,7 +267414,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 3
           },
           {
             "debtor_code": "300-KV049",
@@ -268214,7 +268644,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2
           },
           {
             "debtor_code": "300-KV075",
@@ -270467,7 +270898,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": true,
-            "overdue_ctn": 46.0
+            "overdue_ctn": 46.0,
+            "eightcom_ctn_cur": 3
           },
           {
             "debtor_code": "300-KV167",
@@ -270982,7 +271414,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-KV180",
@@ -272793,7 +273226,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 25
           },
           {
             "debtor_code": "300-KV200",
@@ -274328,7 +274762,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 20,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "300-KV225",
@@ -276459,7 +276895,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1
           },
           {
             "debtor_code": "3EV-E0244",
@@ -277904,7 +278341,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 6,
+            "eightcom_ctn_prev1": 9,
+            "eightcom_ctn_prev2": 8
           },
           {
             "debtor_code": "3EV-F0226",
@@ -278738,7 +279178,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "3EV-K0033",
@@ -278920,7 +279362,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 20
           },
           {
             "debtor_code": "3EV-K0106",
@@ -279688,7 +280131,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 7,
+            "eightcom_ctn_prev2": 7
           },
           {
             "debtor_code": "300-KH137",
@@ -281354,7 +281799,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 3,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "3EV-K0065",
@@ -285565,7 +286012,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 4,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-KV128",
@@ -290810,7 +291259,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-KV245",
@@ -302932,7 +303382,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1
           },
           {
             "debtor_code": "300-C627",
@@ -303362,7 +303813,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 44,
+            "eightcom_ctn_prev1": 25,
+            "eightcom_ctn_prev2": 8
           },
           {
             "debtor_code": "300-P0307",
@@ -303711,7 +304165,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 3,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-YY002",
@@ -303815,7 +304271,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 4
           },
           {
             "debtor_code": "300-YY004",
@@ -304023,7 +304480,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1,
+            "eightcom_ctn_prev1": 4
           },
           {
             "debtor_code": "300-YY008",
@@ -304419,7 +304878,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 4,
+            "eightcom_ctn_prev1": 6,
+            "eightcom_ctn_prev2": 2
           },
           {
             "debtor_code": "300-YY011",
@@ -305182,7 +305644,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1,
+            "eightcom_ctn_prev2": 8
           },
           {
             "debtor_code": "300-YY023",
@@ -305789,7 +306253,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 20,
+            "eightcom_ctn_prev1": 13,
+            "eightcom_ctn_prev2": 11
           },
           {
             "debtor_code": "300-YY037",
@@ -306609,7 +307076,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2,
+            "eightcom_ctn_prev1": 5
           },
           {
             "debtor_code": "300-YY060",
@@ -306847,7 +307316,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 3
           },
           {
             "debtor_code": "300-YY062",
@@ -307824,7 +308294,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 8
           },
           {
             "debtor_code": "300-YY072",
@@ -307997,7 +308468,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 4,
+            "eightcom_ctn_prev1": 6,
+            "eightcom_ctn_prev2": 6
           },
           {
             "debtor_code": "300-YY076",
@@ -308292,7 +308766,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 12,
+            "eightcom_ctn_prev2": 3
           },
           {
             "debtor_code": "300-YY077",
@@ -308663,7 +309139,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 20
           },
           {
             "debtor_code": "300-YY078",
@@ -309248,7 +309725,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 10,
+            "eightcom_ctn_prev1": 9,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "300-YY081",
@@ -310103,7 +310583,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1
           },
           {
             "debtor_code": "3EV-Q0820",
@@ -310233,7 +310714,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 4
           },
           {
             "debtor_code": "3EV-Q1037",
@@ -311807,7 +312289,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 19,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-YY055",
@@ -312232,7 +312716,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 15
           },
           {
             "debtor_code": "300-YY073",
@@ -312680,7 +313165,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1
           },
           {
             "debtor_code": "3EV-B0129",
@@ -312790,7 +313276,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 5
           },
           {
             "debtor_code": "3EV-Q0198",
@@ -315796,7 +316283,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-YY044",
@@ -316707,7 +317195,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 9,
+            "eightcom_ctn_prev1": 4,
+            "eightcom_ctn_prev2": 32
           },
           {
             "debtor_code": "300-YY054",
@@ -318351,7 +318842,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 4,
+            "eightcom_ctn_prev2": 53
           },
           {
             "debtor_code": "300-YY075",
@@ -318538,7 +319031,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2,
+            "eightcom_ctn_prev2": 14
           },
           {
             "debtor_code": "3EV-B0081",
@@ -321297,7 +321792,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 6,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-BR008",
@@ -321949,7 +322446,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 6,
+            "eightcom_ctn_prev1": 2,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-BR015",
@@ -322187,7 +322687,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 3,
+            "eightcom_ctn_prev1": 4,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-BR019",
@@ -322663,7 +323166,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1
           },
           {
             "debtor_code": "300-BR023",
@@ -323142,7 +323646,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2
           },
           {
             "debtor_code": "300-BR029",
@@ -323568,7 +324073,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-BR035",
@@ -323828,7 +324335,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-BR037",
@@ -328545,7 +329053,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1,
+            "eightcom_ctn_prev2": 2
           },
           {
             "debtor_code": "3EV-F0089",
@@ -329153,7 +329663,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 10,
+            "eightcom_ctn_prev1": 4
           },
           {
             "debtor_code": "3EV-J0150",
@@ -330175,7 +330687,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 3,
+            "eightcom_ctn_prev1": 4
           },
           {
             "debtor_code": "3EV-Q0366",
@@ -330669,7 +331183,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 9,
+            "eightcom_ctn_prev2": 3
           },
           {
             "debtor_code": "300-BR011",
@@ -333656,7 +334172,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev1": 5,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-BR049",
@@ -333843,7 +334362,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-BR061",
@@ -334468,7 +334989,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1
           },
           {
             "debtor_code": "300-D310",
@@ -347306,7 +347828,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 10
           },
           {
             "debtor_code": "300-KB026",
@@ -348437,7 +348960,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1
           },
           {
             "debtor_code": "300-KB034",
@@ -349102,7 +349626,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 8,
+            "eightcom_ctn_prev1": 13,
+            "eightcom_ctn_prev2": 7
           },
           {
             "debtor_code": "300-KB058",
@@ -349389,7 +349916,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 15,
+            "eightcom_ctn_prev1": 22,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "300-KB064",
@@ -350039,7 +350569,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-KB099",
@@ -350256,7 +350787,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1,
+            "eightcom_ctn_prev1": 12,
+            "eightcom_ctn_prev2": 32
           },
           {
             "debtor_code": "300-KB101",
@@ -350622,7 +351156,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 23,
+            "eightcom_ctn_prev1": 32,
+            "eightcom_ctn_prev2": 18
           },
           {
             "debtor_code": "300-KT002",
@@ -351120,7 +351657,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 3,
+            "eightcom_ctn_prev2": 12
           },
           {
             "debtor_code": "300-KT011",
@@ -351313,7 +351852,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 4,
+            "eightcom_ctn_prev1": 3
           },
           {
             "debtor_code": "300-KT012",
@@ -351474,7 +352015,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 44
           },
           {
             "debtor_code": "300-KT014",
@@ -351849,7 +352391,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 12
           },
           {
             "debtor_code": "300-KT019",
@@ -352478,7 +353021,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 7,
+            "eightcom_ctn_prev2": 2
           },
           {
             "debtor_code": "300-KT029",
@@ -352639,7 +353184,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 18,
+            "eightcom_ctn_prev1": 46,
+            "eightcom_ctn_prev2": 50
           },
           {
             "debtor_code": "300-KT033",
@@ -352795,7 +353343,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1,
+            "eightcom_ctn_prev1": 3,
+            "eightcom_ctn_prev2": 3
           },
           {
             "debtor_code": "300-KT038",
@@ -353864,7 +354415,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 6,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "300-KT067",
@@ -354909,7 +355462,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 6
           },
           {
             "debtor_code": "300-KT116",
@@ -355269,7 +355823,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 20,
+            "eightcom_ctn_prev1": 26,
+            "eightcom_ctn_prev2": 35
           },
           {
             "debtor_code": "300-KT137",
@@ -355449,7 +356006,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 3
           },
           {
             "debtor_code": "300-KT140",
@@ -355782,7 +356340,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 8,
+            "eightcom_ctn_prev1": 4,
+            "eightcom_ctn_prev2": 4
           },
           {
             "debtor_code": "300-KT145",
@@ -355948,7 +356509,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2,
+            "eightcom_ctn_prev1": 3
           },
           {
             "debtor_code": "300-KT152",
@@ -356314,7 +356877,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 104,
+            "eightcom_ctn_prev1": 89,
+            "eightcom_ctn_prev2": 106
           },
           {
             "debtor_code": "300-KT155",
@@ -356575,7 +357141,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 5
           },
           {
             "debtor_code": "300-KT156",
@@ -357058,7 +357625,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 4
           },
           {
             "debtor_code": "300-KT162",
@@ -357399,7 +357967,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1,
+            "eightcom_ctn_prev1": 7,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-KT180",
@@ -357636,7 +358207,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 29,
+            "eightcom_ctn_prev1": 76,
+            "eightcom_ctn_prev2": 31
           },
           {
             "debtor_code": "300-KT186",
@@ -357896,7 +358470,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 14,
+            "eightcom_ctn_prev1": 19,
+            "eightcom_ctn_prev2": 56
           },
           {
             "debtor_code": "300-KT195",
@@ -358120,7 +358697,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 2
           },
           {
             "debtor_code": "300-KT196",
@@ -358336,7 +358914,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 40,
+            "eightcom_ctn_prev1": 70
           },
           {
             "debtor_code": "300-KT198",
@@ -358503,7 +359083,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 50,
+            "eightcom_ctn_prev1": 52,
+            "eightcom_ctn_prev2": 42
           },
           {
             "debtor_code": "300-KT200",
@@ -358665,7 +359248,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 22,
+            "eightcom_ctn_prev1": 35,
+            "eightcom_ctn_prev2": 27
           },
           {
             "debtor_code": "300-KT201",
@@ -358878,7 +359464,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 3,
+            "eightcom_ctn_prev1": 2
           },
           {
             "debtor_code": "300-KT202",
@@ -359127,7 +359715,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 24,
+            "eightcom_ctn_prev1": 17,
+            "eightcom_ctn_prev2": 11
           },
           {
             "debtor_code": "300-KT204",
@@ -359413,7 +360004,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev1": 6,
+            "eightcom_ctn_prev2": 2
           },
           {
             "debtor_code": "300-KT205",
@@ -359653,7 +360247,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2,
+            "eightcom_ctn_prev2": 4
           },
           {
             "debtor_code": "300-KT206",
@@ -359884,7 +360480,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 23,
+            "eightcom_ctn_prev1": 22,
+            "eightcom_ctn_prev2": 18
           },
           {
             "debtor_code": "300-KT207",
@@ -360095,7 +360694,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 11,
+            "eightcom_ctn_prev1": 16
           },
           {
             "debtor_code": "300-KT209",
@@ -360307,7 +360908,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 12
           },
           {
             "debtor_code": "300-KV113",
@@ -360918,7 +361520,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 6,
+            "eightcom_ctn_prev1": 5,
+            "eightcom_ctn_prev2": 3
           },
           {
             "debtor_code": "300-KV149",
@@ -361406,7 +362011,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 11,
+            "eightcom_ctn_prev1": 7,
+            "eightcom_ctn_prev2": 14
           },
           {
             "debtor_code": "300-KV151",
@@ -361657,7 +362265,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 10,
+            "eightcom_ctn_prev1": 12,
+            "eightcom_ctn_prev2": 2
           },
           {
             "debtor_code": "300-KV153",
@@ -361874,7 +362485,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1,
+            "eightcom_ctn_prev2": 7
           },
           {
             "debtor_code": "300-KV171",
@@ -362372,7 +362985,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 20,
+            "eightcom_ctn_prev1": 10
           },
           {
             "debtor_code": "300-N068",
@@ -364817,7 +365432,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 5
           },
           {
             "debtor_code": "300-KT190",
@@ -364953,7 +365569,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 12,
+            "eightcom_ctn_prev2": 30
           },
           {
             "debtor_code": "300-KT191",
@@ -365151,7 +365769,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 26,
+            "eightcom_ctn_prev1": 24
           },
           {
             "debtor_code": "300-KT192",
@@ -365503,7 +366123,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 10,
+            "eightcom_ctn_prev1": 4,
+            "eightcom_ctn_prev2": 50
           },
           {
             "debtor_code": "300-KT208",
@@ -365728,7 +366351,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 50
           },
           {
             "debtor_code": "300-KV170",
@@ -366374,7 +366998,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev1": 4,
+            "eightcom_ctn_prev2": 4
           },
           {
             "debtor_code": "3EV-H0013",
@@ -370584,7 +371211,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 3,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-KT194",
@@ -370771,7 +371400,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev1": 4,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-KT197",
@@ -371154,7 +371786,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 6,
+            "eightcom_ctn_prev1": 5,
+            "eightcom_ctn_prev2": 3
           },
           {
             "debtor_code": "300-KT210",
@@ -371341,7 +371976,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 10
           },
           {
             "debtor_code": "300-KV175",
@@ -382657,7 +383293,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 20
           },
           {
             "debtor_code": "300-J014",
@@ -383003,7 +383640,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2,
+            "eightcom_ctn_prev2": 40
           },
           {
             "debtor_code": "300-J017",
@@ -383244,7 +383883,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 9
           },
           {
             "debtor_code": "300-J021",
@@ -383590,7 +384230,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 3,
+            "eightcom_ctn_prev1": 5,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "300-J022",
@@ -384078,7 +384721,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 3,
+            "eightcom_ctn_prev2": 2
           },
           {
             "debtor_code": "300-J025",
@@ -384244,7 +384889,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-J030",
@@ -384526,7 +385172,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 7
           },
           {
             "debtor_code": "300-J031",
@@ -384938,7 +385585,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 9,
+            "eightcom_ctn_prev1": 2,
+            "eightcom_ctn_prev2": 2
           },
           {
             "debtor_code": "300-J034",
@@ -385095,7 +385745,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 17,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "300-J035",
@@ -385342,7 +385994,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 4
           },
           {
             "debtor_code": "300-J045",
@@ -385593,7 +386246,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 12,
+            "eightcom_ctn_prev1": 15,
+            "eightcom_ctn_prev2": 13
           },
           {
             "debtor_code": "300-J047",
@@ -385692,7 +386348,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 20
           },
           {
             "debtor_code": "300-J050",
@@ -386557,7 +387214,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2
           },
           {
             "debtor_code": "300-J055",
@@ -386813,7 +387471,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev1": 6
           },
           {
             "debtor_code": "300-J059",
@@ -387023,7 +387683,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 3
           },
           {
             "debtor_code": "300-J060",
@@ -387342,7 +388003,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 3
           },
           {
             "debtor_code": "300-J062",
@@ -387503,7 +388165,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 30
           },
           {
             "debtor_code": "300-J064",
@@ -388253,7 +388916,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 6
           },
           {
             "debtor_code": "300-J072",
@@ -388432,7 +389096,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1
           },
           {
             "debtor_code": "300-J073",
@@ -389105,7 +389770,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 3
           },
           {
             "debtor_code": "300-J101",
@@ -389562,7 +390228,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 6,
+            "eightcom_ctn_prev1": 1
           },
           {
             "debtor_code": "300-J108",
@@ -389776,7 +390444,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 6,
+            "eightcom_ctn_prev1": 8,
+            "eightcom_ctn_prev2": 15
           },
           {
             "debtor_code": "300-J109",
@@ -389906,7 +390577,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1
           },
           {
             "debtor_code": "300-J111",
@@ -390134,7 +390806,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 14,
+            "eightcom_ctn_prev1": 12
           },
           {
             "debtor_code": "300-J119",
@@ -391180,7 +391854,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 4
           },
           {
             "debtor_code": "300-J129",
@@ -391536,7 +392211,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 5
           },
           {
             "debtor_code": "300-J134",
@@ -392063,7 +392739,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 9,
+            "eightcom_ctn_prev2": 6
           },
           {
             "debtor_code": "300-J150",
@@ -392600,7 +393278,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1,
+            "eightcom_ctn_prev2": 27
           },
           {
             "debtor_code": "300-J160",
@@ -392853,7 +393533,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 6,
+            "eightcom_ctn_prev1": 8
           },
           {
             "debtor_code": "300-J162",
@@ -393118,7 +393800,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev1": 1
           },
           {
             "debtor_code": "300-J169",
@@ -393454,7 +394138,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 28,
+            "eightcom_ctn_prev1": 10
           },
           {
             "debtor_code": "300-J181",
@@ -393821,7 +394507,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 19
           },
           {
             "debtor_code": "300-J182",
@@ -394927,7 +395614,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 8,
+            "eightcom_ctn_prev1": 12
           },
           {
             "debtor_code": "300-J193",
@@ -395316,7 +396005,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 10
           },
           {
             "debtor_code": "300-J196",
@@ -395481,7 +396171,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 20,
+            "eightcom_ctn_prev2": 20
           },
           {
             "debtor_code": "300-J197",
@@ -395849,7 +396541,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-J205",
@@ -396067,7 +396761,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1
           },
           {
             "debtor_code": "300-J206",
@@ -396487,7 +397182,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2,
+            "eightcom_ctn_prev2": 4
           },
           {
             "debtor_code": "300-J213",
@@ -396644,7 +397341,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 7
           },
           {
             "debtor_code": "300-J216",
@@ -396822,7 +397520,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-J218",
@@ -398006,7 +398706,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 2
           },
           {
             "debtor_code": "300-J228",
@@ -398676,7 +399377,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-J238",
@@ -399580,7 +400282,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 7,
+            "eightcom_ctn_prev2": 8
           },
           {
             "debtor_code": "300-J242",
@@ -399943,7 +400647,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 1,
+            "eightcom_ctn_prev2": 4
           },
           {
             "debtor_code": "300-J249",
@@ -400325,7 +401031,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 15,
+            "eightcom_ctn_prev1": 13
           },
           {
             "debtor_code": "300-J251",
@@ -400558,7 +401266,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 3,
+            "eightcom_ctn_prev1": 10,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-J252",
@@ -400917,7 +401628,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 33,
+            "eightcom_ctn_prev1": 24,
+            "eightcom_ctn_prev2": 47
           },
           {
             "debtor_code": "300-J253",
@@ -401332,7 +402046,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 9,
+            "eightcom_ctn_prev1": 50,
+            "eightcom_ctn_prev2": 189
           },
           {
             "debtor_code": "300-J254",
@@ -401565,7 +402282,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2,
+            "eightcom_ctn_prev1": 1
           },
           {
             "debtor_code": "300-J255",
@@ -401796,7 +402515,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 11,
+            "eightcom_ctn_prev1": 14
           },
           {
             "debtor_code": "300-J256",
@@ -402055,7 +402776,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev1": 7
           },
           {
             "debtor_code": "300-J257",
@@ -402573,7 +403296,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 6
           },
           {
             "debtor_code": "300-PI022",
@@ -402968,7 +403692,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 8,
+            "eightcom_ctn_prev1": 10,
+            "eightcom_ctn_prev2": 12
           },
           {
             "debtor_code": "300-WK005",
@@ -403482,7 +404209,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 12,
+            "eightcom_ctn_prev1": 6
           },
           {
             "debtor_code": "3EV-R0460",
@@ -403578,7 +404307,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 3
           },
           {
             "debtor_code": "300-J020",
@@ -404580,7 +405310,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2,
+            "eightcom_ctn_prev1": 5,
+            "eightcom_ctn_prev2": 4
           },
           {
             "debtor_code": "300-J235",
@@ -404681,7 +405414,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 10,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "3EV-Q0945",
@@ -405005,7 +405740,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 32
           },
           {
             "debtor_code": "300-J056",
@@ -411000,7 +411736,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1,
+            "eightcom_ctn_prev2": 12
           },
           {
             "debtor_code": "300-D068",
@@ -411224,7 +411962,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 4
           },
           {
             "debtor_code": "300-D069",
@@ -411731,7 +412470,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 19
           },
           {
             "debtor_code": "300-D075",
@@ -412728,7 +413468,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 6
           },
           {
             "debtor_code": "300-D086",
@@ -413900,7 +414641,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2
           },
           {
             "debtor_code": "300-D098",
@@ -414126,7 +414868,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 15
           },
           {
             "debtor_code": "300-D105",
@@ -415473,7 +416216,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2
           },
           {
             "debtor_code": "300-D120",
@@ -416831,7 +417575,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 50
           },
           {
             "debtor_code": "300-D173",
@@ -417339,7 +418084,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 4,
+            "eightcom_ctn_prev1": 2,
+            "eightcom_ctn_prev2": 2
           },
           {
             "debtor_code": "300-D182",
@@ -417694,7 +418442,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 7,
+            "eightcom_ctn_prev1": 3
           },
           {
             "debtor_code": "300-D191",
@@ -417901,7 +418651,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 3
           },
           {
             "debtor_code": "300-D195",
@@ -418395,7 +419146,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1,
+            "eightcom_ctn_prev1": 1,
+            "eightcom_ctn_prev2": 4
           },
           {
             "debtor_code": "300-D218",
@@ -419450,7 +420204,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1
           },
           {
             "debtor_code": "300-D233",
@@ -420139,7 +420894,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 9,
+            "eightcom_ctn_prev1": 6,
+            "eightcom_ctn_prev2": 17
           },
           {
             "debtor_code": "300-D240",
@@ -420405,7 +421163,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1
           },
           {
             "debtor_code": "300-D241",
@@ -420819,7 +421578,10 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1,
+            "eightcom_ctn_prev1": 3,
+            "eightcom_ctn_prev2": 3
           },
           {
             "debtor_code": "300-D247",
@@ -420985,7 +421747,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-D248",
@@ -421454,7 +422217,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 5
           },
           {
             "debtor_code": "300-D267",
@@ -421678,7 +422442,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-D273",
@@ -421905,7 +422670,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 25
           },
           {
             "debtor_code": "300-D279",
@@ -422092,7 +422858,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 7,
+            "eightcom_ctn_prev1": 7,
+            "eightcom_ctn_prev2": 4
           },
           {
             "debtor_code": "300-D288",
@@ -422809,7 +423578,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 1,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "300-D308",
@@ -423055,7 +423826,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 2,
+            "eightcom_ctn_prev2": 2
           },
           {
             "debtor_code": "300-D311",
@@ -423892,7 +424665,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 6,
+            "eightcom_ctn_prev1": 2,
+            "eightcom_ctn_prev2": 5
           },
           {
             "debtor_code": "300-D317",
@@ -424102,7 +424878,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 2,
+            "eightcom_ctn_prev1": 12,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "300-D319",
@@ -424434,7 +425213,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 28,
+            "eightcom_ctn_prev1": 22,
+            "eightcom_ctn_prev2": 47
           },
           {
             "debtor_code": "300-D321",
@@ -424730,7 +425512,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5,
+            "eightcom_ctn_prev1": 4,
+            "eightcom_ctn_prev2": 4
           },
           {
             "debtor_code": "300-D322",
@@ -424981,7 +425766,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 8,
+            "eightcom_ctn_prev1": 1,
+            "eightcom_ctn_prev2": 3
           },
           {
             "debtor_code": "300-D323",
@@ -425221,7 +426009,10 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 12,
+            "eightcom_ctn_prev1": 10,
+            "eightcom_ctn_prev2": 4
           },
           {
             "debtor_code": "300-D324",
@@ -425515,7 +426306,9 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 4,
+            "eightcom_ctn_prev1": 4
           },
           {
             "debtor_code": "300-D328",
@@ -425724,7 +426517,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 22
           },
           {
             "debtor_code": "300-D329",
@@ -426519,7 +427313,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 5
           },
           {
             "debtor_code": "300-K042",
@@ -426914,7 +427709,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 10
           },
           {
             "debtor_code": "300-KH189",
@@ -427412,7 +428208,8 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev1": 5
           },
           {
             "debtor_code": "3EV-Q1047",
@@ -427631,7 +428428,9 @@
             "campaigns": [],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 10,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "3EV-R0558",
@@ -428479,7 +429278,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 3
           },
           {
             "debtor_code": "300-D253",
@@ -428658,7 +429458,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 1
           },
           {
             "debtor_code": "300-D274",
@@ -429728,7 +430529,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_cur": 12
           },
           {
             "debtor_code": "300-D327",
@@ -431518,7 +432320,8 @@
             ],
             "brand_camp_tiers": {},
             "has_overdue": false,
-            "overdue_ctn": 0.0
+            "overdue_ctn": 0.0,
+            "eightcom_ctn_prev2": 3
           },
           {
             "debtor_code": "300-Z175",

@@ -760,6 +760,8 @@ function updateSyncStatus() {
     <button class="filter-chip" data-val="drop" onclick="setSpecialFilter('drop',this)">📉 Drop</button>
     <button class="filter-chip" data-val="gain" onclick="setSpecialFilter('gain',this)" style="border-color:rgba(61,220,132,.4);color:var(--green);">📈 Gain</button>
     <button class="filter-chip" data-val="unpurchased" onclick="setSpecialFilter('unpurchased',this)">🎯 未购买</button>
+    <button class="filter-chip" data-val="no_ccom" onclick="setSpecialFilter('no_ccom',this)">CCOM 未拿</button>
+    <button class="filter-chip" data-val="no3m" onclick="setSpecialFilter('no3m',this)">三个月未开单</button>
     <button class="filter-chip" data-val="nonvip" onclick="setSpecialFilter('nonvip',this)">⭐ 非VIP</button>
     <button class="filter-chip" data-val="newsku" onclick="setSpecialFilter('newsku',this)">✨ 新增SKU</button>
     <button class="filter-chip" data-val="flagged" onclick="setSpecialFilter('flagged',this)" style="border-color:rgba(255,95,95,.4);color:var(--red);">⚑ Flagged</button>
@@ -1893,6 +1895,26 @@ function isPersonalDebtor(d) {
   return /(^|-)personal/i.test(getDebtorType(d));
 }
 
+function canggihCtn(d, key) {
+  const fallback = key === 'cur' ? d?.ctn_cur : key === 'prev1' ? d?.ctn_prev1 : d?.ctn_prev2;
+  return Number(d?.[`canggih_ctn_${key}`] ?? fallback ?? 0) || 0;
+}
+
+function eightcomCtn(d, key) {
+  return Number(d?.[`eightcom_ctn_${key}`] ?? 0) || 0;
+}
+
+function isNoCcomBuyer(d) {
+  return canggihCtn(d, 'cur') <= 0 && eightcomCtn(d, 'cur') > 0;
+}
+
+function isThreeMonthNoCcomOrder(d) {
+  return !isPersonalDebtor(d)
+    && canggihCtn(d, 'cur') <= 0
+    && canggihCtn(d, 'prev1') <= 0
+    && canggihCtn(d, 'prev2') <= 0;
+}
+
 function getDebtorType(d) {
   const t = String(d?.debtor_type || d?.type || d?.cust_type || d?.customer_type || '').trim();
   return /^(unknown|nan|null|none)$/i.test(t) ? '' : t;
@@ -2453,6 +2475,38 @@ function renderGainMode(debtors) {
       </div>
     </div>
     ${gainHtml}`;
+}
+
+function renderSpecialFilterExtra(d) {
+  if (filters.special === 'no_ccom') {
+    return `<div class="movement-summary">
+      <div class="movement-summary-row">
+        <div class="movement-summary-left">
+          <span class="movement-summary-label">CCOM status</span>
+          <span class="status-inline" style="background:rgba(255,154,60,.15);color:var(--orange);">8COM only</span>
+        </div>
+        <div class="movement-summary-right">
+          <span class="status-inline" style="background:rgba(255,255,255,.08);color:var(--muted);">CCOM ${fmtNum(canggihCtn(d, 'cur'))} CTN</span>
+          <span class="status-inline" style="background:rgba(77,166,255,.15);color:var(--blue);">8COM ${fmtNum(eightcomCtn(d, 'cur'))} CTN</span>
+        </div>
+      </div>
+    </div>`;
+  }
+  if (filters.special === 'no3m') {
+    return `<div class="movement-summary">
+      <div class="movement-summary-row">
+        <div class="movement-summary-left">
+          <span class="movement-summary-label">3-month no CCOM order</span>
+          <span class="status-inline" style="background:rgba(255,95,95,.15);color:var(--red);">excl. Personal</span>
+        </div>
+        <div class="movement-summary-right">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--text);white-space:nowrap;">${fmtNum(canggihCtn(d, 'prev2'))} → ${fmtNum(canggihCtn(d, 'prev1'))} → ${fmtNum(canggihCtn(d, 'cur'))} CTN</span>
+          ${eightcomCtn(d, 'cur') > 0 ? `<span class="status-inline" style="background:rgba(77,166,255,.15);color:var(--blue);">8COM ${fmtNum(eightcomCtn(d, 'cur'))} CTN</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }
+  return '';
 }
 
 function renderUnpurchasedMode(debtors) {
@@ -3230,6 +3284,8 @@ function renderDebtors() {
     if (filters.special === 'drop'     && !d.volume_drop_pct)    return false;
     if (filters.special === 'gain' && !((d.ctn_cur || 0) > (d.ctn_prev1 || 0))) return false;
     if (filters.special === 'newsku'   && !(d.new_sku_count > 0)) return false;
+    if (filters.special === 'no_ccom'  && !isNoCcomBuyer(d)) return false;
+    if (filters.special === 'no3m'     && !isThreeMonthNoCcomOrder(d)) return false;
     if (filters.special === 'flagged'   && !getFlag(currentAgent, d.debtor_code)) return false;
     if (filters.special === 'campaign'  && (!(d.campaigns||[]).length || !getDebtorType(d))) return false;
     if (filters.special === 'overdue'   && !d.has_overdue) return false;
@@ -3268,6 +3324,18 @@ function renderDebtors() {
     bannerEl.style.borderColor = 'rgba(167,139,250,.3)';
     bannerEl.innerHTML = `<span style="font-family:var(--mono);font-size:11px;color:var(--purple);">✨ 新增SKU 本月 — ${filtered.length} 户口</span>
       <button class="brand-banner-close" onclick="setSpecialFilter('newsku',document.querySelector('[data-val=\\'newsku\\']'))">×</button>`;
+  } else if (filters.special === 'no_ccom') {
+    bannerEl.style.display = 'flex';
+    bannerEl.style.background = 'rgba(255,154,60,.08)';
+    bannerEl.style.borderColor = 'rgba(255,154,60,.28)';
+    bannerEl.innerHTML = `<span style="font-family:var(--mono);font-size:11px;color:var(--orange);">CCOM 未拿 — ${filtered.length} 户本月只有 8COM / 没有 Canggih CTN</span>
+      <button class="brand-banner-close" onclick="setSpecialFilter('no_ccom',document.querySelector('[data-val=\\'no_ccom\\']'))">×</button>`;
+  } else if (filters.special === 'no3m') {
+    bannerEl.style.display = 'flex';
+    bannerEl.style.background = 'rgba(255,95,95,.08)';
+    bannerEl.style.borderColor = 'rgba(255,95,95,.25)';
+    bannerEl.innerHTML = `<span style="font-family:var(--mono);font-size:11px;color:var(--red);">三个月未开单 — ${filtered.length} 户，已排除 P-Personal</span>
+      <button class="brand-banner-close" onclick="setSpecialFilter('no3m',document.querySelector('[data-val=\\'no3m\\']'))">×</button>`;
   } else {
     bannerEl.style.display = 'none';
     bannerEl.style.background = '';
@@ -3287,6 +3355,17 @@ function renderDebtors() {
       const gainA = (a.ctn_cur || 0) - (a.ctn_prev1 || 0);
       const gainB = (b.ctn_cur || 0) - (b.ctn_prev1 || 0);
       return gainB - gainA;
+    });
+  }
+  if (filters.special === 'no_ccom') {
+    filtered.sort((a, b) => eightcomCtn(b, 'cur') - eightcomCtn(a, 'cur'));
+  }
+  if (filters.special === 'no3m') {
+    filtered.sort((a, b) => {
+      const b8 = eightcomCtn(b, 'cur') + eightcomCtn(b, 'prev1') + eightcomCtn(b, 'prev2');
+      const a8 = eightcomCtn(a, 'cur') + eightcomCtn(a, 'prev1') + eightcomCtn(a, 'prev2');
+      if (b8 !== a8) return b8 - a8;
+      return String(a.company_name || '').localeCompare(String(b.company_name || ''));
     });
   }
 
@@ -3322,6 +3401,8 @@ function renderDebtors() {
     if (filters.special === 'drop'    && !d.volume_drop_pct) continue;
     if (filters.special === 'gain'    && !((d.ctn_cur || 0) > (d.ctn_prev1 || 0))) continue;
     if (filters.special === 'newsku'  && !(d.new_sku_count > 0)) continue;
+    if (filters.special === 'no_ccom' && !isNoCcomBuyer(d)) continue;
+    if (filters.special === 'no3m'    && !isThreeMonthNoCcomOrder(d)) continue;
     if (filters.special === 'flagged' && !getFlag(currentAgent, d.debtor_code)) continue;
     if (filters.special === 'campaign' && (!(d.campaigns||[]).length || !getDebtorType(d))) continue;
     if (filters.special === 'overdue' && !d.has_overdue) continue;
@@ -3361,7 +3442,7 @@ function renderDebtors() {
   document.getElementById('btn-next').onclick = () => changePage(1);
 
   // Render cards
-  const html = items.map((d, idx) => renderDebtorCard(d, start + idx + 1)).join('');
+  const html = items.map((d, idx) => renderDebtorCard(d, start + idx + 1, renderSpecialFilterExtra(d))).join('');
 
   document.getElementById('debtor-list').innerHTML = html ||
     `<div style="text-align:center;padding:30px;font-family:var(--mono);font-size:11px;color:var(--muted);">No debtors match filter</div>`;

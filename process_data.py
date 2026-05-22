@@ -1607,6 +1607,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
         (df["paid_on"] != "")
     ]
     canggih_invoiced = df[df["item_group"] != EIGHTCOM_GROUP]
+    eightcom_invoiced = df[df["item_group"] == EIGHTCOM_GROUP]
 
     # Build debtor lookup from Debtor Maintenance (via shared helper)
     debtor_info = build_debtor_info(debtor_df)
@@ -1707,6 +1708,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             d_rows = ag_data[ag_data["debtor_code"] == dcode]
             d_invoice_rows = ag_invoice_data[ag_invoice_data["debtor_code"] == dcode]
             d_all_invoice_rows = canggih_invoiced[canggih_invoiced["debtor_code"] == dcode]
+            d_eightcom_invoice_rows = eightcom_invoiced[eightcom_invoiced["debtor_code"] == dcode]
             d_hist_rows = canggih_paid[canggih_paid["debtor_code"] == dcode]
             # Debtor-card purchase state is debtor-wide. Ownership follows Debtor
             # Maintenance, but purchase history follows the customer across agents.
@@ -1744,6 +1746,11 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             ctn_cur = round(float(_history_rows[_history_rows[_bd_col] == cur_m]["qty_ctn"].sum()), 2) if not _history_rows.empty else 0.0
             ctn_prev1 = round(float(_history_rows[_history_rows[_bd_col] == prev1_m]["qty_ctn"].sum()), 2) if not _history_rows.empty else 0.0
             ctn_prev2 = round(float(_history_rows[_history_rows[_bd_col] == prev2_m]["qty_ctn"].sum()), 2) if not _history_rows.empty else 0.0
+
+            _8_col = "tranx_mth_full" if "tranx_mth_full" in d_eightcom_invoice_rows.columns else "paid_on"
+            eightcom_ctn_cur = round(float(d_eightcom_invoice_rows[d_eightcom_invoice_rows[_8_col] == cur_m]["qty_ctn"].sum()), 2) if not d_eightcom_invoice_rows.empty else 0.0
+            eightcom_ctn_prev1 = round(float(d_eightcom_invoice_rows[d_eightcom_invoice_rows[_8_col] == prev1_m]["qty_ctn"].sum()), 2) if not d_eightcom_invoice_rows.empty else 0.0
+            eightcom_ctn_prev2 = round(float(d_eightcom_invoice_rows[d_eightcom_invoice_rows[_8_col] == prev2_m]["qty_ctn"].sum()), 2) if not d_eightcom_invoice_rows.empty else 0.0
 
             def item_breakdown(month_label):
                 if _history_rows.empty:
@@ -1943,6 +1950,12 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 "ctn_cur":            ctn_cur,
                 "ctn_prev1":          ctn_prev1,
                 "ctn_prev2":          ctn_prev2,
+                "canggih_ctn_cur":    ctn_cur,
+                "canggih_ctn_prev1":  ctn_prev1,
+                "canggih_ctn_prev2":  ctn_prev2,
+                "eightcom_ctn_cur":   eightcom_ctn_cur,
+                "eightcom_ctn_prev1": eightcom_ctn_prev1,
+                "eightcom_ctn_prev2": eightcom_ctn_prev2,
                 "avg_ctn_3m":         avg_ctn,
                 "month_breakdown":    month_breakdown,
                 "unpurchased_breakdown": unpurchased_breakdown,
