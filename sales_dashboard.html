@@ -1744,6 +1744,85 @@ function fmtPct(p) { return p == null ? '—' : p.toFixed(1) + '%'; }
 function fmtRM(n) { return 'RM ' + parseFloat(n||0).toFixed(2); }
 function fmtRM0(n) { return 'RM ' + parseFloat(n||0).toLocaleString('en-MY', {minimumFractionDigits:0, maximumFractionDigits:0}); }
 
+function conversionCampaignStatus(c = {}) {
+  const lookback = Number(c.lookback_ctn ?? 0);
+  const paid = Number(c.current_paid_ctn ?? c.current_ctn ?? 0);
+  const invoice = Number(c.current_invoice_ctn ?? c.ctn_this_month ?? c.progress_ctn ?? paid);
+  const rawUnpaid = Number(c.current_unpaid_ctn ?? 0);
+  const unpaid = rawUnpaid > 0 ? rawUnpaid : Math.max(0, invoice - paid);
+  const converted = !!c.converted;
+  if (converted) {
+    return {
+      key: 'converted',
+      group: 'converted',
+      label: 'Paid converted',
+      shortLabel: 'Converted',
+      note: 'Counted for campaign',
+      color: 'var(--green)',
+      bg: 'rgba(61,220,132,.12)',
+      border: 'rgba(61,220,132,.4)',
+      lookback,
+      paid,
+      unpaid,
+      invoice,
+      currentText: `${fmtNum(paid)} CTN paid`,
+      claimable: true
+    };
+  }
+  if (unpaid > 0) {
+    return {
+      key: 'awaiting_payment',
+      group: 'awaiting_payment',
+      label: 'Awaiting payment',
+      shortLabel: 'Unpaid',
+      note: 'Not counted until paid',
+      color: 'var(--orange)',
+      bg: 'rgba(255,154,60,.12)',
+      border: 'rgba(255,154,60,.35)',
+      lookback,
+      paid,
+      unpaid,
+      invoice,
+      currentText: `${fmtNum(unpaid)} CTN unpaid`,
+      claimable: false
+    };
+  }
+  if (paid > 0) {
+    return {
+      key: 'paid_not_conversion',
+      group: 'not-yet',
+      label: 'Paid, not conversion',
+      shortLabel: 'Not conversion',
+      note: lookback > 0 ? 'Bought in lookback' : 'Not counted',
+      color: 'var(--accent)',
+      bg: 'rgba(240,192,64,.12)',
+      border: 'rgba(240,192,64,.35)',
+      lookback,
+      paid,
+      unpaid,
+      invoice,
+      currentText: `${fmtNum(paid)} CTN paid`,
+      claimable: false
+    };
+  }
+  return {
+    key: lookback > 0 ? 'existing' : 'entitled',
+    group: 'not-yet',
+    label: lookback > 0 ? 'Existing buyer' : 'Entitled',
+    shortLabel: lookback > 0 ? 'Existing' : 'Entitled',
+    note: lookback > 0 ? 'Bought in Feb-Apr' : 'No paid conversion yet',
+    color: 'var(--muted)',
+    bg: 'rgba(255,255,255,.06)',
+    border: 'rgba(255,255,255,.12)',
+    lookback,
+    paid,
+    unpaid,
+    invoice,
+    currentText: '0 CTN',
+    claimable: false
+  };
+}
+
 // Build/repaint the Type filter chip row.
 // typeCounts: { 'SH-SHOP': 33, 'D-DEALER/DISTRIBUTOR': 1, ... }
 // totalCount: number for the All chip
@@ -2736,34 +2815,29 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
       // ── conversion_tiered: conversion status + lookback context ──────────
       // Tier is agent-level; debtor chips only show whether this debtor converted.
       if (c.type === 'conversion_tiered' || c.type === 'conversion_simple') {
-        const lookbackCtn = c.lookback_ctn ?? 0;
-        const currentCtn  = c.current_ctn ?? 0;
-        const converted   = !!c.converted;
-
-        // Border + bg follow existing pattern: green when "qualified" (here = converted)
-        const cBorder = converted ? 'rgba(61,220,132,.4)' : 'rgba(255,255,255,.1)';
-        const cBg     = converted ? 'rgba(61,220,132,.08)' : 'rgba(255,255,255,.03)';
+        const conv = conversionCampaignStatus(c);
+        const lookbackCtn = conv.lookback;
 
         // Lookback summary line: e.g. "Feb-Apr: 0 CTN" or "Feb-Apr: 0 CTN  →  May: 5 CTN"
         // Derive month label from the campaign notes lookback_months for accuracy
         const lbMonths = (c.notes && c.notes.lookback_months) || [];
         const lbLabel  = lbMonths.length >= 2 ? `${lbMonths[0]}-${lbMonths[lbMonths.length-1]}` : (lbMonths[0] || 'Lookback');
-        const summaryLine = converted
-          ? `${lbLabel}: ${lookbackCtn} CTN  →  May: ${currentCtn} CTN`
-          : `${lbLabel}: ${lookbackCtn} CTN`;
+        const summaryLine = `${lbLabel}: ${fmtNum(lookbackCtn)} CTN · ${conv.currentText}`;
 
-        const convertedChip = converted
-          ? `<span style="font-family:var(--mono);font-size:9px;color:var(--green);background:rgba(61,220,132,.15);padding:2px 6px;border-radius:4px;font-weight:600;">✓ converted</span>`
-          : '';
+        const convertedChip = `<span style="font-family:var(--mono);font-size:9px;color:${conv.color};background:${conv.bg};border:1px solid ${conv.border};padding:2px 6px;border-radius:4px;font-weight:600;">${conv.label}</span>`;
         const claimData = getCampClaims(currentAgent, c.id, d.debtor_code);
         const claimed = !!claimData;
-        const btnLabel = claimed ? '✔ Claimed' : '🎁 Mark Claimed';
-        const claimBtn = `<button onclick="toggleCampClaim(event,'${d.debtor_code}','${c.id}','${(d.company_name||'').replace(/'/g,'')}','${promoText.replace(/'/g,'')}','${c.type}')"
-            style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:var(--text);cursor:pointer;margin-top:4px;opacity:1;">
+        const canClaim = claimed || conv.claimable;
+        const btnLabel = claimed ? '✔ Claimed' : (conv.claimable ? '🎁 Mark Claimed' : (conv.key === 'awaiting_payment' ? 'Awaiting pay' : 'Not claimable'));
+        const btnOnclick = canClaim
+          ? `onclick="toggleCampClaim(event,'${d.debtor_code}','${c.id}','${(d.company_name||'').replace(/'/g,'')}','${promoText.replace(/'/g,'')}','${c.type}')"`
+          : `onclick="event.stopPropagation()" disabled`;
+        const claimBtn = `<button ${btnOnclick}
+            style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:6px;border:1px solid ${conv.border};background:${canClaim?'rgba(255,255,255,.08)':'rgba(255,255,255,.035)'};color:${canClaim?'var(--text)':conv.color};cursor:${canClaim?'pointer':'not-allowed'};margin-top:4px;opacity:${canClaim?'1':'.75'};">
             ${btnLabel}
           </button>`;
 
-        return `<div style="margin-top:4px;background:${cBg};border:1px solid ${cBorder};border-radius:8px;padding:6px 10px;">
+        return `<div style="margin-top:4px;background:${conv.bg};border:1px solid ${conv.border};border-radius:8px;padding:6px 10px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
               <span style="font-family:var(--mono);font-size:10px;color:var(--green);font-weight:600;">🎯 ${c.name}</span>
@@ -2772,6 +2846,7 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
           </div>
           <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:4px;">${promoText}</div>
           <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">${summaryLine}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:${conv.color};margin-top:2px;">${conv.note}</div>
           ${claimBtn}
         </div>`;
       }
@@ -4431,6 +4506,17 @@ function showCampDetail(event, debtorCode, debtorName) {
         </div>` : '';
     const descHtml = c.description
       ? `<div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:6px;">${c.description}</div>` : '';
+    const isConversionCamp = c.type === 'conversion_tiered' || c.type === 'conversion_simple';
+    const conv = isConversionCamp ? conversionCampaignStatus(c) : null;
+    const conversionHtml = conv
+      ? `<div style="margin-top:8px;background:${conv.bg};border:1px solid ${conv.border};border-radius:8px;padding:8px 10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <div style="font-family:var(--mono);font-size:9px;color:${conv.color};font-weight:700;text-transform:uppercase;letter-spacing:.06em;">${conv.label}</div>
+            <div style="font-family:var(--mono);font-size:9px;color:${conv.color};">${conv.note}</div>
+          </div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:4px;">Feb-Apr: ${fmtNum(conv.lookback)} CTN · ${conv.currentText}</div>
+          ${conv.unpaid > 0 ? `<div style="font-family:var(--mono);font-size:9px;color:var(--orange);margin-top:3px;">Invoice CTN exists, but campaign conversion waits for paid CTN.</div>` : ''}
+        </div>` : '';
 
     // Status buttons
     const statusBtns = Object.entries(VISIT_STATUS).map(([key, vs]) => {
@@ -4469,7 +4555,7 @@ function showCampDetail(event, debtorCode, debtorName) {
         </div>
         ${sv ? `<span style="font-family:var(--mono);font-size:10px;color:${sv.color};background:${sv.bg};border:1px solid ${sv.border};padding:3px 8px;border-radius:6px;">${sv.label}</span>` : ''}
       </div>
-      ${brandsHtml}${promoHtml}${descHtml}
+      ${brandsHtml}${promoHtml}${descHtml}${conversionHtml}
       <div style="margin-top:10px;">
         <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Update Status:</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">${statusBtns}</div>
@@ -4618,6 +4704,9 @@ function renderCamps() {
       const rateColor = ratePct >= 50 ? 'var(--green)' : ratePct >= 20 ? 'var(--accent)' : 'var(--muted)';
 
       const tierDisplay = agentTierDisplay(agentTierIdx, agentTierLabel, toNextTier, nextTierLabel);
+      const conversionRows = c.debtors.map(d => campDebtorConversionInfo(c, d));
+      const awaitingCount = conversionRows.filter(r => r.group === 'awaiting_payment').length;
+      const awaitingCtn = conversionRows.reduce((sum, r) => sum + (r.group === 'awaiting_payment' ? (r.unpaid || 0) : 0), 0);
 
       return '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;">' +
         // Header section
@@ -4643,6 +4732,9 @@ function renderCamps() {
             '</span>' +
             (convertedCount > convertedTargets ?
               '<span style="font-family:var(--mono);font-size:8px;background:rgba(255,255,255,.06);color:var(--muted);padding:2px 8px;border-radius:10px;">+' + (convertedCount - convertedTargets) + ' non-target conversions</span>'
+              : '') +
+            (awaitingCount > 0 ?
+              '<span style="font-family:var(--mono);font-size:8px;background:rgba(255,154,60,.12);color:var(--orange);padding:2px 8px;border-radius:10px;">Awaiting payment ' + awaitingCount + ' · ' + fmtNum(awaitingCtn) + ' CTN unpaid</span>'
               : '') +
           '</div>' +
         '</div>' +
@@ -4867,23 +4959,20 @@ function agentTierDisplay(idx, label, toNext, nextLabel) {
 
 function campDebtorConversionInfo(camp, debtor) {
   const cc = (debtor.campaigns || []).find(x => x.id === camp.id) || {};
-  const converted = !!cc.converted;
-  const lookback = Number(cc.lookback_ctn ?? 0);
-  const current = Number(cc.current_ctn ?? cc.ctn_this_month ?? cc.progress_ctn ?? debtor.ctn_cur ?? 0);
-  const unpaid = Number(cc.current_unpaid_ctn ?? 0);
-  const label = converted ? 'Converted' : (unpaid > 0 ? 'Unpaid' : 'Not yet');
-  const color = converted ? 'var(--green)' : (unpaid > 0 ? 'var(--orange)' : 'var(--muted)');
-  const bg = converted ? 'rgba(61,220,132,.12)' : (unpaid > 0 ? 'rgba(255,154,60,.12)' : 'rgba(255,255,255,.06)');
-  const border = converted ? 'rgba(61,220,132,.4)' : (unpaid > 0 ? 'rgba(255,154,60,.35)' : 'rgba(255,255,255,.12)');
+  const conv = conversionCampaignStatus(cc);
   return {
-    label,
-    color,
-    bg,
-    border,
-    lookback,
-    current,
-    unpaid,
-    currentText: current > 0 ? `${fmtNum(current)} CTN` : (unpaid > 0 ? `${fmtNum(unpaid)} CTN unpaid` : '0 CTN')
+    label: conv.shortLabel,
+    group: conv.group,
+    color: conv.color,
+    bg: conv.bg,
+    border: conv.border,
+    lookback: conv.lookback,
+    current: conv.paid,
+    unpaid: conv.unpaid,
+    invoice: conv.invoice,
+    note: conv.note,
+    claimable: conv.claimable,
+    currentText: conv.currentText
   };
 }
 
@@ -4910,14 +4999,16 @@ function renderCampaignDebtorPanel(camp) {
     info: campDebtorConversionInfo(camp, d),
     order: debtorOrder.has(d.debtor_code) ? debtorOrder.get(d.debtor_code) : Number.MAX_SAFE_INTEGER
   })).sort((a, b) => {
-    const aDone = a.info.label === 'Converted';
-    const bDone = b.info.label === 'Converted';
-    if (aDone !== bDone) return aDone ? -1 : 1;
+    const groupRank = { converted: 0, awaiting_payment: 1, 'not-yet': 2 };
+    const aRank = groupRank[a.info.group] ?? 9;
+    const bRank = groupRank[b.info.group] ?? 9;
+    if (aRank !== bRank) return aRank - bRank;
     if (a.order !== b.order) return a.order - b.order;
     return String(a.debtor.debtor_code || '').localeCompare(String(b.debtor.debtor_code || ''));
   });
-  const convertedTotal = rowsData.filter(x => x.info.label === 'Converted').length;
-  const notYetTotal = rowsData.length - convertedTotal;
+  const convertedTotal = rowsData.filter(x => x.info.group === 'converted').length;
+  const awaitingTotal = rowsData.filter(x => x.info.group === 'awaiting_payment').length;
+  const notYetTotal = rowsData.length - convertedTotal - awaitingTotal;
   const total = rowsData.length;
   const expanded = expandedCampaigns.has(campId);
   const toggleLabel = expanded ? `▲ Hide Debtors` : `▼ View Debtors (${total})`;
@@ -4933,29 +5024,33 @@ function renderCampaignDebtorPanel(camp) {
   const shown = rowsData.slice(start, start + CAMPAIGN_DEBTOR_PAGE_SIZE);
   let lastGroup = null;
   const sectionHeader = (key) => {
-    const isConverted = key === 'converted';
-    const label = isConverted ? '✓ Converted' : 'Not yet';
-    const count = isConverted ? convertedTotal : notYetTotal;
-    const color = isConverted ? 'var(--green)' : 'var(--muted)';
-    const bg = isConverted ? 'rgba(61,220,132,.08)' : 'rgba(255,255,255,.035)';
-    return `<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:7px 8px;background:${bg};border-top:1px solid rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:9px;color:${color};text-transform:uppercase;letter-spacing:.06em;">
-      <span>${label}</span>
-      <span style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:1px 7px;">${count}</span>
+    const meta = {
+      converted: { label: '✓ Converted', count: convertedTotal, color: 'var(--green)', bg: 'rgba(61,220,132,.08)' },
+      awaiting_payment: { label: 'Awaiting payment', count: awaitingTotal, color: 'var(--orange)', bg: 'rgba(255,154,60,.08)' },
+      'not-yet': { label: 'Entitled / not paid', count: notYetTotal, color: 'var(--muted)', bg: 'rgba(255,255,255,.035)' }
+    }[key] || { label: 'Other', count: 0, color: 'var(--muted)', bg: 'rgba(255,255,255,.035)' };
+    return `<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:7px 8px;background:${meta.bg};border-top:1px solid rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:9px;color:${meta.color};text-transform:uppercase;letter-spacing:.06em;">
+      <span>${meta.label}</span>
+      <span style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:1px 7px;">${meta.count}</span>
     </div>`;
   };
   const rows = shown.map((row, i) => {
     const d = row.debtor;
     const t = row.info;
-    const group = t.label === 'Converted' ? 'converted' : 'not-yet';
+    const group = t.group || 'not-yet';
     const header = group !== lastGroup ? sectionHeader(group) : '';
     lastGroup = group;
     const rowBg = i % 2 ? 'rgba(255,255,255,.025)' : 'transparent';
     const claimData = getCampClaims(currentAgent, campId, d.debtor_code);
     const claimed = !!claimData;
-    const claimLabel = claimed ? '✔ Claimed' : '🎁 Mark Claimed';
-    const claimBg = claimed ? 'rgba(61,220,132,.2)' : 'rgba(255,255,255,.08)';
-    const claimColor = claimed ? 'var(--green)' : 'var(--muted)';
-    const claimBorder = claimed ? 'var(--green)' : 'var(--border)';
+    const canClaim = claimed || t.claimable;
+    const claimLabel = claimed ? '✔ Claimed' : (t.claimable ? '🎁 Mark Claimed' : (t.group === 'awaiting_payment' ? 'Awaiting pay' : 'Not claimable'));
+    const claimBg = claimed ? 'rgba(61,220,132,.2)' : (t.claimable ? 'rgba(255,255,255,.08)' : 'rgba(255,255,255,.035)');
+    const claimColor = claimed ? 'var(--green)' : (t.claimable ? 'var(--muted)' : t.color);
+    const claimBorder = claimed ? 'var(--green)' : (t.claimable ? 'var(--border)' : t.border);
+    const claimOnclick = canClaim
+      ? `onclick='toggleCampClaim(event,${JSON.stringify(d.debtor_code || '')},${JSON.stringify(campId)},${JSON.stringify(d.company_name || d.debtor_code || '')},${JSON.stringify(camp.promo_detail || camp.name || '')},${JSON.stringify(camp.type || 'other')})'`
+      : `onclick='event.stopPropagation()' disabled`;
     return header + `<div class="camp-debtor-row" style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 88px 82px 82px 112px;gap:8px;align-items:center;padding:7px 8px;background:${rowBg};border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;">
       <div class="camp-debtor-idx" style="font-family:var(--mono);color:var(--muted);">${start + i + 1}</div>
       <div class="camp-debtor-main" style="min-width:0;">
@@ -4965,9 +5060,10 @@ function renderCampaignDebtorPanel(camp) {
       <div class="camp-debtor-code" style="font-family:var(--mono);font-size:9px;color:var(--muted);">${campEsc(d.debtor_code || '')}</div>
       <div class="camp-debtor-status"><span style="font-family:var(--mono);font-size:8px;color:${t.color};background:${t.bg};border:1px solid ${t.border};padding:2px 6px;border-radius:8px;white-space:nowrap;">${campEsc(t.label)}</span></div>
       <div class="camp-debtor-lookback" style="font-family:var(--mono);font-size:10px;color:var(--muted);text-align:right;">${fmtNum(t.lookback)} CTN</div>
-      <div class="camp-debtor-current" style="font-family:var(--mono);font-size:10px;color:${t.current > 0 ? 'var(--green)' : (t.unpaid > 0 ? 'var(--orange)' : 'var(--muted)')};text-align:right;">${campEsc(t.currentText)}</div>
-      <button class="camp-debtor-claim" onclick='toggleCampClaim(event,${JSON.stringify(d.debtor_code || '')},${JSON.stringify(campId)},${JSON.stringify(d.company_name || d.debtor_code || '')},${JSON.stringify(camp.promo_detail || camp.name || '')},${JSON.stringify(camp.type || 'other')})'
-        style="background:${claimBg};border:1px solid ${claimBorder};color:${claimColor};font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;">${claimLabel}</button>
+      <div class="camp-debtor-current" style="font-family:var(--mono);font-size:10px;color:${t.color};text-align:right;">${campEsc(t.currentText)}</div>
+      <button class="camp-debtor-claim" ${claimOnclick}
+        title="${campEsc(t.note || '')}"
+        style="background:${claimBg};border:1px solid ${claimBorder};color:${claimColor};font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:${canClaim?'pointer':'not-allowed'};white-space:nowrap;opacity:${canClaim?'1':'.82'};">${claimLabel}</button>
     </div>`;
   }).join('');
   const pager = `<div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:9px 8px;">
@@ -4983,7 +5079,9 @@ function renderCampaignDebtorPanel(camp) {
       <div style="display:flex;gap:8px;align-items:center;padding:7px 8px;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:9px;color:var(--muted);">
         <span style="color:var(--green);">✓ Converted ${convertedTotal}</span>
         <span>·</span>
-        <span>Not yet ${notYetTotal}</span>
+        <span style="color:var(--orange);">Awaiting payment ${awaitingTotal}</span>
+        <span>·</span>
+        <span>Entitled / not paid ${notYetTotal}</span>
       </div>
       ${rows || '<div style="padding:12px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--muted);">No enrolled debtors</div>'}
       ${pager}
