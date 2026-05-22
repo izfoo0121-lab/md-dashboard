@@ -1850,11 +1850,15 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
 
             # New debtor (open date within 90 days)
             is_new = False
+            open_date_raw = None
+            open_month = None
             open_date = info.get("open_date")
             if open_date and pd.notnull(open_date):
                 try:
                     od = pd.to_datetime(open_date)
                     is_new = (datetime.now() - od).days <= 90
+                    open_date_raw = od.strftime("%Y-%m-%d")
+                    open_month = od.strftime("%b %y")
                 except Exception:
                     pass
 
@@ -1934,6 +1938,8 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 "vip":                info.get("vip", False),
                 "has_bonus_point":    info.get("has_bonus_point", False),
                 "is_new":             is_new,
+                "open_date_raw":      open_date_raw,
+                "open_month":         open_month,
                 "is_pending_activation": (
                     not _card_is_personal
                     and not is_new
@@ -2244,15 +2250,18 @@ def calc_birthday_for_month(debtor_cards, targets, bday_month_str):
             bday_year  = 2000 + int(parts[1])
         except:
             pass
+    bday_month_key = f"{MONTH_ORDER_BD[bday_month - 1]} {str(bday_year)[-2:]}"
     PERSONAL_TYPES = {"P-Personal","P-PERSONAL","personal","Personal","PERSONAL"}
 
     birthday_debtors = []
+    new_month_excluded = []
     for agent, adata in debtor_cards.items():
         for d in adata.get("debtors", []):
             code        = d.get("debtor_code", "")
             db_type     = d.get("debtor_type", "")
             is_vip      = d.get("vip", False)
             is_personal = db_type in PERSONAL_TYPES
+            opened_this_birthday_month = d.get("open_month") == bday_month_key
 
             # Recompute birthday match for selected month. Prefer the parsed
             # birth_month stored on debtor cards; birth_date_raw is a string and
@@ -2277,6 +2286,21 @@ def calc_birthday_for_month(debtor_cards, targets, bday_month_str):
                     and is_vip
                     and d.get("has_bonus_point", False)
                     and not is_personal
+                    and opened_this_birthday_month):
+                new_month_excluded.append({
+                    "code":   code,
+                    "name":   d.get("company_name", code),
+                    "agent":  agent,
+                    "type":   db_type,
+                    "phone":  d.get("phone", ""),
+                    "source": "new_month_excluded",
+                })
+                continue
+
+            if (birthday_matches
+                    and is_vip
+                    and d.get("has_bonus_point", False)
+                    and not is_personal
                     and overrides.get(code) != "remove"):
                 birthday_debtors.append({
                     "code":   code,
@@ -2292,6 +2316,16 @@ def calc_birthday_for_month(debtor_cards, targets, bday_month_str):
             for agent, adata in debtor_cards.items():
                 d = next((x for x in adata.get("debtors",[]) if x.get("debtor_code")==code), None)
                 if d:
+                    if d.get("open_month") == bday_month_key:
+                        new_month_excluded.append({
+                            "code":   code,
+                            "name":   d.get("company_name", code),
+                            "agent":  agent,
+                            "type":   d.get("debtor_type",""),
+                            "phone":  d.get("phone",""),
+                            "source": "new_month_excluded",
+                        })
+                        break
                     birthday_debtors.append({
                         "code":   code,
                         "name":   d.get("company_name", code),
@@ -2308,6 +2342,12 @@ def calc_birthday_for_month(debtor_cards, targets, bday_month_str):
             seen.add(d["code"])
             result.append(d)
 
+    excluded_seen = set(); excluded_result = []
+    for d in new_month_excluded:
+        if d["code"] not in excluded_seen:
+            excluded_seen.add(d["code"])
+            excluded_result.append(d)
+
     by_agent = {}
     for d in result:
         by_agent.setdefault(d["agent"], []).append(d)
@@ -2318,6 +2358,7 @@ def calc_birthday_for_month(debtor_cards, targets, bday_month_str):
         "month":    bday_label,
         "count":    len(result),
         "debtors":  result,
+        "new_month_excluded": excluded_result,
         "by_agent": {a: len(v) for a, v in by_agent.items()},
     }
 

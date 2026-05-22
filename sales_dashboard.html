@@ -752,6 +752,8 @@ function updateSyncStatus() {
     <button class="filter-chip" data-val="active" onclick="setFilter('status','active',this)">已激活</button>
     <button class="filter-chip" data-val="pending" onclick="setFilter('status','pending',this)">当月未开单</button>
     <button class="filter-chip" data-val="pending_activation" onclick="setFilter('pending_activation','true',this)">待激活</button>
+    <button class="filter-chip" data-val="no_ccom" data-special-filter="true" onclick="setSpecialFilter('no_ccom',this)">CCOM 未拿</button>
+    <button class="filter-chip" data-val="no3m" data-special-filter="true" onclick="setSpecialFilter('no3m',this)">三个月未开单</button>
   </div>
   <div class="filter-row" id="special-filter-row">
     <button class="filter-chip" data-val="vip" onclick="setSpecialFilter('vip',this)">⭐ VIP</button>
@@ -760,8 +762,6 @@ function updateSyncStatus() {
     <button class="filter-chip" data-val="drop" onclick="setSpecialFilter('drop',this)">📉 Drop</button>
     <button class="filter-chip" data-val="gain" onclick="setSpecialFilter('gain',this)" style="border-color:rgba(61,220,132,.4);color:var(--green);">📈 Gain</button>
     <button class="filter-chip" data-val="unpurchased" onclick="setSpecialFilter('unpurchased',this)">🎯 未购买</button>
-    <button class="filter-chip" data-val="no_ccom" onclick="setSpecialFilter('no_ccom',this)">CCOM 未拿</button>
-    <button class="filter-chip" data-val="no3m" onclick="setSpecialFilter('no3m',this)">三个月未开单</button>
     <button class="filter-chip" data-val="nonvip" onclick="setSpecialFilter('nonvip',this)">⭐ 非VIP</button>
     <button class="filter-chip" data-val="newsku" onclick="setSpecialFilter('newsku',this)">✨ 新增SKU</button>
     <button class="filter-chip" data-val="flagged" onclick="setSpecialFilter('flagged',this)" style="border-color:rgba(255,95,95,.4);color:var(--red);">⚑ Flagged</button>
@@ -1859,6 +1859,7 @@ function setFilter(type, val, el) {
 function setSpecialFilter(val, el) {
   const wasActive = el.classList.contains('active');
   document.querySelectorAll('#special-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('#status-filter-row [data-special-filter="true"]').forEach(c => c.classList.remove('active'));
   unpurchasedPage = 1;
   nonvipPage = 1;
   if (wasActive) {
@@ -1964,6 +1965,7 @@ function birthdayDebtorLookup() {
         name: d.company_name || d.name || code,
         type: d.debtor_type || '',
         phone: d.phone || '',
+        openMonth: d.open_month || '',
       };
     });
   });
@@ -1977,10 +1979,18 @@ function birthdayCampaignMonthLabel() {
   return `${m[1].slice(0, 3)} ${m[2].slice(-2)}`;
 }
 
+function birthdayNewMonthExclusionSet(monthLabel = DATA?.current_month || '') {
+  const rows = DATA?.birthday_by_month?.[monthLabel]?.new_month_excluded
+            ?? (monthLabel === birthdayCampaignMonthLabel() ? DATA?.birthday_campaign?.new_month_excluded : [])
+            ?? [];
+  return new Set(rows.map(row => String(row?.code || row || '').toUpperCase()).filter(Boolean));
+}
+
 function birthdayRowsForMonth(monthLabel = DATA?.current_month || '') {
   const iso = birthdayMonthToIso(monthLabel);
   const overrides = BIRTHDAY_OVERRIDES_BY_MONTH[iso] || {};
   const lookup = birthdayDebtorLookup();
+  const newMonthExcluded = birthdayNewMonthExclusionSet(monthLabel);
   const baseRows = DATA?.birthday_by_month?.[monthLabel]?.debtors
                 ?? (monthLabel === birthdayCampaignMonthLabel() ? DATA?.birthday_campaign?.debtors : [])
                 ?? [];
@@ -1990,6 +2000,7 @@ function birthdayRowsForMonth(monthLabel = DATA?.current_month || '') {
     const code = String(row.code || row.debtor_code || '').toUpperCase();
     if (!code || overrides[code] === 'remove') return;
     const fallback = lookup[code] || {};
+    if (newMonthExcluded.has(code) || fallback.openMonth === monthLabel) return;
     active.set(code, {
       code,
       name: row.name || row.company_name || fallback.name || code,
@@ -2008,6 +2019,7 @@ function birthdayRowsForMonth(monthLabel = DATA?.current_month || '') {
     }
     if (action === 'add') {
       const fallback = lookup[cleanCode] || {};
+      if (newMonthExcluded.has(cleanCode) || fallback.openMonth === monthLabel) return;
       const existing = active.get(cleanCode) || {};
       active.set(cleanCode, {
         code: cleanCode,

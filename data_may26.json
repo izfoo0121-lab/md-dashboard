@@ -84,7 +84,7 @@
   },
   "birthday_campaign": {
     "month": "May 2026",
-    "count": 121,
+    "count": 119,
     "debtors": [
       {
         "code": "300-C307",
@@ -863,14 +863,6 @@
         "source": "auto"
       },
       {
-        "code": "300-KT210",
-        "name": "MS CHING PALOH",
-        "agent": "JACKY",
-        "type": "SH-Shop",
-        "phone": "+60193918356",
-        "source": "auto"
-      },
-      {
         "code": "300-J014",
         "name": "SITI KG.KERPAL",
         "agent": "CJ",
@@ -1031,14 +1023,6 @@
         "source": "auto"
       },
       {
-        "code": "300-D329",
-        "name": "SUKRONMAKAMUN",
-        "agent": "LEON",
-        "type": "FL-Freelancer",
-        "phone": "+60182591721",
-        "source": "auto"
-      },
-      {
         "code": "300-D280",
         "name": "KAWSAR",
         "agent": "LEON",
@@ -1065,15 +1049,33 @@
       "KW": 9,
       "YI": 7,
       "BEN": 4,
-      "JACKY": 14,
+      "JACKY": 13,
       "CJ": 13,
-      "LEON": 10
-    }
+      "LEON": 9
+    },
+    "new_month_excluded": [
+      {
+        "code": "300-D329",
+        "name": "SUKRONMAKAMUN",
+        "agent": "LEON",
+        "type": "FL-Freelancer",
+        "phone": "+60182591721",
+        "source": "new_month_excluded"
+      },
+      {
+        "code": "300-KT210",
+        "name": "MS CHING PALOH",
+        "agent": "JACKY",
+        "type": "SH-Shop",
+        "phone": "+60193918356",
+        "source": "new_month_excluded"
+      }
+    ]
   },
   "birthday_by_month": {
     "Apr 26": {
       "month": "April 2026",
-      "count": 80,
+      "count": 78,
       "debtors": [
         {
           "code": "300-H140",
@@ -1444,14 +1446,6 @@
           "source": "auto"
         },
         {
-          "code": "300-KH296",
-          "name": "MAT NASIR",
-          "agent": "NMK",
-          "type": "SH-Shop",
-          "phone": "+601114893457",
-          "source": "auto"
-        },
-        {
           "code": "300-C110",
           "name": "华人买杂饭",
           "agent": "KW",
@@ -1700,14 +1694,6 @@
           "source": "auto"
         },
         {
-          "code": "300-D324",
-          "name": "JASMEN",
-          "agent": "LEON",
-          "type": "SH-Shop",
-          "phone": "+60163616134",
-          "source": "auto"
-        },
-        {
           "code": "300-D107",
           "name": "SHAMAILA",
           "agent": "LEON",
@@ -1722,17 +1708,51 @@
         "JAMES": 9,
         "KF": 8,
         "KEE": 9,
-        "NMK": 7,
+        "NMK": 6,
         "KW": 9,
         "YI": 3,
         "JACKY": 9,
         "CJ": 4,
-        "LEON": 8
-      }
+        "LEON": 7
+      },
+      "new_month_excluded": [
+        {
+          "code": "300-WK084",
+          "name": "NADIRA",
+          "agent": "KEE",
+          "type": "FL-Freelancer",
+          "phone": "+6282229180232",
+          "source": "new_month_excluded"
+        },
+        {
+          "code": "300-KH292",
+          "name": "AMIN",
+          "agent": "NMK",
+          "type": "SH-Shop",
+          "phone": "+60189095420",
+          "source": "new_month_excluded"
+        },
+        {
+          "code": "300-KH296",
+          "name": "MAT NASIR",
+          "agent": "NMK",
+          "type": "SH-Shop",
+          "phone": "+601114893457",
+          "source": "new_month_excluded"
+        },
+        {
+          "code": "300-D324",
+          "name": "JASMEN",
+          "agent": "LEON",
+          "type": "SH-Shop",
+          "phone": "+60163616134",
+          "source": "new_month_excluded"
+        }
+      ]
     },
     "Feb 26": {
       "month": "February 2026",
-      "count": 74,
+      "count": 73,
       "debtors": [
         {
           "code": "300-H084",
@@ -2087,14 +2107,6 @@
           "source": "auto"
         },
         {
-          "code": "300-C261",
-          "name": "老马",
-          "agent": "KW",
-          "type": "FL-Freelancer",
-          "phone": "+60102282717",
-          "source": "auto"
-        },
-        {
           "code": "300-C266",
           "name": "SAMAH",
           "agent": "KW",
@@ -2334,17 +2346,27 @@
         "KF": 6,
         "KEE": 6,
         "NMK": 10,
-        "KW": 7,
+        "KW": 6,
         "YI": 5,
         "BEN": 2,
         "JACKY": 1,
         "CJ": 6,
         "LEON": 10
-      }
+      },
+      "new_month_excluded": [
+        {
+          "code": "300-C261",
+          "name": "老马",
+          "agent": "KW",
+          "type": "FL-Freelancer",
+          "phone": "+60102282717",
+          "source": "new_month_excluded"
+        }
+      ]
     },
     "Jan 26": {
       "month": "January 2026",
-      "count": 82,
+      "count": 81,
       "debtors": [
         {
           "code": "300-C115",
@@ -2536,14 +2558,6 @@
           "agent": "JAMES",
           "type": "SH-Shop",
           "phone": "+60194203436",
-          "source": "auto"
-        },
-        {
-          "code": "300-JS323",
-          "name": "PADIL",
-          "agent": "JAMES",
-          "type": "SH-Shop",
-          "phone": "+60193898073",
           "source": "auto"
         },
         {
@@ -3006,7 +3020,7 @@
       "by_agent": {
         "XIAN": 9,
         "KI-MI": 4,
-        "JAMES": 13,
+        "JAMES": 12,
         "KF": 9,
         "KEE": 7,
         "NMK": 10,
@@ -3017,7 +3031,17 @@
         "JACKY": 2,
         "CJ": 5,
         "LEON": 4
-      }
+      },
+      "new_month_excluded": [
+        {
+          "code": "300-JS323",
+          "name": "PADIL",
+          "agent": "JAMES",
+          "type": "SH-Shop",
+          "phone": "+60193898073",
+          "source": "new_month_excluded"
+        }
+      ]
     },
     "Jun 26": {
       "month": "June 2026",
@@ -3733,11 +3757,12 @@
         "JACKY": 11,
         "CJ": 14,
         "LEON": 3
-      }
+      },
+      "new_month_excluded": []
     },
     "Mar 26": {
       "month": "March 2026",
-      "count": 75,
+      "count": 73,
       "debtors": [
         {
           "code": "300-H081",
@@ -3953,14 +3978,6 @@
           "agent": "KF",
           "type": "ST-Site",
           "phone": "+601125817460",
-          "source": "auto"
-        },
-        {
-          "code": "300-BY311",
-          "name": "HAMID SK",
-          "agent": "KF",
-          "type": "ST-Site",
-          "phone": "+9187088995083",
           "source": "auto"
         },
         {
@@ -4324,14 +4341,6 @@
           "source": "auto"
         },
         {
-          "code": "300-D321",
-          "name": "AKU ANDRE",
-          "agent": "LEON",
-          "type": "ST-Site",
-          "phone": "+60167016994",
-          "source": "auto"
-        },
-        {
           "code": "300-D024",
           "name": "ADTIKA",
           "agent": "LEON",
@@ -4344,7 +4353,7 @@
         "XIAN": 6,
         "KI-MI": 8,
         "JAMES": 9,
-        "KF": 7,
+        "KF": 6,
         "KEE": 10,
         "NMK": 5,
         "KW": 6,
@@ -4353,12 +4362,30 @@
         "BEN": 4,
         "JACKY": 5,
         "CJ": 5,
-        "LEON": 5
-      }
+        "LEON": 4
+      },
+      "new_month_excluded": [
+        {
+          "code": "300-BY311",
+          "name": "HAMID SK",
+          "agent": "KF",
+          "type": "ST-Site",
+          "phone": "+9187088995083",
+          "source": "new_month_excluded"
+        },
+        {
+          "code": "300-D321",
+          "name": "AKU ANDRE",
+          "agent": "LEON",
+          "type": "ST-Site",
+          "phone": "+60167016994",
+          "source": "new_month_excluded"
+        }
+      ]
     },
     "May 26": {
       "month": "May 2026",
-      "count": 121,
+      "count": 119,
       "debtors": [
         {
           "code": "300-C307",
@@ -5137,14 +5164,6 @@
           "source": "auto"
         },
         {
-          "code": "300-KT210",
-          "name": "MS CHING PALOH",
-          "agent": "JACKY",
-          "type": "SH-Shop",
-          "phone": "+60193918356",
-          "source": "auto"
-        },
-        {
           "code": "300-J014",
           "name": "SITI KG.KERPAL",
           "agent": "CJ",
@@ -5305,14 +5324,6 @@
           "source": "auto"
         },
         {
-          "code": "300-D329",
-          "name": "SUKRONMAKAMUN",
-          "agent": "LEON",
-          "type": "FL-Freelancer",
-          "phone": "+60182591721",
-          "source": "auto"
-        },
-        {
           "code": "300-D280",
           "name": "KAWSAR",
           "agent": "LEON",
@@ -5339,10 +5350,28 @@
         "KW": 9,
         "YI": 7,
         "BEN": 4,
-        "JACKY": 14,
+        "JACKY": 13,
         "CJ": 13,
-        "LEON": 10
-      }
+        "LEON": 9
+      },
+      "new_month_excluded": [
+        {
+          "code": "300-D329",
+          "name": "SUKRONMAKAMUN",
+          "agent": "LEON",
+          "type": "FL-Freelancer",
+          "phone": "+60182591721",
+          "source": "new_month_excluded"
+        },
+        {
+          "code": "300-KT210",
+          "name": "MS CHING PALOH",
+          "agent": "JACKY",
+          "type": "SH-Shop",
+          "phone": "+60193918356",
+          "source": "new_month_excluded"
+        }
+      ]
     }
   },
   "brand_campaigns": [],
@@ -379878,7 +379907,7 @@
             "section": "C",
             "weight": 0.01,
             "actual": 0,
-            "target": 14,
+            "target": 13,
             "score": 0.0,
             "max_score": 1.0,
             "pct": 0,
@@ -435175,7 +435204,7 @@
             "section": "C",
             "weight": 0.01,
             "actual": 0,
-            "target": 10,
+            "target": 9,
             "score": 0.0,
             "max_score": 1.0,
             "pct": 0,
