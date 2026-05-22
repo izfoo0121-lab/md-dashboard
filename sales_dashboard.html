@@ -159,6 +159,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .brand-banner-close{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0;line-height:1;}
 
 /* Debtor card new layout */
+.debtor-card.jump-highlight{outline:2px solid var(--accent);outline-offset:-2px;background:rgba(240,192,64,.12);}
 .dc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
 .dc-left{flex:1;}
 .dc-name{font-weight:600;font-size:13px;line-height:1.2;margin-bottom:2px;}
@@ -1618,22 +1619,35 @@ function renderGlobalSearch(query) {
 }
 
 function jumpToAgent(agent, debtorCode) {
-  // Select the agent
-  const sel = document.getElementById('agent-select');
-  if (sel) { sel.value = agent; selectAgent(agent); }
+  const targetCode = String(debtorCode || '').trim();
 
-  // Clear global search, restore normal view
-  document.getElementById('debtor-search').value = '';
-  document.getElementById('search-clear-btn').style.display = 'none';
+  // Select the agent, then keep the debtor code as a local filter so the
+  // target card is rendered even when it is not on page 1 of that agent list.
+  const sel = document.getElementById('agent-select');
+  if (sel) sel.value = agent;
+  selectAgent(agent);
+
+  const searchEl = document.getElementById('debtor-search');
+  if (searchEl) searchEl.value = targetCode;
+  const clearBtn = document.getElementById('search-clear-btn');
+  if (clearBtn) clearBtn.style.display = targetCode ? 'block' : 'none';
   const gsr = document.getElementById('global-search-results');
   if (gsr) gsr.style.display = 'none';
   document.getElementById('debtor-list').style.display = '';
+  currentPage = 1;
+  renderDebtors();
 
   // Scroll to the debtor card after render
   setTimeout(() => {
-    const card = document.querySelector(`[id*="${agent}_${debtorCode}"]`);
-    if (card) card.scrollIntoView({ behavior:'smooth', block:'center' });
-  }, 400);
+    const cards = Array.from(document.querySelectorAll('#debtor-list .debtor-card'));
+    const card = cards.find(el =>
+      String(el.dataset.debtorCode || '').toUpperCase() === targetCode.toUpperCase()
+    );
+    if (!card) return;
+    card.scrollIntoView({ behavior:'smooth', block:'center' });
+    card.classList.add('jump-highlight');
+    setTimeout(() => card.classList.remove('jump-highlight'), 1800);
+  }, 120);
 }
 
 function selectAgent(agent) {
@@ -2918,7 +2932,7 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
     const debtorName = (d.company_name && d.company_name.trim() !== '')
       ? d.company_name : d.debtor_code;
 
-    return `<div class="debtor-card">
+    return `<div class="debtor-card" data-debtor-code="${campEsc(d.debtor_code)}">
       <div class="dc-top" onclick="toggleCard('${mbKey}')" style="cursor:pointer;">
         <div class="dc-left">
           <div class="dc-name"><span style="font-family:var(--display);font-size:14px;color:var(--muted);margin-right:8px;letter-spacing:.03em;">${runNo}.</span>${debtorName}</div>
