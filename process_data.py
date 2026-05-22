@@ -3362,6 +3362,7 @@ def main():
     campaign_map = {}  # debtor_code → [campaign info with progress fields]
     area_groups  = {}  # area_code → group (MVP/MI/SS/SBG)
     camp_data_global = {}
+    active_conversion_campaigns = []
 
     # TODO: migrate area_groups to its own Supabase table or config file.
     if CAMPAIGNS_FILE.exists():
@@ -3463,6 +3464,8 @@ def main():
             if not camp.get("active", True): continue
             if not _campaign_active_in_month(camp): continue
             loaded += 1
+            if camp.get("type") in ("conversion_tiered", "conversion_simple"):
+                active_conversion_campaigns.append(camp)
             cat_rules = camp.get("cat_rules", {})
             for d in camp.get("debtors", []):
                 code = d.get("code","") if isinstance(d, dict) else str(d)
@@ -3514,6 +3517,8 @@ def main():
             }
             if not _campaign_active_in_month(camp): continue
             active_count += 1
+            if camp["type"] in ("conversion_tiered", "conversion_simple"):
+                active_conversion_campaigns.append(camp)
             for d in debtors_by_campaign.get(camp["id"], []):
                 code = d.get("debtor_code","")
                 cat  = d.get("cat","") or ""
@@ -3525,6 +3530,7 @@ def main():
     except Exception as e:
         log(f"WARNING: Supabase campaign fetch failed: {e} -> falling back to campaigns.json")
         campaign_map = {}
+        active_conversion_campaigns = []
         try:
             loaded = _load_campaigns_from_json()
             log(f"Campaigns (JSON fallback): {loaded} active, {len(campaign_map)} debtors tagged")
@@ -3619,6 +3625,57 @@ def main():
     log(f"  Shared debtor_info built: {len(debtor_info_shared)} debtors")
     bp_checked = sum(1 for v in debtor_info_shared.values() if v.get("has_bonus_point"))
     log(f"  Has Bonus Point = Checked: {bp_checked} debtors")
+    _PERSONAL_TYPES = {"P-Personal","P-PERSONAL","personal","Personal","PERSONAL"}
+
+    def _is_new_open_account(info):
+        open_date = info.get("open_date")
+        if not open_date or pd.isnull(open_date):
+            return False
+        try:
+            return (datetime.now() - pd.to_datetime(open_date)).days <= 90
+        except Exception:
+            return False
+
+    auto_rows = []
+    auto_added = 0
+    active_agent_set = set(agents)
+    for code, info in debtor_info_shared.items():
+        dtype = (info.get("type") or "").strip()
+        agent = (info.get("agent") or "").strip()
+        if (
+            dtype in _PERSONAL_TYPES
+            or not info.get("dm_active", True)
+            or agent not in active_agent_set
+            or not _is_new_open_account(info)
+        ):
+            continue
+
+        existing_campaign_ids = {c.get("id") for c in campaign_map.get(code, [])}
+        for camp in active_conversion_campaigns:
+            cid = camp.get("id")
+            if not cid or cid in existing_campaign_ids:
+                continue
+            _append_campaign_map_entry(camp, code, "", "", {})
+            existing_campaign_ids.add(cid)
+            auto_added += 1
+            auto_rows.append({
+                "campaign_id": cid,
+                "debtor_code": code,
+                "debtor_name": info.get("name") or code,
+                "agent": agent,
+                "debtor_type": dtype,
+            })
+
+    if auto_added:
+        log(f"  Auto-entitled new non-personal debtors to conversion campaigns: {auto_added} campaign entries")
+        if os.environ.get("SUPABASE_SERVICE_KEY"):
+            try:
+                _supabase_post("campaign_debtors", auto_rows, prefer="return=minimal")
+                log(f"  Auto-entitlement synced to Supabase campaign_debtors: {len(auto_rows)} rows")
+            except Exception as e:
+                log(f"WARNING: Auto-entitlement Supabase sync failed: {e}")
+        else:
+            log("  Auto-entitlement applied to output only (SUPABASE_SERVICE_KEY missing)")
     _today = date.today()
     agents_list = sorted({info.get("agent", "") for info in debtor_info_shared.values() if info.get("agent")})
     _maybe_take_patronage_snapshot(_today, debtor_info_shared, agents_list)
@@ -3642,7 +3699,7 @@ def main():
 
     # Per-month birthday map for audit page (lets users see May birthdays
     # even when dashboard cur_month is still April).
-    import os, glob
+    import glob
     _data_files = [os.path.basename(f) for f in glob.glob('data_*.json')]
     _months_for_birthday = []
     for f in _data_files:
