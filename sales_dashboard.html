@@ -80,6 +80,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .summary-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:6px;}
 .summary-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:7px 6px;text-align:center;}
 .summary-box .val{font-family:var(--display);font-size:20px;letter-spacing:.03em;line-height:1;}
+.summary-box .sub{font-family:var(--mono);font-size:8px;color:var(--muted);line-height:1.05;margin-top:3px;white-space:nowrap;}
 .summary-box .lbl{font-family:var(--mono);font-size:7px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
 
 .search-bar{width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:10px;font-family:var(--body);font-size:13px;margin-bottom:8px;}
@@ -729,7 +730,8 @@ function updateSyncStatus() {
     </div>
     <div class="summary-box">
       <div class="val" style="color:var(--blue)" id="sum-rate">—</div>
-      <div class="lbl">光顾率*</div>
+      <div class="sub" id="sum-rate-detail">—</div>
+      <div class="lbl">持续光顾率*</div>
     </div>
     <div class="summary-box" style="cursor:pointer;" onclick="setSpecialFilter('flagged', document.querySelector('[data-val=\\'flagged\\']'))">
       <div class="val" style="color:var(--red)" id="sum-flags">0</div>
@@ -3177,7 +3179,13 @@ function renderDebtors() {
   const rateEl = document.getElementById('sum-rate');
   rateEl.textContent = rate + '%';
   const baseLabel = isFrozen && snapDate ? `frozen baseline ${snapDate}` : 'live count';
-  rateEl.title = `${npActive} / ${npTotalFrozen} (${baseLabel}, excl. Personal)`;
+  const rateDetailEl = document.getElementById('sum-rate-detail');
+  if (rateDetailEl) {
+    rateDetailEl.textContent = `${npActive} / ${npTotalFrozen}`;
+    rateDetailEl.title = `${baseLabel}, excl. Personal`;
+  }
+  const rateBox = rateEl.closest('.summary-box');
+  if (rateBox) rateBox.title = `${npActive} / ${npTotalFrozen} (${baseLabel}, excl. Personal)`;
   document.getElementById('sum-newsku') && (document.getElementById('sum-newsku').textContent = agData.total_new_sku ?? '—');
   // Flag count
   const flagCount = getAgentFlagCount(currentAgent);
