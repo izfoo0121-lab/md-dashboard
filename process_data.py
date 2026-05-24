@@ -99,19 +99,42 @@ def fetch_kpi_manual_overrides(cur_month):
         return {}
 
 def fetch_campaign_deliveries(cur_month):
-    """Fetch delivery-list campaign achievements, indexed by (campaign_id, agent)."""
+    """Fetch management delivery-list campaign achievements, indexed by (campaign_id, agent).
+
+    Agent-submitted claims are a reward workflow and must not drive KPI actuals.
+    Older dashboard builds mirrored agent claims into campaign_deliveries, so
+    filter out delivery rows that have a matching non-admin claim row.
+    """
     try:
         month_q = urllib.parse.quote(str(cur_month), safe="")
         rows = _supabase_get(f"campaign_deliveries?select=campaign_id,debtor_code,agent&month=eq.{month_q}")
+        claim_rows = _supabase_get(f"claims?select=camp_id,debtor_code,agent,actor,status&month=eq.{month_q}")
+        claim_keys = set()
+        for r in claim_rows or []:
+            actor = (r.get("actor") or "agent").lower()
+            if actor == "admin":
+                continue
+            camp_id = r.get("camp_id")
+            agent = (r.get("agent") or "").upper()
+            debtor_code = (r.get("debtor_code") or "").upper()
+            if camp_id and agent and debtor_code:
+                claim_keys.add((camp_id, agent, debtor_code))
         by_camp_agent = {}
+        filtered = 0
         for r in rows or []:
             camp_id = r.get("campaign_id")
             agent = (r.get("agent") or "").upper()
-            debtor_code = r.get("debtor_code")
+            debtor_code = (r.get("debtor_code") or "").upper()
             if not camp_id or not agent or not debtor_code:
                 continue
+            if (camp_id, agent, debtor_code) in claim_keys:
+                filtered += 1
+                continue
             by_camp_agent.setdefault((camp_id, agent), []).append(debtor_code)
-        log(f"   campaign_deliveries: {len(rows or [])} rows across {len(by_camp_agent)} (campaign, agent) pairs")
+        msg = f"   campaign_deliveries: {len(rows or [])} rows across {len(by_camp_agent)} (campaign, agent) pairs"
+        if filtered:
+            msg += f" ({filtered} agent-claim mirrors ignored)"
+        log(msg)
         return by_camp_agent
     except Exception as e:
         log(f"   WARNING: Could not fetch campaign_deliveries: {e}")
@@ -2940,24 +2963,39 @@ def _resolve_campaign_kpi_actual(camp, agent_code, numerator, deliveries_by_camp
                                  overrides_by_agent_key, conversion_rollup):
     camp_id = camp.get("id", "")
     kpi_key = _campaign_metric_key(camp_id, numerator)
-
-    delivered_codes = deliveries_by_camp_agent.get((camp_id, agent_code), [])
-    if delivered_codes and numerator == "count":
-        return float(len(set(delivered_codes)))
-
-    override = overrides_by_agent_key.get((agent_code, kpi_key))
-    if override is not None:
-        return float(override)
-
     camp_type = camp.get("type", "other")
+    delivered_codes = deliveries_by_camp_agent.get((camp_id, agent_code), [])
+    auto_actual = 0.0
+    auto_source = "auto"
+
     if camp_type in ("conversion_simple", "conversion_tiered"):
         rollup = (conversion_rollup or {}).get(camp_id, {})
         if numerator == "count":
-            return float(rollup.get("converted_count", 0) or 0)
-        if numerator == "ctn":
-            return float(rollup.get("converted_ctn", 0) or 0)
+            auto_actual = float(rollup.get("converted_count", 0) or 0)
+        elif numerator == "ctn":
+            auto_actual = float(rollup.get("converted_ctn", 0) or 0)
+        auto_source = "auto_paid_conversion"
+    elif numerator == "count" and delivered_codes:
+        auto_actual = float(len(set(delivered_codes)))
+        auto_source = "management_delivery_upload"
 
-    return 0.0
+    override = overrides_by_agent_key.get((agent_code, kpi_key))
+    if override is not None:
+        return {
+            "actual": float(override),
+            "auto_actual": auto_actual,
+            "override_actual": float(override),
+            "source": "manual_override",
+            "auto_source": auto_source,
+        }
+
+    return {
+        "actual": auto_actual,
+        "auto_actual": auto_actual,
+        "override_actual": None,
+        "source": auto_source,
+        "auto_source": auto_source,
+    }
 
 def build_per_campaign_kpi_items(agent_code, ag_cfg, active_campaigns, deliveries_by_camp_agent,
                                  overrides_by_agent_key, conversion_rollup, month_weights):
@@ -2977,10 +3015,11 @@ def build_per_campaign_kpi_items(agent_code, ag_cfg, active_campaigns, deliverie
             except (TypeError, ValueError):
                 target = 0.0
             weight = _get_campaign_weight_compat(month_weights, camp_id, numerator)
-            actual = _resolve_campaign_kpi_actual(
+            resolved = _resolve_campaign_kpi_actual(
                 camp, agent_code, numerator, deliveries_by_camp_agent,
                 overrides_by_agent_key, conversion_rollup
             )
+            actual = resolved["actual"]
             score = _score_campaign_kpi_item(actual, target, weight)
             pct = round((actual / target) * 100, 1) if target else 0
             items[kpi_key] = {
@@ -2992,7 +3031,11 @@ def build_per_campaign_kpi_items(agent_code, ag_cfg, active_campaigns, deliverie
                 "score": score,
                 "max_score": round(weight * 100, 3),
                 "pct": pct,
-                "source": "campaign_dynamic",
+                "source": resolved["source"],
+                "auto_actual": resolved["auto_actual"],
+                "override_actual": resolved["override_actual"],
+                "final_actual": actual,
+                "auto_source": resolved["auto_source"],
                 "excluded": weight == 0.0,
                 "numerator": numerator,
                 "campaign_id": camp_id,

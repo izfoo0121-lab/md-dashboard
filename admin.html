@@ -348,24 +348,25 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
         </div>
         <div id="kpi-manual-form"></div>
         <div class="kpi-manual-campaign-overrides" style="margin-top:24px;border-top:1px solid var(--border);padding-top:16px;">
-          <h4 style="margin:0 0 6px 0;font-family:var(--display);font-size:18px;letter-spacing:.04em;">Campaign Overrides (manual achievement count)</h4>
+          <h4 style="margin:0 0 6px 0;font-family:var(--display);font-size:18px;letter-spacing:.04em;">Campaign Actual Overrides</h4>
           <p style="font-size:12px;color:var(--ink3);margin:0 0 16px 0;line-height:1.6;">
-            Manual override for per-agent campaign achievement. Stored separately from KPI Manual fixed fields.
-            Used when delivery list is not uploaded and auto-detection is not available.
-            Leave blank to defer to auto-detection.
+            KPI uses the system auto actual by default. Enter Override actual only when management needs to correct the final campaign actual.
+            Claim requests do not affect these counts.
           </p>
           <div style="overflow-x:auto;">
-            <table class="kpi-manual-overrides-table" style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;min-width:720px;">
+            <table class="kpi-manual-overrides-table" style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;min-width:920px;">
               <thead>
                 <tr style="color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;font-size:9px;">
                   <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">Agent</th>
                   <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">Campaign</th>
                   <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">Numerator</th>
-                  <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">Override</th>
+                  <th style="text-align:right;padding:7px;border-bottom:1px solid var(--border);">Auto actual</th>
+                  <th style="text-align:center;padding:7px;border-bottom:1px solid var(--border);">Override actual</th>
+                  <th style="text-align:right;padding:7px;border-bottom:1px solid var(--border);">Final actual</th>
                 </tr>
               </thead>
               <tbody id="kpi-manual-overrides-tbody">
-                <tr><td colspan="4" style="padding:10px;color:var(--ink3);">Select a month to load campaign overrides.</td></tr>
+                <tr><td colspan="6" style="padding:10px;color:var(--ink3);">Select a month to load campaign overrides.</td></tr>
               </tbody>
             </table>
           </div>
@@ -1516,6 +1517,17 @@ function getKpiManualNumeratorLabel(num) {
   return num === 'ctn' ? 'Carton (条数)' : 'Count (渗透率)';
 }
 
+function getDashboardKpiCampaignItem(agent, kpiKey) {
+  return DASH_DATA?.agents?.[agent]?.kpi?.items?.[kpiKey] || null;
+}
+
+function fmtKpiActual(v) {
+  if (v === null || v === undefined || v === '') return '—';
+  const n = Number(v);
+  if (!Number.isFinite(n)) return String(v);
+  return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, '');
+}
+
 async function renderKpiManualOverrides() {
   const tbody = document.getElementById('kpi-manual-overrides-tbody');
   if (!tbody) return;
@@ -1523,23 +1535,23 @@ async function renderKpiManualOverrides() {
   initKpiManualMonths();
   const month = document.getElementById('kpi-manual-month')?.value;
   if (!month) {
-    tbody.innerHTML = '<tr><td colspan="4" style="padding:10px;color:var(--ink3);">Select a month first.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:10px;color:var(--ink3);">Select a month first.</td></tr>';
     return;
   }
 
   const activeCamps = getActiveCampaignsForMonth(month);
   if (!activeCamps.length) {
-    tbody.innerHTML = `<tr><td colspan="4" style="padding:10px;color:var(--ink3);">No active campaigns for ${kpiAdminEscape(month)}.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="padding:10px;color:var(--ink3);">No active campaigns for ${kpiAdminEscape(month)}.</td></tr>`;
     return;
   }
 
   const agents = getKpiManualOverrideAgents();
   if (!agents.length) {
-    tbody.innerHTML = '<tr><td colspan="4" style="padding:10px;color:var(--ink3);">No active agents configured.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:10px;color:var(--ink3);">No active agents configured.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = '<tr><td colspan="4" style="padding:10px;color:var(--ink3);">Loading campaign overrides...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" style="padding:10px;color:var(--ink3);">Loading campaign overrides...</td></tr>';
   const overrides = await loadKpiManualOverrides(month);
   const rows = [];
 
@@ -1547,11 +1559,16 @@ async function renderKpiManualOverrides() {
     activeCamps.forEach(camp => {
       getCampaignMetricRows(camp).forEach(metric => {
         const existing = overrides.get(`${agent}|${metric.key}`);
+        const item = getDashboardKpiCampaignItem(agent, metric.key);
+        const autoActual = item?.auto_actual ?? item?.actual ?? 0;
+        const hasOverride = existing !== undefined && existing !== null && existing !== '';
+        const finalActual = hasOverride ? Number(existing) : (item?.final_actual ?? item?.actual ?? autoActual);
         rows.push(`<tr>
           <td style="padding:7px;border-bottom:1px solid var(--border);font-weight:700;color:var(--ink);">${kpiAdminEscape(agent)}</td>
           <td style="padding:7px;border-bottom:1px solid var(--border);">${kpiAdminEscape(camp.name || camp.id)}</td>
           <td style="padding:7px;border-bottom:1px solid var(--border);">${kpiAdminEscape(getKpiManualNumeratorLabel(metric.numerator))}</td>
-          <td style="padding:7px;border-bottom:1px solid var(--border);">
+          <td style="padding:7px;border-bottom:1px solid var(--border);text-align:right;color:var(--ink3);">${kpiAdminEscape(fmtKpiActual(autoActual))}</td>
+          <td style="padding:7px;border-bottom:1px solid var(--border);text-align:center;">
             <input type="number" min="0" step="0.01" value="${existing ?? ''}" placeholder="defer to auto"
               data-month="${kpiAdminEscape(month)}"
               data-agent="${kpiAdminEscape(agent)}"
@@ -1559,6 +1576,7 @@ async function renderKpiManualOverrides() {
               onchange="saveKpiManualOverrideFromInput(this)"
               style="width:140px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--ink);font-family:var(--mono);font-size:12px;padding:6px 8px;text-align:center;">
           </td>
+          <td style="padding:7px;border-bottom:1px solid var(--border);text-align:right;font-weight:700;color:${hasOverride?'var(--accent)':'var(--ink)'};">${kpiAdminEscape(fmtKpiActual(finalActual))}</td>
         </tr>`);
       });
     });
@@ -1586,6 +1604,7 @@ async function saveKpiManualOverride(month, agent, kpiKey, value, inputEl = null
         headers: { 'Prefer': 'return=minimal' }
       });
       if (inputEl) inputEl.style.borderColor = 'var(--border)';
+      setTimeout(() => renderKpiManualOverrides(), 150);
       return;
     }
 
@@ -1609,6 +1628,7 @@ async function saveKpiManualOverride(month, agent, kpiKey, value, inputEl = null
       }])
     });
     if (inputEl) inputEl.style.borderColor = 'var(--green)';
+    setTimeout(() => renderKpiManualOverrides(), 150);
   } catch (e) {
     console.error('Save override failed:', e);
     alert('Save failed: ' + e.message);
@@ -6794,7 +6814,7 @@ const GistSync = (() => {
     // Upsert to Supabase
     const row = {
       month, agent, camp_id: campId, debtor_code: debtorCode,
-      status: claimData.status || 'delivered',
+      status: claimData.status || 'submitted',
       remark: claimData.remark || '',
       bulk  : !!claimData.bulk,
       actor : claimData.actor || 'agent',

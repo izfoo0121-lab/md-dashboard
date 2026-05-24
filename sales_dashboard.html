@@ -1334,6 +1334,52 @@ const SupabaseKpiSync = (() => {
     }
   }
 
+  async function fetch_kpi_manual_overrides(month) {
+    if (!month) return [];
+    const url = `${SUPABASE_URL}/rest/v1/kpi_manual_overrides?select=agent,kpi_key,value&month=eq.${encodeURIComponent(month)}`;
+    try {
+      const r = await fetch(url, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      if (!r.ok) {
+        console.warn(`[SupabaseKpiSync] campaign override fetch failed: HTTP ${r.status}`);
+        return [];
+      }
+      return await r.json();
+    } catch (e) {
+      console.warn('[SupabaseKpiSync] campaign override network error:', e.message);
+      return [];
+    }
+  }
+
+  function recomputeAgentKpiTotals(agentData) {
+    if (!agentData?.kpi?.items) return;
+    const items = agentData.kpi.items;
+    const sectionScores = {};
+    ['A','B','C','D','E'].forEach(sec => {
+      const secItems = Object.values(items).filter(v => v.section === sec);
+      sectionScores[sec] = {
+        score:     Math.round(secItems.reduce((s, v) => s + (v.score || 0), 0) * 1000) / 1000,
+        max_score: Math.round(secItems.reduce((s, v) => s + (v.max_score || 0), 0) * 1000) / 1000,
+      };
+    });
+    agentData.kpi.section_scores = sectionScores;
+
+    const allItems = Object.values(items);
+    const grandTotal = Math.round(allItems.reduce((s, v) => s + (v.score || 0), 0) * 1000) / 1000;
+    const maxTotal   = Math.round(allItems.reduce((s, v) => s + (v.max_score || 0), 0) * 1000) / 1000;
+    agentData.kpi.grand_total = grandTotal;
+    agentData.kpi.max_total   = maxTotal;
+    agentData.kpi.grand_pct   = maxTotal > 0 ? Math.round(grandTotal / maxTotal * 100 * 10) / 10 : 0;
+
+    const abcItems = allItems.filter(v => ['A','B','C'].includes(v.section));
+    const totalABC = Math.round(abcItems.reduce((s, v) => s + (v.score || 0), 0) * 1000) / 1000;
+    const maxABC   = Math.round(abcItems.reduce((s, v) => s + (v.max_score || 0), 0) * 1000) / 1000;
+    agentData.kpi.total_abc = totalABC;
+    agentData.kpi.max_abc   = maxABC;
+    agentData.kpi.total_pct = maxABC > 0 ? Math.round(totalABC / maxABC * 100 * 10) / 10 : 0;
+  }
+
   function applyAgentOverride(agentData, row) {
     // agentData = DATA.agents[agent] object
     // row      = supabase row for this agent (month, agent, new_accounts, vip_count, event_count, campaign_pct)
@@ -1438,7 +1484,6 @@ const SupabaseKpiSync = (() => {
     const rows = await fetch_kpi_manual(month);
     if (!rows.length) {
       console.log(`[SupabaseKpiSync] No kpi_manual rows for ${month}`);
-      return;
     }
     let applied = 0;
     rows.forEach(row => {
@@ -1449,9 +1494,53 @@ const SupabaseKpiSync = (() => {
       }
     });
     console.log(`[SupabaseKpiSync] Applied ${applied}/${rows.length} kpi_manual overrides for ${month}`);
+
+    Object.values(dataObj.agents || {}).forEach(agentData => {
+      let resetAny = false;
+      Object.values(agentData?.kpi?.items || {}).forEach(item => {
+        if (!item.campaign_id) return;
+        const autoActual = Number(item.auto_actual ?? item.actual ?? 0) || 0;
+        const target = Number(item.target || 0);
+        const weight = Number(item.weight || 0);
+        item.override_actual = null;
+        item.final_actual = autoActual;
+        item.actual = autoActual;
+        item.source = item.auto_source || (item.source === 'manual_override' ? 'auto' : item.source || 'auto');
+        item.pct = target > 0 ? Math.round(autoActual / target * 100 * 10) / 10 : 0;
+        item.score = _scoreItem(autoActual, target, weight);
+        resetAny = true;
+      });
+      if (resetAny) recomputeAgentKpiTotals(agentData);
+    });
+
+    const campaignRows = await fetch_kpi_manual_overrides(month);
+    let campaignApplied = 0;
+    const touchedAgents = new Set();
+    campaignRows.forEach(row => {
+      const agentData = dataObj.agents?.[row.agent];
+      const item = agentData?.kpi?.items?.[row.kpi_key];
+      if (!item) return;
+      const overrideActual = Number(row.value ?? 0) || 0;
+      const autoActual = Number(item.auto_actual ?? item.actual ?? 0) || 0;
+      const target = Number(item.target || 0);
+      const weight = Number(item.weight || 0);
+      item.auto_actual = autoActual;
+      item.override_actual = overrideActual;
+      item.final_actual = overrideActual;
+      item.actual = overrideActual;
+      item.source = 'manual_override';
+      item.pct = target > 0 ? Math.round(overrideActual / target * 100 * 10) / 10 : 0;
+      item.score = _scoreItem(overrideActual, target, weight);
+      touchedAgents.add(row.agent);
+      campaignApplied++;
+    });
+    touchedAgents.forEach(agent => recomputeAgentKpiTotals(dataObj.agents?.[agent]));
+    if (campaignRows.length) {
+      console.log(`[SupabaseKpiSync] Applied ${campaignApplied}/${campaignRows.length} campaign actual overrides for ${month}`);
+    }
   }
 
-  return { apply, fetch_kpi_manual };
+  return { apply, fetch_kpi_manual, fetch_kpi_manual_overrides };
 })();
 
 function init() {
@@ -1812,8 +1901,8 @@ function conversionCampaignStatus(c = {}) {
   return {
     key: lookback > 0 ? 'existing' : 'entitled',
     group: 'not-yet',
-    label: lookback > 0 ? 'Existing buyer' : 'Entitled',
-    shortLabel: lookback > 0 ? 'Existing' : 'Entitled',
+    label: lookback > 0 ? 'Existing buyer' : 'No paid order yet',
+    shortLabel: lookback > 0 ? 'Existing' : 'No paid',
     note: lookback > 0 ? 'Bought in Feb-Apr' : 'No paid conversion yet',
     color: 'var(--muted)',
     bg: 'rgba(255,255,255,.06)',
@@ -1824,6 +1913,73 @@ function conversionCampaignStatus(c = {}) {
     invoice,
     currentText: '0 CTN',
     claimable: false
+  };
+}
+
+function campaignClaimInfo(claim) {
+  if (!claim) {
+    return {
+      key: 'not_requested',
+      label: 'Not requested',
+      actionLabel: 'Submit Claim',
+      title: 'Submit claim request',
+      color: 'var(--muted)',
+      bg: 'rgba(255,255,255,.08)',
+      border: 'var(--border)',
+      canOpen: true,
+      canWithdraw: false
+    };
+  }
+  const status = String(claim.status || '').toLowerCase();
+  if (status === 'excluded') {
+    return {
+      key: 'excluded',
+      label: 'Excluded',
+      actionLabel: 'Excluded',
+      title: 'Excluded from claim request',
+      color: '#ff8866',
+      bg: 'rgba(255,136,102,.12)',
+      border: 'rgba(255,136,102,.35)',
+      canOpen: true,
+      canWithdraw: false
+    };
+  }
+  if (status === 'verified' || status === 'processed') {
+    return {
+      key: 'processed',
+      label: 'Processed',
+      actionLabel: 'Processed',
+      title: 'Management processed this request',
+      color: 'var(--green)',
+      bg: 'rgba(61,220,132,.18)',
+      border: 'rgba(61,220,132,.45)',
+      canOpen: true,
+      canWithdraw: false
+    };
+  }
+  if (status === 'rejected') {
+    return {
+      key: 'rejected',
+      label: 'Rejected',
+      actionLabel: 'Resubmit Claim',
+      title: claim.audit_reason || claim.reason || 'Rejected by management',
+      color: 'var(--red)',
+      bg: 'rgba(255,95,95,.14)',
+      border: 'rgba(255,95,95,.38)',
+      canOpen: true,
+      canWithdraw: false
+    };
+  }
+  return {
+    key: 'request_sent',
+    label: 'Request sent',
+    actionLabel: 'Request sent',
+    title: 'Waiting for management processing',
+    color: 'var(--blue)',
+    bg: 'rgba(77,166,255,.14)',
+    border: 'rgba(77,166,255,.35)',
+    canOpen: true,
+    canWithdraw: true
   };
 }
 
@@ -2894,14 +3050,14 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
 
         const convertedChip = `<span style="font-family:var(--mono);font-size:9px;color:${conv.color};background:${conv.bg};border:1px solid ${conv.border};padding:2px 6px;border-radius:4px;font-weight:600;">${conv.label}</span>`;
         const claimData = getCampClaims(currentAgent, c.id, d.debtor_code);
-        const claimed = !!claimData;
-        const canClaim = claimed || conv.claimable;
-        const btnLabel = claimed ? '✔ Claimed' : (conv.claimable ? '🎁 Mark Claimed' : (conv.key === 'awaiting_payment' ? 'Awaiting pay' : 'Not claimable'));
-        const btnOnclick = canClaim
+        const claimInfo = campaignClaimInfo(claimData);
+        const btnLabel = claimInfo.actionLabel;
+        const btnOnclick = claimInfo.canOpen
           ? `onclick="toggleCampClaim(event,'${d.debtor_code}','${c.id}','${(d.company_name||'').replace(/'/g,'')}','${promoText.replace(/'/g,'')}','${c.type}')"`
           : `onclick="event.stopPropagation()" disabled`;
         const claimBtn = `<button ${btnOnclick}
-            style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:6px;border:1px solid ${conv.border};background:${canClaim?'rgba(255,255,255,.08)':'rgba(255,255,255,.035)'};color:${canClaim?'var(--text)':conv.color};cursor:${canClaim?'pointer':'not-allowed'};margin-top:4px;opacity:${canClaim?'1':'.75'};">
+            title="${claimInfo.title}"
+            style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:6px;border:1px solid ${claimInfo.border};background:${claimInfo.bg};color:${claimInfo.color};cursor:${claimInfo.canOpen?'pointer':'not-allowed'};margin-top:4px;opacity:${claimInfo.canOpen?'1':'.75'};">
             ${btnLabel}
           </button>`;
 
@@ -2915,6 +3071,7 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
           <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:4px;">${promoText}</div>
           <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">${summaryLine}</div>
           <div style="font-family:var(--mono);font-size:9px;color:${conv.color};margin-top:2px;">${conv.note}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:${claimInfo.color};margin-top:2px;">Claim: ${claimInfo.label}</div>
           ${claimBtn}
         </div>`;
       }
@@ -2956,15 +3113,16 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
 
       // Claim button — shown for all campaign types.
       const claimData  = getCampClaims(currentAgent, c.id, d.debtor_code);
-      const claimed    = !!claimData;
+      const claimInfo  = campaignClaimInfo(claimData);
       const showBtn    = true; // always show button for all campaign types
-      const btnLabel   = claimed ? '✔ Claimed' : '🎁 Mark Claimed';
-      const btnBorder  = claimed ? 'var(--green)' : 'rgba(255,255,255,.3)';
-      const btnBg      = claimed ? 'rgba(61,220,132,.2)' : 'rgba(255,255,255,.08)';
-      const btnColor   = claimed ? 'var(--green)' : 'var(--text)';
+      const btnLabel   = claimInfo.actionLabel;
+      const btnBorder  = claimInfo.border;
+      const btnBg      = claimInfo.bg;
+      const btnColor   = claimInfo.color;
       const claimBtn   = showBtn
         ? `<button onclick="toggleCampClaim(event,'${d.debtor_code}','${c.id}','${(d.company_name||'').replace(/'/g,'')}','${promoText.replace(/'/g,'')}','${c.type}')"
-            style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:6px;border:1px solid ${btnBorder};background:${btnBg};color:${btnColor};cursor:${claimed?'default':'pointer'};margin-top:4px;opacity:${claimed?'0.7':'1'};">
+            title="${claimInfo.title}"
+            style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:6px;border:1px solid ${btnBorder};background:${btnBg};color:${btnColor};cursor:pointer;margin-top:4px;">
             ${btnLabel}
           </button>`
         : '';
@@ -4485,15 +4643,26 @@ function renderKPI() {
         const col   = (item.pct||0) >= 100 ? 'var(--green)' : (item.pct||0) >= 70 ? 'var(--accent)' : 'var(--red)';
         const isManual = item.source === 'manual';
         const canEdit  = item.input_role === 'agent';
+        const isCampaignKpi = !!item.campaign_id;
+        const hasActualOverride = isCampaignKpi && item.override_actual !== null && item.override_actual !== undefined && item.override_actual !== '';
+        const finalActual = item.final_actual ?? item.actual;
+        const autoActual = item.auto_actual ?? item.actual;
+        const sourceLabel =
+          item.source === 'manual_override' ? 'Override' :
+          item.source === 'auto_paid_conversion' ? 'Auto paid' :
+          item.source === 'management_delivery_upload' ? 'Delivery list' :
+          item.source === 'agent_self_report' ? 'Self-report' :
+          isManual ? 'Manual' : '';
+        const actualLine = item.target != null
+          ? (isCampaignKpi
+              ? `Actual: ${finalActual ?? '—'} / ${item.target} · ${hasActualOverride ? `Auto ${autoActual ?? 0} → Override ${item.override_actual}` : `Auto ${autoActual ?? finalActual ?? 0}`}`
+              : `${item.actual ?? '—'} / ${item.target} · ${(item.pct||0).toFixed(1)}%`)
+          : `Score: ${item.actual ?? '—'} pts`;
 
         return `<div class="kpi-item-row">
           <div>
             <div class="kpi-item-lbl">${item.label}</div>
-            <div class="kpi-item-sub">${
-              item.target != null
-                ? `${item.actual ?? '—'} / ${item.target} · ${(item.pct||0).toFixed(1)}%`
-                : `Score: ${item.actual ?? '—'} pts`
-            }</div>
+            <div class="kpi-item-sub">${actualLine}</div>
             ${item.target != null ? `<div class="kpi-item-bar-bg"><div class="kpi-item-bar-fill" style="width:${barW}%;background:${col}"></div></div>` : ''}
           </div>
           <div>
@@ -4501,11 +4670,9 @@ function renderKPI() {
               ? key === 'birthday_campaign'
                 ? `<button class="kpi-manual-btn" onclick="openBdaySheet()">🎂 ${item.actual != null ? item.actual : 'Enter'}</button>`
                 : `<button class="kpi-manual-btn" onclick="openEventSheet()">✏️ ${item.actual || 'Enter'}</button>`
-              : isManual
-                ? `<span style="font-family:var(--mono);font-size:8px;color:var(--muted);">Manual</span>`
-                : item.source === 'agent_self_report'
-                  ? `<span style="font-family:var(--mono);font-size:8px;color:var(--blue);">Self-report</span>`
-                  : `<span class="kpi-item-pct" style="color:${col}">${(item.pct||0).toFixed(0)}%</span>`
+              : sourceLabel
+                ? `<span style="font-family:var(--mono);font-size:8px;color:${hasActualOverride?'var(--accent)':(item.source === 'auto_paid_conversion'?'var(--green)':(item.source === 'agent_self_report'?'var(--blue)':'var(--muted)'))};">${sourceLabel}</span>`
+                : `<span class="kpi-item-pct" style="color:${col}">${(item.pct||0).toFixed(0)}%</span>`
             }
           </div>
           <div class="kpi-item-score" style="color:${col}">${(item.score||0).toFixed(2)}<span style="font-family:var(--mono);font-size:7px;color:var(--muted)">/${(item.max_score||0).toFixed(2)}</span></div>
@@ -4872,7 +5039,7 @@ function renderCamps() {
       { key:'pending',    label:'\u23F3 Pending',    items: c.debtors.filter(d => !d.visit_status && !claimByDebtor[d.debtor_code]), col:'var(--muted)' },
       { key:'next_visit', label:'\uD83D\uDCC5 Next Visit', items: c.debtors.filter(d => d.visit_status?.status==='next_visit' && !isExcludedDebtor(d)), col:'var(--accent)' },
       { key:'not_in',     label:'\uD83D\uDCF5 Not In',     items: c.debtors.filter(d => d.visit_status?.status==='not_in' && !isExcludedDebtor(d)), col:'var(--muted)' },
-      { key:'delivered',  label:'\u2713 Delivered',   items: c.debtors.filter(isDeliveredDebtor), col:'var(--green)' },
+      { key:'delivered',  label:'\u2713 Request Sent',   items: c.debtors.filter(isDeliveredDebtor), col:'var(--green)' },
       { key:'refused',    label:'\u274C Refused',     items: c.debtors.filter(d => d.visit_status?.status==='refused' && !isExcludedDebtor(d)), col:'var(--red)' },
       { key:'excluded',   label:'\uD83D\uDEAB Excluded',   items: c.debtors.filter(isExcludedDebtor), col:'#ff8866' },
     ].filter(g => g.items.length > 0);
@@ -4882,14 +5049,14 @@ function renderCamps() {
       '<div><div style="font-family:var(--display);font-size:16px;letter-spacing:.04em;">' + (CAMP_EMOJI[c.type]||'') + ' ' + c.name + '</div>' +
       '<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;">' + (CAMP_LABEL[c.type]||c.type) + ' \u00B7 ' + total + ' debtors' + (excluded > 0 ? ' \u00B7 ' + effective + ' active' : '') + '</div></div>' +
       '<div style="text-align:right;"><div style="font-family:var(--display);font-size:22px;color:' + col + ';">' + pct + '%</div>' +
-      '<div style="font-family:var(--mono);font-size:8px;color:var(--muted);">' + delivered + '/' + effective + ' sent' + (excluded > 0 ? ' \u00B7 ' + excluded + ' excl.' : '') + '</div></div></div>' +
+      '<div style="font-family:var(--mono);font-size:8px;color:var(--muted);">' + delivered + '/' + effective + ' requests' + (excluded > 0 ? ' \u00B7 ' + excluded + ' excl.' : '') + '</div></div></div>' +
       '<div style="height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;margin-bottom:8px;">' +
       '<div style="height:100%;width:' + pct + '%;background:' + col + ';border-radius:3px;transition:width .4s;"></div></div>' +
       '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
       (pending   > 0 ? '<span style="font-family:var(--mono);font-size:8px;background:rgba(255,255,255,.06);color:var(--muted);padding:2px 8px;border-radius:10px;">\u23F3 ' + pending + ' pending</span>' : '') +
       (nextVisit > 0 ? '<span style="font-family:var(--mono);font-size:8px;background:rgba(200,134,10,.15);color:var(--accent);padding:2px 8px;border-radius:10px;">\uD83D\uDCC5 ' + nextVisit + ' next visit</span>' : '') +
       (notIn     > 0 ? '<span style="font-family:var(--mono);font-size:8px;background:rgba(255,255,255,.06);color:var(--muted);padding:2px 8px;border-radius:10px;">\uD83D\uDCF5 ' + notIn + ' not in</span>' : '') +
-      (delivered > 0 ? '<span style="font-family:var(--mono);font-size:8px;background:rgba(42,122,75,.2);color:var(--green);padding:2px 8px;border-radius:10px;">\u2713 ' + delivered + ' delivered</span>' : '') +
+      (delivered > 0 ? '<span style="font-family:var(--mono);font-size:8px;background:rgba(42,122,75,.2);color:var(--green);padding:2px 8px;border-radius:10px;">\u2713 ' + delivered + ' requests</span>' : '') +
       (refused   > 0 ? '<span style="font-family:var(--mono);font-size:8px;background:rgba(200,56,26,.15);color:var(--red);padding:2px 8px;border-radius:10px;">\u274C ' + refused + ' refused</span>' : '') +
       (excluded  > 0 ? '<span style="font-family:var(--mono);font-size:8px;background:rgba(255,136,102,.15);color:#ff8866;padding:2px 8px;border-radius:10px;">\uD83D\uDEAB ' + excluded + ' excluded</span>' : '') +
       '</div></div>' +
@@ -4900,16 +5067,17 @@ function renderCamps() {
         g.items.map(d => {
           const phone      = (d.phone||'').replace(/\s/g,'');
           const cd         = claimByDebtor[d.debtor_code];
+          const claimInfo  = campaignClaimInfo(cd);
           const isClaimed  = !!cd;
           const isExcluded = cd?.status === 'excluded';
           const isFOCt     = c.type==='foc_sample'||c.type==='free_sample'||c.type==='festive_gift'||c.type==='birthday_gift';
-          const claimLbl   = isExcluded ? '\uD83D\uDEAB Excluded' : (isClaimed ? '\u2714 Claimed' : '\uD83C\uDF81 Mark Claimed');
-          const claimBg    = isExcluded ? 'rgba(255,136,102,.2)' : isClaimed ? 'rgba(61,220,132,.2)' : 'rgba(255,255,255,.08)';
-          const claimColor = isExcluded ? '#ff8866' : isClaimed ? 'var(--green)' : 'var(--muted)';
-          const claimBdr   = isExcluded ? '#ff8866' : isClaimed ? 'var(--green)' : 'var(--border)';
-          const metaLine   = isExcluded ? d.debtor_code + ' \u00B7 ' + unableReasonLabel(cd.reason) + (cd.remark ? ' \u2014 ' + cd.remark : '') : d.debtor_code + (cd?.ts ? ' \u00B7 ' + cd.ts : '') + (cd?.count > 1 ? ' \u00B7 ' + cd.count + '\u00D7 claims' : '');
-          const rowBg      = isExcluded ? 'rgba(255,136,102,.04)' : isClaimed ? 'rgba(61,220,132,.04)' : 'rgba(255,255,255,.03)';
-          const rowBorder  = isExcluded ? 'rgba(255,136,102,.2)' : isClaimed ? 'rgba(61,220,132,.15)' : 'transparent';
+          const claimLbl   = claimInfo.actionLabel;
+          const claimBg    = claimInfo.bg;
+          const claimColor = claimInfo.color;
+          const claimBdr   = claimInfo.border;
+          const metaLine   = isExcluded ? d.debtor_code + ' \u00B7 ' + unableReasonLabel(cd.reason) + (cd.remark ? ' \u2014 ' + cd.remark : '') : d.debtor_code + ' \u00B7 ' + claimInfo.label + (cd?.ts ? ' \u00B7 ' + cd.ts : '') + (cd?.count > 1 ? ' \u00B7 ' + cd.count + '\u00D7 requests' : '');
+          const rowBg      = isExcluded ? 'rgba(255,136,102,.04)' : isClaimed ? claimInfo.bg : 'rgba(255,255,255,.03)';
+          const rowBorder  = isExcluded ? 'rgba(255,136,102,.2)' : isClaimed ? claimInfo.border : 'transparent';
           const rowOp      = isExcluded ? '.7' : '1';
           const showUnable = isFOCt && !isClaimed;
           const dname      = (d.company_name||'').replace(/'/g,"\\'");
@@ -5128,7 +5296,7 @@ function renderCampaignDebtorPanel(camp) {
     const meta = {
       converted: { label: '✓ Converted', count: convertedTotal, color: 'var(--green)', bg: 'rgba(61,220,132,.08)' },
       awaiting_payment: { label: 'Awaiting payment', count: awaitingTotal, color: 'var(--orange)', bg: 'rgba(255,154,60,.08)' },
-      'not-yet': { label: 'Entitled / not paid', count: notYetTotal, color: 'var(--muted)', bg: 'rgba(255,255,255,.035)' }
+      'not-yet': { label: 'No paid order yet', count: notYetTotal, color: 'var(--muted)', bg: 'rgba(255,255,255,.035)' }
     }[key] || { label: 'Other', count: 0, color: 'var(--muted)', bg: 'rgba(255,255,255,.035)' };
     return `<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:7px 8px;background:${meta.bg};border-top:1px solid rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:9px;color:${meta.color};text-transform:uppercase;letter-spacing:.06em;">
       <span>${meta.label}</span>
@@ -5143,12 +5311,12 @@ function renderCampaignDebtorPanel(camp) {
     lastGroup = group;
     const rowBg = i % 2 ? 'rgba(255,255,255,.025)' : 'transparent';
     const claimData = getCampClaims(currentAgent, campId, d.debtor_code);
-    const claimed = !!claimData;
-    const canClaim = claimed || t.claimable;
-    const claimLabel = claimed ? '✔ Claimed' : (t.claimable ? '🎁 Mark Claimed' : (t.group === 'awaiting_payment' ? 'Awaiting pay' : 'Not claimable'));
-    const claimBg = claimed ? 'rgba(61,220,132,.2)' : (t.claimable ? 'rgba(255,255,255,.08)' : 'rgba(255,255,255,.035)');
-    const claimColor = claimed ? 'var(--green)' : (t.claimable ? 'var(--muted)' : t.color);
-    const claimBorder = claimed ? 'var(--green)' : (t.claimable ? 'var(--border)' : t.border);
+    const claimInfo = campaignClaimInfo(claimData);
+    const canClaim = claimInfo.canOpen;
+    const claimLabel = claimInfo.actionLabel;
+    const claimBg = claimInfo.bg;
+    const claimColor = claimInfo.color;
+    const claimBorder = claimInfo.border;
     const claimOnclick = canClaim
       ? `onclick='toggleCampClaim(event,${JSON.stringify(d.debtor_code || '')},${JSON.stringify(campId)},${JSON.stringify(d.company_name || d.debtor_code || '')},${JSON.stringify(camp.promo_detail || camp.name || '')},${JSON.stringify(camp.type || 'other')})'`
       : `onclick='event.stopPropagation()' disabled`;
@@ -5163,7 +5331,7 @@ function renderCampaignDebtorPanel(camp) {
       <div class="camp-debtor-lookback" style="font-family:var(--mono);font-size:10px;color:var(--muted);text-align:right;">${fmtNum(t.lookback)} CTN</div>
       <div class="camp-debtor-current" style="font-family:var(--mono);font-size:10px;color:${t.color};text-align:right;">${campEsc(t.currentText)}</div>
       <button class="camp-debtor-claim" ${claimOnclick}
-        title="${campEsc(t.note || '')}"
+        title="${campEsc(claimInfo.title || t.note || '')}"
         style="background:${claimBg};border:1px solid ${claimBorder};color:${claimColor};font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:${canClaim?'pointer':'not-allowed'};white-space:nowrap;opacity:${canClaim?'1':'.82'};">${claimLabel}</button>
     </div>`;
   }).join('');
@@ -5182,7 +5350,7 @@ function renderCampaignDebtorPanel(camp) {
         <span>·</span>
         <span style="color:var(--orange);">Awaiting payment ${awaitingTotal}</span>
         <span>·</span>
-        <span>Entitled / not paid ${notYetTotal}</span>
+        <span>No paid order yet ${notYetTotal}</span>
       </div>
       ${rows || '<div style="padding:12px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--muted);">No enrolled debtors</div>'}
       ${pager}
@@ -5260,86 +5428,111 @@ function setCampFilter(type, btn) {
   renderCamps();
 }
 
-// ── Mark Claimed popup ─────────────────────────────────────────────────────
+function undoCampClaimFromToast(debtorCode, campId, btn) {
+  removeCampClaim(currentAgent, campId, debtorCode);
+  clearTimeout(_campUndoTimer);
+  btn.closest('#camp-undo-toast')?.remove();
+  renderDebtors();
+  renderCamps();
+}
+
+// Claim request workflow: this replaces the older "mark claimed" behavior.
+// Claims are reward-processing requests only; KPI actuals are calculated separately.
 function toggleCampClaim(event, debtorCode, campId, debtorName, promoText, campType) {
   if (blockFutureViewAction()) return;
-  event.stopPropagation();
+  if (event && event.stopPropagation) event.stopPropagation();
+
   const existing = getCampClaims(currentAgent, campId, debtorCode);
-
+  const claimInfo = campaignClaimInfo(existing);
   const overlay = document.createElement('div');
-  overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:0;`;
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:0;';
 
-  const emoji  = '🎁';
-  const action = 'Mark Claimed';
-  const accentColor = '#3ddc84';  // explicit hex — works in all contexts
+  const submittedAt = existing?.ts ? `<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:6px;">Last update: ${campEsc(existing.ts)}</div>` : '';
+  const remarkText = existing?.remark ? `<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:12px;">Remark: ${campEsc(existing.remark)}</div>` : '';
+  let actionHtml = '';
 
-  if (existing) {
-    // Already claimed — show undo option
-    overlay.innerHTML = `
-      <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;">
-        <div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 auto 16px;"></div>
-        <div style="font-family:var(--display);font-size:18px;color:${accentColor};margin-bottom:4px;">${emoji} Already Marked</div>
-        <div style="font-family:var(--body);font-size:13px;color:var(--text);margin-bottom:4px;">${debtorName}</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:16px;">Marked at ${existing.ts || '—'}${existing.count > 1 ? ` · ${existing.count} claims total` : ''}</div>
-        <div style="display:flex;gap:10px;">
-          <button id="undo-camp-btn" onclick="undoCampClaim('${debtorCode}','${campId}','${debtorName}',this)"
-            style="flex:1;background:rgba(255,95,95,.15);border:1px solid rgba(255,95,95,.3);color:var(--red);font-family:var(--mono);font-size:11px;padding:12px;border-radius:10px;cursor:pointer;">
-            ✕ Undo
-          </button>
-          <button onclick="this.closest('div[style*=fixed]').remove()"
-            style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:12px;border-radius:10px;cursor:pointer;">
-            Close
-          </button>
-        </div>
+  if (!existing || claimInfo.key === 'not_requested') {
+    actionHtml = `
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Remark (optional)</div>
+      <input type="text" id="camp-claim-remark" placeholder="e.g. customer asked for gift"
+        style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--body);font-size:13px;padding:11px 12px;box-sizing:border-box;margin-bottom:14px;">
+      <div style="display:flex;gap:10px;">
+        <button id="camp-submit-claim-btn" style="flex:1;background:#3ddc84;border:2px solid #3ddc84;color:#000;font-family:var(--mono);font-size:13px;font-weight:800;padding:14px;border-radius:10px;cursor:pointer;letter-spacing:.05em;">Submit Claim</button>
+        <button id="camp-close-claim-btn" style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:13px;border-radius:10px;cursor:pointer;">Cancel</button>
+      </div>`;
+  } else if (claimInfo.key === 'request_sent') {
+    actionHtml = `
+      <div style="display:flex;gap:10px;">
+        <button id="camp-withdraw-claim-btn" style="flex:1;background:rgba(255,95,95,.15);border:1px solid rgba(255,95,95,.3);color:var(--red);font-family:var(--mono);font-size:11px;padding:12px;border-radius:10px;cursor:pointer;">Withdraw Request</button>
+        <button id="camp-close-claim-btn" style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:12px;border-radius:10px;cursor:pointer;">Close</button>
+      </div>`;
+  } else if (claimInfo.key === 'rejected') {
+    actionHtml = `
+      <div style="font-family:var(--mono);font-size:9px;color:var(--red);margin-bottom:12px;">${campEsc(claimInfo.title || 'Rejected by management')}</div>
+      <div style="display:flex;gap:10px;">
+        <button id="camp-resubmit-claim-btn" style="flex:1;background:#3ddc84;border:2px solid #3ddc84;color:#000;font-family:var(--mono);font-size:13px;font-weight:800;padding:14px;border-radius:10px;cursor:pointer;">Submit Again</button>
+        <button id="camp-close-claim-btn" style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:13px;border-radius:10px;cursor:pointer;">Close</button>
       </div>`;
   } else {
-    overlay.innerHTML = `
-      <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;">
-        <div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 auto 16px;"></div>
-        <div style="font-family:var(--display);font-size:20px;color:${accentColor};margin-bottom:2px;">${emoji} ${action}</div>
-        <div style="font-family:var(--body);font-size:13px;color:var(--text);margin-bottom:2px;">${debtorName}</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:16px;">${promoText}</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Remark (optional)</div>
-        <input type="text" id="camp-claim-remark" placeholder="e.g. Delivered, confirmed order"
-          style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--body);font-size:13px;padding:11px 12px;box-sizing:border-box;margin-bottom:14px;">
-        <div style="display:flex;gap:10px;">
-          <button onclick="confirmCampClaim('${debtorCode}','${campId}','${debtorName}','${campType}',this)"
-            style="flex:1;background:${accentColor};border:2px solid ${accentColor};color:#000;font-family:var(--mono);font-size:13px;font-weight:800;padding:14px;border-radius:10px;cursor:pointer;letter-spacing:.05em;box-shadow:0 0 16px ${accentColor}88;">
-            ✓ CONFIRM
-          </button>
-          <button onclick="this.closest('div[style*=fixed]').remove()"
-            style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:13px;border-radius:10px;cursor:pointer;">
-            Cancel
-          </button>
-        </div>
+    actionHtml = `
+      <div style="display:flex;gap:10px;">
+        <button id="camp-close-claim-btn" style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:13px;border-radius:10px;cursor:pointer;">Close</button>
       </div>`;
   }
 
+  overlay.innerHTML = `
+    <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;">
+      <div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 auto 16px;"></div>
+      <div style="font-family:var(--display);font-size:20px;color:${claimInfo.color || '#3ddc84'};margin-bottom:2px;">🎁 ${campEsc(existing ? claimInfo.label : 'Submit Claim')}</div>
+      <div style="font-family:var(--body);font-size:13px;color:var(--text);margin-bottom:2px;">${campEsc(debtorName)}</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:10px;">${campEsc(promoText || campId)}</div>
+      ${submittedAt}
+      ${remarkText}
+      ${actionHtml}
+    </div>`;
+
   document.body.appendChild(overlay);
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  overlay.querySelector('#camp-close-claim-btn')?.addEventListener('click', () => overlay.remove());
+  overlay.querySelector('#camp-submit-claim-btn')?.addEventListener('click', () => confirmCampClaim(debtorCode, campId, debtorName, campType, overlay));
+  overlay.querySelector('#camp-withdraw-claim-btn')?.addEventListener('click', () => {
+    removeCampClaim(currentAgent, campId, debtorCode);
+    overlay.remove();
+    if (_campUndoTimer) clearTimeout(_campUndoTimer);
+    document.getElementById('camp-undo-toast')?.remove();
+    renderDebtors();
+    renderCamps();
+  });
+  overlay.querySelector('#camp-resubmit-claim-btn')?.addEventListener('click', () => resubmitCampClaim(debtorCode, campId, debtorName, campType, overlay));
 }
 
-function confirmCampClaim(debtorCode, campId, debtorName, campType, btn) {
-  const remark  = document.getElementById('camp-claim-remark')?.value?.trim() || '';
-  const now     = new Date();
-  const ts      = now.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) + ' ' + now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+function confirmCampClaim(debtorCode, campId, debtorName, campType, overlayOrBtn) {
+  const remark = document.getElementById('camp-claim-remark')?.value?.trim() || '';
+  const now = new Date();
+  const ts = now.toLocaleDateString('en-GB', {day:'2-digit', month:'short'}) + ' ' + now.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
   const existing = getCampClaims(currentAgent, campId, debtorCode);
-  const count    = (existing?.count || 0) + 1;
-  saveCampClaim(currentAgent, campId, debtorCode, { status:'claimed', remark, ts, count, campType });
-
-  btn.closest('div[style*=fixed]').remove();
-
-  // Show undo toast for 30 seconds
+  const count = (existing?.count || 0) + 1;
+  saveCampClaim(currentAgent, campId, debtorCode, { status:'submitted', remark, ts, count, campType, actor:'agent' });
+  (overlayOrBtn?.remove ? overlayOrBtn : overlayOrBtn?.closest?.('div[style*=fixed]'))?.remove();
   showCampUndoToast(debtorCode, campId, debtorName, campType);
   renderDebtors();
   renderCamps();
 }
 
-function undoCampClaim(debtorCode, campId, debtorName, btn) {
-  removeCampClaim(currentAgent, campId, debtorCode);
-  btn.closest('div[style*=fixed]').remove();
-  if (_campUndoTimer) clearTimeout(_campUndoTimer);
-  document.getElementById('camp-undo-toast')?.remove();
+function resubmitCampClaim(debtorCode, campId, debtorName, campType, overlay) {
+  const existing = getCampClaims(currentAgent, campId, debtorCode);
+  const now = new Date();
+  const ts = now.toLocaleDateString('en-GB', {day:'2-digit', month:'short'}) + ' ' + now.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+  saveCampClaim(currentAgent, campId, debtorCode, {
+    status:'submitted',
+    remark: existing?.remark || '',
+    ts,
+    count: (existing?.count || 0) + 1,
+    campType,
+    actor:'agent'
+  });
+  overlay?.remove?.();
+  showCampUndoToast(debtorCode, campId, debtorName, campType);
   renderDebtors();
   renderCamps();
 }
@@ -5350,9 +5543,9 @@ function showCampUndoToast(debtorCode, campId, debtorName, campType) {
 
   const toast = document.createElement('div');
   toast.id = 'camp-undo-toast';
-  toast.style.cssText = `position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--green);color:#0e0e12;font-family:var(--mono);font-size:11px;font-weight:700;padding:10px 16px;border-radius:12px;z-index:9998;display:flex;align-items:center;gap:10px;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4);`;
-  toast.innerHTML = `<span>✓ Marked · ${debtorName}</span>
-    <button onclick="undoCampClaimFromToast('${debtorCode}','${campId}',this)"
+  toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--green);color:#0e0e12;font-family:var(--mono);font-size:11px;font-weight:700;padding:10px 16px;border-radius:12px;z-index:9998;display:flex;align-items:center;gap:10px;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4);';
+  toast.innerHTML = `<span>Request sent · ${campEsc(debtorName)}</span>
+    <button onclick="undoCampClaimFromToast('${campEsc(debtorCode)}','${campEsc(campId)}',this)"
       style="background:rgba(0,0,0,.2);border:none;color:#0e0e12;font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer;">UNDO</button>
     <span id="camp-undo-countdown" style="font-size:9px;opacity:.7;">30s</span>`;
   document.body.appendChild(toast);
@@ -5365,14 +5558,6 @@ function showCampUndoToast(debtorCode, campId, debtorName, campType) {
     if (secs <= 0) { clearInterval(ticker); toast.remove(); }
   }, 1000);
   _campUndoTimer = setTimeout(() => { toast.remove(); }, 30000);
-}
-
-function undoCampClaimFromToast(debtorCode, campId, btn) {
-  removeCampClaim(currentAgent, campId, debtorCode);
-  clearTimeout(_campUndoTimer);
-  btn.closest('#camp-undo-toast')?.remove();
-  renderDebtors();
-  renderCamps();
 }
 
 // ── Unable to Deliver — Exclusion Flow ──────────────────────────────────────
@@ -5965,7 +6150,7 @@ const GistSync = (() => {
     //   - camp_type is snake_case on the wire but campType in JS
     const row = {
       month, agent, camp_id: campId, debtor_code: debtorCode,
-      status   : claimData.status || 'delivered',
+      status   : claimData.status || 'submitted',
       remark   : claimData.remark || '',
       bulk     : !!claimData.bulk,
       actor    : claimData.actor || 'agent',
@@ -5976,23 +6161,6 @@ const GistSync = (() => {
     _rest('claims?on_conflict=month,agent,camp_id,debtor_code', {
       method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body:[row]
     }).catch(()=>{});
-
-    // Best-effort mirror for Phase D scoring. Keep claims as the rich audit
-    // source, and mirror a minimal delivered row for pipeline scoring.
-    _rest('campaign_deliveries', {
-      method:'POST',
-      headers:{'Prefer':'resolution=merge-duplicates'},
-      body:[{
-        campaign_id: campId,
-        debtor_code: debtorCode,
-        agent,
-        month,
-        source: 'list_upload',
-        delivered_at: new Date().toISOString()
-      }]
-    }).then(res => {
-      if (!res?.ok) console.warn('[SupabaseSync] campaign_deliveries mirror skipped', res);
-    }).catch(err => console.warn('[SupabaseSync] campaign_deliveries mirror failed', err));
 
     // Update cache bucket
     const cache = getCache();
@@ -6011,12 +6179,6 @@ const GistSync = (() => {
     _rest(`claims?month=eq.${encodeURIComponent(month)}&agent=eq.${encodeURIComponent(agent)}&camp_id=eq.${encodeURIComponent(campId)}&debtor_code=eq.${encodeURIComponent(debtorCode)}`, {
       method: 'DELETE'
     }).catch(()=>{});
-
-    _rest(`campaign_deliveries?campaign_id=eq.${encodeURIComponent(campId)}&debtor_code=eq.${encodeURIComponent(debtorCode)}&agent=eq.${encodeURIComponent(agent)}&month=eq.${encodeURIComponent(month)}&source=eq.list_upload`, {
-      method: 'DELETE'
-    }).then(res => {
-      if (!res?.ok) console.warn('[SupabaseSync] campaign_deliveries mirror delete skipped', res);
-    }).catch(err => console.warn('[SupabaseSync] campaign_deliveries mirror delete failed', err));
 
     const cache = getCache();
     const fk = `claims_${slug}`;

@@ -41563,7 +41563,11 @@
             "score": 2.0,
             "max_score": 2.0,
             "pct": 100.0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 4.0,
+            "override_actual": null,
+            "final_actual": 4.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1777773301331",
@@ -41579,7 +41583,11 @@
             "score": 0.0,
             "max_score": 2.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 12.0,
+            "override_actual": null,
+            "final_actual": 12.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1778113461122",
@@ -41595,7 +41603,11 @@
             "score": 0.0,
             "max_score": 0.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 124.0,
+            "override_actual": null,
+            "final_actual": 124.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": true,
             "numerator": "ctn",
             "campaign_id": "camp_1778113461122",
@@ -41609,12 +41621,12 @@
             "max_score": 35.003
           },
           "B": {
-            "score": 20.126,
+            "score": 26.876,
             "max_score": 39.0
           },
           "C": {
-            "score": 0.0,
-            "max_score": 3.0
+            "score": 2.0,
+            "max_score": 7.0
           },
           "D": {
             "score": 0.0,
@@ -41626,11 +41638,12 @@
           }
         },
         "grand_total": 52.64,
-        "max_total": 98.003,
+        "max_total": 102.0,
         "grand_pct": 51.6,
         "kpi_month": "May 26",
         "total_abc": 52.64,
-        "total_pct": 65.0
+        "total_pct": 65.0,
+        "max_abc": 81.0
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -86183,7 +86196,11 @@
             "score": 1.5,
             "max_score": 2.0,
             "pct": 75.0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 3.0,
+            "override_actual": null,
+            "final_actual": 3.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1777773301331",
@@ -86199,7 +86216,11 @@
             "score": 0.0,
             "max_score": 2.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 1.0,
+            "override_actual": null,
+            "final_actual": 1.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1778113461122",
@@ -86215,7 +86236,11 @@
             "score": 0.0,
             "max_score": 0.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 2.0,
+            "override_actual": null,
+            "final_actual": 2.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": true,
             "numerator": "ctn",
             "campaign_id": "camp_1778113461122",
@@ -86233,8 +86258,8 @@
             "max_score": 39.0
           },
           "C": {
-            "score": 0.0,
-            "max_score": 3.0
+            "score": 1.5,
+            "max_score": 7.0
           },
           "D": {
             "score": 0.0,
@@ -86246,11 +86271,12 @@
           }
         },
         "grand_total": 42.09,
-        "max_total": 98.003,
+        "max_total": 102.0,
         "grand_pct": 41.3,
         "kpi_month": "May 26",
         "total_abc": 42.09,
-        "total_pct": 52.0
+        "total_pct": 52.0,
+        "max_abc": 81.0
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -121652,7 +121678,11 @@
             "score": 2.0,
             "max_score": 2.0,
             "pct": 125.0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 5.0,
+            "override_actual": null,
+            "final_actual": 5.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1777773301331",
@@ -121668,7 +121698,11 @@
             "score": 0.0,
             "max_score": 2.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 3.0,
+            "override_actual": null,
+            "final_actual": 3.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1778113461122",
@@ -121684,7 +121718,11 @@
             "score": 0.0,
             "max_score": 0.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 3.0,
+            "override_actual": null,
+            "final_actual": 3.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": true,
             "numerator": "ctn",
             "campaign_id": "camp_1778113461122",
@@ -121698,12 +121736,12 @@
             "max_score": 35.003
           },
           "B": {
-            "score": 17.984,
+            "score": 24.234,
             "max_score": 39.0
           },
           "C": {
-            "score": 0.0,
-            "max_score": 3.0
+            "score": 2.0,
+            "max_score": 7.0
           },
           "D": {
             "score": 0.0,
@@ -121715,11 +121753,12 @@
           }
         },
         "grand_total": 49.2,
-        "max_total": 98.003,
+        "max_total": 102.0,
         "grand_pct": 48.2,
         "kpi_month": "May 26",
         "total_abc": 49.2,
-        "total_pct": 60.7
+        "total_pct": 60.7,
+        "max_abc": 81.0
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -162001,7 +162040,11 @@
             "score": 2.0,
             "max_score": 2.0,
             "pct": 350.0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 14.0,
+            "override_actual": null,
+            "final_actual": 14.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1777773301331",
@@ -162017,7 +162060,11 @@
             "score": 0.0,
             "max_score": 2.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 4.0,
+            "override_actual": null,
+            "final_actual": 4.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1778113461122",
@@ -162033,7 +162080,11 @@
             "score": 0.0,
             "max_score": 0.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 14.0,
+            "override_actual": null,
+            "final_actual": 14.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": true,
             "numerator": "ctn",
             "campaign_id": "camp_1778113461122",
@@ -162047,12 +162098,12 @@
             "max_score": 35.003
           },
           "B": {
-            "score": 19.803,
+            "score": 26.473,
             "max_score": 39.0
           },
           "C": {
-            "score": 0.0,
-            "max_score": 3.0
+            "score": 2.0,
+            "max_score": 7.0
           },
           "D": {
             "score": 0.0,
@@ -162064,11 +162115,12 @@
           }
         },
         "grand_total": 60.01,
-        "max_total": 98.003,
+        "max_total": 102.0,
         "grand_pct": 58.8,
         "kpi_month": "May 26",
         "total_abc": 60.01,
-        "total_pct": 74.1
+        "total_pct": 74.1,
+        "max_abc": 81.0
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -193720,7 +193772,11 @@
             "score": 0.5,
             "max_score": 2.0,
             "pct": 25.0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 1.0,
+            "override_actual": null,
+            "final_actual": 1.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1777773301331",
@@ -193736,7 +193792,11 @@
             "score": 0.0,
             "max_score": 2.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 5.0,
+            "override_actual": null,
+            "final_actual": 5.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1778113461122",
@@ -193752,7 +193812,11 @@
             "score": 0.0,
             "max_score": 0.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 45.0,
+            "override_actual": null,
+            "final_actual": 45.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": true,
             "numerator": "ctn",
             "campaign_id": "camp_1778113461122",
@@ -193770,8 +193834,8 @@
             "max_score": 39.0
           },
           "C": {
-            "score": 0.0,
-            "max_score": 3.0
+            "score": 0.5,
+            "max_score": 7.0
           },
           "D": {
             "score": 0.0,
@@ -193783,11 +193847,12 @@
           }
         },
         "grand_total": 36.13,
-        "max_total": 98.003,
+        "max_total": 102.0,
         "grand_pct": 35.4,
         "kpi_month": "May 26",
         "total_abc": 36.13,
-        "total_pct": 44.6
+        "total_pct": 44.6,
+        "max_abc": 81.0
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -224583,7 +224648,11 @@
             "score": 1.5,
             "max_score": 2.0,
             "pct": 75.0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 3.0,
+            "override_actual": null,
+            "final_actual": 3.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1777773301331",
@@ -224599,7 +224668,11 @@
             "score": 0.0,
             "max_score": 2.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 1.0,
+            "override_actual": null,
+            "final_actual": 1.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1778113461122",
@@ -224615,7 +224688,11 @@
             "score": 0.0,
             "max_score": 0.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 6.0,
+            "override_actual": null,
+            "final_actual": 6.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": true,
             "numerator": "ctn",
             "campaign_id": "camp_1778113461122",
@@ -224629,12 +224706,12 @@
             "max_score": 35.003
           },
           "B": {
-            "score": 16.187,
+            "score": 20.627,
             "max_score": 39.0
           },
           "C": {
-            "score": 0.0,
-            "max_score": 3.0
+            "score": 1.5,
+            "max_score": 7.0
           },
           "D": {
             "score": 0.0,
@@ -224646,11 +224723,12 @@
           }
         },
         "grand_total": 48.52,
-        "max_total": 98.003,
+        "max_total": 102.0,
         "grand_pct": 47.6,
         "kpi_month": "May 26",
         "total_abc": 48.52,
-        "total_pct": 59.9
+        "total_pct": 59.9,
+        "max_abc": 81.0
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -258688,7 +258766,11 @@
             "score": 2.0,
             "max_score": 2.0,
             "pct": 116.7,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 7.0,
+            "override_actual": null,
+            "final_actual": 7.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1777773301331",
@@ -258704,7 +258786,11 @@
             "score": 0.0,
             "max_score": 2.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 7.0,
+            "override_actual": null,
+            "final_actual": 7.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1778113461122",
@@ -258720,7 +258806,11 @@
             "score": 0.0,
             "max_score": 0.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 411.0,
+            "override_actual": null,
+            "final_actual": 411.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": true,
             "numerator": "ctn",
             "campaign_id": "camp_1778113461122",
@@ -258734,12 +258824,12 @@
             "max_score": 35.003
           },
           "B": {
-            "score": 18.089,
+            "score": 22.519,
             "max_score": 39.0
           },
           "C": {
-            "score": 0.0,
-            "max_score": 3.0
+            "score": 2.0,
+            "max_score": 7.0
           },
           "D": {
             "score": 0.0,
@@ -258751,11 +258841,12 @@
           }
         },
         "grand_total": 50.81,
-        "max_total": 98.003,
+        "max_total": 102.0,
         "grand_pct": 49.8,
         "kpi_month": "May 26",
         "total_abc": 50.81,
-        "total_pct": 62.7
+        "total_pct": 62.7,
+        "max_abc": 81.0
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -302459,7 +302550,11 @@
             "score": 1.2,
             "max_score": 2.0,
             "pct": 60.0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 3.0,
+            "override_actual": null,
+            "final_actual": 3.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1777773301331",
@@ -302475,7 +302570,11 @@
             "score": 0.0,
             "max_score": 2.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 2.0,
+            "override_actual": null,
+            "final_actual": 2.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1778113461122",
@@ -302491,7 +302590,11 @@
             "score": 0.0,
             "max_score": 0.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 3.0,
+            "override_actual": null,
+            "final_actual": 3.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": true,
             "numerator": "ctn",
             "campaign_id": "camp_1778113461122",
@@ -302505,12 +302608,12 @@
             "max_score": 35.003
           },
           "B": {
-            "score": 12.646,
+            "score": 13.206,
             "max_score": 39.0
           },
           "C": {
-            "score": 0.0,
-            "max_score": 3.0
+            "score": 1.2,
+            "max_score": 7.0
           },
           "D": {
             "score": 0.0,
@@ -302522,11 +302625,12 @@
           }
         },
         "grand_total": 46.75,
-        "max_total": 98.003,
+        "max_total": 102.0,
         "grand_pct": 45.8,
         "kpi_month": "May 26",
         "total_abc": 46.75,
-        "total_pct": 57.7
+        "total_pct": 57.7,
+        "max_abc": 81.0
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -320612,7 +320716,11 @@
             "score": 0.8,
             "max_score": 2.0,
             "pct": 40.0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 2.0,
+            "override_actual": null,
+            "final_actual": 2.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1777773301331",
@@ -320628,7 +320736,11 @@
             "score": 0.0,
             "max_score": 2.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 1.0,
+            "override_actual": null,
+            "final_actual": 1.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1778113461122",
@@ -320644,7 +320756,11 @@
             "score": 0.0,
             "max_score": 0.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 6.0,
+            "override_actual": null,
+            "final_actual": 6.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": true,
             "numerator": "ctn",
             "campaign_id": "camp_1778113461122",
@@ -320662,8 +320778,8 @@
             "max_score": 39.0
           },
           "C": {
-            "score": 0.0,
-            "max_score": 3.0
+            "score": 0.8,
+            "max_score": 7.0
           },
           "D": {
             "score": 0.0,
@@ -320675,11 +320791,12 @@
           }
         },
         "grand_total": 42.54,
-        "max_total": 98.003,
+        "max_total": 102.0,
         "grand_pct": 41.7,
         "kpi_month": "May 26",
         "total_abc": 42.54,
-        "total_pct": 52.5
+        "total_pct": 52.5,
+        "max_abc": 81.0
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -344364,7 +344481,11 @@
             "score": 1.0,
             "max_score": 2.0,
             "pct": 50.0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 2.0,
+            "override_actual": null,
+            "final_actual": 2.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1777773301331",
@@ -344375,12 +344496,16 @@
             "label": "TR12 PK 文化 May 2026",
             "section": "C",
             "weight": 0.02,
-            "actual": 3.0,
+            "actual": 1.0,
             "target": 5.0,
-            "score": 1.2,
+            "score": 0.4,
             "max_score": 2.0,
-            "pct": 60.0,
-            "source": "campaign_dynamic",
+            "pct": 20.0,
+            "source": "auto_paid_conversion",
+            "auto_actual": 1.0,
+            "override_actual": null,
+            "final_actual": 1.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1778113461122",
@@ -344396,7 +344521,11 @@
             "score": 0.0,
             "max_score": 0.0,
             "pct": 33.3,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 10.0,
+            "override_actual": null,
+            "final_actual": 10.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": true,
             "numerator": "ctn",
             "campaign_id": "camp_1778113461122",
@@ -344410,12 +344539,12 @@
             "max_score": 35.003
           },
           "B": {
-            "score": 6.921,
+            "score": 7.521,
             "max_score": 39.0
           },
           "C": {
-            "score": 0.0,
-            "max_score": 3.0
+            "score": 1.4,
+            "max_score": 7.0
           },
           "D": {
             "score": 0.0,
@@ -344426,12 +344555,13 @@
             "max_score": 5.0
           }
         },
-        "grand_total": 26.03,
-        "max_total": 98.003,
-        "grand_pct": 25.5,
+        "grand_total": 25.23,
+        "max_total": 102.0,
+        "grand_pct": 24.7,
         "kpi_month": "May 26",
-        "total_abc": 26.03,
-        "total_pct": 32.1
+        "total_abc": 25.23,
+        "total_pct": 31.1,
+        "max_abc": 81.0
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -345511,7 +345641,11 @@
             "score": 0.0,
             "max_score": 2.0,
             "pct": 0.0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 0.0,
+            "override_actual": null,
+            "final_actual": 0.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1777773301331",
@@ -345527,7 +345661,11 @@
             "score": 0.0,
             "max_score": 2.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 0.0,
+            "override_actual": null,
+            "final_actual": 0.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1778113461122",
@@ -345543,7 +345681,11 @@
             "score": 0.0,
             "max_score": 0.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 0.0,
+            "override_actual": null,
+            "final_actual": 0.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": true,
             "numerator": "ctn",
             "campaign_id": "camp_1778113461122",
@@ -345562,7 +345704,7 @@
           },
           "C": {
             "score": 0.0,
-            "max_score": 3.0
+            "max_score": 7.0
           },
           "D": {
             "score": 0.0,
@@ -345574,11 +345716,12 @@
           }
         },
         "grand_total": 0.0,
-        "max_total": 98.003,
+        "max_total": 102.0,
         "grand_pct": 0.0,
         "kpi_month": "May 26",
         "total_abc": 0.0,
-        "total_pct": 0.0
+        "total_pct": 0.0,
+        "max_abc": 81.0
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -380049,7 +380192,11 @@
             "score": 2.0,
             "max_score": 2.0,
             "pct": 350.0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 14.0,
+            "override_actual": null,
+            "final_actual": 14.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1777773301331",
@@ -380065,7 +380212,11 @@
             "score": 0.0,
             "max_score": 2.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 1.0,
+            "override_actual": null,
+            "final_actual": 1.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1778113461122",
@@ -380081,7 +380232,11 @@
             "score": 0.0,
             "max_score": 0.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 1.0,
+            "override_actual": null,
+            "final_actual": 1.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": true,
             "numerator": "ctn",
             "campaign_id": "camp_1778113461122",
@@ -380095,12 +380250,12 @@
             "max_score": 35.003
           },
           "B": {
-            "score": 15.325,
+            "score": 17.575,
             "max_score": 39.0
           },
           "C": {
-            "score": 0.0,
-            "max_score": 3.0
+            "score": 2.0,
+            "max_score": 7.0
           },
           "D": {
             "score": 0.0,
@@ -380112,11 +380267,12 @@
           }
         },
         "grand_total": 47.58,
-        "max_total": 98.003,
+        "max_total": 102.0,
         "grand_pct": 46.6,
         "kpi_month": "May 26",
         "total_abc": 47.58,
-        "total_pct": 58.7
+        "total_pct": 58.7,
+        "max_abc": 81.0
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -407470,7 +407626,11 @@
             "score": 0.667,
             "max_score": 2.0,
             "pct": 33.3,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 2.0,
+            "override_actual": null,
+            "final_actual": 2.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1777773301331",
@@ -407486,7 +407646,11 @@
             "score": 0.0,
             "max_score": 2.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 10.0,
+            "override_actual": null,
+            "final_actual": 10.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1778113461122",
@@ -407502,7 +407666,11 @@
             "score": 0.0,
             "max_score": 0.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 148.0,
+            "override_actual": null,
+            "final_actual": 148.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": true,
             "numerator": "ctn",
             "campaign_id": "camp_1778113461122",
@@ -407520,8 +407688,8 @@
             "max_score": 39.0
           },
           "C": {
-            "score": 0.0,
-            "max_score": 3.0
+            "score": 0.667,
+            "max_score": 7.0
           },
           "D": {
             "score": 0.0,
@@ -407533,11 +407701,12 @@
           }
         },
         "grand_total": 46.44,
-        "max_total": 98.003,
+        "max_total": 102.0,
         "grand_pct": 45.5,
         "kpi_month": "May 26",
         "total_abc": 46.44,
-        "total_pct": 57.3
+        "total_pct": 57.3,
+        "max_abc": 81.0
       },
       "inherited_from": null,
       "inherit_from_month": null,
@@ -435346,7 +435515,11 @@
             "score": 2.0,
             "max_score": 2.0,
             "pct": 500.0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 20.0,
+            "override_actual": null,
+            "final_actual": 20.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1777773301331",
@@ -435362,7 +435535,11 @@
             "score": 0.0,
             "max_score": 2.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 6.0,
+            "override_actual": null,
+            "final_actual": 6.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": false,
             "numerator": "count",
             "campaign_id": "camp_1778113461122",
@@ -435378,7 +435555,11 @@
             "score": 0.0,
             "max_score": 0.0,
             "pct": 0,
-            "source": "campaign_dynamic",
+            "source": "auto_paid_conversion",
+            "auto_actual": 205.0,
+            "override_actual": null,
+            "final_actual": 205.0,
+            "auto_source": "auto_paid_conversion",
             "excluded": true,
             "numerator": "ctn",
             "campaign_id": "camp_1778113461122",
@@ -435392,12 +435573,12 @@
             "max_score": 35.003
           },
           "B": {
-            "score": 18.473,
+            "score": 21.533,
             "max_score": 39.0
           },
           "C": {
-            "score": 0.0,
-            "max_score": 3.0
+            "score": 2.0,
+            "max_score": 7.0
           },
           "D": {
             "score": 0.0,
@@ -435409,11 +435590,12 @@
           }
         },
         "grand_total": 52.97,
-        "max_total": 98.003,
+        "max_total": 102.0,
         "grand_pct": 51.9,
         "kpi_month": "May 26",
         "total_abc": 52.97,
-        "total_pct": 65.4
+        "total_pct": 65.4,
+        "max_abc": 81.0
       },
       "inherited_from": null,
       "inherit_from_month": null,

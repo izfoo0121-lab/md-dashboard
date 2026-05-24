@@ -429,12 +429,12 @@ function indexSupabaseRows(rows) {
       reason: r.reason || '',                // exclusion reason
     };
     // Audit shape derived from status
-    if (r.status === 'verified') {
+    if (r.status === 'verified' || r.status === 'processed') {
       AUDIT_CACHE[key] = { status: 'verified', ts: r.audit_ts || r.ts, by: r.audit_by || 'management' };
     } else if (r.status === 'rejected') {
       AUDIT_CACHE[key] = { status: 'rejected', ts: r.audit_ts || r.ts, by: r.audit_by || 'management', reason: r.audit_reason || '' };
     }
-    // status === 'delivered' / 'claimed' → pending (no audit entry)
+    // status === 'submitted' / legacy delivered / claimed -> pending request (no audit entry)
     // status === 'excluded' → agent-initiated exclusion, not a thing admin audits
   });
 }
@@ -466,10 +466,10 @@ async function saveAudit(month, agent, campId, debtorCode, auditData) {
 
   // Determine target status for Supabase
   let newStatus;
-  if (!auditData.status || auditData.status === 'undo') newStatus = 'delivered';
-  else if (auditData.status === 'verified') newStatus = 'verified';
+  if (!auditData.status || auditData.status === 'undo') newStatus = 'submitted';
+  else if (auditData.status === 'verified') newStatus = 'processed';
   else if (auditData.status === 'rejected') newStatus = 'rejected';
-  else newStatus = 'delivered';
+  else newStatus = 'submitted';
 
   // Build body — only send columns that are certain to exist.
   // Audit metadata is optional (column may not exist yet).
@@ -842,7 +842,7 @@ function renderAudit() {
     const isExcluded = r.claim?.status === 'excluded';
     const exportStatus = isConversionCamp(r.camp)
       ? (r.campEntry?.converted ? 'converted' : 'not_converted')
-      : (!r.claim ? 'not_claimed' : (isExcluded ? 'excluded' : (r.audit?.status || 'pending')));
+      : (!r.claim ? 'not_requested' : (isExcluded ? 'excluded' : (r.audit?.status || 'pending')));
     return {
       camp_id: r.camp.id || '',
       camp_name: r.camp.name || r.camp.id || '',
@@ -868,9 +868,9 @@ function renderAudit() {
   document.getElementById('summary-row').innerHTML = `
     <div class="sum-card"><div class="sum-val b">${total}</div><div class="sum-lbl">${activeCampId === 'ALL' ? 'Total Records' : 'Entitled'}</div></div>
     <div class="sum-card"><div class="sum-val g">${showConvertedSummary ? converted : claimed}</div><div class="sum-lbl">${showConvertedSummary ? 'Converted' : 'Submitted'}</div></div>
-    <div class="sum-card"><div class="sum-val b">${verified}</div><div class="sum-lbl">Verified ✓</div></div>
+    <div class="sum-card"><div class="sum-val b">${verified}</div><div class="sum-lbl">Processed ✓</div></div>
     <div class="sum-card"><div class="sum-val r">${rejected}</div><div class="sum-lbl">Rejected ✗</div></div>
-    <div class="sum-card"><div class="sum-val a">${showConvertedSummary ? total - converted : (activeCampId === 'ALL' ? pending : unclaimed)}</div><div class="sum-lbl">${showConvertedSummary ? 'Not Converted' : (activeCampId === 'ALL' ? 'Pending Audit' : 'Not Claimed')}</div></div>`;
+    <div class="sum-card"><div class="sum-val a">${showConvertedSummary ? total - converted : (activeCampId === 'ALL' ? pending : unclaimed)}</div><div class="sum-lbl">${showConvertedSummary ? 'Not Converted' : (activeCampId === 'ALL' ? 'Pending Requests' : 'Not Requested')}</div></div>`;
 
   if (!records.length) {
     document.getElementById('audit-content').innerHTML = `<div class="empty">No ${activeCampId==='ALL'?'claims':'campaign debtors'} for ${month}${activeCampId!=='ALL'?' in this campaign':''}</div>`;
@@ -903,15 +903,20 @@ function renderAudit() {
       const isExcluded = r.claim?.status === 'excluded';
       const isConversion = isConversionCamp(r.camp);
       const isConverted = isConversion && !!r.campEntry?.converted;
-      const statusLabel = isConversion                        ? (isConverted ? '✓ Converted' : 'Not converted')
-                        : !r.claim                           ? 'Not claimed'
-                        : isExcluded                         ? '🚫 Excluded'
-                        : r.audit?.status === 'verified'     ? '✓ Verified'
-                        : r.audit?.status === 'rejected'     ? '✗ Rejected'
-                        : '● Pending';
+      const requestLabel = !r.claim
+                         ? 'Not requested'
+                         : isExcluded
+                           ? '🚫 Excluded'
+                           : r.audit?.status === 'verified'
+                             ? 'Processed'
+                             : r.audit?.status === 'rejected'
+                               ? 'Rejected'
+                               : 'Request sent';
+      const conversionLabel = isConverted ? '✓ Paid converted' : 'No paid order yet';
+      const statusLabel = isConversion ? `${conversionLabel} · ${requestLabel}` : requestLabel;
       const statusClass = isConversion ? (isConverted ? 'claimed' : 'unclaimed') : (!r.claim ? 'unclaimed' : (isExcluded ? 'excluded' : (r.audit?.status || 'claimed')));
       const isFOC = r.camp.type==='foc_sample'||r.camp.type==='festive_gift'||r.camp.type==='birthday_gift';
-      const actionLabel = isConversion ? (isConverted ? 'Converted' : 'Not converted') : (!r.claim ? 'Not submitted' : (isExcluded ? 'Unable to deliver' : (isFOC ? 'Delivered' : 'Claimed')));
+      const actionLabel = !r.claim ? 'Not requested' : (isExcluded ? 'Unable to deliver' : requestLabel);
       const conversionMeta = isConversion ? `Feb-Apr: ${r.campEntry?.lookback_ctn ?? 0} CTN · May: ${r.campEntry?.current_ctn ?? 0} CTN` : '';
       // Reason label lookup (same as sales_dashboard)
       const reasonMap = {closed:'Shop Closed',unreachable:'Unreachable',moved:'Moved',refused:'Refused',other:'Other'};
@@ -922,8 +927,8 @@ function renderAudit() {
           <div class="claim-name">${r.debtor.company_name||r.debtor.debtor_code}</div>
           <div class="claim-code">${r.debtor.debtor_code} · ${CAMP_EMOJI[r.camp.type]||'📋'} ${r.camp.name}${r.campEntry.cat?' · CAT '+r.campEntry.cat:''}${r.claim?.bulk?' · 📥 Bulk':''}</div>
           <div class="claim-meta">
-            ${isConversion ? conversionMeta : `${actionLabel}: ${r.claim?.ts||'—'}`}${isExcluded ? ` · <span style="color:#ff8866;">${reasonText}</span>` : ''}${r.claim?.remark?' · "'+r.claim.remark+'"':''}
-            ${r.audit?.status==='verified'?` · ✓ Verified ${r.audit.ts||''}`:r.audit?.status==='rejected'?` · ✗ Rejected: ${r.audit.reason||''}${r.audit.ts?' · '+r.audit.ts:''}` : ''}
+            ${isConversion ? `${conversionMeta} · Claim: ${requestLabel}` : `${actionLabel}: ${r.claim?.ts||'—'}`}${isExcluded ? ` · <span style="color:#ff8866;">${reasonText}</span>` : ''}${r.claim?.remark?' · "'+r.claim.remark+'"':''}
+            ${r.audit?.status==='verified'?` · ✓ Processed ${r.audit.ts||''}`:r.audit?.status==='rejected'?` · ✗ Rejected: ${r.audit.reason||''}${r.audit.ts?' · '+r.audit.ts:''}` : ''}
           </div>
         </div>
         <div class="claim-actions">
@@ -943,10 +948,10 @@ function renderAudit() {
         <div class="agent-name">${agent}</div>
         <div class="agent-stats">
           <span class="stat-chip pct">${agentShowsConversion ? `${conversionPct}% converted` : `${agentPct}% audited`}</span>
-          <span class="stat-chip done">${agentShowsConversion ? `${agentConverted}/${recs.length} converted` : `${agentClaimed}/${recs.length} claimed`}</span>
+          <span class="stat-chip done">${agentShowsConversion ? `${agentConverted}/${recs.length} converted` : `${agentClaimed}/${recs.length} requests`}</span>
           ${!agentShowsConversion && agentPending>0?`<span class="stat-chip pending">${agentPending} pending</span>`:''}
           ${agentShowsConversion && recs.length-agentConverted>0?`<span class="stat-chip pending">${recs.length-agentConverted} not converted</span>`:''}
-          ${!agentShowsConversion && agentUnclaimed>0?`<span class="stat-chip pending">${agentUnclaimed} not claimed</span>`:''}
+          ${!agentShowsConversion && agentUnclaimed>0?`<span class="stat-chip pending">${agentUnclaimed} not requested</span>`:''}
           ${agentVerified>0?`<span style="font-family:var(--mono);font-size:9px;color:var(--blue);">✓${agentVerified}</span>`:''}
           ${agentRejected>0?`<span style="font-family:var(--mono);font-size:9px;color:var(--red);">✗${agentRejected}</span>`:''}
           ${agentExcluded>0?`<span style="font-family:var(--mono);font-size:9px;color:#ff8866;">🚫${agentExcluded}</span>`:''}
@@ -2302,7 +2307,7 @@ const GistSync = (() => {
     //   - camp_type is snake_case on the wire but campType in JS
     const row = {
       month, agent, camp_id: campId, debtor_code: debtorCode,
-      status   : claimData.status || 'delivered',
+      status   : claimData.status || 'submitted',
       remark   : claimData.remark || '',
       bulk     : !!claimData.bulk,
       actor    : claimData.actor || 'agent',
