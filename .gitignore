@@ -28,3 +28,7 @@ cleanup_log.txt
 *_BACKUP_*.xlsx
 *_BACKUP_*.json
 stock_bot/
+
+# Local AutoCount stock exports
+reports/stock-daily/**
+!reports/stock-daily/.gitkeep

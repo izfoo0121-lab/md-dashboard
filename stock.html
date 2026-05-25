@@ -1,0 +1,1752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Miracle MD - AutoCount Stock</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f3ee;--surface:#fff;--card:#fdfcf9;--border:#e2ddd5;
+  --ink:#1a1714;--ink2:#5a5550;--ink3:#9a9590;
+  --accent:#c8381a;--green:#2a7a4b;--gold:#c8860a;--blue:#1a5c8f;--purple:#6b3fa0;
+  --red-bg:#fde8e4;--green-bg:#edf6f1;--gold-bg:#fdf8ed;--blue-bg:#edf3f9;--purple-bg:#f1eef8;
+  --display:'Bebas Neue',sans-serif;--body:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{overflow-x:hidden;}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:100vh;padding-bottom:34px;}
+.hdr{background:var(--ink);color:#fff;padding:14px 18px;position:sticky;top:0;z-index:100;}
+.hdr-top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:10px;}
+.nav-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px;}
+.nav-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.08);color:#fff;font-family:var(--mono);font-size:9px;padding:5px 10px;border-radius:8px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.nav-btn:hover{background:rgba(255,255,255,.18);}
+.hdr-title{font-family:var(--display);font-size:28px;letter-spacing:.04em;line-height:1;}
+.hdr-sub{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.42);text-transform:uppercase;letter-spacing:.1em;margin-top:2px;}
+.sync-box{text-align:right;font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.5);line-height:1.5;white-space:nowrap;}
+.kpi-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;}
+.kpi-box{background:rgba(255,255,255,.07);border-radius:8px;padding:8px 9px;min-width:0;}
+.kpi-val{font-family:var(--display);font-size:22px;color:#fff;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kpi-val.g{color:#5de89a;}.kpi-val.r{color:#ff6b6b;}.kpi-val.w{color:#ffc94d;}.kpi-val.b{color:#4da6ff;}
+.kpi-lbl{font-family:var(--mono);font-size:7px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.08em;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.page{padding:12px 14px;max-width:1400px;margin:0 auto;}
+@media(min-width:760px){.page{padding:16px 20px;}}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;}
+.control{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 9px;}
+.control label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);white-space:nowrap;}
+.control select,.control input{border:none;background:transparent;color:var(--ink);font-family:var(--mono);font-size:10px;outline:none;min-height:22px;min-width:0;}
+.control input[type="text"]{width:160px;}
+.control input[type="checkbox"]{min-height:auto;width:14px;height:14px;accent-color:var(--accent);}
+.btn{background:var(--accent);border:none;color:#fff;font-family:var(--mono);font-size:10px;padding:8px 14px;border-radius:8px;cursor:pointer;text-transform:uppercase;letter-spacing:.06em;}
+.btn.secondary{background:var(--ink);}
+.btn.ghost{background:transparent;color:var(--ink2);border:1px solid var(--border);}
+.btn:hover{filter:brightness(1.08);}
+.input-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);gap:12px;margin-bottom:12px;}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;}
+.panel-head{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);background:var(--card);}
+.panel-title{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink3);}
+.panel-meta{font-family:var(--mono);font-size:10px;color:var(--ink3);white-space:nowrap;}
+textarea{width:100%;height:214px;border:none;resize:vertical;padding:12px 14px;background:var(--surface);color:var(--ink);font-family:var(--mono);font-size:11px;line-height:1.55;outline:none;}
+.master-textarea{height:214px;}
+.supplier-textarea{height:170px;}
+.hint-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:8px 12px;border-top:1px solid var(--border);background:var(--card);font-family:var(--mono);font-size:9px;color:var(--ink3);}
+.hint-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
+.view-tabs{display:flex;gap:6px;align-items:center;margin:4px 0 12px;border-bottom:1px solid var(--border);}
+.view-tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--ink3);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:10px 12px;cursor:pointer;}
+.view-tab.active{color:var(--ink);border-bottom-color:var(--accent);}
+.view-tab:hover{color:var(--ink);}
+.tab-pane{display:none;}
+.tab-pane.active{display:block;}
+.status-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);}
+.watch-card{border:1px solid var(--border);border-radius:8px;padding:10px;background:var(--card);min-width:0;}
+.watch-card.critical{background:var(--red-bg);border-color:rgba(200,56,26,.35);}
+.watch-card.watch{background:var(--gold-bg);border-color:rgba(200,134,10,.35);}
+.watch-card.below_mc{background:var(--blue-bg);border-color:rgba(26,92,143,.26);}
+.watch-card.no_sales{background:var(--purple-bg);border-color:rgba(107,63,160,.22);}
+.watch-card.config{background:var(--purple-bg);border-color:rgba(107,63,160,.3);}
+.watch-card.short{background:var(--red-bg);border-color:rgba(200,56,26,.28);}
+.watch-card.low{background:var(--gold-bg);border-color:rgba(200,134,10,.28);}
+.watch-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;}
+.watch-name{font-family:var(--display);font-size:18px;letter-spacing:.04em;line-height:1;}
+.watch-sub{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.watch-qty{font-family:var(--display);font-size:22px;line-height:1;color:var(--accent);text-align:right;}
+.table-wrap{overflow:auto;max-width:100%;}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;min-width:1680px;}
+th{background:var(--card);color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.08em;text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:2;}
+td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tbody tr:hover{background:rgba(26,23,20,.03);}
+.r{text-align:right;font-feature-settings:'tnum';}
+.sku{font-weight:700;color:var(--ink);}
+.muted{color:var(--ink3);}
+.pill{display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border-radius:999px;font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;}
+.pill.ok{background:var(--green-bg);color:var(--green);}
+.pill.low{background:var(--gold-bg);color:var(--gold);}
+.pill.short,.pill.out{background:var(--red-bg);color:var(--accent);}
+.pill.missing,.pill.config{background:var(--purple-bg);color:var(--purple);}
+.pill.critical{background:var(--red-bg);color:var(--accent);}
+.pill.watch{background:var(--gold-bg);color:var(--gold);}
+.pill.below_mc{background:var(--blue-bg);color:var(--blue);}
+.pill.no_sales,.pill.loading,.pill.sales_missing{background:var(--purple-bg);color:var(--purple);}
+.note{color:var(--ink2);font-size:10px;line-height:1.35;min-width:160px;}
+.bar{height:5px;border-radius:999px;background:var(--border);overflow:hidden;margin-top:4px;min-width:82px;}
+.bar-fill{height:100%;border-radius:999px;background:var(--green);min-width:2px;}
+.bar-fill.low{background:var(--gold);}
+.bar-fill.short,.bar-fill.out{background:var(--accent);}
+.empty{padding:26px 18px;text-align:center;color:var(--ink3);font-family:var(--mono);font-size:11px;}
+.issue-list{padding:10px 12px;display:grid;gap:6px;}
+.issue{display:flex;justify-content:space-between;gap:10px;border:1px solid var(--border);border-radius:8px;background:var(--card);padding:8px 10px;font-family:var(--mono);font-size:10px;color:var(--ink2);}
+.split-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--card);}
+.split-kpi{border:1px solid var(--border);border-radius:8px;background:var(--surface);padding:9px 10px;min-width:0;}
+.split-kpi .lbl{font-family:var(--mono);font-size:8px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.split-kpi .val{font-family:var(--display);font-size:22px;letter-spacing:.04em;line-height:1.05;margin-top:3px;}
+.driver{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+@media(max-width:820px){
+  .hdr-top{flex-direction:column;}
+  .sync-box{text-align:left;}
+  .kpi-strip{grid-template-columns:1fr;}
+  .input-grid{grid-template-columns:1fr;}
+  .panel-head{align-items:flex-start;flex-direction:column;}
+  .control{width:100%;align-items:flex-start;flex-direction:column;gap:4px;}
+  .control select,.control input[type="text"]{width:100%;max-width:100%;}
+  .control input[type="checkbox"]{width:14px;}
+  .view-tabs{overflow:auto;padding-bottom:1px;}
+  .view-tab{flex:0 0 auto;}
+  .status-strip{grid-template-columns:1fr;}
+  .hint-row{align-items:flex-start;flex-direction:column;}
+  .hint-actions{justify-content:flex-start;}
+}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hdr-top">
+    <div>
+      <div class="nav-row">
+        <a class="nav-btn" href="management.html">&lt;- Management</a>
+        <a class="nav-btn" href="stock_calendar.html">Calendar</a>
+      </div>
+      <div class="hdr-title">AutoCount Stock Monitor</div>
+      <div class="hdr-sub">SKU CTN MC check - GRP 2A</div>
+    </div>
+    <div class="sync-box">
+      <div id="saved-tag">Not saved yet</div>
+      <div id="parse-tag">Paste AutoCount stock balance and run</div>
+      <div id="sales-tag">Demand history loading</div>
+      <div id="daily-tag">AutoCount stock loading</div>
+    </div>
+  </div>
+  <div class="kpi-strip">
+    <div class="kpi-box"><div class="kpi-val g" id="k-total-ctn">-</div><div class="kpi-lbl">Current CTN</div></div>
+    <div class="kpi-box"><div class="kpi-val r" id="k-short">-</div><div class="kpi-lbl">Attention</div></div>
+    <div class="kpi-box"><div class="kpi-val w" id="k-need">-</div><div class="kpi-lbl">Need CTN</div></div>
+    <div class="kpi-box"><div class="kpi-val b" id="k-loaded">-</div><div class="kpi-lbl">Stock Rows</div></div>
+  </div>
+</div>
+
+<div class="page">
+  <div class="toolbar">
+    <div class="control">
+      <label for="qty-mode">Input Qty</label>
+      <select id="qty-mode" onchange="renderAll()">
+        <option value="auto">Auto from header</option>
+        <option value="pkt">Pkt / Unit</option>
+        <option value="ctn">CTN</option>
+      </select>
+    </div>
+    <div class="control">
+      <label for="status-filter">Status</label>
+      <select id="status-filter" onchange="renderAll()">
+        <option value="all">All</option>
+        <option value="short">Below MC</option>
+        <option value="out">Out</option>
+        <option value="ok">OK</option>
+        <option value="missing">Missing input</option>
+        <option value="config">Config issue</option>
+      </select>
+    </div>
+    <div class="control">
+      <label for="attention-filter">Attention</label>
+      <select id="attention-filter" onchange="renderAll()">
+        <option value="all">All</option>
+        <option value="critical">Critical</option>
+        <option value="watch">Watch</option>
+        <option value="below_mc">Below MC</option>
+        <option value="no_sales">No Sales History</option>
+        <option value="config">Config Issue</option>
+      </select>
+    </div>
+    <div class="control">
+      <label for="company-filter">Company</label>
+      <select id="company-filter" onchange="renderAll()">
+        <option value="all">All companies</option>
+        <option value="CCOM">CCOM</option>
+        <option value="8COM">8COM</option>
+      </select>
+    </div>
+    <div class="control">
+      <label for="supplier-filter">Supplier</label>
+      <select id="supplier-filter" onchange="renderAll()">
+        <option value="all">All suppliers</option>
+      </select>
+    </div>
+    <div class="control">
+      <label for="group-filter">Group</label>
+      <select id="group-filter" onchange="renderAll()">
+        <option value="all">All groups</option>
+      </select>
+    </div>
+    <div class="control">
+      <label for="location-filter">Location</label>
+      <select id="location-filter" onchange="onLocationChange()">
+        <option value="all">All locations</option>
+      </select>
+    </div>
+    <div class="control">
+      <label for="agent-filter">Agent</label>
+      <select id="agent-filter" onchange="renderAll()">
+        <option value="all">All agents</option>
+      </select>
+    </div>
+    <div class="control">
+      <label for="search-box">Search</label>
+      <input id="search-box" type="text" placeholder="SKU" oninput="renderAll()">
+    </div>
+    <div class="control">
+      <label for="missing-zero">Missing = 0</label>
+      <input id="missing-zero" type="checkbox" onchange="renderAll()">
+    </div>
+    <button class="btn" onclick="renderAll()">Process</button>
+    <button class="btn secondary" onclick="saveInputs()">Save</button>
+    <button class="btn ghost" onclick="resetMaster()">Reset SKU</button>
+  </div>
+
+  <div class="input-grid">
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title">AutoCount Stock Balance</div>
+        <div class="panel-meta" id="stock-meta">0 rows</div>
+      </div>
+      <textarea id="stock-input" spellcheck="false" placeholder="Item Code&#9;Smallest Bal. Qty&#10;EVO&#9;1200&#10;IFACE R&#9;512"></textarea>
+      <div class="hint-row">
+        <span>Source: AutoCount Stock Balance Report from peb.connectscc.com. Smallest Bal. Qty is pack/unit and converts to CTN.</span>
+        <div class="hint-actions">
+          <a class="btn ghost" href="https://peb.connectscc.com/software/html5.html" target="_blank" rel="noopener">Open AutoCount</a>
+          <button class="btn ghost" onclick="loadDailyStock(true)">Load Stock Export</button>
+          <button class="btn ghost" onclick="clearStock()">Clear</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title">SKU Master</div>
+        <div class="panel-meta" id="master-meta">0 SKUs</div>
+      </div>
+      <textarea id="master-input" class="master-textarea" spellcheck="false"></textarea>
+      <div class="hint-row">
+        <span>Columns: Item code, Pkt/Ctn, MC.</span>
+        <button class="btn ghost" onclick="exportCsv()">Export CSV</button>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Supplier Listing</div>
+      <div class="panel-meta" id="supplier-meta">0 suppliers</div>
+    </div>
+    <textarea id="supplier-input" class="supplier-textarea" spellcheck="false"></textarea>
+    <div class="hint-row">
+      <span>Paste supplier Order Stock templates here. Quantities are ignored; SKU lines define supplier coverage.</span>
+      <div class="hint-actions">
+        <button class="btn ghost" onclick="resetSupplierListing()">Reset Supplier</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="view-tabs" role="tablist" aria-label="Stock monitor views">
+    <button id="stock-tab" class="view-tab active" type="button" role="tab" aria-selected="true" aria-controls="stock-view" onclick="setActiveView('stock')">Stock Level</button>
+    <button id="location-tab" class="view-tab" type="button" role="tab" aria-selected="false" aria-controls="location-view" onclick="setActiveView('location')">Location Wise</button>
+    <button id="agent-tab" class="view-tab" type="button" role="tab" aria-selected="false" aria-controls="agent-view" onclick="setActiveView('agent')">Agent Detail</button>
+    <button id="supplier-tab" class="view-tab" type="button" role="tab" aria-selected="false" aria-controls="supplier-view" onclick="setActiveView('supplier')">Supplier Advice</button>
+    <button id="missing-tab" class="view-tab" type="button" role="tab" aria-selected="false" aria-controls="missing-view" onclick="setActiveView('missing')">Missing / No Input</button>
+    <button id="others-tab" class="view-tab" type="button" role="tab" aria-selected="false" aria-controls="others-view" onclick="setActiveView('others')">Others</button>
+  </div>
+
+  <div id="stock-view" class="tab-pane active" role="tabpanel" aria-labelledby="stock-tab">
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Stock Level Result</div>
+        <div class="panel-meta" id="result-meta">-</div>
+      </div>
+      <div id="watch-strip" class="status-strip"></div>
+      <div id="result-table"></div>
+    </section>
+  </div>
+
+  <div id="missing-view" class="tab-pane" role="tabpanel" aria-labelledby="missing-tab">
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Missing / No Input</div>
+        <div class="panel-meta" id="missing-meta">-</div>
+      </div>
+      <div id="missing-table"></div>
+    </section>
+  </div>
+
+  <div id="location-view" class="tab-pane" role="tabpanel" aria-labelledby="location-tab">
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Location Wise Demand</div>
+        <div class="panel-meta" id="location-meta">-</div>
+      </div>
+      <div id="location-summary" class="split-summary"></div>
+      <div id="location-table"></div>
+    </section>
+  </div>
+
+  <div id="agent-view" class="tab-pane" role="tabpanel" aria-labelledby="agent-tab">
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Agent Detail Demand</div>
+        <div class="panel-meta" id="split-meta">-</div>
+      </div>
+      <div id="split-summary" class="split-summary"></div>
+      <div id="split-table"></div>
+    </section>
+  </div>
+
+  <div id="supplier-view" class="tab-pane" role="tabpanel" aria-labelledby="supplier-tab">
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Supplier Advice</div>
+        <div class="panel-meta" id="supplier-advice-meta">-</div>
+      </div>
+      <div id="supplier-summary" class="split-summary"></div>
+      <div id="supplier-table"></div>
+    </section>
+  </div>
+
+  <div id="others-view" class="tab-pane" role="tabpanel" aria-labelledby="others-tab">
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Input Issues</div>
+        <div class="panel-meta" id="issue-meta">-</div>
+      </div>
+      <div id="issue-list" class="issue-list"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+const DEFAULT_MASTER = `Item code\tPkt/Ctn\tMC
+90\t10\t50
+IMP-001\t10\t80
+EVO\t10\t50
+LB22\t8\t60
+LC22\t8\t60
+LC20\t10\t50
+LF-002\t10\t50
+LG-001\t10\t50
+LIC-001\t10\t50
+LMM-002\t10\t80
+LR-001\t10\t50
+MI-002\t10\t50
+MM\t10\t50
+MS-002\t10\t50
+PA-003\t10\t50
+PC-002\t10\t50
+PM\t10\t50
+CMP\t10\t80
+LAM\t10\t50
+LWM\t10\t50
+TR-002\t10\t80
+TR20\t10\t60
+MINNA\t10\t80
+PS-003\t10\t50
+CM-002\t10\t80
+CMX\t10\t80
+CLASS MILD\t10\t80
+DPM EVO\t10\t80
+IFACE DB\t8\t60
+IFACE B\t8\t60
+IFACE M\t8\t60
+IFACE R\t8\t60
+SKNR\t10\t80
+SKNW\t10\t80
+LR22\t8\t60
+LG22\t8\t60
+MARISE\t10\t50
+HTM-002\t10\t50
+HTM QG\t10\t50
+TS R\t10\t50
+HHL G\t10\t50
+FRW B\t10\t50
+FRW G\t10\t50
+HTS\t10\t50
+GY\t10\t50
+EC\t10\t50
+PC DW\t10\t50
+ZYG\t10\t50
+ZPA\t10\t50
+ZL\t10\t50
+BISON-G\t10\t50
+BISON-R\t10\t50
+BISON-M\t10\t50
+CM-MI\t10\t80
+CM-SS\t10\t80
+EVO-MI\t10\t50
+TR-SS\t10\t80
+TR-MI\t10\t80
+LBOLD\t10\t60
+CANYON R\t10\t50
+GB\t10\t60
+JDB\t10\t50
+RE16-60\t10\t60
+AMR16\t10\t60
+JGI\t10\t50
+AMR12\t10\t80
+U2-R\t10\t50
+RE-B (20S)\t10\t60
+JW25\t10\t50
+JW20\t10\t50
+JDBSS\t20\t50
+CANYON G\t10\t50
+ISCORE\t10\t50
+SURIA 16\t10\t60
+DF\t10\t50
+TEX RED\t10\t50
+CANYON BLAST\t10\t50
+LA BLACK\t10\t50
+CMLT\t10\t80`;
+
+const DEFAULT_SUPPLIER_LISTING = `8公司 订货 Order Stock
+
+Name: CJ
+Delivery date: 23/5
+Contact no: 0176459756
+Location* :
+
+LB22-
+LG22-
+LIC-
+LF- 1
+LMM-
+LC20-
+TR12- 5
+TR20-
+IMP- 5
+DIPLO EVO-
+CM - 5
+CMX -
+CMP-
+CMLT
+LWM-
+LAM-
+JDB-
+JGI-
+JDBSS-
+GB-
+JW25-
+canyonR红-
+canyonM青-
+Dusk-
+Amr12-
+AMR16-
+
+TOTAL : 16
+
+CCOM 订货 Order Stock
+
+Name: kf
+Delivery date: 14/5/26
+Contact no: 0196580226
+Special code :
+
+EVO- 32
+90- 4
+IFACE-
+IFACE R-
+IFACE B- 2
+IFACE M-
+SKNW-
+SKNR- 6
+MRS-
+BSN RED- 6
+BSN GOLD-
+BSN GREEN-
+EC-
+ZYG-
+ZPA-
+ZL-
+PC DW-
+GY-
+HTM-
+HTS-
+FRW GOLD-
+FRW BLACK-
+HTM QG-
+TS RED-
+HHL GOLD-
+
+TOTAL : 50 box`;
+
+const LS_KEYS = {
+  stock:'autocount_stock_input_v1',
+  master:'autocount_stock_master_v1',
+  supplier:'autocount_supplier_listing_v1',
+  saved:'autocount_stock_saved_at_v1',
+  view:'autocount_stock_active_view_v1'
+};
+const SALES_SOURCE = 'dashboard_data.json';
+const STOCK_SALES_SOURCE = 'stock_sales_history.json';
+const DAILY_STOCK_SOURCE = 'reports/stock-daily/latest_stock_balance.json';
+const WEEKS_PER_MONTH = 4;
+const CRITICAL_COVER_WEEKS = 1;
+const WATCH_COVER_WEEKS = 2;
+const LOCATION_AGENTS = {
+  Kelantan:['YI','KI-MI','BEN','JACKY'],
+  Pahang:['LEON','CJ','KEE','KW','XIAN'],
+  Terengganu:['KF','JAMES','NMK']
+};
+const AGENT_LOCATION = Object.fromEntries(
+  Object.entries(LOCATION_AGENTS).flatMap(([location, agents]) => agents.map(agent => [agent, location]))
+);
+const STOCK_LOCATION_ASSISTANTS = {
+  KEE:['CS'],
+  JACKY:['AKENT']
+};
+const SUPPLIER_ALIAS_ROWS = [
+  ['LIC','LIC-001'],
+  ['LF','LF-002'],
+  ['LMM','LMM-002'],
+  ['TR12','TR-002'],
+  ['IMP','IMP-001'],
+  ['DIPLO EVO','DPM EVO'],
+  ['CM','CM-002'],
+  ['CANYONR红','CANYON R'],
+  ['CANYONM青','CANYON G'],
+  ['DUSK','DF'],
+  ['IFACE','IFACE DB'],
+  ['MRS','MARISE'],
+  ['BSN RED','BISON-R'],
+  ['BSN GOLD','BISON-G'],
+  ['BSN GREEN','BISON-M'],
+  ['HTM','HTM-002'],
+  ['FRW GOLD','FRW G'],
+  ['FRW BLACK','FRW B'],
+  ['TS RED','TS R'],
+  ['HHL GOLD','HHL G']
+];
+const SALES_STATE = {
+  loaded:false,
+  error:'',
+  currentMonth:'',
+  previousMonth:'',
+  months:[],
+  bySku:new Map(),
+  activeAgents:[],
+  mappedAgents:[],
+  excludedAgents:[],
+  skuCount:0
+};
+const DAILY_STOCK_STATE = {
+  loaded:false,
+  applied:false,
+  error:'',
+  sourceFile:'',
+  stockDate:'',
+  importedAt:'',
+  rowCount:0,
+  mode:'pkt',
+  rows:[],
+  locationRows:[],
+  locationMap:new Map(),
+  groupMap:new Map()
+};
+
+function cleanSku(value){
+  return String(value || '').trim().replace(/\s+/g,' ').toUpperCase();
+}
+function escapeHtml(value){
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[ch]));
+}
+function setActiveView(view){
+  const active = ['stock','location','agent','supplier','missing','others'].includes(view) ? view : 'stock';
+  ['stock','location','agent','supplier','missing','others'].forEach(name => {
+    const tab = document.getElementById(`${name}-tab`);
+    const pane = document.getElementById(`${name}-view`);
+    const selected = name === active;
+    tab?.classList.toggle('active', selected);
+    tab?.setAttribute('aria-selected', selected ? 'true' : 'false');
+    pane?.classList.toggle('active', selected);
+  });
+  localStorage.setItem(LS_KEYS.view, active);
+}
+function fmt(value, digits=1){
+  const n = Number(value || 0);
+  if(!Number.isFinite(n)) return '-';
+  return Number.isInteger(n) ? String(n) : n.toFixed(digits).replace(/\.0$/,'');
+}
+function splitLine(line){
+  if(line.includes('\t')) return line.split('\t').map(x => x.trim());
+  if(line.includes(',')) return line.split(',').map(x => x.trim());
+  const m = line.trim().match(/^(.+?)\s+(-?\d+(?:\.\d+)?)\s*(-?\d+(?:\.\d+)?)?$/);
+  if(m) return [m[1].trim(), m[2], m[3]].filter(x => x != null && x !== '');
+  return [line.trim()];
+}
+function isHeader(parts){
+  const joined = parts.join(' ').toLowerCase();
+  return /item|code|sku|pkt|ctn|stock|qty|balance|mc|min/.test(joined) && !parts.some(p => /^-?\d+(\.\d+)?$/.test(p));
+}
+function findIndex(headers, patterns, fallback){
+  const lower = headers.map(h => String(h || '').toLowerCase().replace(/\s+/g,''));
+  for(const pattern of patterns){
+    const idx = lower.findIndex(h => pattern.test(h));
+    if(idx >= 0) return idx;
+  }
+  return fallback;
+}
+function parseNumber(value){
+  const n = Number(String(value ?? '').replace(/,/g,'').trim());
+  return Number.isFinite(n) ? n : null;
+}
+function cleanAgent(value){
+  return String(value || '').trim().toUpperCase();
+}
+function supplierKey(value){
+  return cleanSku(value).replace(/[\s\-_./:]+/g,'');
+}
+function supplierAliasMap(){
+  const map = new Map();
+  SUPPLIER_ALIAS_ROWS.forEach(([raw, canonical]) => map.set(supplierKey(raw), cleanSku(canonical)));
+  return map;
+}
+function supplierLabel(row){
+  return row?.supplierLabel || (row?.suppliers?.length ? row.suppliers.join(', ') : 'Unmapped');
+}
+function monthRank(label){
+  const names = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+  const m = String(label || '').trim().match(/^([A-Za-z]{3})\s+(\d{2,4})$/);
+  if(!m) return 0;
+  const year = Number(m[2].length === 2 ? `20${m[2]}` : m[2]);
+  return year * 12 + (names[m[1].toLowerCase()] ?? 0);
+}
+function newMonthlyRecord(extra = {}){
+  return {monthly:new Map(), currentSalesCtn:0, previousSalesCtn:0, avgSalesCtn:0, hasSalesHistory:false, ...extra};
+}
+function addMonthCtn(map, sku, month, ctn){
+  if(!sku || !month || !Number.isFinite(ctn)) return null;
+  const rec = map.get(sku) || newMonthlyRecord({sku, locations:new Map(), topDriver:null});
+  rec.monthly.set(month, (rec.monthly.get(month) || 0) + ctn);
+  map.set(sku, rec);
+  return rec;
+}
+function addSplitCtn(skuRec, location, agent, month, ctn){
+  if(!skuRec || !location || !agent || !month || !Number.isFinite(ctn)) return;
+  const locRec = skuRec.locations.get(location) || newMonthlyRecord({location, agents:new Map()});
+  locRec.monthly.set(month, (locRec.monthly.get(month) || 0) + ctn);
+  const agentRec = locRec.agents.get(agent) || newMonthlyRecord({location, agent});
+  agentRec.monthly.set(month, (agentRec.monthly.get(month) || 0) + ctn);
+  locRec.agents.set(agent, agentRec);
+  skuRec.locations.set(location, locRec);
+}
+function finalizeMonthlyRecord(rec, months, current, previous){
+  const total = months.reduce((sum, month) => sum + (Number(rec.monthly.get(month)) || 0), 0);
+  rec.currentSalesCtn = Number(rec.monthly.get(current)) || 0;
+  rec.previousSalesCtn = Number(rec.monthly.get(previous)) || 0;
+  rec.avgSalesCtn = months.length ? total / months.length : 0;
+  rec.hasSalesHistory = Math.abs(total) > 0.0001;
+  return rec;
+}
+function buildSalesHistory(data){
+  const bySku = new Map();
+  const monthSet = new Set();
+  const activeAgents = (data?.config?.active_agents || Object.keys(data?.agents || {})).map(cleanAgent).filter(Boolean);
+  const activeSet = new Set(activeAgents);
+  const mappedAgents = activeAgents.filter(agent => AGENT_LOCATION[agent]);
+  const excludedAgents = activeAgents.filter(agent => !AGENT_LOCATION[agent]);
+  Object.entries(data?.agents || {}).forEach(([ownerAgent, agentData]) => {
+    (agentData?.debtor_cards?.debtors || []).forEach(debtor => {
+      Object.entries(debtor?.month_breakdown || {}).forEach(([month, items]) => {
+        if(month) monthSet.add(month);
+        (items || []).forEach(item => {
+          const sku = cleanSku(item?.item);
+          const ctn = Number(item?.ctn) || 0;
+          const salesAgent = cleanAgent(item?.agent) || cleanAgent(ownerAgent);
+          if(!activeSet.has(salesAgent)) return;
+          if(sku && Math.abs(ctn) > 0.0001){
+            const skuRec = addMonthCtn(bySku, sku, month, ctn);
+            const location = AGENT_LOCATION[salesAgent];
+            if(location) addSplitCtn(skuRec, location, salesAgent, month, ctn);
+          }
+        });
+      });
+    });
+  });
+  const months = [...monthSet].sort((a,b) => monthRank(a) - monthRank(b));
+  const current = months.includes(data?.current_month) ? data.current_month : (months[months.length - 1] || '');
+  const currentIndex = months.indexOf(current);
+  const selectedMonths = currentIndex >= 0 ? months.slice(Math.max(0, currentIndex - 2), currentIndex + 1) : months.slice(-3);
+  const previous = selectedMonths[selectedMonths.length - 2] || '';
+
+  bySku.forEach(rec => {
+    finalizeMonthlyRecord(rec, selectedMonths, current, previous);
+    const driverRows = [];
+    rec.locations.forEach(locRec => {
+      finalizeMonthlyRecord(locRec, selectedMonths, current, previous);
+      locRec.agents.forEach(agentRec => {
+        finalizeMonthlyRecord(agentRec, selectedMonths, current, previous);
+        driverRows.push(agentRec);
+      });
+    });
+    rec.topDriver = driverRows.sort((a,b) => Number(b.avgSalesCtn || 0) - Number(a.avgSalesCtn || 0))[0] || null;
+  });
+
+  return {
+    loaded:true,
+    error:'',
+    currentMonth:current,
+    previousMonth:previous,
+    months:selectedMonths,
+    bySku,
+    activeAgents,
+    mappedAgents,
+    excludedAgents,
+    skuCount:bySku.size
+  };
+}
+function buildSalesHistoryFromSnapshot(data){
+  const bySku = new Map();
+  const months = Array.isArray(data?.months) ? data.months : [];
+  const current = data?.current_month || months[months.length - 1] || '';
+  const previous = data?.previous_month || months[months.length - 2] || '';
+  (data?.rows || []).forEach(row => {
+    const sku = cleanSku(row.sku);
+    if(!sku) return;
+    const rec = newMonthlyRecord({
+      sku,
+      locations:new Map(),
+      topDriver:row.topDriver || null,
+      itemGroup:row.itemGroup || '',
+      description:row.description || ''
+    });
+    Object.entries(row.monthly || {}).forEach(([month, ctn]) => {
+      rec.monthly.set(month, Number(ctn) || 0);
+    });
+    finalizeMonthlyRecord(rec, months, current, previous);
+    Object.entries(row.locations || {}).forEach(([location, locData]) => {
+      const locRec = newMonthlyRecord({location, agents:new Map()});
+      Object.entries(locData.monthly || {}).forEach(([month, ctn]) => locRec.monthly.set(month, Number(ctn) || 0));
+      finalizeMonthlyRecord(locRec, months, current, previous);
+      Object.entries(locData.agents || {}).forEach(([agent, agentData]) => {
+        const agentRec = newMonthlyRecord({location, agent});
+        Object.entries(agentData.monthly || {}).forEach(([month, ctn]) => agentRec.monthly.set(month, Number(ctn) || 0));
+        finalizeMonthlyRecord(agentRec, months, current, previous);
+        locRec.agents.set(agent, agentRec);
+      });
+      rec.locations.set(location, locRec);
+    });
+    bySku.set(sku, rec);
+  });
+  return {
+    loaded:true,
+    error:'',
+    currentMonth:current,
+    previousMonth:previous,
+    months,
+    bySku,
+    activeAgents:(data?.active_agents || []).map(cleanAgent).filter(Boolean),
+    mappedAgents:(data?.mapped_agents || []).map(cleanAgent).filter(Boolean),
+    excludedAgents:(data?.excluded_agents || []).map(cleanAgent).filter(Boolean),
+    skuCount:bySku.size
+  };
+}
+async function loadSalesHistory(){
+  try{
+    const res = await fetch(`${SALES_SOURCE}?v=${Date.now()}`, {cache:'no-store'});
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const fallback = buildSalesHistory(await res.json());
+    try{
+      const stockRes = await fetch(`${STOCK_SALES_SOURCE}?v=${Date.now()}`, {cache:'no-store'});
+      if(stockRes.ok){
+        Object.assign(SALES_STATE, buildSalesHistoryFromSnapshot(await stockRes.json()));
+      }else{
+        Object.assign(SALES_STATE, fallback);
+      }
+    }catch(_err){
+      Object.assign(SALES_STATE, fallback);
+    }
+  }catch(err){
+    SALES_STATE.loaded = true;
+    SALES_STATE.error = err?.message || 'Unable to load sales history';
+    SALES_STATE.bySku = new Map();
+    SALES_STATE.months = [];
+    SALES_STATE.activeAgents = [];
+    SALES_STATE.mappedAgents = [];
+    SALES_STATE.excludedAgents = [];
+    SALES_STATE.skuCount = 0;
+  }
+}
+function salesForSku(sku){
+  if(!SALES_STATE.loaded){
+    return {currentSalesCtn:0, previousSalesCtn:0, avgSalesCtn:0, coverWeeks:null, hasSalesHistory:false, topDriver:null};
+  }
+  const rec = SALES_STATE.bySku.get(cleanSku(sku));
+  const currentSalesCtn = rec?.currentSalesCtn || 0;
+  const previousSalesCtn = rec?.previousSalesCtn || 0;
+  const avgSalesCtn = rec?.avgSalesCtn || 0;
+  const hasSalesHistory = !!rec?.hasSalesHistory;
+  const topDriver = rec?.topDriver || null;
+  return {currentSalesCtn, previousSalesCtn, avgSalesCtn, hasSalesHistory, topDriver};
+}
+function attentionLabel(type){
+  return {
+    critical:'Critical',
+    watch:'Watch',
+    below_mc:'Below MC',
+    no_sales:'No Sales',
+    config:'Config',
+    missing:'Missing',
+    loading:'Loading',
+    sales_missing:'Demand Missing',
+    ok:'OK'
+  }[type] || type;
+}
+function attentionPriority(type){
+  return {config:0,critical:1,watch:2,below_mc:3,no_sales:4,missing:5,loading:6,sales_missing:6,ok:7}[type] ?? 9;
+}
+function decorateSales(row){
+  const sales = salesForSku(row.sku);
+  Object.assign(row, sales);
+  row.coverWeeks = row.currentCtn != null && row.avgSalesCtn > 0
+    ? (Number(row.currentCtn) / row.avgSalesCtn) * WEEKS_PER_MONTH
+    : null;
+
+  if(row.configIssue){
+    row.attentionType = 'config';
+    row.attentionNote = row.issue || 'Check SKU master setup';
+  }else if(row.missingInput){
+    row.attentionType = 'missing';
+    row.attentionNote = 'Missing from stock input';
+  }else if(!SALES_STATE.loaded){
+    row.attentionType = 'loading';
+    row.attentionNote = 'Demand history loading';
+  }else if(SALES_STATE.error){
+    row.attentionType = 'sales_missing';
+    row.attentionNote = 'Demand history unavailable';
+  }else if(row.avgSalesCtn > 0 && row.coverWeeks < CRITICAL_COVER_WEEKS){
+    row.attentionType = 'critical';
+    row.attentionNote = 'Stock cover below 1 week';
+  }else if(row.avgSalesCtn > 0 && row.coverWeeks < WATCH_COVER_WEEKS){
+    row.attentionType = 'watch';
+    row.attentionNote = 'Stock cover below 2 weeks';
+  }else if(Number(row.currentCtn || 0) < Number(row.mc || 0)){
+    row.attentionType = row.avgSalesCtn > 0 ? 'watch' : 'below_mc';
+    row.attentionNote = row.avgSalesCtn > 0 ? 'Below MC target' : 'Below MC, no recent sales';
+  }else if(!row.hasSalesHistory){
+    row.attentionType = 'no_sales';
+    row.attentionNote = 'No recent SKU demand history';
+  }else{
+    row.attentionType = 'ok';
+    row.attentionNote = 'Sales cover OK';
+  }
+  return row;
+}
+function fmtCover(value){
+  return value == null || !Number.isFinite(Number(value)) ? '-' : `${fmt(value, 1)}w`;
+}
+function topDriverLabel(driver){
+  return driver ? `${driver.location} / ${driver.agent}` : '-';
+}
+function companyForGroup(group){
+  return String(group || '').trim().toUpperCase() === '8COM' ? '8COM' : 'CCOM';
+}
+function buildStockLocationMap(locationRows){
+  const map = new Map();
+  (locationRows || []).forEach(row => {
+    const sku = cleanSku(row.sku || row.item_code || row.itemCode || row.code);
+    const location = cleanAgent(row.location || row.stockLocation || row.loc);
+    const qty = parseNumber(row.stockQty ?? row.qty ?? row.quantity ?? row.smallest_bal_qty);
+    if(!sku || !location || qty == null) return;
+    const skuMap = map.get(sku) || new Map();
+    skuMap.set(location, (skuMap.get(location) || 0) + qty);
+    map.set(sku, skuMap);
+  });
+  return map;
+}
+function buildStockGroupMap(rows){
+  const map = new Map();
+  (rows || []).forEach(row => {
+    const sku = cleanSku(row.sku || row.item_code || row.itemCode || row.code);
+    const group = String(row.itemGroup || row.item_group || row.group || '').trim().toUpperCase();
+    if(sku && group) map.set(sku, group);
+  });
+  return map;
+}
+function itemGroupForSku(sku){
+  const key = cleanSku(sku);
+  return DAILY_STOCK_STATE.groupMap?.get(key) || SALES_STATE.bySku?.get(key)?.itemGroup || '';
+}
+function stockQtyForAgent(sku, agent){
+  const skuMap = DAILY_STOCK_STATE.locationMap?.get(cleanSku(sku));
+  if(!skuMap) return null;
+  const stockLocations = [cleanAgent(agent), ...(STOCK_LOCATION_ASSISTANTS[cleanAgent(agent)] || [])];
+  let total = 0;
+  let found = false;
+  stockLocations.forEach(location => {
+    const qty = skuMap.get(location);
+    if(qty != null){
+      total += qty;
+      found = true;
+    }
+  });
+  return found ? total : null;
+}
+function stockQtyForLocation(sku, location){
+  const agents = LOCATION_AGENTS[location] || [];
+  let total = 0;
+  let found = false;
+  agents.forEach(agent => {
+    const qty = stockQtyForAgent(sku, agent);
+    if(qty != null){
+      total += qty;
+      found = true;
+    }
+  });
+  return found ? total : null;
+}
+function dailyStockToText(data){
+  const rows = (data?.rows || [])
+    .map(row => {
+      const sku = cleanSku(row.sku || row.item_code || row.itemCode || row.code);
+      const qty = parseNumber(row.stockQty ?? row.qty ?? row.quantity ?? row.smallest_bal_qty);
+      return sku && qty != null ? `${sku}\t${qty}` : '';
+    })
+    .filter(Boolean);
+  return rows.length ? `Item Code\tStock Qty\n${rows.join('\n')}` : '';
+}
+async function loadDailyStock(forceApply = false){
+  try{
+    const res = await fetch(`${DAILY_STOCK_SOURCE}?v=${Date.now()}`, {cache:'no-store'});
+    if(!res.ok) throw new Error(res.status === 404 ? 'No AutoCount stock export found' : `HTTP ${res.status}`);
+    const data = await res.json();
+    const rows = Array.isArray(data?.rows) ? data.rows : [];
+    const locationRows = Array.isArray(data?.location_rows) ? data.location_rows : (Array.isArray(data?.locationRows) ? data.locationRows : []);
+    Object.assign(DAILY_STOCK_STATE, {
+      loaded:true,
+      applied:false,
+      error:'',
+      sourceFile:data.source_file || data.sourceFile || '',
+      stockDate:data.stock_date || data.stockDate || '',
+      importedAt:data.generated_at || data.imported_at || '',
+      rowCount:rows.length,
+      mode:data.input_mode || 'pkt',
+      rows,
+      locationRows,
+      locationMap:buildStockLocationMap(locationRows),
+      groupMap:buildStockGroupMap(rows)
+    });
+    const text = dailyStockToText(data);
+    if(text && (forceApply || rows.length)){
+      document.getElementById('stock-input').value = text;
+      DAILY_STOCK_STATE.applied = true;
+      document.getElementById('qty-mode').value = 'pkt';
+    }
+  }catch(err){
+    Object.assign(DAILY_STOCK_STATE, {
+      loaded:true,
+      applied:false,
+      error:err?.message || 'Unable to load daily stock export',
+      rowCount:0,
+      rows:[],
+      locationRows:[],
+      locationMap:new Map(),
+      groupMap:new Map()
+    });
+  }
+  renderAll();
+}
+function dailyStockStatusText(){
+  if(!DAILY_STOCK_STATE.loaded) return 'AutoCount stock loading';
+  if(DAILY_STOCK_STATE.error) return `AutoCount stock: ${DAILY_STOCK_STATE.error}`;
+  const date = DAILY_STOCK_STATE.stockDate || 'latest';
+  return `AutoCount stock ${date} / ${DAILY_STOCK_STATE.rowCount} SKUs${DAILY_STOCK_STATE.applied ? ' / loaded' : ''}`;
+}
+
+function parseMaster(text){
+  const rows = String(text || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const map = new Map();
+  const issues = [];
+  let headers = null;
+  rows.forEach((line, rowNo) => {
+    const parts = splitLine(line);
+    if(!headers && rowNo === 0 && isHeader(parts)){ headers = parts; return; }
+    const skuIdx = headers ? findIndex(headers, [/^(item)?code$/, /^itemcode$/, /^sku$/], 0) : 0;
+    const pktIdx = headers ? findIndex(headers, [/pkt.*ctn/, /pkt/, /pack.*ctn/], 1) : 1;
+    const mcIdx = headers ? findIndex(headers, [/^mc$/, /min/, /minimum/, /target/], 2) : 2;
+    const sku = cleanSku(parts[skuIdx]);
+    const pkt = parseNumber(parts[pktIdx]);
+    const mc = parseNumber(parts[mcIdx]);
+    if(!sku) return;
+    if(pkt == null || pkt <= 0 || mc == null || mc < 0){
+      issues.push({type:'Master', sku, msg:`Bad Pkt/Ctn or MC on row ${rowNo+1}`});
+    }
+    map.set(sku, {sku, pktCtn:pkt || 0, mc:mc ?? 0});
+  });
+  return {map, issues};
+}
+
+function detectSupplierHeader(line){
+  const raw = String(line || '').trim();
+  const upper = raw.toUpperCase();
+  if(!/ORDER\s*STOCK|订货/.test(upper)) return '';
+  if(raw.includes('8公司') || upper.includes('8COM')) return '8COM';
+  if(upper.includes('CCOM')) return 'CCOM';
+  const before = raw.split(/订货|ORDER\s*STOCK/i)[0].trim();
+  return cleanSku(before);
+}
+function isSupplierMetaLine(line){
+  return /^(NAME|DELIVERY\s*DATE|CONTACT\s*NO|CONTACT|LOCATION\*?|SPECIAL\s*CODE|TOTAL)\s*[:：]?/i.test(String(line || '').trim());
+}
+function parseSupplierSkuName(line){
+  let text = String(line || '').trim();
+  if(!text || isSupplierMetaLine(text) || detectSupplierHeader(text)) return '';
+  text = text.replace(/\s*[-:：]\s*(?:\d+(?:\.\d+)?\s*)?(?:BOX|BOXES|CTN|CTNS|PKT|PACK|PCS|PC)?\s*$/i, '').trim();
+  text = text.replace(/\s+$/,'').trim();
+  if(!text || isSupplierMetaLine(text)) return '';
+  return cleanSku(text);
+}
+function parseSupplierListings(text, masterMap){
+  const alias = supplierAliasMap();
+  const skuSuppliers = new Map();
+  const supplierSkus = new Map();
+  const issues = [];
+  let currentSupplier = '';
+  String(text || '').split(/\r?\n/).forEach((line, idx) => {
+    const headerSupplier = detectSupplierHeader(line);
+    if(headerSupplier){
+      currentSupplier = headerSupplier;
+      if(!supplierSkus.has(currentSupplier)) supplierSkus.set(currentSupplier, new Set());
+      return;
+    }
+    if(!currentSupplier) return;
+    const rawSku = parseSupplierSkuName(line);
+    if(!rawSku) return;
+    const canonical = alias.get(supplierKey(rawSku)) || rawSku;
+    if(!masterMap.has(canonical)){
+      issues.push({type:'Supplier', sku:rawSku, msg:`Unknown supplier SKU on row ${idx+1}${canonical !== rawSku ? ` (mapped to ${canonical})` : ''}`});
+      return;
+    }
+    const suppliers = skuSuppliers.get(canonical) || new Set();
+    suppliers.add(currentSupplier);
+    skuSuppliers.set(canonical, suppliers);
+    supplierSkus.get(currentSupplier).add(canonical);
+  });
+  const supplierNames = [...supplierSkus.keys()].sort((a,b) => a.localeCompare(b));
+  return {
+    skuSuppliers,
+    supplierSkus,
+    supplierNames,
+    mappedSkuCount:new Set([...skuSuppliers.keys()]).size,
+    issues
+  };
+}
+
+function parseStock(text){
+  const rows = String(text || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const map = new Map();
+  const issues = [];
+  let headers = null;
+  rows.forEach((line, rowNo) => {
+    const parts = splitLine(line);
+    if(!headers && rowNo === 0 && isHeader(parts)){ headers = parts; return; }
+    let skuIdx = 0;
+    let qtyIdx = 1;
+    let ctnIdx = -1;
+    let mcIdx = -1;
+    let mode = document.getElementById('qty-mode').value;
+    if(headers){
+      skuIdx = findIndex(headers, [/^(item)?code$/, /^itemcode$/, /^sku$/], 0);
+      ctnIdx = findIndex(headers, [/^ctn$/, /carton/], -1);
+      qtyIdx = findIndex(headers, [/stock/, /qty/, /balance/, /^qoh$/, /onhand/], ctnIdx >= 0 ? ctnIdx : 1);
+      mcIdx = findIndex(headers, [/^mc$/, /min/, /minimum/, /target/], -1);
+      if(mode === 'auto') mode = ctnIdx >= 0 ? 'ctn' : 'pkt';
+    }else if(mode === 'auto'){
+      mode = 'pkt';
+    }
+    const sku = cleanSku(parts[skuIdx]);
+    const qty = parseNumber(parts[mode === 'ctn' && ctnIdx >= 0 ? ctnIdx : qtyIdx]);
+    const mc = mcIdx >= 0 ? parseNumber(parts[mcIdx]) : null;
+    if(!sku) return;
+    if(qty == null){
+      issues.push({type:'Stock', sku, msg:`Missing stock qty on row ${rowNo+1}`});
+      return;
+    }
+    const prev = map.get(sku) || {sku, qty:0, mode, mcOverride:null, rows:0};
+    prev.qty += qty;
+    prev.mode = mode;
+    if(mc != null) prev.mcOverride = mc;
+    prev.rows++;
+    map.set(sku, prev);
+  });
+  return {map, issues, rowCount:rows.length - (headers ? 1 : 0)};
+}
+
+function statusFor(row){
+  if(row.configIssue) return 'config';
+  if(row.missingInput) return 'missing';
+  if(row.currentCtn <= 0) return 'out';
+  if(row.currentCtn < row.mc) return 'short';
+  return 'ok';
+}
+function statusLabel(status){
+  return {ok:'OK',short:'Below MC',out:'Out',missing:'No Input',config:'Config'}[status] || status;
+}
+function statusPriority(status){
+  return {config:0,out:1,short:2,missing:3,ok:4}[status] ?? 9;
+}
+
+function computeRows(){
+  const master = parseMaster(document.getElementById('master-input').value);
+  const supplier = parseSupplierListings(document.getElementById('supplier-input')?.value || '', master.map);
+  const stockText = document.getElementById('stock-input').value;
+  const hasStockInput = !!String(stockText || '').trim();
+  const stock = parseStock(stockText);
+  const missingZero = document.getElementById('missing-zero').checked;
+  const allSkus = new Set(hasStockInput ? [...master.map.keys()] : []);
+  const unknownStock = [...stock.map.keys()]
+    .filter(sku => !master.map.has(sku))
+    .map(sku => ({type:'Unknown SKU', sku, msg:'Stock input/export has SKU not in stock monitor master'}));
+    const rows = [];
+  allSkus.forEach(sku => {
+    const cfg = master.map.get(sku);
+    const st = stock.map.get(sku);
+    const itemGroup = itemGroupForSku(sku);
+    const company = companyForGroup(itemGroup);
+    const suppliers = [...(supplier.skuSuppliers.get(sku) || [])].sort((a,b) => a.localeCompare(b));
+    const supplierName = suppliers.length ? suppliers.join(', ') : 'Unmapped';
+    const missingInput = !st;
+    if(missingInput && !missingZero){
+      rows.push({
+        sku, company, suppliers, supplierLabel:supplierName, itemGroup, pktCtn:cfg.pktCtn, mc:cfg.mc, stockQty:null, currentCtn:null,
+        needCtn:null, needPkt:null, missingInput:true, configIssue:cfg.pktCtn <= 0,
+        issue:cfg.pktCtn <= 0 ? 'Bad Pkt/Ctn' : ''
+      });
+      return;
+    }
+    const stockQty = st?.qty ?? 0;
+    const mode = st?.mode || document.getElementById('qty-mode').value;
+    const mc = st?.mcOverride ?? cfg.mc;
+    const currentCtn = mode === 'ctn' ? stockQty : (cfg.pktCtn > 0 ? stockQty / cfg.pktCtn : 0);
+    const needCtn = Math.max(0, mc - currentCtn);
+    rows.push({
+      sku, company, suppliers, supplierLabel:supplierName, itemGroup, pktCtn:cfg.pktCtn, mc, stockQty, currentCtn, needCtn,
+      needPkt:needCtn * (cfg.pktCtn || 0), missingInput, configIssue:cfg.pktCtn <= 0,
+      issue:cfg.pktCtn <= 0 ? 'Bad Pkt/Ctn' : ''
+    });
+  });
+  rows.forEach(row => {
+    row.status = statusFor(row);
+    decorateSales(row);
+  });
+  return {
+    rows,
+    masterIssues:master.issues,
+    stockIssues:stock.issues,
+    supplierIssues:supplier.issues,
+    supplierNames:supplier.supplierNames,
+    supplierSkuCount:supplier.mappedSkuCount,
+    unknownStock,
+    stockCount:stock.rowCount,
+    masterCount:master.map.size
+  };
+}
+
+function filteredRows(rows, options = {}){
+  const status = document.getElementById('status-filter').value;
+  const attention = document.getElementById('attention-filter').value;
+  const company = document.getElementById('company-filter')?.value || 'all';
+  const supplier = document.getElementById('supplier-filter')?.value || 'all';
+  const group = document.getElementById('group-filter')?.value || 'all';
+  const search = cleanSku(document.getElementById('search-box').value);
+  return rows.filter(row => {
+    if(!options.ignoreStatus && status !== 'all' && row.status !== status) return false;
+    if(!options.ignoreAttention && attention !== 'all' && row.attentionType !== attention) return false;
+    if(company !== 'all' && row.company !== company) return false;
+    if(!options.ignoreSupplier && supplier !== 'all'){
+      if(supplier === 'Unmapped'){
+        if(row.suppliers?.length) return false;
+      }else if(!(row.suppliers || []).includes(supplier)){
+        return false;
+      }
+    }
+    if(group !== 'all' && row.itemGroup !== group) return false;
+    if(search && !row.sku.includes(search)) return false;
+    return true;
+  }).sort((a,b) => attentionPriority(a.attentionType)-attentionPriority(b.attentionType)
+    || (Number(a.coverWeeks ?? 999999)-Number(b.coverWeeks ?? 999999))
+    || statusPriority(a.status)-statusPriority(b.status)
+    || Number(b.needCtn || 0)-Number(a.needCtn || 0)
+    || a.sku.localeCompare(b.sku));
+}
+function onLocationChange(){
+  syncSplitFilterOptions(true);
+  renderAll();
+}
+function syncSplitFilterOptions(resetAgent = false){
+  const locationEl = document.getElementById('location-filter');
+  const agentEl = document.getElementById('agent-filter');
+  if(!locationEl || !agentEl) return;
+
+  const prevLocation = locationEl.value || 'all';
+  const locations = Object.keys(LOCATION_AGENTS);
+  locationEl.innerHTML = '<option value="all">All locations</option>' +
+    locations.map(location => `<option value="${location}">${location}</option>`).join('');
+  locationEl.value = locations.includes(prevLocation) ? prevLocation : 'all';
+
+  const activeMapped = new Set(SALES_STATE.mappedAgents?.length ? SALES_STATE.mappedAgents : Object.keys(AGENT_LOCATION));
+  const agents = (locationEl.value === 'all'
+    ? Object.keys(AGENT_LOCATION)
+    : (LOCATION_AGENTS[locationEl.value] || []))
+    .filter(agent => activeMapped.has(agent))
+    .sort((a,b) => a.localeCompare(b));
+  const prevAgent = resetAgent ? 'all' : (agentEl.value || 'all');
+  agentEl.innerHTML = '<option value="all">All agents</option>' +
+    agents.map(agent => `<option value="${agent}">${agent}</option>`).join('');
+  agentEl.value = agents.includes(prevAgent) ? prevAgent : 'all';
+}
+function syncGroupFilterOptions(){
+  const groupEl = document.getElementById('group-filter');
+  if(!groupEl) return;
+  const prev = groupEl.value || 'all';
+  const salesGroups = [...(SALES_STATE.bySku?.values?.() || [])].map(rec => String(rec.itemGroup || '').trim().toUpperCase());
+  const groups = [...new Set([...DAILY_STOCK_STATE.groupMap.values(), ...salesGroups].filter(Boolean))]
+    .sort((a,b) => a.localeCompare(b));
+  groupEl.innerHTML = '<option value="all">All groups</option>' +
+    groups.map(group => `<option value="${escapeHtml(group)}">${escapeHtml(group)}</option>`).join('');
+  groupEl.value = groups.includes(prev) ? prev : 'all';
+}
+function syncSupplierFilterOptions(names = []){
+  const supplierEl = document.getElementById('supplier-filter');
+  if(!supplierEl) return;
+  const prev = supplierEl.value || 'all';
+  const suppliers = [...new Set(['8COM','CCOM', ...(names || [])])]
+    .filter(Boolean)
+    .sort((a,b) => a.localeCompare(b));
+  supplierEl.innerHTML = '<option value="all">All suppliers</option>' +
+    suppliers.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('') +
+    '<option value="Unmapped">Unmapped</option>';
+  supplierEl.value = prev === 'Unmapped' || suppliers.includes(prev) ? prev : 'all';
+}
+
+function renderAll(){
+  syncGroupFilterOptions();
+  syncSplitFilterOptions(false);
+  const computed = computeRows();
+  syncSupplierFilterOptions(computed.supplierNames);
+  const rows = computed.rows;
+  const shown = filteredRows(rows);
+  const shownStock = shown.filter(row => !row.missingInput);
+  const visibleRows = filteredRows(rows, {ignoreStatus:true, ignoreAttention:true});
+  const shownMissing = visibleRows.filter(row => row.missingInput);
+  const visibleStockedCount = visibleRows.filter(row => !row.missingInput).length;
+  const splitSource = filteredRows(rows, {ignoreAttention:true});
+  const urgent = rows.filter(r => ['config','critical','watch','below_mc'].includes(r.attentionType));
+  const critical = rows.filter(r => r.attentionType === 'critical');
+  const belowMc = rows.filter(r => r.status === 'short' || r.status === 'out');
+  const totalCtn = rows.reduce((sum,r) => sum + (Number(r.currentCtn) || 0), 0);
+  const needCtn = belowMc.reduce((sum,r) => sum + (Number(r.needCtn) || 0), 0);
+  document.getElementById('k-total-ctn').textContent = fmt(totalCtn);
+  document.getElementById('k-short').textContent = urgent.length;
+  document.getElementById('k-need').textContent = fmt(needCtn);
+  document.getElementById('k-loaded').textContent = computed.stockCount;
+  document.getElementById('stock-meta').textContent = `${computed.stockCount} stock rows`;
+  document.getElementById('master-meta').textContent = `${computed.masterCount} SKUs`;
+  document.getElementById('supplier-meta').textContent = `${computed.supplierNames.length} suppliers / ${computed.supplierSkuCount} mapped SKUs`;
+  document.getElementById('result-meta').textContent = `${shownStock.length} shown / ${visibleStockedCount} stocked SKUs`;
+  document.getElementById('missing-meta').textContent = `${shownMissing.length} missing / ${visibleRows.length} filtered SKUs`;
+  document.getElementById('parse-tag').textContent = `${critical.length} critical / ${belowMc.length} below MC / need ${fmt(needCtn)} CTN`;
+  document.getElementById('sales-tag').textContent = salesStatusText();
+  document.getElementById('daily-tag').textContent = dailyStockStatusText();
+  renderWatch(rows);
+  renderTable(shownStock);
+  renderMissingTable(shownMissing);
+  renderSplit(splitSource);
+  renderSupplierAdvice(filteredRows(rows, {ignoreSupplier:true}));
+  renderIssues(computed);
+}
+function salesStatusText(){
+  if(!SALES_STATE.loaded) return 'Demand history loading';
+  if(SALES_STATE.error) return `Demand history error: ${SALES_STATE.error}`;
+  const span = SALES_STATE.months.length ? SALES_STATE.months.join(', ') : '-';
+  const mapped = SALES_STATE.mappedAgents?.length ? ` / ${SALES_STATE.mappedAgents.length} mapped agents` : '';
+  return `Demand ${span} / ${SALES_STATE.skuCount} SKUs${mapped}`;
+}
+
+function renderWatch(rows){
+  const target = document.getElementById('watch-strip');
+  const top = rows.filter(row => !['ok','missing','loading'].includes(row.attentionType))
+    .sort((a,b) => attentionPriority(a.attentionType)-attentionPriority(b.attentionType)
+      || (Number(a.coverWeeks ?? 999999)-Number(b.coverWeeks ?? 999999))
+      || Number(b.needCtn || 0)-Number(a.needCtn || 0))
+    .slice(0,6);
+  if(!top.length){
+    target.innerHTML = '<div class="empty" style="grid-column:1/-1;">No SKU needs attention in the current input.</div>';
+    return;
+  }
+  target.innerHTML = top.map(row => `
+    <div class="watch-card ${row.attentionType}">
+      <div class="watch-top">
+        <div>
+          <div class="watch-name">${escapeHtml(row.sku)}</div>
+          <div class="watch-sub">${attentionLabel(row.attentionType)} - CTN ${fmt(row.currentCtn)} / MC ${fmt(row.mc)}</div>
+        </div>
+        <div class="watch-qty">${row.coverWeeks == null ? fmt(row.needCtn) : fmtCover(row.coverWeeks)}</div>
+      </div>
+      <div class="watch-sub">3M avg ${fmt(row.avgSalesCtn)} CTN / need ${fmt(row.needCtn)} CTN / Top ${escapeHtml(topDriverLabel(row.topDriver))}</div>
+    </div>
+  `).join('');
+}
+
+function renderTable(rows){
+  const target = document.getElementById('result-table');
+  if(!rows.length){
+    target.innerHTML = '<div class="empty">No stocked SKUs match the current filters. Missing stock rows are in the Missing / No Input tab.</div>';
+    return;
+  }
+  const maxRatio = Math.max(1, ...rows.map(r => r.mc ? Math.min(1.4, Number(r.currentCtn || 0) / r.mc) : 0));
+  target.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr>
+      <th>Status</th><th>Attention</th><th>Item Code</th><th>Company</th><th>Supplier</th><th>Item Group</th><th class="r">Stock Qty</th><th class="r">Pkt/Ctn</th>
+      <th class="r">Current CTN</th><th class="r">MC</th><th class="r">Need CTN</th><th class="r">Need Pkt</th>
+      <th class="r">${escapeHtml(SALES_STATE.currentMonth || 'Cur')} Sales</th>
+      <th class="r">${escapeHtml(SALES_STATE.previousMonth || 'Prev')} Sales</th>
+      <th class="r">3M Avg</th><th class="r">Cover</th><th>Top Driver</th><th>Note</th>
+    </tr></thead>
+    <tbody>
+      ${rows.map(row => {
+        const ratio = row.mc ? Math.max(0, Number(row.currentCtn || 0) / row.mc) : 0;
+        const width = Math.max(2, Math.min(100, ratio / maxRatio * 100));
+        return `<tr>
+          <td><span class="pill ${row.status}">${statusLabel(row.status)}</span></td>
+          <td><span class="pill ${row.attentionType}">${attentionLabel(row.attentionType)}</span></td>
+          <td><span class="sku">${escapeHtml(row.sku)}</span></td>
+          <td>${escapeHtml(row.company || '-')}</td>
+          <td>${escapeHtml(supplierLabel(row))}</td>
+          <td>${escapeHtml(row.itemGroup || '-')}</td>
+          <td class="r">${row.stockQty == null ? '<span class="muted">-</span>' : fmt(row.stockQty)}</td>
+          <td class="r">${row.pktCtn ? fmt(row.pktCtn) : '<span class="muted">-</span>'}</td>
+          <td class="r">
+            ${row.currentCtn == null ? '<span class="muted">-</span>' : `<b>${fmt(row.currentCtn)}</b><div class="bar"><div class="bar-fill ${row.status}" style="width:${width}%"></div></div>`}
+          </td>
+          <td class="r">${fmt(row.mc)}</td>
+          <td class="r">${row.needCtn == null ? '<span class="muted">-</span>' : `<b>${fmt(row.needCtn)}</b>`}</td>
+          <td class="r">${row.needPkt == null ? '<span class="muted">-</span>' : fmt(row.needPkt)}</td>
+          <td class="r">${fmt(row.currentSalesCtn)}</td>
+          <td class="r">${fmt(row.previousSalesCtn)}</td>
+          <td class="r">${fmt(row.avgSalesCtn)}</td>
+          <td class="r">${fmtCover(row.coverWeeks)}</td>
+          <td>${escapeHtml(topDriverLabel(row.topDriver))}<div class="driver">${row.topDriver ? `Avg ${fmt(row.topDriver.avgSalesCtn)} CTN` : ''}</div></td>
+          <td><div class="note">${escapeHtml(row.issue || row.attentionNote || '')}</div></td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table></div>`;
+}
+
+function renderMissingTable(rows){
+  const target = document.getElementById('missing-table');
+  if(!target) return;
+  if(!rows.length){
+    target.innerHTML = '<div class="empty">No missing stock input for the current company, group, or search filters.</div>';
+    return;
+  }
+  target.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr>
+      <th>Status</th><th>SKU</th><th>Company</th><th>Supplier</th><th>Item Group</th><th class="r">Pkt/Ctn</th><th class="r">MC</th>
+      <th class="r">${escapeHtml(SALES_STATE.currentMonth || 'Cur')} Sales</th>
+      <th class="r">${escapeHtml(SALES_STATE.previousMonth || 'Prev')} Sales</th>
+      <th class="r">3M Avg</th><th>Top Driver</th><th>Note</th>
+    </tr></thead>
+    <tbody>${rows.map(row => `
+      <tr>
+        <td><span class="pill missing">No Input</span></td>
+        <td><span class="sku">${escapeHtml(row.sku)}</span></td>
+        <td>${escapeHtml(row.company || '-')}</td>
+        <td>${escapeHtml(supplierLabel(row))}</td>
+        <td>${escapeHtml(row.itemGroup || '-')}</td>
+        <td class="r">${row.pktCtn ? fmt(row.pktCtn) : '<span class="muted">-</span>'}</td>
+        <td class="r">${fmt(row.mc)}</td>
+        <td class="r">${fmt(row.currentSalesCtn)}</td>
+        <td class="r">${fmt(row.previousSalesCtn)}</td>
+        <td class="r">${fmt(row.avgSalesCtn)}</td>
+        <td>${escapeHtml(topDriverLabel(row.topDriver))}<div class="driver">${row.topDriver ? `Avg ${fmt(row.topDriver.avgSalesCtn)} CTN` : ''}</div></td>
+        <td><div class="note">SKU is in master but not in the current stock export.</div></td>
+      </tr>
+    `).join('')}</tbody>
+  </table></div>`;
+}
+
+function splitAttention(row){
+  if(row.avgSalesCtn > 0 && row.coverWeeks != null && row.coverWeeks < CRITICAL_COVER_WEEKS) return 'critical';
+  if(row.avgSalesCtn > 0 && row.coverWeeks != null && row.coverWeeks < WATCH_COVER_WEEKS) return 'watch';
+  return 'ok';
+}
+function splitRowsForSku(stockRow){
+  const rec = SALES_STATE.bySku.get(cleanSku(stockRow.sku));
+  if(!rec || !rec.locations?.size) return [];
+  const totalAvg = rec.avgSalesCtn || 0;
+  const selectedLocation = document.getElementById('location-filter')?.value || 'all';
+  const selectedAgent = document.getElementById('agent-filter')?.value || 'all';
+  const out = [];
+  rec.locations.forEach((locRec, location) => {
+    if(selectedLocation !== 'all' && location !== selectedLocation) return;
+    locRec.agents.forEach((agentRec, agent) => {
+      if(selectedAgent !== 'all' && agent !== selectedAgent) return;
+      const avg = Number(agentRec.avgSalesCtn || 0);
+      if(avg <= 0) return;
+      const rawAgentStockQty = stockQtyForAgent(stockRow.sku, agent);
+      const agentStockQty = rawAgentStockQty == null ? 0 : rawAgentStockQty;
+      const agentStockCtn = stockRow.pktCtn > 0 ? agentStockQty / stockRow.pktCtn : null;
+      const coverBaseCtn = agentStockCtn;
+      const coverWeeks = coverBaseCtn != null ? (Number(coverBaseCtn || 0) / avg) * WEEKS_PER_MONTH : null;
+      out.push({
+        sku:stockRow.sku,
+        suppliers:stockRow.suppliers || [],
+        supplierLabel:supplierLabel(stockRow),
+        location,
+        agent,
+        pktCtn:stockRow.pktCtn,
+        currentSalesCtn:agentRec.currentSalesCtn || 0,
+        previousSalesCtn:agentRec.previousSalesCtn || 0,
+        avgSalesCtn:avg,
+        share:totalAvg > 0 ? avg / totalAvg * 100 : 0,
+        coverWeeks,
+        agentStockQty,
+        agentStockCtn,
+        currentCtn:stockRow.currentCtn,
+        attentionType:splitAttention({avgSalesCtn:avg, coverWeeks})
+      });
+    });
+  });
+  return out;
+}
+function topAgentForLocation(locRec){
+  const agents = [...(locRec?.agents?.values?.() || [])]
+    .filter(agentRec => Number(agentRec.avgSalesCtn || 0) > 0)
+    .sort((a,b) => Number(b.avgSalesCtn || 0)-Number(a.avgSalesCtn || 0));
+  return agents[0] || null;
+}
+function locationRowsForSku(stockRow){
+  const rec = SALES_STATE.bySku.get(cleanSku(stockRow.sku));
+  if(!rec || !rec.locations?.size) return [];
+  const totalAvg = rec.avgSalesCtn || 0;
+  const selectedLocation = document.getElementById('location-filter')?.value || 'all';
+  const selectedAgent = document.getElementById('agent-filter')?.value || 'all';
+  const out = [];
+  rec.locations.forEach((locRec, location) => {
+    if(selectedLocation !== 'all' && location !== selectedLocation) return;
+    let currentSalesCtn = locRec.currentSalesCtn || 0;
+    let previousSalesCtn = locRec.previousSalesCtn || 0;
+    let avgSalesCtn = locRec.avgSalesCtn || 0;
+    let stockQty = stockQtyForLocation(stockRow.sku, location);
+    let topAgent = topAgentForLocation(locRec);
+    if(selectedAgent !== 'all'){
+      const agentRec = locRec.agents.get(selectedAgent);
+      if(!agentRec) return;
+      currentSalesCtn = agentRec.currentSalesCtn || 0;
+      previousSalesCtn = agentRec.previousSalesCtn || 0;
+      avgSalesCtn = agentRec.avgSalesCtn || 0;
+      stockQty = stockQtyForAgent(stockRow.sku, selectedAgent);
+      topAgent = agentRec;
+    }
+    if(avgSalesCtn <= 0) return;
+    stockQty = stockQty == null ? 0 : stockQty;
+    const stockCtn = stockRow.pktCtn > 0 ? stockQty / stockRow.pktCtn : null;
+    const coverBaseCtn = stockCtn;
+    const coverWeeks = coverBaseCtn != null ? (Number(coverBaseCtn || 0) / avgSalesCtn) * WEEKS_PER_MONTH : null;
+    out.push({
+      sku:stockRow.sku,
+      suppliers:stockRow.suppliers || [],
+      supplierLabel:supplierLabel(stockRow),
+      location,
+      topAgent:topAgent?.agent || '',
+      pktCtn:stockRow.pktCtn,
+      currentSalesCtn,
+      previousSalesCtn,
+      avgSalesCtn,
+      share:totalAvg > 0 ? avgSalesCtn / totalAvg * 100 : 0,
+      coverWeeks,
+      locationStockQty:stockQty,
+      locationStockCtn:stockCtn,
+      currentCtn:stockRow.currentCtn,
+      attentionType:splitAttention({avgSalesCtn, coverWeeks})
+    });
+  });
+  return out;
+}
+function renderSplit(rows){
+  const target = document.getElementById('split-table');
+  const locationTarget = document.getElementById('location-table');
+  const agentSummary = document.getElementById('split-summary');
+  const locationSummary = document.getElementById('location-summary');
+  const meta = document.getElementById('split-meta');
+  const locationMeta = document.getElementById('location-meta');
+  if(!target || !locationTarget || !agentSummary || !locationSummary || !meta || !locationMeta) return;
+
+  const attention = document.getElementById('attention-filter')?.value || 'all';
+  const allLocationRows = rows.flatMap(locationRowsForSku)
+    .sort((a,b) => attentionPriority(a.attentionType)-attentionPriority(b.attentionType)
+      || (Number(a.coverWeeks ?? 999999)-Number(b.coverWeeks ?? 999999))
+      || Number(b.avgSalesCtn || 0)-Number(a.avgSalesCtn || 0)
+      || a.location.localeCompare(b.location)
+      || a.sku.localeCompare(b.sku));
+  const locationRows = attention === 'all'
+    ? allLocationRows
+    : allLocationRows.filter(row => row.attentionType === attention);
+  const allSplitRows = rows.flatMap(splitRowsForSku)
+    .sort((a,b) => attentionPriority(a.attentionType)-attentionPriority(b.attentionType)
+      || Number(b.avgSalesCtn || 0)-Number(a.avgSalesCtn || 0)
+      || a.location.localeCompare(b.location)
+      || a.agent.localeCompare(b.agent)
+      || a.sku.localeCompare(b.sku));
+  const splitRows = attention === 'all'
+    ? allSplitRows
+    : allSplitRows.filter(row => row.attentionType === attention);
+
+  const shownLocation = locationRows.slice(0,80);
+  const shown = splitRows.slice(0,120);
+  const locationTotalAvg = locationRows.reduce((sum,row) => sum + (Number(row.avgSalesCtn) || 0), 0);
+  const locationCritical = locationRows.filter(row => row.attentionType === 'critical').length;
+  const locationWatch = locationRows.filter(row => row.attentionType === 'watch').length;
+  const topLocation = locationRows[0];
+  const agentTotalAvg = splitRows.reduce((sum,row) => sum + (Number(row.avgSalesCtn) || 0), 0);
+  const agentCritical = splitRows.filter(row => row.attentionType === 'critical').length;
+  const agentWatch = splitRows.filter(row => row.attentionType === 'watch').length;
+  const topAgent = splitRows[0];
+  locationMeta.textContent = `${shownLocation.length} shown / ${locationRows.length} location rows`;
+  meta.textContent = `${shown.length} shown / ${splitRows.length} agent rows`;
+  locationSummary.innerHTML = `
+    <div class="split-kpi"><div class="lbl">Location 3M Avg</div><div class="val">${fmt(locationTotalAvg)}</div></div>
+    <div class="split-kpi"><div class="lbl">Critical Locations</div><div class="val">${locationCritical}</div></div>
+    <div class="split-kpi"><div class="lbl">Watch Locations</div><div class="val">${locationWatch}</div></div>
+    <div class="split-kpi"><div class="lbl">Top Location</div><div class="val">${topLocation ? escapeHtml(topLocation.location) : '-'}</div><div class="driver">${topLocation ? `${escapeHtml(topLocation.sku)} / ${escapeHtml(topLocation.topAgent || '-')} / ${fmt(topLocation.avgSalesCtn)} CTN` : 'No mapped demand'}</div></div>
+  `;
+  agentSummary.innerHTML = `
+    <div class="split-kpi"><div class="lbl">Agent 3M Avg</div><div class="val">${fmt(agentTotalAvg)}</div></div>
+    <div class="split-kpi"><div class="lbl">Critical Agents</div><div class="val">${agentCritical}</div></div>
+    <div class="split-kpi"><div class="lbl">Watch Agents</div><div class="val">${agentWatch}</div></div>
+    <div class="split-kpi"><div class="lbl">Top Agent</div><div class="val">${topAgent ? escapeHtml(topAgent.agent) : '-'}</div><div class="driver">${topAgent ? `${escapeHtml(topAgent.location)} / ${escapeHtml(topAgent.sku)} / ${fmt(topAgent.avgSalesCtn)} CTN` : 'No mapped demand'}</div></div>
+  `;
+
+  if(!shownLocation.length){
+    locationTarget.innerHTML = '<div class="empty">No location-wise sales demand for the current filters.</div>';
+  }else{
+    locationTarget.innerHTML = `<div class="table-wrap"><table>
+      <thead><tr>
+        <th>Attention</th><th>Location</th><th>SKU</th><th>Supplier</th><th>Top Agent</th>
+        <th class="r">Location Stock Qty</th><th class="r">Location Stock CTN</th>
+        <th class="r">${escapeHtml(SALES_STATE.currentMonth || 'Cur')} Sales</th>
+        <th class="r">${escapeHtml(SALES_STATE.previousMonth || 'Prev')} Sales</th>
+        <th class="r">3M Avg</th><th class="r">Cover</th><th class="r">Demand Share</th><th class="r">Shared Stock CTN</th>
+      </tr></thead>
+      <tbody>${shownLocation.map(row => `
+        <tr>
+          <td><span class="pill ${row.attentionType}">${attentionLabel(row.attentionType)}</span></td>
+          <td>${escapeHtml(row.location)}</td>
+          <td><span class="sku">${escapeHtml(row.sku)}</span></td>
+          <td>${escapeHtml(supplierLabel(row))}</td>
+          <td><b>${escapeHtml(row.topAgent || '-')}</b></td>
+          <td class="r">${row.locationStockQty == null ? '<span class="muted">-</span>' : fmt(row.locationStockQty)}</td>
+          <td class="r">${row.locationStockCtn == null ? '<span class="muted">-</span>' : `<b>${fmt(row.locationStockCtn)}</b>`}</td>
+          <td class="r">${fmt(row.currentSalesCtn)}</td>
+          <td class="r">${fmt(row.previousSalesCtn)}</td>
+          <td class="r"><b>${fmt(row.avgSalesCtn)}</b></td>
+          <td class="r">${fmtCover(row.coverWeeks)}</td>
+          <td class="r">${fmt(row.share)}%</td>
+          <td class="r">${fmt(row.currentCtn)}</td>
+        </tr>
+      `).join('')}</tbody>
+    </table></div>`;
+  }
+
+  if(!shown.length){
+    target.innerHTML = '<div class="empty">No mapped agent/location sales demand for the current SKU filters.</div>';
+    return;
+  }
+
+  target.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr>
+      <th>Attention</th><th>Location</th><th>Agent</th><th>SKU</th><th>Supplier</th>
+      <th class="r">Location Stock Qty</th><th class="r">Location Stock CTN</th>
+      <th class="r">${escapeHtml(SALES_STATE.currentMonth || 'Cur')} Sales</th>
+      <th class="r">${escapeHtml(SALES_STATE.previousMonth || 'Prev')} Sales</th>
+      <th class="r">3M Avg</th><th class="r">Cover</th><th class="r">Demand Share</th><th class="r">Shared Stock CTN</th>
+    </tr></thead>
+    <tbody>${shown.map(row => `
+      <tr>
+        <td><span class="pill ${row.attentionType}">${attentionLabel(row.attentionType)}</span></td>
+        <td>${escapeHtml(row.location)}</td>
+        <td><b>${escapeHtml(row.agent)}</b></td>
+        <td><span class="sku">${escapeHtml(row.sku)}</span></td>
+        <td>${escapeHtml(supplierLabel(row))}</td>
+        <td class="r">${row.agentStockQty == null ? '<span class="muted">-</span>' : fmt(row.agentStockQty)}</td>
+        <td class="r">${row.agentStockCtn == null ? '<span class="muted">-</span>' : `<b>${fmt(row.agentStockCtn)}</b>`}</td>
+        <td class="r">${fmt(row.currentSalesCtn)}</td>
+        <td class="r">${fmt(row.previousSalesCtn)}</td>
+        <td class="r"><b>${fmt(row.avgSalesCtn)}</b></td>
+        <td class="r">${fmtCover(row.coverWeeks)}</td>
+        <td class="r">${fmt(row.share)}%</td>
+        <td class="r">${fmt(row.currentCtn)}</td>
+      </tr>
+    `).join('')}</tbody>
+  </table></div>`;
+}
+
+function supplierAdviceRows(rows){
+  const selectedSupplier = document.getElementById('supplier-filter')?.value || 'all';
+  const out = [];
+  rows.filter(row => !row.missingInput).forEach(row => {
+    const suppliers = row.suppliers?.length ? row.suppliers : ['Unmapped'];
+    suppliers.forEach(supplier => {
+      if(selectedSupplier !== 'all' && supplier !== selectedSupplier) return;
+      out.push({...row, adviceSupplier:supplier});
+    });
+  });
+  return out.sort((a,b) => attentionPriority(a.attentionType)-attentionPriority(b.attentionType)
+    || (Number(a.coverWeeks ?? 999999)-Number(b.coverWeeks ?? 999999))
+    || Number(b.avgSalesCtn || 0)-Number(a.avgSalesCtn || 0)
+    || String(a.adviceSupplier).localeCompare(String(b.adviceSupplier))
+    || a.sku.localeCompare(b.sku));
+}
+function renderSupplierAdvice(rows){
+  const target = document.getElementById('supplier-table');
+  const summary = document.getElementById('supplier-summary');
+  const meta = document.getElementById('supplier-advice-meta');
+  if(!target || !summary || !meta) return;
+  const adviceRows = supplierAdviceRows(rows);
+  const shown = adviceRows.slice(0,120);
+  const critical = adviceRows.filter(row => row.attentionType === 'critical').length;
+  const watch = adviceRows.filter(row => row.attentionType === 'watch').length;
+  const suppliers = new Set(adviceRows.map(row => row.adviceSupplier));
+  const top = adviceRows[0];
+  meta.textContent = `${shown.length} shown / ${adviceRows.length} supplier rows`;
+  summary.innerHTML = `
+    <div class="split-kpi"><div class="lbl">Suppliers</div><div class="val">${suppliers.size}</div></div>
+    <div class="split-kpi"><div class="lbl">Critical SKUs</div><div class="val">${critical}</div></div>
+    <div class="split-kpi"><div class="lbl">Watch SKUs</div><div class="val">${watch}</div></div>
+    <div class="split-kpi"><div class="lbl">Top Attention</div><div class="val">${top ? escapeHtml(top.adviceSupplier) : '-'}</div><div class="driver">${top ? `${escapeHtml(top.sku)} / ${fmtCover(top.coverWeeks)} / ${fmt(top.avgSalesCtn)} CTN avg` : 'No supplier rows'}</div></div>
+  `;
+  if(!shown.length){
+    target.innerHTML = '<div class="empty">No supplier advice rows match the current filters.</div>';
+    return;
+  }
+  target.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr>
+      <th>Supplier</th><th>Attention</th><th>SKU</th><th>Company</th><th>Item Group</th>
+      <th class="r">Current CTN</th><th class="r">MC</th><th class="r">Need CTN</th>
+      <th class="r">${escapeHtml(SALES_STATE.currentMonth || 'Cur')} Sales</th>
+      <th class="r">${escapeHtml(SALES_STATE.previousMonth || 'Prev')} Sales</th>
+      <th class="r">3M Avg</th><th class="r">Cover</th><th>Top Driver</th><th>Note</th>
+    </tr></thead>
+    <tbody>${shown.map(row => `
+      <tr>
+        <td><b>${escapeHtml(row.adviceSupplier)}</b></td>
+        <td><span class="pill ${row.attentionType}">${attentionLabel(row.attentionType)}</span></td>
+        <td><span class="sku">${escapeHtml(row.sku)}</span></td>
+        <td>${escapeHtml(row.company || '-')}</td>
+        <td>${escapeHtml(row.itemGroup || '-')}</td>
+        <td class="r"><b>${fmt(row.currentCtn)}</b></td>
+        <td class="r">${fmt(row.mc)}</td>
+        <td class="r">${fmt(row.needCtn)}</td>
+        <td class="r">${fmt(row.currentSalesCtn)}</td>
+        <td class="r">${fmt(row.previousSalesCtn)}</td>
+        <td class="r"><b>${fmt(row.avgSalesCtn)}</b></td>
+        <td class="r">${fmtCover(row.coverWeeks)}</td>
+        <td>${escapeHtml(topDriverLabel(row.topDriver))}<div class="driver">${row.topDriver ? `Avg ${fmt(row.topDriver.avgSalesCtn)} CTN` : ''}</div></td>
+        <td><div class="note">${escapeHtml(row.attentionNote || '')}</div></td>
+      </tr>
+    `).join('')}</tbody>
+  </table></div>`;
+}
+
+function renderIssues(computed){
+  const sales = SALES_STATE.error ? [{type:'Sales History', sku:'-', msg:SALES_STATE.error}] : [];
+  const excluded = SALES_STATE.excludedAgents?.length
+    ? [{type:'Location Split', sku:'-', msg:`Active agents without location mapping: ${SALES_STATE.excludedAgents.join(', ')}`}]
+    : [];
+  const daily = DAILY_STOCK_STATE.error && DAILY_STOCK_STATE.error !== 'No AutoCount stock export found'
+    ? [{type:'AutoCount Stock', sku:'-', msg:DAILY_STOCK_STATE.error}]
+    : [];
+  const issues = [...sales, ...daily, ...excluded, ...computed.masterIssues, ...computed.stockIssues, ...(computed.supplierIssues || []), ...(computed.unknownStock || [])];
+  document.getElementById('issue-meta').textContent = `${issues.length} issue${issues.length === 1 ? '' : 's'}`;
+  const target = document.getElementById('issue-list');
+  if(!issues.length){
+    target.innerHTML = '<div class="empty">No input issues found.</div>';
+    return;
+  }
+  target.innerHTML = issues.slice(0,80).map(issue => `
+    <div class="issue">
+      <span><b>${escapeHtml(issue.type)}</b> ${escapeHtml(issue.sku || '-')}</span>
+      <span>${escapeHtml(issue.msg)}</span>
+    </div>
+  `).join('');
+}
+
+function saveInputs(){
+  localStorage.setItem(LS_KEYS.stock, document.getElementById('stock-input').value);
+  localStorage.setItem(LS_KEYS.master, document.getElementById('master-input').value);
+  localStorage.setItem(LS_KEYS.supplier, document.getElementById('supplier-input').value);
+  const stamp = new Date().toLocaleString();
+  localStorage.setItem(LS_KEYS.saved, stamp);
+  document.getElementById('saved-tag').textContent = `Saved ${stamp}`;
+  renderAll();
+}
+function loadInputs(){
+  document.getElementById('stock-input').value = localStorage.getItem(LS_KEYS.stock) || '';
+  document.getElementById('master-input').value = localStorage.getItem(LS_KEYS.master) || DEFAULT_MASTER;
+  document.getElementById('supplier-input').value = localStorage.getItem(LS_KEYS.supplier) || DEFAULT_SUPPLIER_LISTING;
+  const saved = localStorage.getItem(LS_KEYS.saved);
+  document.getElementById('saved-tag').textContent = saved ? `Saved ${saved}` : 'Not saved yet';
+  setActiveView(localStorage.getItem(LS_KEYS.view) || 'stock');
+}
+function resetMaster(){
+  document.getElementById('master-input').value = DEFAULT_MASTER;
+  renderAll();
+}
+function resetSupplierListing(){
+  document.getElementById('supplier-input').value = DEFAULT_SUPPLIER_LISTING;
+  renderAll();
+}
+function clearStock(){
+  document.getElementById('stock-input').value = '';
+  renderAll();
+}
+function exportCsv(){
+  const rows = filteredRows(computeRows().rows);
+  const csv = [
+    ['Status','Attention','Item Code','Company','Supplier','Item Group','Stock Qty','Pkt/Ctn','Current CTN','MC','Need CTN','Need Pkt',`${SALES_STATE.currentMonth || 'Current'} Sales CTN`,`${SALES_STATE.previousMonth || 'Previous'} Sales CTN`,'3M Avg Sales CTN','Cover Weeks','Top Driver','Note'],
+    ...rows.map(r => [
+      statusLabel(r.status), attentionLabel(r.attentionType), r.sku, r.company || '', supplierLabel(r), r.itemGroup || '', r.stockQty ?? '', r.pktCtn,
+      r.currentCtn ?? '', r.mc, r.needCtn ?? '', r.needPkt ?? '', r.currentSalesCtn ?? '',
+      r.previousSalesCtn ?? '', r.avgSalesCtn ?? '', r.coverWeeks ?? '', topDriverLabel(r.topDriver), r.issue || r.attentionNote || ''
+    ])
+  ].map(row => row.map(cell => `"${String(cell ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `stock_monitor_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+loadInputs();
+renderAll();
+Promise.all([loadSalesHistory(), loadDailyStock(false)]).then(renderAll);
+</script>
+</body>
+</html>
