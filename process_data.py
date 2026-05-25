@@ -1769,6 +1769,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             ctn_cur = round(float(_history_rows[_history_rows[_bd_col] == cur_m]["qty_ctn"].sum()), 2) if not _history_rows.empty else 0.0
             ctn_prev1 = round(float(_history_rows[_history_rows[_bd_col] == prev1_m]["qty_ctn"].sum()), 2) if not _history_rows.empty else 0.0
             ctn_prev2 = round(float(_history_rows[_history_rows[_bd_col] == prev2_m]["qty_ctn"].sum()), 2) if not _history_rows.empty else 0.0
+            ctn_prev3 = round(float(_history_rows[_history_rows[_bd_col] == prev3_m]["qty_ctn"].sum()), 2) if not _history_rows.empty else 0.0
 
             _8_col = "tranx_mth_full" if "tranx_mth_full" in d_eightcom_invoice_rows.columns else "paid_on"
             eightcom_ctn_cur = round(float(d_eightcom_invoice_rows[d_eightcom_invoice_rows[_8_col] == cur_m]["qty_ctn"].sum()), 2) if not d_eightcom_invoice_rows.empty else 0.0
@@ -1784,18 +1785,32 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 grp_cols = ["item_code"]
                 if "agent" in m_rows.columns:
                     grp_cols.append("agent")
-                grp = m_rows.groupby(grp_cols)["qty_ctn"].sum().reset_index()
+                if "local_subtotal" not in m_rows.columns:
+                    m_rows = m_rows.copy()
+                    m_rows["local_subtotal"] = 0.0
+                grp = m_rows.groupby(grp_cols).agg(
+                    qty_ctn=("qty_ctn", "sum"),
+                    amount=("local_subtotal", "sum")
+                ).reset_index()
                 grp = grp[grp["qty_ctn"].abs() > 0.0001].sort_values("qty_ctn", ascending=False)
-                return [{
-                    "item": str(r["item_code"]),
-                    "ctn": round(float(r["qty_ctn"]), 2),
-                    "agent": str(r["agent"]) if "agent" in r and pd.notna(r["agent"]) else ""
-                } for _, r in grp.iterrows()]
+                rows = []
+                for _, r in grp.iterrows():
+                    ctn = round(float(r["qty_ctn"]), 2)
+                    amount = round(float(r.get("amount") or 0), 2)
+                    rows.append({
+                        "item": str(r["item_code"]),
+                        "ctn": ctn,
+                        "amount": amount,
+                        "rm_ctn": round(amount / ctn, 2) if abs(ctn) > 0.0001 else 0,
+                        "agent": str(r["agent"]) if "agent" in r and pd.notna(r["agent"]) else ""
+                    })
+                return rows
 
             month_breakdown = {
                 cur_m:   item_breakdown(cur_m),
                 prev1_m: item_breakdown(prev1_m),
                 prev2_m: item_breakdown(prev2_m),
+                prev3_m: item_breakdown(prev3_m),
             }
 
             # Invoice-basis 4-month SKU history for the "未购买" filter.
@@ -1979,6 +1994,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 "ctn_cur":            ctn_cur,
                 "ctn_prev1":          ctn_prev1,
                 "ctn_prev2":          ctn_prev2,
+                "ctn_prev3":          ctn_prev3,
                 "canggih_ctn_cur":    ctn_cur,
                 "canggih_ctn_prev1":  ctn_prev1,
                 "canggih_ctn_prev2":  ctn_prev2,

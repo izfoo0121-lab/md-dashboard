@@ -106,12 +106,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .ctn-tooltip-title{font-family:var(--display);font-size:20px;letter-spacing:.05em;margin-bottom:2px;}
 .ctn-tooltip-sub{font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:14px;}
 .ctn-tooltip-empty{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;padding:20px 0;}
-.ctn-item-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
+.ctn-item-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);}
 .ctn-item-row:last-child{border-bottom:none;}
 .ctn-item-code{font-family:var(--mono);font-size:12px;font-weight:500;}
 .ctn-item-agent{font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:2px;}
 .ctn-item-ctn{font-family:var(--display);font-size:18px;letter-spacing:.03em;color:var(--accent);}
 .ctn-item-unit{font-family:var(--mono);font-size:9px;color:var(--muted);margin-left:3px;}
+.ctn-item-amount{font-family:var(--mono);font-size:11px;color:var(--blue);font-weight:600;text-align:right;white-space:nowrap;}
+.ctn-item-price{font-family:var(--mono);font-size:8px;color:var(--muted);text-align:right;margin-top:1px;white-space:nowrap;}
 .kpi-hero{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px;position:relative;overflow:hidden;}
 .kpi-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--blue),var(--green),var(--accent));}
 .kpi-total-score{font-family:var(--display);font-size:56px;letter-spacing:.02em;line-height:1;}
@@ -186,14 +188,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 :root[data-theme="light"] .dc-badges button{background:#fff8e8!important;border-color:#cdbd9e!important;color:var(--text)!important;}
 :root[data-theme="light"] .status-inline{border:1px solid rgba(120,105,75,.18);}
 
-/* CTN 3-month bars */
+/* CTN 4-month bars */
 .ctn-section{margin:8px 0;}
 .ctn-header{display:flex;justify-content:space-between;margin-bottom:4px;}
 .ctn-header-lbl{font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
-.ctn-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
+.ctn-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;}
 .ctn-col{background:var(--surface);border-radius:6px;padding:5px 6px;text-align:center;}
 .ctn-col-val{font-family:var(--mono);font-size:12px;font-weight:500;}
 .ctn-col-lbl{font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:1px;}
+.ctn-col-amt{font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .ctn-col.cur{background:rgba(77,166,255,.1);border:1px solid rgba(77,166,255,.2);}
 :root[data-theme="light"] .ctn-col{background:#fffdf8;border:1px solid #eadfcd;}
 :root[data-theme="light"] .ctn-col.cur{background:#e8f3ff;border-color:#a9d0f5;}
@@ -1114,6 +1117,102 @@ function futureViewEmptyHtml(label) {
 // ── Month Selector ─────────────────────────────────────────────────────────
 let CURRENT_MONTH_FILE = 'dashboard_data.json'; // default
 let CURRENT_MONTH_SLUG = 'current'; // tracks selected month slug
+let DEBTOR_ANALYSIS_CACHE = undefined;
+
+async function loadDebtorAnalysisData() {
+  if (DEBTOR_ANALYSIS_CACHE !== undefined) return DEBTOR_ANALYSIS_CACHE;
+  try {
+    const r = await fetch('debtor_analysis_data.json?v=' + Date.now());
+    if (!r.ok) throw new Error('debtor analysis unavailable');
+    DEBTOR_ANALYSIS_CACHE = await r.json();
+  } catch(e) {
+    DEBTOR_ANALYSIS_CACHE = null;
+  }
+  return DEBTOR_ANALYSIS_CACHE;
+}
+
+function analysisRowToBreakdownItem(row) {
+  const ctn = Number(row?.ctn || 0);
+  const amount = Number(row?.amount || 0);
+  return {
+    item: row?.sku || row?.item || '',
+    ctn,
+    amount,
+    rm_ctn: ctn ? amount / ctn : 0,
+    agent: row?.agent || ''
+  };
+}
+
+function analysisRowsToBreakdownItems(analysisRows = []) {
+  const byItem = new Map();
+  analysisRows.map(analysisRowToBreakdownItem).filter(r => r.item).forEach(row => {
+    const key = `${row.item}||${row.agent || ''}`;
+    const existing = byItem.get(key) || { item: row.item, ctn: 0, amount: 0, agent: row.agent || '' };
+    existing.ctn += Number(row.ctn || 0);
+    existing.amount += Number(row.amount || 0);
+    byItem.set(key, existing);
+  });
+  return [...byItem.values()].map(row => ({
+    ...row,
+    ctn: Math.round(row.ctn * 100) / 100,
+    amount: Math.round(row.amount * 100) / 100,
+    rm_ctn: Math.abs(row.ctn) > 0.0001 ? row.amount / row.ctn : 0
+  })).sort((a, b) => Math.abs(b.ctn) - Math.abs(a.ctn));
+}
+
+function mergeAmountIntoBreakdownRows(existingRows, analysisRows) {
+  const analysisItems = analysisRowsToBreakdownItems(analysisRows || []);
+  if (!existingRows?.length) return analysisItems;
+  const used = new Set();
+  const merged = existingRows.map(row => {
+    const exactIdx = analysisItems.findIndex(r => r.item === row.item && (r.agent || '') === (row.agent || ''));
+    const itemIdx = exactIdx >= 0 ? exactIdx : analysisItems.findIndex(r => r.item === row.item);
+    const match = itemIdx >= 0 ? analysisItems[itemIdx] : null;
+    if (!match) return row;
+    used.add(itemIdx);
+    const ctn = Number(row.ctn || 0);
+    const amount = Number(match.amount || 0);
+    return {
+      ...row,
+      amount,
+      rm_ctn: ctn ? amount / ctn : (Number(match.rm_ctn) || 0)
+    };
+  });
+  analysisItems.forEach((item, idx) => {
+    if (!used.has(idx) && !existingRows.some(row => row.item === item.item)) merged.push(item);
+  });
+  return merged;
+}
+
+async function enrichMonthBreakdownsFromAnalysis() {
+  const analysis = await loadDebtorAnalysisData();
+  if (!analysis?.records?.length || !DATA?.agents) return;
+  const curMonth = DATA.current_month || analysis.current_month || '';
+  const monthLabels = [-3, -2, -1, 0].map(offset => shiftedMonthLabel(curMonth, offset)).filter(Boolean);
+  if (!monthLabels.length) return;
+  const monthSet = new Set(monthLabels);
+  const byDebtor = {};
+
+  analysis.records.forEach(row => {
+    if (!row?.debtor_code || !monthSet.has(row.month)) return;
+    byDebtor[row.debtor_code] ||= {};
+    byDebtor[row.debtor_code][row.month] ||= [];
+    byDebtor[row.debtor_code][row.month].push(row);
+  });
+
+  Object.values(DATA.agents || {}).forEach(agentData => {
+    const debtors = agentData?.debtor_cards?.debtors || [];
+    debtors.forEach(d => {
+      const debtorRows = byDebtor[d.debtor_code] || {};
+      d.month_breakdown ||= {};
+      monthLabels.forEach(label => {
+        d.month_breakdown[label] = mergeAmountIntoBreakdownRows(d.month_breakdown[label] || [], debtorRows[label] || []);
+      });
+      const prev3 = d.month_breakdown[monthLabels[0]] || [];
+      if (d.ctn_prev3 === undefined) d.ctn_prev3 = prev3.reduce((sum, row) => sum + (Number(row.ctn) || 0), 0);
+    });
+  });
+}
 
 async function loadMonthIndex(preloadedMonths) {
   try {
@@ -1191,6 +1290,7 @@ async function switchMonth(slug) {
     DATA = await r.json();
     DATA.is_future_view = false;
     CURRENT_MONTH_SLUG = requestedSlug;
+    await enrichMonthBreakdownsFromAnalysis();
     await SupabaseKpiSync.apply(DATA);
     await ensureBirthdayOverridesForMonth(DATA.current_month || '');
     if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
@@ -1272,6 +1372,7 @@ async function loadData() {
     } else {
       DATA.is_future_view = false;
     }
+    await enrichMonthBreakdownsFromAnalysis();
     // Fetch kpi_manual overrides from Supabase BEFORE init() so first render shows correct values
     await SupabaseKpiSync.apply(DATA);
     await ensureBirthdayOverridesForMonth(DATA.current_month || '');
@@ -2335,6 +2436,73 @@ function monthRows(d, monthKey) {
   return (d.month_breakdown || {})[monthKey] || [];
 }
 
+function fmtMoney(value) {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return 'RM 0';
+  const hasCents = Math.abs(n % 1) > 0.005;
+  return 'RM ' + n.toLocaleString('en-MY', {
+    minimumFractionDigits: hasCents ? 2 : 0,
+    maximumFractionDigits: 2
+  });
+}
+
+function itemAmountInfo(item) {
+  const raw = item?.amount;
+  const hasAmount = raw !== undefined && raw !== null && raw !== '' && Number.isFinite(Number(raw));
+  return { hasAmount, amount: hasAmount ? Number(raw) : 0 };
+}
+
+function monthAmountInfo(items) {
+  return (items || []).reduce((info, item) => {
+    const itemInfo = itemAmountInfo(item);
+    return {
+      hasAmount: info.hasAmount || itemInfo.hasAmount,
+      amount: info.amount + itemInfo.amount
+    };
+  }, { hasAmount: false, amount: 0 });
+}
+
+function shiftedMonthLabel(baseLabel, offset) {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const [mon, yr] = String(baseLabel || '').split(/\s+/);
+  const idx = months.indexOf(mon);
+  const yy = parseInt(yr, 10);
+  if (idx < 0 || !Number.isFinite(yy)) return '';
+  const fullYear = yr.length === 2 ? 2000 + yy : yy;
+  const dt = new Date(fullYear, idx + offset, 1);
+  return `${months[dt.getMonth()]} ${String(dt.getFullYear()).slice(-2)}`;
+}
+
+function getDebtorMonthTiles(d) {
+  const curMonth = DATA?.current_month || '';
+  const currentLabel = '\u672c\u6708';
+  const defs = [
+    { label: 'M-3', offset: -3, ctnKey: 'ctn_prev3' },
+    { label: 'M-2', offset: -2, ctnKey: 'ctn_prev2' },
+    { label: 'M-1', offset: -1, ctnKey: 'ctn_prev1' },
+    { label: currentLabel, offset: 0, ctnKey: 'ctn_cur' }
+  ];
+  return defs.map(def => {
+    const monthLabel = shiftedMonthLabel(curMonth, def.offset);
+    const items = monthRows(d, monthLabel);
+    const itemCtn = items.reduce((sum, item) => sum + (Number(item.ctn) || 0), 0);
+    const fallbackCtn = Number(d?.[def.ctnKey] || 0);
+    const amountInfo = monthAmountInfo(items);
+    return {
+      ...def,
+      monthLabel,
+      ctn: fallbackCtn || itemCtn,
+      amount: amountInfo.amount,
+      hasAmount: amountInfo.hasAmount
+    };
+  });
+}
+
+function fmtTileMoney(tile) {
+  if (tile?.hasAmount || !(Number(tile?.ctn) || 0)) return fmtMoney(tile?.amount || 0);
+  return 'RM -';
+}
+
 function sumItemCtn(d, monthKey, itemCode) {
   return monthRows(d, monthKey)
     .filter(r => (r.item || '') === itemCode)
@@ -3183,14 +3351,11 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
     if (!window._ctnBreakdowns) window._ctnBreakdowns = {};
     window._ctnBreakdowns[mbKey] = d.month_breakdown || {};
 
-    const mbMonths = Object.keys(d.month_breakdown || {});
-    const mb0 = mbMonths[2] || '';  // M-2
-    const mb1 = mbMonths[1] || '';  // M-1
-    const mb2 = mbMonths[0] || '';  // 本月
-
-    const ctn0 = d.ctn_prev2 ?? 0;
-    const ctn1 = d.ctn_prev1 ?? 0;
-    const ctn2 = d.ctn_cur   ?? 0;
+    const monthTiles = getDebtorMonthTiles(d);
+    const currentTile = monthTiles[monthTiles.length - 1] || { ctn: d.ctn_cur || 0 };
+    const prevTile = monthTiles[monthTiles.length - 2] || { ctn: d.ctn_prev1 || 0 };
+    const ctn1 = Number(prevTile.ctn || 0);
+    const ctn2 = Number(currentTile.ctn || 0);
     const trendIcon  = ctn2 > ctn1 ? '▲' : ctn2 < ctn1 ? '▼' : '→';
     const trendColor = ctn2 > ctn1 ? 'var(--green)' : ctn2 < ctn1 ? 'var(--red)' : 'var(--muted)';
 
@@ -3271,19 +3436,17 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
       <div class="dc-collapsible collapsed" id="dc-body-${mbKey}">
         <div class="ctn-section">
           <div class="ctn-header">
-            <span class="ctn-header-lbl">3-Month CTN</span>
-            <span style="font-family:var(--mono);font-size:9px;color:${trendColor}">${trendIcon} ${ctn2>0?fmtNum(ctn2)+' CTN':'本月未购买'}</span>
+            <span class="ctn-header-lbl">4-Month CTN / RM</span>
+            <span style="font-family:var(--mono);font-size:9px;color:${trendColor}">${trendIcon} ${ctn2>0?fmtNum(ctn2)+' CTN':'\u672c\u6708\u672a\u8d2d\u4e70'}</span>
           </div>
           <div class="ctn-grid">
-            <div class="ctn-col" onclick="showCtnBreakdown('${mbKey}','M-2','${mb0}')">
-              <div class="ctn-col-val" style="color:var(--muted)">${fmtNum(ctn0)}</div><div class="ctn-col-lbl">M-2</div>
-            </div>
-            <div class="ctn-col" onclick="showCtnBreakdown('${mbKey}','M-1','${mb1}')">
-              <div class="ctn-col-val" style="color:var(--muted)">${fmtNum(ctn1)}</div><div class="ctn-col-lbl">M-1</div>
-            </div>
-            <div class="ctn-col cur" onclick="showCtnBreakdown('${mbKey}','本月','${mb2}')">
-              <div class="ctn-col-val" style="color:var(--blue)">${fmtNum(ctn2)}</div><div class="ctn-col-lbl">本月</div>
-            </div>
+            ${monthTiles.map(tile => `
+              <div class="ctn-col ${tile.label === '\u672c\u6708' ? 'cur' : ''}" onclick="showCtnBreakdown('${mbKey}','${tile.label}','${tile.monthLabel}')">
+                <div class="ctn-col-val" style="color:${tile.label === '\u672c\u6708' ? 'var(--blue)' : 'var(--muted)'}">${fmtNum(tile.ctn)}</div>
+                <div class="ctn-col-lbl">${tile.label}</div>
+                <div class="ctn-col-amt">${fmtTileMoney(tile)}</div>
+              </div>
+            `).join('')}
           </div>
         </div>
 
@@ -5701,27 +5864,37 @@ function showCtnBreakdown(mbKey, label, monthLabel) {
   const breakdown = window._ctnBreakdowns?.[mbKey] || {};
   const items = breakdown[monthLabel] || [];
   const debtorCode = mbKey.split('_').slice(1).join('_');
-  const totalCtn = items.reduce((s, i) => s + (i.ctn || 0), 0);
+  const totalCtn = items.reduce((s, i) => s + (Number(i.ctn) || 0), 0);
+  const totalAmount = monthAmountInfo(items);
 
   document.getElementById('ctn-tt-title').textContent = `${label}  ·  ${monthLabel || '—'}`;
   document.getElementById('ctn-tt-sub').textContent =
-    `${debtorCode}  ·  Total: ${totalCtn % 1 === 0 ? totalCtn.toFixed(0) : totalCtn.toFixed(1)} CTN  ·  ${items.length} item${items.length !== 1 ? 's' : ''}`;
+    `${debtorCode}  ·  Total: ${totalCtn % 1 === 0 ? totalCtn.toFixed(0) : totalCtn.toFixed(1)} CTN  ·  ${totalAmount.hasAmount ? fmtMoney(totalAmount.amount) : 'RM -'}  ·  ${items.length} item${items.length !== 1 ? 's' : ''}`;
 
   const el = document.getElementById('ctn-tt-items');
   if (!items.length) {
-    el.innerHTML = `<div class="ctn-tooltip-empty">No purchases this month</div>`;
+    el.innerHTML = `<div class="ctn-tooltip-empty">No purchases for this period</div>`;
   } else {
-    el.innerHTML = items.map(item => `
-      <div class="ctn-item-row">
-        <div>
-          <div class="ctn-item-code">${item.item}</div>
-          ${item.agent ? `<div class="ctn-item-agent">sold by ${item.agent}</div>` : ''}
-        </div>
-        <div style="display:flex;align-items:baseline;gap:3px;">
-          <div class="ctn-item-ctn">${item.ctn % 1 === 0 ? item.ctn.toFixed(0) : item.ctn.toFixed(1)}</div>
-          <div class="ctn-item-unit">CTN</div>
-        </div>
-      </div>`).join('');
+    el.innerHTML = items.map(item => {
+      const ctn = Number(item.ctn || 0);
+      const amountInfo = itemAmountInfo(item || {});
+      const rmCtn = Number(item.rm_ctn || (ctn ? amountInfo.amount / ctn : 0));
+      return `
+        <div class="ctn-item-row">
+          <div>
+            <div class="ctn-item-code">${item.item}</div>
+            ${item.agent ? `<div class="ctn-item-agent">sold by ${item.agent}</div>` : ''}
+          </div>
+          <div>
+            <div class="ctn-item-amount">${amountInfo.hasAmount ? fmtMoney(amountInfo.amount) : 'RM -'}</div>
+            <div style="display:flex;align-items:baseline;justify-content:flex-end;gap:3px;">
+              <div class="ctn-item-ctn">${ctn % 1 === 0 ? ctn.toFixed(0) : ctn.toFixed(1)}</div>
+              <div class="ctn-item-unit">CTN</div>
+            </div>
+            <div class="ctn-item-price">${Number.isFinite(rmCtn) && rmCtn ? fmtMoney(rmCtn) + '/CTN' : ''}</div>
+          </div>
+        </div>`;
+    }).join('');
   }
 
   document.getElementById('ctn-tooltip-overlay').style.display = 'flex';
