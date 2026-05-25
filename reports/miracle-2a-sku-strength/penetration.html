@@ -88,6 +88,7 @@
       color: var(--ink);
     }
 
+    .month-select { min-width: 160px; }
     .wide-select { min-width: 330px; }
 
     .type-menu {
@@ -239,6 +240,32 @@
       color: var(--muted);
       font-size: 12px;
       font-weight: 700;
+    }
+
+    .trend-panel {
+      padding: 14px;
+      background: #fbfcf8;
+    }
+
+    .trend-kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .trend-chart {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .trend-svg {
+      display: block;
+      width: 100%;
+      height: 220px;
     }
 
     .state-pill {
@@ -456,8 +483,8 @@
 
     @media (max-width: 980px) {
       header, main, footer { padding-left: 18px; padding-right: 18px; }
-      .summary, .mini-grid { grid-template-columns: 1fr; }
-      .filters, .select, .wide-select, .type-menu, .nav-link { width: 100%; min-width: 0; }
+      .summary, .mini-grid, .trend-kpis { grid-template-columns: 1fr; }
+      .filters, .select, .month-select, .wide-select, .type-menu, .nav-link { width: 100%; min-width: 0; }
       .hint { white-space: normal; }
       table { font-size: 12px; }
       th, td { padding: 8px; }
@@ -474,7 +501,8 @@
   <main>
     <div class="toolbar">
       <div class="filters">
-        <select class="select" id="monthSelect" aria-label="Month"></select>
+        <select class="select month-select" id="fromMonthSelect" aria-label="From month"></select>
+        <select class="select month-select" id="toMonthSelect" aria-label="To month"></select>
         <select class="select" id="stateSelect" aria-label="State">
           <option value="">All states</option>
         </select>
@@ -495,7 +523,7 @@
     <section>
       <div class="section-head">
         <h2>Penetration Query</h2>
-        <span class="hint">Active debtor base vs selected SKU buyers in the same month</span>
+        <span class="hint">Active debtor base vs selected SKU buyers in the selected time frame</span>
       </div>
       <div class="toolbar" style="padding:14px;margin:0;border-bottom:1px solid var(--line);background:#fbfcf8">
         <div class="filters">
@@ -505,6 +533,14 @@
       </div>
       <div class="summary" id="summary"></div>
       <div class="mini-grid" id="movementSummary"></div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>Penetration Trend</h2>
+        <span class="hint">Month-by-month buyer coverage inside the selected time frame</span>
+      </div>
+      <div class="trend-panel" id="trendPanel"></div>
     </section>
 
     <section>
@@ -606,6 +642,40 @@
       return date.toLocaleString("en-MY", { month: "short", year: "numeric" });
     }
 
+    function monthShortLabel(month) {
+      const [year, value] = month.split("-");
+      const date = new Date(Number(year), Number(value) - 1, 1);
+      return date.toLocaleString("en-MY", { month: "short" });
+    }
+
+    function monthRange(from, to) {
+      const months = gapData().months || [];
+      const fromIndex = months.indexOf(from);
+      const toIndex = months.indexOf(to);
+      if (fromIndex < 0 && toIndex < 0) return months.length ? [months[months.length - 1]] : [];
+      const start = fromIndex < 0 ? toIndex : fromIndex;
+      const end = toIndex < 0 ? start : toIndex;
+      return months.slice(Math.min(start, end), Math.max(start, end) + 1);
+    }
+
+    function selectedMonths() {
+      return monthRange(selected("fromMonthSelect"), selected("toMonthSelect"));
+    }
+
+    function rangeLabel(months) {
+      if (!months.length) return "no selected period";
+      if (months.length === 1) return monthLabel(months[0]);
+      return `${monthLabel(months[0])} to ${monthLabel(months[months.length - 1])}`;
+    }
+
+    function previousRange(months) {
+      const allMonths = gapData().months || [];
+      if (!months.length) return [];
+      const firstIndex = allMonths.indexOf(months[0]);
+      if (firstIndex <= 0) return [];
+      return allMonths.slice(Math.max(0, firstIndex - months.length), firstIndex);
+    }
+
     function previousMonth(month) {
       const months = gapData().months || [];
       const index = months.indexOf(month);
@@ -651,9 +721,10 @@
       return "cell-zero";
     }
 
-    function scopeRecords(month) {
+    function scopeRecords(months) {
+      const monthSet = new Set(Array.isArray(months) ? months : [months]);
       return (gapData().records || []).filter(row => {
-        if (row.month !== month || Number(row.qty || 0) <= 0) return false;
+        if (!monthSet.has(row.month) || Number(row.qty || 0) <= 0) return false;
         return true;
       });
     }
@@ -765,10 +836,13 @@
         .map(([code, desc]) => `<option value="${escapeHtml(skuValue(code, desc))}">${escapeHtml(skuLabel(code, desc))}</option>`)
         .join("");
 
-      document.getElementById("monthSelect").innerHTML = months
+      const monthOptionsHtml = months
         .map(month => `<option value="${month}">${escapeHtml(monthLabel(month))}</option>`)
         .join("");
-      document.getElementById("monthSelect").value = months[months.length - 1] || "";
+      document.getElementById("fromMonthSelect").innerHTML = monthOptionsHtml;
+      document.getElementById("toMonthSelect").innerHTML = monthOptionsHtml;
+      document.getElementById("fromMonthSelect").value = months[months.length - 1] || "";
+      document.getElementById("toMonthSelect").value = months[months.length - 1] || "";
 
       initTypeOptions(typeOptions);
 
@@ -780,7 +854,7 @@
       document.getElementById("baseSkuSelect").innerHTML = `<option value="">All active accounts</option>${skuOptionsHtml}`;
       document.getElementById("targetSkuSelect").innerHTML = `<option value="">Select target SKU</option>${skuOptionsHtml}`;
 
-      ["monthSelect", "stateSelect", "agentSelect", "baseSkuSelect", "targetSkuSelect"].forEach(id => {
+      ["fromMonthSelect", "toMonthSelect", "stateSelect", "agentSelect", "baseSkuSelect", "targetSkuSelect"].forEach(id => {
         document.getElementById(id).addEventListener("change", () => {
           if (id === "stateSelect") document.getElementById("agentSelect").value = "";
           syncAgentOptions();
@@ -805,17 +879,19 @@
     }
 
     function buildSummary() {
-      const month = selected("monthSelect");
-      const prev = previousMonth(month);
-      const newWindowMonths = previousMonths(month, 3);
+      const months = selectedMonths();
+      const compareMonths = previousRange(months);
+      const month = months[months.length - 1] || "";
+      const prev = compareMonths[compareMonths.length - 1] || "";
+      const newWindowMonths = months.length ? previousMonths(months[0], 3) : [];
       const state = selected("stateSelect");
       const agent = selected("agentSelect");
       const baseSku = selected("baseSkuSelect");
       const targetSku = selected("targetSkuSelect");
       const activeAccounts = activeDebtors(state, agent);
       const activeCodes = new Set(activeAccounts.map(debtor => debtor.code));
-      const currentRows = rowsForCodes(scopeRecords(month), activeCodes);
-      const previousRows = prev ? rowsForCodes(scopeRecords(prev), activeCodes) : [];
+      const currentRows = rowsForCodes(scopeRecords(months), activeCodes);
+      const previousRows = compareMonths.length ? rowsForCodes(scopeRecords(compareMonths), activeCodes) : [];
       const previous3Rows = rowsForCodes((gapData().records || []).filter(row => newWindowMonths.includes(row.month) && Number(row.qty || 0) > 0), activeCodes);
       const base = baseSku ? baseCodes(currentRows, baseSku) : activeCodes;
       const prevBase = baseSku ? baseCodes(previousRows, baseSku) : activeCodes;
@@ -838,7 +914,11 @@
 
       return {
         month,
+        months,
         prev,
+        compareMonths,
+        rangeLabel: rangeLabel(months),
+        compareLabel: compareMonths.length ? rangeLabel(compareMonths) : "",
         newWindowMonths,
         state,
         agent,
@@ -868,6 +948,34 @@
         new3mBuyers,
         repeat3mBuyers,
       };
+    }
+
+    function buildTrendRows(summary) {
+      if (!summary.targetSku) return [];
+      return summary.months.map(month => {
+        const currentRows = rowsForCodes(scopeRecords(month), summary.activeCodes);
+        const prev = previousMonth(month);
+        const previousRows = prev ? rowsForCodes(scopeRecords(prev), summary.activeCodes) : [];
+        const base = summary.baseSku ? baseCodes(currentRows, summary.baseSku) : summary.activeCodes;
+        const prevBase = summary.baseSku ? baseCodes(previousRows, summary.baseSku) : summary.activeCodes;
+        const targetRows = rowsForSku(currentRows, summary.targetSku, base);
+        const prevTargetRows = rowsForSku(previousRows, summary.targetSku, prevBase);
+        const buyers = intersectSet(base, rowCodes(targetRows));
+        const prevBuyers = intersectSet(prevBase, rowCodes(prevTargetRows));
+        const totals = sumRows(targetRows);
+        const prevTotals = sumRows(prevTargetRows);
+        return {
+          month,
+          base: base.size,
+          buyers: buyers.size,
+          missing: Math.max(0, base.size - buyers.size),
+          penetration: base.size ? buyers.size / base.size * 100 : 0,
+          qty: totals.qty,
+          sales: totals.sales,
+          buyerDelta: buyers.size - prevBuyers.size,
+          qtyDelta: totals.qty - prevTotals.qty,
+        };
+      });
     }
 
     function buildAgentRows(summary) {
@@ -948,7 +1056,7 @@
         const baseTotals = sumRows(summary.currentRows.filter(row => summary.base.has(row.code)));
         document.getElementById("summary").innerHTML = `
           <div class="summary-card"><b>${fmt.format(summary.base.size)}</b><span>Active account base | ${escapeHtml(baseLabel)}</span></div>
-          <div class="summary-card"><b>${fmt.format(baseTotals.qty)}</b><span>Base CTN in selected month</span></div>
+          <div class="summary-card"><b>${fmt.format(baseTotals.qty)}</b><span>Base CTN in selected period</span></div>
           <div class="summary-card"><b>-</b><span>Select a target SKU to calculate penetration</span></div>
           <div class="summary-card"><b>-</b><span>Agent target coverage will appear after selection</span></div>
         `;
@@ -964,25 +1072,115 @@
       const buyerDelta = summary.penetrated.size - summary.prevPenetrated.size;
       const qtyDelta = summary.currentTotals.qty - summary.prevTotals.qty;
       const ctnPerBuyer = summary.penetrated.size ? summary.currentTotals.qty / summary.penetrated.size : 0;
-      const prevLabel = summary.prev ? monthLabel(summary.prev) : "no previous month";
+      const compareLabel = summary.compareLabel || "no previous period";
       const newWindowLabel = summary.newWindowMonths.length ? summary.newWindowMonths.map(monthLabel).join(", ") : "no previous 3-month window";
 
       document.getElementById("summary").innerHTML = `
         <div class="summary-card"><b>${pct(penetration)}</b><span>${escapeHtml(targetLabel)} penetration from ${escapeHtml(baseLabel)}</span></div>
-        <div class="summary-card"><b>${fmt.format(summary.penetrated.size)}</b><span>Target buyers ${trendBadge(buyerDelta, `Compared with ${prevLabel}`)}</span></div>
+        <div class="summary-card"><b>${fmt.format(summary.penetrated.size)}</b><span>Target buyers ${trendBadge(buyerDelta, `Compared with ${compareLabel}`)}</span></div>
         <div class="summary-card"><b>${fmt.format(summary.missing.size)}</b><span>Active base not carrying target SKU</span></div>
-        <div class="summary-card"><b>${fmt.format(summary.currentTotals.qty)}</b><span>Target CTN ${trendBadge(qtyDelta, `Compared with ${prevLabel}`)}</span></div>
+        <div class="summary-card"><b>${fmt.format(summary.currentTotals.qty)}</b><span>Target CTN ${trendBadge(qtyDelta, `Compared with ${compareLabel}`)}</span></div>
       `;
 
       document.getElementById("movementSummary").innerHTML = `
-        <div class="mini-card"><strong>${fmt.format(summary.base.size)}</strong><span>Active account base | ${escapeHtml(baseLabel)}</span></div>
+        <div class="mini-card"><strong>${fmt.format(summary.base.size)}</strong><span>${escapeHtml(summary.rangeLabel)} base | ${escapeHtml(baseLabel)}</span></div>
         <div class="mini-card"><strong>${fmt.format(ctnPerBuyer)}</strong><span>CTN per target buyer</span></div>
-        <div class="mini-card"><strong>${fmt.format(summary.newBuyers.size)} new / ${fmt.format(summary.lostBuyers.size)} lost</strong><span>${fmt.format(summary.retainedBuyers.size)} retained target buyers vs previous month</span></div>
+        <div class="mini-card"><strong>${fmt.format(summary.newBuyers.size)} new / ${fmt.format(summary.lostBuyers.size)} lost</strong><span>${fmt.format(summary.retainedBuyers.size)} retained target buyers vs ${escapeHtml(compareLabel)}</span></div>
         <div class="mini-card"><strong>${fmt.format(summary.new3mBuyers.size)} New 3M</strong><span>${fmt.format(summary.repeat3mBuyers.size)} bought in prior window | ${escapeHtml(newWindowLabel)}</span></div>
       `;
     }
 
-    function renderAgentTable(rows, hasTarget) {
+    function renderTrendSvg(rows) {
+      if (!rows.length) return "";
+      const width = 720;
+      const height = 220;
+      const padX = 44;
+      const padY = 26;
+      const maxValue = Math.max(10, ...rows.map(row => row.penetration));
+      const plotWidth = width - padX * 2;
+      const plotHeight = height - padY * 2 - 18;
+      const xFor = index => rows.length === 1 ? width / 2 : padX + (plotWidth * index / (rows.length - 1));
+      const yFor = value => padY + plotHeight - (plotHeight * Number(value || 0) / maxValue);
+      const points = rows.map((row, index) => [xFor(index), yFor(row.penetration)]);
+      const path = points.map(([x, y], index) => `${index ? "L" : "M"} ${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
+      const area = `${path} L ${points[points.length - 1][0].toFixed(1)} ${(padY + plotHeight).toFixed(1)} L ${points[0][0].toFixed(1)} ${(padY + plotHeight).toFixed(1)} Z`;
+      const gridLines = [0, 25, 50, 75, 100].filter(value => value <= maxValue);
+      return `
+        <svg class="trend-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Penetration trend chart">
+          ${gridLines.map(value => {
+            const y = yFor(value);
+            return `<line x1="${padX}" y1="${y.toFixed(1)}" x2="${width - padX}" y2="${y.toFixed(1)}" stroke="#dce3da" stroke-width="1"/><text x="10" y="${(y + 4).toFixed(1)}" fill="#627064" font-size="11">${value}%</text>`;
+          }).join("")}
+          <path d="${area}" fill="#e1f0f2" opacity="0.82"></path>
+          <path d="${path}" fill="none" stroke="#287985" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+          ${points.map(([x, y], index) => `
+            <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5" fill="#23644a"></circle>
+            <text x="${x.toFixed(1)}" y="${(height - 8).toFixed(1)}" text-anchor="middle" fill="#627064" font-size="11">${escapeHtml(monthShortLabel(rows[index].month))}</text>
+          `).join("")}
+        </svg>
+      `;
+    }
+
+    function renderTrend(summary, rows) {
+      const panel = document.getElementById("trendPanel");
+      if (!summary.targetSku) {
+        panel.innerHTML = `<div class="empty">Select a target SKU to trace penetration month by month.</div>`;
+        return;
+      }
+      if (!rows.length) {
+        panel.innerHTML = `<div class="empty">No month-by-month trend data for this selection.</div>`;
+        return;
+      }
+      const first = rows[0];
+      const last = rows[rows.length - 1];
+      const penetrationDelta = last.penetration - first.penetration;
+      const buyerDelta = last.buyers - first.buyers;
+      const qtyDelta = last.qty - first.qty;
+      panel.innerHTML = `
+        <div class="trend-kpis">
+          <div class="mini-card"><strong>${pct(first.penetration)} -> ${pct(last.penetration)}</strong><span>Penetration ${trendBadge(Number(penetrationDelta.toFixed(1)), `${monthLabel(first.month)} to ${monthLabel(last.month)}`)}</span></div>
+          <div class="mini-card"><strong>${fmt.format(first.buyers)} -> ${fmt.format(last.buyers)}</strong><span>Target buyers ${trendBadge(buyerDelta)}</span></div>
+          <div class="mini-card"><strong>${fmt.format(first.qty)} -> ${fmt.format(last.qty)}</strong><span>CTN ${trendBadge(Number(qtyDelta.toFixed(2)))}</span></div>
+          <div class="mini-card"><strong>${fmt.format(last.missing)}</strong><span>Missing active base in ${escapeHtml(monthLabel(last.month))}</span></div>
+        </div>
+        <div class="trend-chart">${renderTrendSvg(rows)}</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th class="num">Base</th>
+                <th class="num">Buyers</th>
+                <th>Penetration</th>
+                <th class="num">Missing</th>
+                <th class="num">CTN</th>
+                <th class="num">MoM Deb.</th>
+                <th class="num">MoM CTN</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(row => `
+                <tr>
+                  <td><b>${escapeHtml(monthLabel(row.month))}</b></td>
+                  <td class="num">${fmt.format(row.base)}</td>
+                  <td class="num">${fmt.format(row.buyers)}</td>
+                  <td class="bar-cell">
+                    <div class="bar-label"><span>${pct(row.penetration)}</span><span>${fmt.format(row.buyers)} / ${fmt.format(row.base)}</span></div>
+                    <div class="progress"><span style="width:${Math.max(2, Math.min(100, row.penetration))}%"></span></div>
+                  </td>
+                  <td class="num">${fmt.format(row.missing)}</td>
+                  <td class="num">${fmt.format(row.qty)}</td>
+                  <td class="num">${trendBadge(row.buyerDelta)}</td>
+                  <td class="num">${trendBadge(Number(row.qtyDelta.toFixed(2)))}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderAgentTable(rows, hasTarget, summary) {
       if (!hasTarget) {
         document.getElementById("agentTable").innerHTML = `<div class="empty">Select a target SKU to view agent penetration.</div>`;
         return;
@@ -991,6 +1189,8 @@
         document.getElementById("agentTable").innerHTML = `<div class="empty">No agent penetration data for this selection.</div>`;
         return;
       }
+      const debLabel = summary.months.length === 1 ? "MoM Deb." : "Prev Deb.";
+      const ctnLabel = summary.months.length === 1 ? "MoM CTN" : "Prev CTN";
       document.getElementById("agentTable").innerHTML = `
         <table>
           <thead>
@@ -1004,8 +1204,8 @@
               <th class="num">CTN</th>
               <th class="num">CTN / buyer</th>
               <th class="num">New 3M</th>
-              <th class="num">MoM Deb.</th>
-              <th class="num">MoM CTN</th>
+              <th class="num">${debLabel}</th>
+              <th class="num">${ctnLabel}</th>
             </tr>
           </thead>
           <tbody>
@@ -1164,7 +1364,7 @@
       section.hidden = false;
       document.getElementById("drilldownTitle").textContent = `${sku.label} debtor movement`;
       const netBuyers = groups.new.length - groups.lost.length;
-      document.getElementById("drilldownHint").textContent = `${monthLabel(lastSummary.month)} vs ${lastSummary.prev ? monthLabel(lastSummary.prev) : "previous month unavailable"} | Net ${signed(netBuyers)} = ${fmt.format(groups.new.length)} new - ${fmt.format(groups.lost.length)} lost`;
+      document.getElementById("drilldownHint").textContent = `${lastSummary.rangeLabel} vs ${lastSummary.compareLabel || "previous period unavailable"} | Net ${signed(netBuyers)} = ${fmt.format(groups.new.length)} new - ${fmt.format(groups.lost.length)} lost`;
       document.getElementById("drilldownTabs").innerHTML = modes.map(mode => `
         <button class="drill-tab ${mode === activeDrilldown.mode ? "active" : ""}" type="button" data-drill-tab="${mode}">
           ${drillModeLabel(mode)} (${fmt.format(groups[mode].length)})
@@ -1218,11 +1418,13 @@
       document.getElementById("drilldownSection").scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
-    function renderRanking(skuRows) {
+    function renderRanking(skuRows, summary) {
       if (!skuRows.length) {
         document.getElementById("rankingTable").innerHTML = `<div class="empty">No SKU ranking data for this selection.</div>`;
         return;
       }
+      const debLabel = summary.months.length === 1 ? "MoM Deb." : "Prev Deb.";
+      const ctnLabel = summary.months.length === 1 ? "MoM CTN" : "Prev CTN";
       document.getElementById("rankingTable").innerHTML = `
         <table>
           <thead>
@@ -1235,8 +1437,8 @@
               <th class="num">CTN</th>
               <th class="num">CTN / buyer</th>
               <th class="num">New 3M</th>
-              <th class="num">MoM Deb.</th>
-              <th class="num">MoM CTN</th>
+              <th class="num">${debLabel}</th>
+              <th class="num">${ctnLabel}</th>
             </tr>
           </thead>
           <tbody>
@@ -1269,11 +1471,13 @@
       const summary = buildSummary();
       const agentRows = buildAgentRows(summary);
       const skuRows = buildSkuRows(summary.currentRows, summary.previousRows, summary.previous3Rows, summary.base, summary.prevBase);
+      const trendRows = buildTrendRows(summary);
       lastSummary = summary;
       renderSummary(summary);
-      renderAgentTable(agentRows, !!summary.targetSku);
+      renderTrend(summary, trendRows);
+      renderAgentTable(agentRows, !!summary.targetSku, summary);
       renderMatrix(summary, skuRows);
-      renderRanking(skuRows);
+      renderRanking(skuRows, summary);
       renderDrilldown();
     }
 
