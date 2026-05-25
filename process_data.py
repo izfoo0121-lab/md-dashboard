@@ -685,12 +685,13 @@ def build_debtor_analysis_data(df, debtor_df, cur_month):
     for _, r in grouped.iterrows():
         code = _safe_str(r.get("debtor_code"))
         name = _safe_str(r.get("name_meta")) or _safe_str(r.get("company_name"))
-        agent = _safe_str(r.get("agent_meta")) or _safe_str(r.get("agent"))
+        agent = _safe_str(r.get("agent")) or _safe_str(r.get("agent_meta"))
         records.append({
             "month": _safe_str(r.get("tranx_mth_full")),
             "debtor_code": code,
             "company_name": name,
             "agent": agent,
+            "owner_agent": _safe_str(r.get("agent_meta")),
             "debtor_type": _safe_str(r.get("type_meta")),
             "brand": _safe_str(r.get("item_group")),
             "sku": _safe_str(r.get("item_code")),

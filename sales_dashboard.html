@@ -1116,6 +1116,7 @@ function futureViewEmptyHtml(label) {
 let CURRENT_MONTH_FILE = 'dashboard_data.json'; // default
 let CURRENT_MONTH_SLUG = 'current'; // tracks selected month slug
 let DEBTOR_ANALYSIS_CACHE = undefined;
+let MONTH_SNAPSHOT_CACHE = {};
 
 async function loadDebtorAnalysisData() {
   if (DEBTOR_ANALYSIS_CACHE !== undefined) return DEBTOR_ANALYSIS_CACHE;
@@ -1127,6 +1128,38 @@ async function loadDebtorAnalysisData() {
     DEBTOR_ANALYSIS_CACHE = null;
   }
   return DEBTOR_ANALYSIS_CACHE;
+}
+
+async function loadMonthSnapshotData(monthLabel) {
+  if (monthLabel && monthLabel === DATA?.current_month) return DATA;
+  const slug = monthSlug(monthLabel);
+  if (!slug) return null;
+  if (Object.prototype.hasOwnProperty.call(MONTH_SNAPSHOT_CACHE, slug)) return MONTH_SNAPSHOT_CACHE[slug];
+  try {
+    const r = await fetch(`data_${slug}.json?v=` + Date.now());
+    if (!r.ok) throw new Error('month snapshot unavailable');
+    MONTH_SNAPSHOT_CACHE[slug] = await r.json();
+  } catch(e) {
+    MONTH_SNAPSHOT_CACHE[slug] = null;
+  }
+  return MONTH_SNAPSHOT_CACHE[slug];
+}
+
+function monthSnapshotIndex(snapshotData, monthLabel) {
+  const byDebtor = {};
+  Object.entries(snapshotData?.agents || {}).forEach(([agent, agentData]) => {
+    const debtors = agentData?.debtor_cards?.debtors || [];
+    debtors.forEach(d => {
+      const rows = d?.month_breakdown?.[monthLabel] || [];
+      if (!rows.length || !d?.debtor_code) return;
+      byDebtor[d.debtor_code] ||= [];
+      rows.forEach(row => byDebtor[d.debtor_code].push({
+        ...row,
+        agent: row.agent || agent
+      }));
+    });
+  });
+  return byDebtor;
 }
 
 function analysisRowToBreakdownItem(row) {
@@ -1190,6 +1223,7 @@ async function enrichMonthBreakdownsFromAnalysis() {
   if (!monthLabels.length) return;
   const monthSet = new Set(monthLabels);
   const byDebtor = {};
+  const snapshotByMonth = {};
 
   analysis.records.forEach(row => {
     if (!row?.debtor_code || !monthSet.has(row.month)) return;
@@ -1198,13 +1232,19 @@ async function enrichMonthBreakdownsFromAnalysis() {
     byDebtor[row.debtor_code][row.month].push(row);
   });
 
+  for (const label of monthLabels) {
+    snapshotByMonth[label] = monthSnapshotIndex(await loadMonthSnapshotData(label), label);
+  }
+
   Object.values(DATA.agents || {}).forEach(agentData => {
     const debtors = agentData?.debtor_cards?.debtors || [];
     debtors.forEach(d => {
       const debtorRows = byDebtor[d.debtor_code] || {};
       d.month_breakdown ||= {};
       monthLabels.forEach(label => {
-        d.month_breakdown[label] = mergeAmountIntoBreakdownRows(d.month_breakdown[label] || [], debtorRows[label] || []);
+        const snapshotRows = snapshotByMonth[label]?.[d.debtor_code] || [];
+        const baseRows = snapshotRows.length ? snapshotRows : (d.month_breakdown[label] || []);
+        d.month_breakdown[label] = mergeAmountIntoBreakdownRows(baseRows, debtorRows[label] || []);
       });
       const prev3 = d.month_breakdown[monthLabels[0]] || [];
       if (d.ctn_prev3 === undefined) d.ctn_prev3 = prev3.reduce((sum, row) => sum + (Number(row.ctn) || 0), 0);
