@@ -1488,7 +1488,11 @@ def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups, 
         camp["foc_earned"]  = foc_earned
         camp["qualified"]   = qualified
 
-    return camps
+    return [
+        camp for camp in camps
+        if camp.get("type") not in ("conversion_tiered", "conversion_simple")
+        or float(camp.get("lookback_ctn") or 0) <= 0
+    ]
 
 
 

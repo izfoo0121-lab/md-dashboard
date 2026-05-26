@@ -3093,7 +3093,7 @@ function campExportCurrentStatus(agent, camp, debtor) {
   if (debtor.source === 'manual') return 'Manual Add';
 
   if (camp.type === 'conversion_tiered' || camp.type === 'conversion_simple') {
-    const debtorCamp = (debtor.campaigns || []).find(c => c.id === camp.id);
+    const debtorCamp = visibleDebtorCampaigns(debtor).find(c => c.id === camp.id);
     return debtorCamp?.converted ? 'Converted' : 'Not Yet';
   }
   return 'Pending';
@@ -3263,7 +3263,7 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
     // Badges
     // Campaign badges — show category-specific promo if available
     const campEmoji = {free_sample:'🎁',foc_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',voucher:'🎟️',conversion_tiered:'🎯',conversion_simple:'🎯',other:'📋'};
-    const campBadges = (d.campaigns||[]).map(c => {
+    const campBadges = visibleDebtorCampaigns(d).map(c => {
       const promoText  = c.promo_detail || c.name;
 
       // ── conversion_tiered: conversion status + lookback context ──────────
@@ -3681,11 +3681,11 @@ function renderDebtors() {
     if (filters.special === 'no_ccom'  && !isNoCcomBuyer(d)) return false;
     if (filters.special === 'no3m'     && !isThreeMonthNoCcomOrder(d)) return false;
     if (filters.special === 'flagged'   && !getFlag(currentAgent, d.debtor_code)) return false;
-    if (filters.special === 'campaign'  && (!(d.campaigns||[]).length || !getDebtorType(d))) return false;
+    if (filters.special === 'campaign'  && (!visibleDebtorCampaigns(d).length || !getDebtorType(d))) return false;
     if (filters.special === 'overdue'   && !d.has_overdue) return false;
     if (filters.special === 'neartarget') {
       // Has bought something this month but not yet hit any campaign threshold
-      const camps = d.campaigns || [];
+      const camps = visibleDebtorCampaigns(d);
       const hasNearTarget = camps.some(c => {
         const catRule = c.cat && c.cat_rules ? c.cat_rules[c.cat] : null;
         const minCtn  = catRule?.min_ctn || c.min_order_ctn || 0;
@@ -3798,10 +3798,10 @@ function renderDebtors() {
     if (filters.special === 'no_ccom' && !isNoCcomBuyer(d)) continue;
     if (filters.special === 'no3m'    && !isThreeMonthNoCcomOrder(d)) continue;
     if (filters.special === 'flagged' && !getFlag(currentAgent, d.debtor_code)) continue;
-    if (filters.special === 'campaign' && (!(d.campaigns||[]).length || !getDebtorType(d))) continue;
+    if (filters.special === 'campaign' && (!visibleDebtorCampaigns(d).length || !getDebtorType(d))) continue;
     if (filters.special === 'overdue' && !d.has_overdue) continue;
     if (filters.special === 'neartarget') {
-      const camps = d.campaigns || [];
+      const camps = visibleDebtorCampaigns(d);
       const hasNearTarget = camps.some(c => {
         const catRule = c.cat && c.cat_rules ? c.cat_rules[c.cat] : null;
         const minCtn  = catRule?.min_ctn || c.min_order_ctn || 0;
@@ -4922,6 +4922,19 @@ function renderKPI() {
 const CAMP_EMOJI = {free_sample:'🎁',foc_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',voucher:'🎟️',conversion_tiered:'🎯',conversion_simple:'🎯',other:'📋'};
 const CAMP_LABEL = {free_sample:'Free Sample',birthday_gift:'Birthday Gift',promotion:'Brand Promotion',festive_gift:'Festive Gift',conversion_tiered:'Conversion',conversion_simple:'Conversion',other:'Other'};
 
+function isConversionCampaign(c) {
+  return c?.type === 'conversion_tiered' || c?.type === 'conversion_simple';
+}
+
+function isVisibleDebtorCampaign(c) {
+  if (!isConversionCampaign(c)) return true;
+  return Number(c.lookback_ctn || 0) <= 0;
+}
+
+function visibleDebtorCampaigns(debtor) {
+  return (debtor?.campaigns || []).filter(isVisibleDebtorCampaign);
+}
+
 // ── Campaign Visit Status Storage ──────────────────────────────────────────
 // Key: camp_status_{month}_{agent}  Value: { "campId_debtorCode": { status, remark, ts } }
 // Month-scoped so statuses auto-clear each new month
@@ -5097,7 +5110,7 @@ function renderCamps() {
   // Collect all unique campaigns this agent has
   const campMap  = {};
   debtors.forEach(d => {
-    (d.campaigns || []).forEach(c => {
+    visibleDebtorCampaigns(d).forEach(c => {
       // Future-view campaign visibility: hide campaigns whose deadline is before the future month
       if (DATA.is_future_view && !isCampaignActiveInMonth(c, DATA.current_month)) return;
       if (_campFilter !== 'all' && c.id !== _campFilter) return;
@@ -5175,10 +5188,10 @@ function renderCamps() {
       } else {
         // Fallback: derive from c.debtors directly
         totalEnrolled = c.debtors.length;
-        convertedCount = c.debtors.filter(d => (d.campaigns||[]).some(cc => cc.id===c.id && cc.converted)).length;
+        convertedCount = c.debtors.filter(d => visibleDebtorCampaigns(d).some(cc => cc.id===c.id && cc.converted)).length;
         convertedTargets = convertedCount;
         convertedCtn = c.debtors.reduce((sum, d) => {
-          const cc = (d.campaigns||[]).find(cc => cc.id===c.id);
+          const cc = visibleDebtorCampaigns(d).find(cc => cc.id===c.id);
           return cc && cc.converted ? sum + (cc.current_ctn||0) : sum;
         }, 0);
         var priceFloor = c.notes?.min_rm_per_ctn || c.notes?.price_floor || (c.notes?.qualifying_item_group === 'TR-002' ? 37.5 : 41);
@@ -5451,7 +5464,7 @@ function agentTierDisplay(idx, label, toNext, nextLabel) {
 }
 
 function campDebtorConversionInfo(camp, debtor) {
-  const cc = (debtor.campaigns || []).find(x => x.id === camp.id) || {};
+  const cc = visibleDebtorCampaigns(debtor).find(x => x.id === camp.id) || {};
   const conv = conversionCampaignStatus(cc);
   return {
     label: conv.shortLabel,
@@ -5597,7 +5610,7 @@ function renderCampFilterChips() {
   const debtors = DATA.agents[currentAgent]?.debtor_cards?.debtors || [];
   const campMap = new Map(); // id -> { id, name, type }
   debtors.forEach(d => {
-    (d.campaigns || []).forEach(c => {
+    visibleDebtorCampaigns(d).forEach(c => {
       if (DATA.is_future_view && !isCampaignActiveInMonth(c, DATA.current_month)) return;
       if (c.id && !campMap.has(c.id)) {
         campMap.set(c.id, { id: c.id, name: c.name || c.id, type: c.type || 'other' });
