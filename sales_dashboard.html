@@ -3067,6 +3067,38 @@ function exportUnpurchasedPDF() {
 
 // Build a Camps export workbook from the currently-rendered campMap.
 // One sheet per campaign, listing its debtors with claim status.
+function campExportCurrentStatus(agent, camp, debtor) {
+  const debtorCode = debtor.debtor_code || debtor.code || '';
+  const claim = getCampClaims(agent, camp.id, debtorCode);
+  if (claim) {
+    if (claim.status === 'excluded') {
+      const reason = unableReasonLabel(claim.reason);
+      return reason ? `Excluded - ${reason}` : 'Excluded';
+    }
+    return 'Delivered';
+  }
+
+  const savedVisit = getCampStatus(camp.id, debtorCode);
+  const visitStatus = savedVisit || debtor.visit_status;
+  const visitKey = typeof visitStatus === 'string'
+    ? visitStatus
+    : (visitStatus?.status || '');
+  const visitLabels = {
+    delivered: 'Delivered',
+    not_in: 'Not In',
+    next_visit: 'Next Visit',
+    refused: 'Refused',
+  };
+  if (visitKey) return visitLabels[visitKey] || visitKey;
+  if (debtor.source === 'manual') return 'Manual Add';
+
+  if (camp.type === 'conversion_tiered' || camp.type === 'conversion_simple') {
+    const debtorCamp = (debtor.campaigns || []).find(c => c.id === camp.id);
+    return debtorCamp?.converted ? 'Converted' : 'Not Yet';
+  }
+  return 'Pending';
+}
+
 function exportCampsExcel() {
   if (typeof XLSX === 'undefined') {
     alert('Excel export library not loaded yet. Try again in a moment.');
@@ -3082,15 +3114,12 @@ function exportCampsExcel() {
 
   campaigns.forEach(camp => {
     const rows = (camp.debtors || []).map(d => {
-      const visitStatus = typeof d.visit_status === 'string'
-        ? d.visit_status
-        : (d.visit_status?.status || (d.source === 'manual' ? 'Manual Add' : ''));
       return {
         'Code': d.debtor_code || d.code || '',
         'Name': d.company_name || d.name || '',
         'Type': d.debtor_type || d.type || '',
         'Phone': d.phone || '',
-        'Status': visitStatus,
+        'Status': campExportCurrentStatus(agent, camp, d),
         'Address': d.address || '',
       };
     });
