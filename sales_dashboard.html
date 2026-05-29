@@ -275,9 +275,20 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .crit-box{background:var(--surface);border-radius:10px;padding:10px 12px;border:1px solid transparent;}
 .crit-box.hit{border-color:rgba(61,220,132,.35);}
 .crit-box.miss{border-color:rgba(255,95,95,.25);}
+.crit-box.drillable{cursor:pointer;position:relative;transition:border-color .12s,background .12s;}
+.crit-box.drillable:hover{border-color:rgba(240,192,64,.45);background:rgba(240,192,64,.06);}
+.crit-caret{position:absolute;right:10px;top:10px;font-family:var(--mono);font-size:10px;color:var(--muted);}
 .crit-lbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px;}
 .crit-val{font-family:var(--mono);font-size:18px;font-weight:500;line-height:1;}
 .crit-sub{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px;}
+.pen-detail{margin-top:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.pen-detail-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+.pen-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.06);}
+.pen-row:last-child{border-bottom:none;}
+.pen-name{font-size:12px;font-weight:600;line-height:1.25;overflow-wrap:anywhere;}
+.pen-meta{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px;overflow-wrap:anywhere;}
+.pen-ctn{font-family:var(--mono);font-size:15px;color:var(--green);text-align:right;white-space:nowrap;}
+.pen-empty{padding:12px 10px;font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;}
 
 /* ── View 4: Newbie Scheme ── */
 .newbie-hero{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px;position:relative;overflow:hidden;}
@@ -1076,6 +1087,7 @@ let currentView = 'debtors';
 let filters = { status: 'all', special: null, pending_activation: null, type: 'all', brand: 'all' };
 let currentPage = 1;
 const PAGE_SIZE = 12;
+const openBrandPenetration = new Set();
 let unpurchasedPage = 1;
 let nonvipPage = 1;
 let dropCtnFilter = 'all';
@@ -1979,6 +1991,7 @@ function jumpToAgent(agent, debtorCode) {
 function selectAgent(agent) {
   currentAgent = agent;
   currentPage  = 1;
+  openBrandPenetration.clear();
   filters = { status:'all', special:null, pending_activation:null, type:'all', brand:'all' };
   dropCtnFilter = 'all';
   dropSkuFilter = 'all';
@@ -4303,6 +4316,117 @@ function renderSKUTrendTable(sp) {
 }
 
 // ── View 3: Brand Commission ───────────────────────────────────────────────
+function brandCodesFor(brand) {
+  const configured = DATA?.config?.brand_config?.[brand];
+  if (Array.isArray(configured) && configured.length) return configured;
+  return UNPURCHASED_BRAND_ITEMS?.[brand] || [brand];
+}
+
+function brandItemMatches(brand, itemCode) {
+  const item = String(itemCode || '').trim().toUpperCase();
+  if (!item) return false;
+  return brandCodesFor(brand).some(code => item === String(code || '').trim().toUpperCase());
+}
+
+function brandPenEligibleDebtor(debtor) {
+  const type = String(debtor?.debtor_type || '').trim();
+  return !!type && type !== 'P-Personal';
+}
+
+function debtorBrandStatus(debtor, brand) {
+  const statuses = debtor?.sku_status || {};
+  if (statuses[brand]) return statuses[brand];
+  const wanted = String(brand || '').toUpperCase();
+  const match = Object.keys(statuses).find(key => String(key).toUpperCase() === wanted);
+  return match ? statuses[match] : '';
+}
+
+function fallbackBrandPenetrationDebtors(brand) {
+  const debtors = DATA?.agents?.[currentAgent]?.debtor_cards?.debtors || [];
+  const month = DATA?.current_month || '';
+  return debtors
+    .filter(d => brandPenEligibleDebtor(d) && debtorBrandStatus(d, brand) === 'new_penetration')
+    .map(d => {
+      const items = (d?.month_breakdown?.[month] || [])
+        .filter(item => brandItemMatches(brand, item.item))
+        .map(item => ({
+          item: item.item || '',
+          ctn: Number(item.ctn || 0),
+          amount: Number(item.amount || 0),
+          rm_ctn: Number(item.rm_ctn || 0),
+        }));
+      const ctn = items.reduce((sum, item) => sum + Number(item.ctn || 0), 0);
+      const amount = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+      return {
+        debtor_code: d.debtor_code || '',
+        company_name: d.company_name || '',
+        debtor_type: d.debtor_type || '',
+        phone: d.phone || '',
+        ctn,
+        amount,
+        last_invoice_date: '',
+        items,
+      };
+    })
+    .sort((a, b) => String(a.company_name).localeCompare(String(b.company_name)));
+}
+
+function brandPenetrationDebtors(brand, data) {
+  const exact = data?.penetration_debtors;
+  if (Array.isArray(exact)) return exact;
+  return fallbackBrandPenetrationDebtors(brand);
+}
+
+function renderBrandPenetrationDetail(brand, data) {
+  const rows = brandPenetrationDebtors(brand, data);
+  const expected = data?.penetration?.count ?? rows.length;
+  const body = rows.length ? rows.map(row => {
+    const items = Array.isArray(row.items) ? row.items : [];
+    const itemText = items.length
+      ? items.map(item => `${campEsc(item.item)} ${fmtNum(item.ctn)} CTN`).join(' · ')
+      : 'No item breakdown';
+    const dateText = row.last_invoice_date ? ` · ${campEsc(row.last_invoice_date)}` : '';
+    return `<div class="pen-row">
+      <div style="min-width:0;">
+        <div class="pen-name">${campEsc(row.company_name || row.debtor_code || 'Unknown debtor')}</div>
+        <div class="pen-meta">${campEsc(row.debtor_code || '')}${row.debtor_type ? ` · ${campEsc(row.debtor_type)}` : ''}${dateText}</div>
+        <div class="pen-meta">${itemText}</div>
+      </div>
+      <div>
+        <div class="pen-ctn">${fmtNum(row.ctn || 0)} CTN</div>
+        <div class="pen-meta" style="text-align:right;">${fmtRM(row.amount || 0)}</div>
+      </div>
+    </div>`;
+  }).join('') : '<div class="pen-empty">No penetrated debtor for this brand.</div>';
+
+  return `<div class="pen-detail">
+    <div class="pen-detail-head">
+      <span>${campEsc(brand)} penetrated debtors</span>
+      <span>${rows.length}/${expected}</span>
+    </div>
+    ${body}
+  </div>`;
+}
+
+function bindBrandPenetrationDrills() {
+  document.querySelectorAll('.crit-box.drillable[data-brand]').forEach(box => {
+    const toggle = () => {
+      const brand = box.dataset.brand || '';
+      if (!brand) return;
+      if (openBrandPenetration.has(brand)) openBrandPenetration.delete(brand);
+      else openBrandPenetration.add(brand);
+      renderBrandCommission();
+    };
+    box.addEventListener('click', toggle);
+    box.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggle();
+      }
+    });
+  });
+}
+
 function renderBrandCommission() {
   if (!currentAgent || !DATA) return;
   if (DATA.is_future_view) {
@@ -4345,15 +4469,18 @@ function renderBrandCommission() {
     const ctnSold   = ctn.sold   ?? 0;
     const ctnTarget = ctn.target ?? 0;
     const ctnPct    = ctn.pct    ?? 0;
+    const penOpen   = openBrandPenetration.has(brand);
+    const penDetail = penOpen ? renderBrandPenetrationDetail(brand, data) : '';
 
     return `<div class="brand-card ${cardClass}">
       <div class="brand-top">
         <div class="brand-dot" style="background:${BRAND_COLORS[brand]||'#888'}"></div>
-        <div class="brand-name">${brand}</div>
+        <div class="brand-name">${campEsc(brand)}</div>
         <div class="comm-badge ${badgeClass}">${badgeText}</div>
       </div>
       <div class="criteria-grid">
-        <div class="crit-box ${penHit ? 'hit' : 'miss'}">
+        <div class="crit-box drillable ${penHit ? 'hit' : 'miss'}" data-brand="${campEsc(brand)}" role="button" tabindex="0" aria-expanded="${penOpen ? 'true' : 'false'}">
+          <div class="crit-caret">${penOpen ? '▲' : '▼'}</div>
           <div class="crit-lbl">Penetration</div>
           <div class="crit-val" style="color:${penHit ? 'var(--green)' : 'var(--red)'}">${penCount} <span style="font-size:11px">cust</span></div>
           <div class="crit-sub">Target ${penTarget} · <span style="color:${penHit ? 'var(--green)' : 'var(--red)'}">${penHit ? '✓ Hit' : `${penCount}/${penTarget}`}</span></div>
@@ -4364,6 +4491,7 @@ function renderBrandCommission() {
           <div class="crit-sub">Target ${fmtNum(ctnTarget)} · <span style="color:${ctnHit ? 'var(--green)' : 'var(--red)'}">${ctnHit ? '✓ Hit' : fmtPct(ctnPct)}</span></div>
         </div>
       </div>
+      ${penDetail}
     </div>`;
   }).join('');
 
@@ -4372,6 +4500,7 @@ function renderBrandCommission() {
     `${bothCount} brands earned · ${oneCount} at 1/2 · ${6 - bothCount - oneCount} not earned`;
   document.getElementById('brand-cards').innerHTML = html ||
     '<div style="padding:20px;text-align:center;font-family:var(--mono);color:var(--muted);">No data</div>';
+  bindBrandPenetrationDrills();
 }
 
 // ── View 4: Newbie Scheme ──────────────────────────────────────────────────
