@@ -54,6 +54,23 @@ if %errorlevel% neq 0 (
 echo Done.
 echo.
 
+REM -- Step 0b: Sync latest MD Sales Report source -----------
+echo [0b/5] Syncing MD Sales Report source...
+set DESKTOP_SALES_FILE=%USERPROFILE%\Desktop\md-dashboard\MD Sales Report.xlsx
+set LIVE_SALES_FILE=%CD%\MD Sales Report.xlsx
+if exist "%DESKTOP_SALES_FILE%" (
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "$src='%DESKTOP_SALES_FILE%'; $dest='%LIVE_SALES_FILE%'; $s=Get-Item -LiteralPath $src; $d=Get-Item -LiteralPath $dest -ErrorAction SilentlyContinue; if (!$d -or $s.LastWriteTime -gt $d.LastWriteTime -or $s.Length -ne $d.Length) { Copy-Item -LiteralPath $src -Destination $dest -Force; Write-Host ('Copied desktop MD Sales Report: ' + $s.LastWriteTime.ToString('yyyy-MM-dd HH:mm') + ' (' + $s.Length + ' bytes)') } else { Write-Host ('Live MD Sales Report already current: ' + $d.LastWriteTime.ToString('yyyy-MM-dd HH:mm') + ' (' + $d.Length + ' bytes)') }"
+    if errorlevel 1 (
+        echo ERROR: Could not sync desktop MD Sales Report.
+        pause & exit /b 1
+    )
+) else (
+    echo WARNING: Desktop MD Sales Report not found: %DESKTOP_SALES_FILE%
+    echo          Continuing with live folder source.
+)
+echo Done.
+echo.
+
 REM -- Step 1: Process data ---------------------------------
 if "%MONTH_OVERRIDE%"=="" (
     if "%FAST_FLAG%"=="" (
