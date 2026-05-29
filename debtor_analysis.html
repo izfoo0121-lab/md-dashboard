@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="admin_context.js"></script>
   <title>Debtor Analysis</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
@@ -271,8 +272,10 @@ function initSelects(){
   byId('aFrom').innerHTML=monthOpts; byId('aTo').innerHTML=monthOpts;
   byId('bFrom').innerHTML='<option value="">No comparison</option>'+monthOpts;
   byId('bTo').innerHTML='<option value="">No comparison</option>'+monthOpts;
-  const cur=DATA.current_month || ms[ms.length-1];
+  const preferred = window.MDAdminContext ? MDAdminContext.getWorkingMonth(DATA.current_month || ms[ms.length-1]) : (DATA.current_month || ms[ms.length-1]);
+  const cur=ms.includes(preferred) ? preferred : (DATA.current_month || ms[ms.length-1]);
   byId('aFrom').value=cur; byId('aTo').value=cur;
+  if (window.MDAdminContext) MDAdminContext.setWorkingMonth(cur, { silent: true });
   addMultiOptions('agentFilter', unique((DATA.debtors||[]).map(d=>d.agent)), 'All agents');
   addMultiOptions('typeFilter', unique((DATA.debtors||[]).map(d=>d.debtor_type)), 'All types');
   addMultiOptions('brandFilter', unique((DATA.records||[]).map(r=>r.brand)), 'All brands');
@@ -416,6 +419,7 @@ function spark(vals){
 
 function render(){
   if(!DATA) return;
+  if (window.MDAdminContext && byId('aTo')?.value) MDAdminContext.setWorkingMonth(byId('aTo').value, { silent: true });
   const allRows=buildRows();
   renderCategories(allRows);
   filteredRows=activeCategory==='all'?allRows:allRows.filter(r=>r.category===activeCategory);

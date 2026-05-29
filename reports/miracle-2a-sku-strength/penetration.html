@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="../../admin_context.js"></script>
   <title>Miracle 2A SKU Penetration Monitor</title>
   <style>
     :root {
@@ -841,8 +842,11 @@
         .join("");
       document.getElementById("fromMonthSelect").innerHTML = monthOptionsHtml;
       document.getElementById("toMonthSelect").innerHTML = monthOptionsHtml;
-      document.getElementById("fromMonthSelect").value = months[months.length - 1] || "";
-      document.getElementById("toMonthSelect").value = months[months.length - 1] || "";
+      const contextMonth = window.MDAdminContext ? MDAdminContext.monthToIsoMonth(MDAdminContext.getWorkingMonth()) : "";
+      const selectedMonth = contextMonth && months.includes(contextMonth) ? contextMonth : (months[months.length - 1] || "");
+      document.getElementById("fromMonthSelect").value = selectedMonth;
+      document.getElementById("toMonthSelect").value = selectedMonth;
+      if (window.MDAdminContext && selectedMonth) MDAdminContext.setWorkingMonth(selectedMonth, { silent: true });
 
       initTypeOptions(typeOptions);
 
@@ -857,6 +861,9 @@
       ["fromMonthSelect", "toMonthSelect", "stateSelect", "agentSelect", "baseSkuSelect", "targetSkuSelect"].forEach(id => {
         document.getElementById(id).addEventListener("change", () => {
           if (id === "stateSelect") document.getElementById("agentSelect").value = "";
+          if ((id === "fromMonthSelect" || id === "toMonthSelect") && window.MDAdminContext) {
+            MDAdminContext.setWorkingMonth(document.getElementById("toMonthSelect").value || document.getElementById("fromMonthSelect").value, { silent: true });
+          }
           syncAgentOptions();
           render();
         });

@@ -3,11 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<script src="admin_context.js"></script>
 <title>Touro MD — Management</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f5f3ee;--surface:#ffffff;--card:#fdfcf9;--border:#e2ddd5;--ink:#1a1714;--ink2:#5a5550;--ink3:#9a9590;--accent:#c8381a;--green:#2a7a4b;--gold:#c8860a;--blue:#1a5c8f;--purple:#6b3fa0;--orange:#c85a1a;--red-bg:#fde8e4;--green-bg:#edf6f1;--gold-bg:#fdf8ed;--blue-bg:#edf3f9;--display:'Bebas Neue',sans-serif;--body:'DM Sans',sans-serif;--mono:'DM Mono',monospace;}
 *{margin:0;padding:0;box-sizing:border-box;}
+input,select,textarea,button{max-width:100%;}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:100vh;padding-bottom:30px;}
 .view{display:none;}.view.active{display:block;}
 /* Header */
@@ -17,27 +19,28 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 .header-sub{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;margin-top:2px;}
 .month-tag{background:rgba(255,255,255,.12);font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:20px;}
 .day-tag{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.4);margin-top:3px;text-align:right;}
-.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;}
+.kpi-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;}
 .kpi-box{background:rgba(255,255,255,.07);border-radius:8px;padding:7px 8px;}
 .kpi-val{font-family:var(--display);font-size:18px;color:#fff;letter-spacing:.03em;line-height:1;}
 .kpi-val.g{color:#5de89a;}.kpi-val.w{color:#ffc94d;}.kpi-val.r{color:#ff6b6b;}.kpi-val.b{color:#4da6ff;}
 .kpi-lbl{font-family:var(--mono);font-size:7px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;}
 /* Page */
-.page{padding:12px 14px;max-width:900px;margin:0 auto;}
+.page{padding:12px 14px;max-width:900px;width:100%;margin:0 auto;}
 @media(min-width:600px){.page{padding:16px 24px;}}
 .sec-lbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink3);padding:4px 0 6px;border-top:1px solid var(--border);margin:14px 0 8px;}
 .sec-lbl:first-child,.sec-lbl.no-border{border-top:none;margin-top:0;}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:10px;}
+.card>*{min-width:0;}
 .card-pad{padding:14px 16px;}
 /* Overall card */
 .overall-card{background:var(--ink);border-radius:14px;padding:16px;margin-bottom:10px;position:relative;overflow:hidden;}
-.overall-card::after{content:'';position:absolute;top:-40px;right:-40px;width:120px;height:120px;border-radius:50%;background:rgba(200,56,26,.15);}
+.overall-card::after{display:none;}
 .ov-pct{font-family:var(--display);font-size:52px;letter-spacing:.02em;color:#fff;line-height:1;}
 .ov-meta{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.4);margin-top:4px;}
 .ov-bar-wrap{height:8px;background:rgba(255,255,255,.12);border-radius:4px;overflow:hidden;margin:12px 0 4px;}
 .ov-bar{height:100%;border-radius:4px;transition:width .6s ease;}
 .ov-bar-labels{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);}
-.ov-totals{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.1);}
+.ov-totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.1);}
 .ov-stat{background:rgba(255,255,255,.06);border-radius:8px;padding:7px;text-align:center;}
 .ov-stat-val{font-family:var(--mono);font-size:13px;font-weight:500;}
 .ov-stat-lbl{font-family:var(--mono);font-size:8px;color:rgba(255,255,255,.35);text-transform:uppercase;margin-top:1px;}
@@ -47,7 +50,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 .lb-toggle{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
 .lb-btn{font-family:var(--mono);font-size:9px;padding:4px 10px;background:transparent;border:none;color:var(--ink3);cursor:pointer;text-transform:uppercase;letter-spacing:.05em;}
 .lb-btn.active{background:var(--ink);color:#fff;}
-.lb-row{padding:10px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:24px 1fr 60px 50px;align-items:center;gap:8px;cursor:pointer;transition:background .15s;}
+.lb-row{padding:10px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:24px minmax(0,1fr) 60px 50px;align-items:center;gap:8px;cursor:pointer;transition:background .15s;}
 .lb-row:last-child{border-bottom:none;}
 .lb-row:hover,.lb-row:active{background:#faf8f5;}
 .lb-rank{font-family:var(--display);font-size:16px;color:var(--ink3);}
@@ -58,7 +61,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 .lb-bar-fill{height:100%;border-radius:3px;}
 .lb-pct{font-family:var(--mono);font-size:11px;font-weight:500;text-align:right;}
 /* Group brands */
-.grp-row{padding:10px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:80px 1fr 100px;align-items:center;gap:8px;}
+.grp-row{padding:10px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:80px minmax(0,1fr) 100px;align-items:center;gap:8px;}
 .grp-row:last-child{border-bottom:none;}
 .grp-name{font-family:var(--display);font-size:15px;letter-spacing:.04em;}
 .grp-nums{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:1px;}
@@ -74,8 +77,18 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 .h-agent{font-weight:600;font-size:11px;padding:7px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;cursor:pointer;color:var(--blue);}
 .h-cell{border-bottom:1px solid var(--border);border-left:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:500;padding:6px 2px;}
 .hc-g{background:#d4ede1;color:#1a5c38;}.hc-o{background:#fef9c3;color:#854d0e;}.hc-r{background:#fde8e4;color:#8f1a0a;}
+.brand-team-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;padding-bottom:10px;}
+.brand-team-title{font-family:var(--display);font-size:18px;letter-spacing:.05em;margin-bottom:3px;}
+.brand-team-note{font-family:var(--mono);font-size:9px;color:var(--ink3);line-height:1.45;}
+.brand-team-grid{display:grid;grid-template-columns:minmax(0,.86fr) minmax(0,1.14fr);border-top:1px solid var(--border);}
+.brand-team-panel{min-width:0;padding:10px 12px 12px;}
+.brand-team-panel+.brand-team-panel{border-left:1px solid var(--border);}
+.brand-team-panel-title{font-family:var(--mono);font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.brand-team-export{display:flex;justify-content:flex-end;gap:6px;}
+.brand-team-export button{font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(42,122,75,.12);border:1px solid rgba(42,122,75,.35);border-radius:6px;color:var(--green);cursor:pointer;}
+#brand-sku-status{min-width:700px;}
 /* Activity Map */
-.activity-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;}
+.activity-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
 .activity-nav{display:flex;align-items:center;gap:8px;}
 .activity-btn{border:1px solid var(--border);background:var(--surface);color:var(--ink);border-radius:8px;padding:4px 9px;font-family:var(--mono);font-size:10px;cursor:pointer;}
 .activity-month{font-family:var(--display);font-size:18px;letter-spacing:.05em;min-width:82px;text-align:center;}
@@ -96,7 +109,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 /* Newbie */
 .nb-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:8px;border-left:4px solid var(--purple);}
 .nb-agent{font-family:var(--display);font-size:18px;letter-spacing:.05em;margin-bottom:10px;}
-.nb-tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;}
+.nb-tiers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:8px;}
 .nb-tier{background:var(--bg);border-radius:8px;padding:8px;text-align:center;border:1px solid transparent;}
 .nb-tier.hit{border-color:rgba(42,122,75,.3);background:var(--green-bg);}
 .nb-tier.curr{border-color:rgba(200,56,26,.3);background:var(--red-bg);}
@@ -116,11 +129,11 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 .dr-name{font-family:var(--display);font-size:26px;color:#fff;letter-spacing:.05em;line-height:1;flex:1;}
 .dr-rank{font-family:var(--display);font-size:26px;color:var(--gold);}
 .dr-sub{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.4);margin-top:2px;}
-.dr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
+.dr-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px;}
 .dr-stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px;text-align:center;}
 .dr-stat-val{font-family:var(--display);font-size:22px;letter-spacing:.03em;line-height:1;}
 .dr-stat-lbl{font-family:var(--mono);font-size:8px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;}
-.tier-row{display:grid;grid-template-columns:90px 1fr 60px 50px;align-items:center;gap:8px;padding:9px 16px;border-bottom:1px solid var(--border);}
+.tier-row{display:grid;grid-template-columns:90px minmax(0,1fr) 60px 50px;align-items:center;gap:8px;padding:9px 16px;border-bottom:1px solid var(--border);}
 .tier-row:last-child{border-bottom:none;}
 .tier-lbl{font-family:var(--mono);font-size:10px;color:var(--ink3);}
 .tier-bar-bg{height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
@@ -133,13 +146,13 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 .bc-brand{font-family:var(--display);font-size:16px;letter-spacing:.04em;}
 .bc-badge{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:10px;}
 .bc-g{background:var(--green-bg);color:var(--green);}.bc-o{background:#fde8d8;color:#7a3500;}.bc-r{background:var(--red-bg);color:var(--accent);}
-.bc-crit{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.bc-crit{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;}
 .bc-box{background:var(--bg);border-radius:8px;padding:8px 10px;border:1px solid transparent;}
 .bc-box.hit{border-color:rgba(42,122,75,.3);}.bc-box.miss{border-color:rgba(200,56,26,.25);}
 .bc-lbl{font-family:var(--mono);font-size:8px;color:var(--ink3);text-transform:uppercase;margin-bottom:3px;}
 .bc-val{font-family:var(--mono);font-size:14px;font-weight:500;}
 .bc-sub{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:2px;}
-.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.kpi-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
 .kpi-box-d{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:11px 13px;}
 .kpi-lbl-d{font-family:var(--mono);font-size:8px;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;}
 .kpi-val-d{font-family:var(--display);font-size:22px;letter-spacing:.03em;line-height:1;}
@@ -173,7 +186,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 .camp-prog-header{padding:12px 16px;border-bottom:1px solid var(--border);}
 .camp-prog-name{font-family:var(--display);font-size:18px;letter-spacing:.05em;}
 .camp-prog-meta{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:2px;}
-.camp-agent-row{display:grid;grid-template-columns:70px 1fr 80px;gap:8px;padding:9px 16px;border-bottom:1px solid var(--border);align-items:center;}
+.camp-agent-row{display:grid;grid-template-columns:70px minmax(0,1fr) 80px;gap:8px;padding:9px 16px;border-bottom:1px solid var(--border);align-items:center;}
 .camp-agent-row:last-child{border-bottom:none;}
 .camp-agent-lbl{font-weight:600;font-size:12px;}
 .camp-bar-bg{height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
@@ -184,6 +197,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 #yearly-view .card{background:var(--surface);box-shadow:none;}
 #yearly-view .card-pad{background:var(--surface);}
 #yearly-view .sec-lbl{color:var(--ink2);}
+#yearly-view #yr-kpis{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))!important;}
 #yearly-view #yr-chart{background:var(--surface);border-radius:10px;}
 #yearly-view #yr-table{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
 #yearly-view select option{background:#1b1916;color:#f4efe6;}
@@ -191,6 +205,20 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 @keyframes slideIn{from{opacity:0;transform:translateX(16px);}to{opacity:1;transform:translateX(0);}}
 .page>*{animation:slideUp .3s ease both;}
 #drill-view{animation:slideIn .25s ease both;}
+@media(max-width:600px){
+  .header-row{gap:12px;flex-wrap:wrap;}
+  .kpi-strip{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .ov-totals,.dr-stats{grid-template-columns:1fr;}
+  .nb-tiers{grid-template-columns:1fr;}
+  .bc-crit,.kpi-grid{grid-template-columns:1fr;}
+  .brand-team-grid{grid-template-columns:1fr;}
+  .brand-team-panel+.brand-team-panel{border-left:none;border-top:1px solid var(--border);}
+  .brand-team-head{padding-left:12px;padding-right:12px;}
+  .lb-row{grid-template-columns:22px minmax(0,1fr) 54px 44px;padding:9px 12px;gap:6px;}
+  .grp-row,.camp-agent-row{grid-template-columns:64px minmax(0,1fr) 72px;padding-left:12px;padding-right:12px;}
+  .tier-row{grid-template-columns:78px minmax(0,1fr) 50px 44px;padding-left:12px;padding-right:12px;gap:6px;}
+  #yr-kpis{grid-template-columns:1fr!important;}
+}
 @media print {
   header, nav, .nav-pills, button, select, input, .activity-nav, .filter-chip,
   .login-overlay, .pin-overlay {
@@ -398,29 +426,29 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
       <div id="group-brands"></div>
     </div>
 
-    <!-- 4. Commission -->
-    <div class="sec-lbl">💰 Commission Tracker</div>
+    <!-- 4. Brand Commission -->
+    <div class="sec-lbl">Brand Commission - Whole Team</div>
     <div class="card">
-      <div class="card-pad" style="padding-bottom:6px;">
-        <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;margin-bottom:3px;">Brand Commission Status</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">✓ Both hit &nbsp;·&nbsp; ½ One criteria &nbsp;·&nbsp; ✗ Not earned</div>
+      <div class="card-pad brand-team-head">
+        <div>
+          <div class="brand-team-title">Whole Team Brand Commission</div>
+          <div class="brand-team-note">Left: commission status by brand. Right: penetration/non-buyer target used for the same commission concept.</div>
+          <div class="brand-team-note">✓ Both hit &nbsp;·&nbsp; ½ One criteria &nbsp;·&nbsp; ✗ Not earned &nbsp;·&nbsp; Auto target = 5% of non-buyers</div>
+        </div>
+        <div id="brand-export-bar" class="brand-team-export">
+          <button onclick="exportBrandNonbuyersExcel()">Export Excel</button>
+        </div>
       </div>
-      <div class="heat-scroll"><div id="comm-heatmap"></div></div>
-    </div>
-
-    <!-- 5b. Brand SKU Penetration Status -->
-    <div class="sec-lbl">🏷️ Brand Penetration — Non-buyers vs Target</div>
-    <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin:0 0 8px 2px;">
-      ⚡ Auto 5% of non-buyers (iFACE/SUKUN/BISON/TR20) &nbsp;·&nbsp; EVO &amp; LAM+LWM = manual &nbsp;·&nbsp;
-      <span style="color:var(--blue)">■ Bought</span> &nbsp;
-      <span style="color:#c8381a">■ Not bought</span> &nbsp;
-      <span style="color:var(--green)">✓ Hit target</span>
-    </div>
-    <div class="card" style="overflow-x:auto;padding:0;">
-      <div id="brand-export-bar" style="display:flex;justify-content:flex-end;gap:6px;margin:8px 0;padding:0 10px;">
-        <button onclick="exportBrandNonbuyersExcel()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);border-radius:6px;color:var(--green);cursor:pointer;">📊 Export Excel</button>
+      <div class="brand-team-grid">
+        <div class="brand-team-panel">
+          <div class="brand-team-panel-title">Commission Status</div>
+          <div class="heat-scroll"><div id="comm-heatmap"></div></div>
+        </div>
+        <div class="brand-team-panel">
+          <div class="brand-team-panel-title">Penetration / Non-buyers</div>
+          <div class="heat-scroll"><div id="brand-sku-status"></div></div>
+        </div>
       </div>
-      <div id="brand-sku-status" style="min-width:700px;"></div>
     </div>
 
     <!-- 6. Newbie -->
@@ -729,12 +757,18 @@ function populateMonthSelector(historyRows) {
   months.forEach(m => {
     if (m !== curMonth) {
       const opt = document.createElement('option');
-      opt.value = m;
+      opt.value = window.MDAdminContext ? MDAdminContext.monthToSlug(m) : m.replace(' ','').toLowerCase();
       opt.textContent = `📅 ${m.toUpperCase()}`;
       sel.appendChild(opt);
     }
   });
   sel.style.display = 'block';
+  const preferred = window.MDAdminContext ? MDAdminContext.getWorkingMonth(curMonth) : curMonth;
+  const preferredValue = preferred === curMonth ? 'current' : (window.MDAdminContext ? MDAdminContext.monthToSlug(preferred) : preferred.replace(' ','').toLowerCase());
+  if ([...sel.options].some(o => o.value === preferredValue) && sel.value !== preferredValue) {
+    sel.value = preferredValue;
+    onMonthChange(preferredValue);
+  }
 }
 
 // Auto-load history from GitHub (GitHub Pages) or injected window.HISTORY_DATA (Streamlit)
@@ -770,9 +804,25 @@ function populateMonthSelectorFromIndex(months) {
     sel.appendChild(opt);
   });
   sel.style.display = 'block';
+  const preferred = window.MDAdminContext ? MDAdminContext.getWorkingMonth(curMonth) : curMonth;
+  const preferredSlug = window.MDAdminContext ? MDAdminContext.monthToSlug(preferred) : preferred.replace(' ','').toLowerCase();
+  const nextValue = preferred === curMonth ? 'current' : preferredSlug;
+  const hasOption = [...sel.options].some(o => o.value === nextValue);
+  if (hasOption && sel.value !== nextValue) {
+    sel.value = nextValue;
+    onMonthChange(nextValue);
+  } else if (window.MDAdminContext) {
+    MDAdminContext.setWorkingMonth(curMonth, { silent: true });
+  }
 }
 
 function onMonthChange(val) {
+  if (window.MDAdminContext) {
+    const selectedMonth = val === 'current' || !val
+      ? (DATA?.current_month || '')
+      : MDAdminContext.slugToMonth(val);
+    if (selectedMonth) MDAdminContext.setWorkingMonth(selectedMonth, { silent: true });
+  }
   if (val === 'current' || !val) {
     CURRENT_DATA = DATA;
     renderSelectedMonthOverview();
@@ -809,8 +859,14 @@ function onMonthChange(val) {
     });
 }
 
-function renderSelectedMonthOverview() {
+async function renderSelectedMonthOverview() {
   resetCampaignMgmtForMonth();
+  const viewData = CURRENT_DATA || DATA;
+  try {
+    await SupabaseKpiSync.apply(viewData);
+  } catch (e) {
+    console.warn('[mgmt] Supabase KPI reload failed:', e.message);
+  }
   renderOverview();
   loadCampaignSection().catch(e => console.warn('[mgmt] campaign month reload failed:', e));
 }
@@ -887,6 +943,22 @@ const fr = n => 'RM '+parseFloat(n||0).toFixed(2);
 const pc = p => p==null?'var(--ink3)':p>=80?'var(--green)':p>=50?'var(--gold)':'var(--accent)';
 const bc = p => p==null?'var(--border)':p>=80?'#2a7a4b':p>=50?'#c8860a':'#c8381a';
 
+function managementDataLoadErrorHtml(error) {
+  const isLocalFile = location.protocol === 'file:';
+  const localServerUrl = 'http://127.0.0.1:8000/management.html';
+  return `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg);">
+    <div style="width:100%;max-width:520px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px 24px;text-align:center;font-family:var(--mono);color:var(--ink);">
+      <div style="font-family:var(--display);font-size:24px;letter-spacing:.05em;color:var(--accent);margin-bottom:8px;">Could not load dashboard_data.json</div>
+      <div style="font-size:11px;color:var(--ink3);margin-bottom:14px;">${String(error?.message || error || 'Unknown fetch error')}</div>
+      ${isLocalFile ? `<div style="font-size:11px;line-height:1.6;color:var(--ink2);margin-bottom:14px;">
+        This page is open as a local file. Chrome can block local JSON fetches in file mode, so Management needs to be opened through a local server.
+      </div>
+      <a href="${localServerUrl}" style="display:inline-block;background:var(--ink);color:#fff;text-decoration:none;border-radius:10px;padding:10px 14px;font-size:11px;">Open local Management server</a>
+      <div style="font-size:9px;color:var(--ink3);margin-top:10px;">${localServerUrl}</div>` : ''}
+    </div>
+  </div>`;
+}
+
 async function loadData() {
   let loadedData = null;
   try {
@@ -894,7 +966,7 @@ async function loadData() {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     loadedData = await r.json();
   } catch(e) {
-    document.body.innerHTML = `<div style="padding:40px;text-align:center;font-family:monospace;color:#c8381a;">\u274c Could not load dashboard_data.json<br><small style="color:#999">${e.message}</small></div>`;
+    document.body.innerHTML = managementDataLoadErrorHtml(e);
     return;
   }
 
@@ -1172,8 +1244,8 @@ async function renderActivityMap() {
 }
 
 // ── SupabaseKpiSync Module ───────────────────────────────────────────────────
-// Fetches admin-entered kpi_manual values (new_accounts, vip_count, event_count)
-// from Supabase and overrides DATA.agents[*].kpi.items[*] + recomputes totals.
+// Fetches admin-entered KPI actuals from Supabase and applies them at render time.
+// Admin values affect KPI scoring only; campaign execution progress still uses claims/deliveries.
 const SupabaseKpiSync = (() => {
   const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
@@ -1181,11 +1253,8 @@ const SupabaseKpiSync = (() => {
     'new_accounts': 'new_accounts',
     'vip_count':    'vip_count',
     'event_count':  'event',
+    'campaign_pct': 'campaign_1',
   };
-  function _scoreItem(actual, target, weight) {
-    if (!target || target === 0) return 0;
-    return Math.round(Math.min(actual / target, 1.0) * weight * 100 * 1000) / 1000;
-  }
   async function fetch_kpi_manual(month) {
     if (!month) return [];
     const url = `${SUPABASE_URL}/rest/v1/kpi_manual?select=*&month=eq.${encodeURIComponent(month)}`;
@@ -1197,59 +1266,80 @@ const SupabaseKpiSync = (() => {
       return await r.json();
     } catch (e) { return []; }
   }
-  function applyAgentOverride(agentData, row) {
-    if (!agentData || !agentData.kpi || !agentData.kpi.items) return;
+  async function fetch_kpi_manual_overrides(month) {
+    if (!month) return [];
+    const url = `${SUPABASE_URL}/rest/v1/kpi_manual_overrides?select=agent,kpi_key,value&month=eq.${encodeURIComponent(month)}`;
+    try {
+      const r = await fetch(url, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      if (!r.ok) return null;
+      return await r.json();
+    } catch (e) {
+      console.warn('[SupabaseKpiSync] kpi_manual_overrides fetch failed:', e.message);
+      return null;
+    }
+  }
+  function _findAgentData(dataObj, agent) {
+    const agents = dataObj?.agents || {};
+    const raw = String(agent || '');
+    return agents[raw] || agents[raw.toUpperCase()] || agents[raw.toLowerCase()] || null;
+  }
+  function _applyItemActual(item, actual) {
+    if (!item) return false;
+    const newActual = Number(actual ?? 0) || 0;
+    const target = Number(item.target || 0);
+    const maxScore = Number(item.max_score ?? ((Number(item.weight || 0)) * 100));
+    item.actual = newActual;
+    item.pct = target > 0 ? Math.round(newActual / target * 100 * 10) / 10 : 0;
+    item.score = target > 0 ? Math.round(Math.min(newActual / target, 1.0) * maxScore * 1000) / 1000 : 0;
+    delete item.needs_supabase_fetch;
+    return true;
+  }
+  function _applyNewbieAccounts(agentData, row) {
+    const nb = agentData?.newbie_scheme;
+    if (!nb || !nb.is_newbie) return;
+    const adminNewAcc = Number(row.new_accounts ?? 0) || 0;
+    nb.new_accounts = adminNewAcc;
+    const tiers = nb.account_tiers || [];
+    let hitCount = null;
+    let hitReward = 0;
+    [...tiers].sort((a, b) => a.count - b.count).forEach(t => {
+      if (adminNewAcc >= t.count) {
+        hitCount = t.count;
+        hitReward = t.reward;
+      }
+    });
+    nb.acc_tier_hit = hitCount;
+    nb.acc_reward = hitReward;
+    nb.total_incentive = (nb.ctn_reward || 0) + hitReward;
+  }
+  function applyAgentOverride(dataObj, row) {
+    const agentData = _findAgentData(dataObj, row?.agent);
+    if (!agentData?.kpi?.items) return 0;
     const items = agentData.kpi.items;
+    let applied = 0;
     Object.entries(FIELD_MAP).forEach(([col, itemKey]) => {
       const item = items[itemKey];
       if (!item) return;
-      const newActual = Number(row[col] ?? 0) || 0;
-      const target = Number(item.target || 0);
-      const weight = Number(item.weight || 0);
-      item.actual = newActual;
-      item.pct    = target > 0 ? Math.round(newActual / target * 100 * 10) / 10 : 0;
-      item.score  = _scoreItem(newActual, target, weight);
-      delete item.needs_supabase_fetch;
+      if (_applyItemActual(item, row[col])) applied++;
     });
-    // Also override Newbie Scheme new_accounts (admin value is authoritative)
-    const nb = agentData.newbie_scheme;
-    if (nb && nb.is_newbie) {
-      const adminNewAcc = Number(row.new_accounts ?? 0) || 0;
-      nb.new_accounts = adminNewAcc;
-      const tiers = nb.account_tiers || [];
-      let hitCount = null;
-      let hitReward = 0;
-      [...tiers].sort((a, b) => a.count - b.count).forEach(t => {
-        if (adminNewAcc >= t.count) {
-          hitCount = t.count;
-          hitReward = t.reward;
+    const bdayValue = row?.birthday_count;
+    if (bdayValue !== null && bdayValue !== undefined && bdayValue !== '') {
+      const item = items.birthday_campaign;
+      if (item) {
+        if (item.auto_actual === undefined) item.auto_actual = Number(item.actual || 0);
+        if (item.auto_source === undefined) item.auto_source = item.source || 'claim_count';
+        if (_applyItemActual(item, bdayValue)) {
+          item.override_actual = Number(bdayValue) || 0;
+          item.final_actual = item.actual;
+          item.source = 'manual_birthday_override';
+          applied++;
         }
-      });
-      nb.acc_tier_hit = hitCount;
-      nb.acc_reward   = hitReward;
-      nb.total_incentive = (nb.ctn_reward || 0) + hitReward;
+      }
     }
-    const sectionScores = {};
-    ['A','B','C','D','E'].forEach(sec => {
-      const secItems = Object.values(items).filter(v => v.section === sec);
-      sectionScores[sec] = {
-        score:     Math.round(secItems.reduce((s, v) => s + (v.score || 0), 0) * 1000) / 1000,
-        max_score: Math.round(secItems.reduce((s, v) => s + (v.max_score || 0), 0) * 1000) / 1000,
-      };
-    });
-    agentData.kpi.section_scores = sectionScores;
-    const allItems = Object.values(items);
-    const grandTotal = Math.round(allItems.reduce((s, v) => s + (v.score || 0), 0) * 1000) / 1000;
-    const maxTotal = Math.round(allItems.reduce((s, v) => s + (v.max_score || 0), 0) * 1000) / 1000;
-    agentData.kpi.grand_total = grandTotal;
-    agentData.kpi.max_total   = maxTotal;
-    agentData.kpi.grand_pct   = maxTotal > 0 ? Math.round(grandTotal / maxTotal * 100 * 10) / 10 : 0;
-    const abcItems = allItems.filter(v => ['A','B','C'].includes(v.section));
-    const totalABC = Math.round(abcItems.reduce((s, v) => s + (v.score || 0), 0) * 1000) / 1000;
-    const maxABC = Math.round(abcItems.reduce((s, v) => s + (v.max_score || 0), 0) * 1000) / 1000;
-    agentData.kpi.total_abc = totalABC;
-    agentData.kpi.max_abc   = maxABC;
-    agentData.kpi.total_pct = maxABC > 0 ? Math.round(totalABC / maxABC * 100 * 10) / 10 : 0;
+    _applyNewbieAccounts(agentData, row);
+    return applied;
   }
   async function fetch_birthday_claims(month, birthdayRows) {
     if (!month) return {};
@@ -1289,11 +1379,49 @@ const SupabaseKpiSync = (() => {
       const effectiveTarget = Math.max(0, baseTarget - counts.excluded);
       bdayItem.excluded_count = counts.excluded;
       bdayItem.target = effectiveTarget;
-      bdayItem.actual = counts.verified;
-      bdayItem.pct = effectiveTarget > 0 ? Math.round(counts.verified / effectiveTarget * 100 * 10) / 10 : 0;
-      bdayItem.score = _scoreItem(counts.verified, effectiveTarget, Number(bdayItem.weight || 0));
-      delete bdayItem.needs_supabase_fetch;
+      _applyItemActual(bdayItem, counts.verified);
+      bdayItem.auto_actual = counts.verified;
+      bdayItem.override_actual = null;
+      bdayItem.final_actual = counts.verified;
+      bdayItem.source = 'claim_count';
+      bdayItem.auto_source = 'claim_count';
       applied++;
+    });
+    return applied;
+  }
+  function resetCampaignManualOverrides(dataObj) {
+    let reset = 0;
+    Object.values(dataObj?.agents || {}).forEach(agentData => {
+      const items = agentData?.kpi?.items || {};
+      Object.entries(items).forEach(([key, item]) => {
+        if (!item || (!key.startsWith('camp_') && !item.campaign_id)) return;
+        if (item.auto_actual === undefined || item.override_actual === undefined) return;
+        const autoActual = Number(item.auto_actual || 0);
+        _applyItemActual(item, autoActual);
+        item.override_actual = null;
+        item.final_actual = autoActual;
+        item.source = item.auto_source || 'auto';
+        reset++;
+      });
+    });
+    return reset;
+  }
+  function applyKeyedCampaignOverrides(dataObj, rows) {
+    let applied = 0;
+    (rows || []).forEach(row => {
+      const agentData = _findAgentData(dataObj, row?.agent);
+      const item = agentData?.kpi?.items?.[row?.kpi_key];
+      if (!item) return;
+      const value = Number(row.value ?? 0);
+      if (!Number.isFinite(value) || value < 0) return;
+      if (item.auto_actual === undefined) item.auto_actual = Number(item.actual || 0);
+      if (item.auto_source === undefined) item.auto_source = item.source || 'auto';
+      if (_applyItemActual(item, value)) {
+        item.override_actual = value;
+        item.final_actual = value;
+        item.source = 'manual_override';
+        applied++;
+      }
     });
     return applied;
   }
@@ -1327,23 +1455,33 @@ const SupabaseKpiSync = (() => {
   async function apply(dataObj) {
     const month = dataObj?.current_month;
     if (!month) return;
-    const rows = await fetch_kpi_manual(month);
-    if (rows.length) {
-      let applied = 0;
-      rows.forEach(row => {
-        const agentData = dataObj.agents?.[row.agent];
-        if (agentData) { applyAgentOverride(agentData, row); applied++; }
-      });
-      console.log(`[SupabaseKpiSync] Applied ${applied}/${rows.length} kpi_manual overrides for ${month}`);
-    } else { console.log(`[SupabaseKpiSync] No kpi_manual rows for ${month}`); }
     const birthdayOverrides = await ensureBirthdayOverridesForMonth(month);
     const birthdayRows = birthdayRowsForMonth(dataObj, month, birthdayOverrides);
     const bdayByAgent = await fetch_birthday_claims(month, birthdayRows);
     const bdayApplied = applyBirthdayOverride(dataObj, bdayByAgent, birthdayRows);
     console.log(`[SupabaseKpiSync] Applied birthday claim counts for ${bdayApplied} agents`);
-    if (bdayApplied || rows.length) recomputeAllTotals(dataObj);
+
+    const rows = await fetch_kpi_manual(month);
+    let manualApplied = 0;
+    if (rows.length) {
+      rows.forEach(row => { manualApplied += applyAgentOverride(dataObj, row); });
+      console.log(`[SupabaseKpiSync] Applied ${manualApplied} kpi_manual item(s) from ${rows.length} row(s) for ${month}`);
+    } else { console.log(`[SupabaseKpiSync] No kpi_manual rows for ${month}`); }
+
+    let campaignReset = 0;
+    let keyedApplied = 0;
+    const keyedRows = await fetch_kpi_manual_overrides(month);
+    if (Array.isArray(keyedRows)) {
+      campaignReset = resetCampaignManualOverrides(dataObj);
+      keyedApplied = applyKeyedCampaignOverrides(dataObj, keyedRows);
+      console.log(`[SupabaseKpiSync] Applied ${keyedApplied}/${keyedRows.length} keyed campaign override(s) for ${month}`);
+    } else {
+      console.warn('[SupabaseKpiSync] Keeping generated campaign KPI values because keyed override fetch failed');
+    }
+
+    if (bdayApplied || manualApplied || campaignReset || keyedApplied) recomputeAllTotals(dataObj);
   }
-  return { apply, fetch_kpi_manual, fetch_birthday_claims };
+  return { apply, fetch_kpi_manual, fetch_kpi_manual_overrides, fetch_birthday_claims };
 })();
 
 async function loadCampaignSection() {
@@ -1411,6 +1549,46 @@ let CAMP_CLAIMS_BY_MONTH = {};
 let CAMPS_CACHE       = [];
 let CAMPAIGN_MGMT_VIEW = 'current';
 let CAMPAIGN_MGMT_MODE = 'execution';
+const CAMPAIGN_MGMT_FOLLOWUP_OFFSETS = {
+  followup0: [0],
+  followup1: [1],
+  followup01: [0, 1],
+  followup2: [2],
+};
+
+function campaignMgmtIsFollowupMode(mode=CAMPAIGN_MGMT_MODE) {
+  return Object.prototype.hasOwnProperty.call(CAMPAIGN_MGMT_FOLLOWUP_OFFSETS, mode);
+}
+
+function campaignMgmtModeLabel(mode=CAMPAIGN_MGMT_MODE) {
+  if (mode === 'followup0') return 'M+0';
+  if (mode === 'followup1') return 'M+1';
+  if (mode === 'followup01') return 'M0+M1';
+  if (mode === 'followup2') return 'M+2';
+  return 'Execution';
+}
+
+function campaignMgmtModeFileLabel(mode=CAMPAIGN_MGMT_MODE) {
+  return campaignMgmtModeLabel(mode).replace(/\+/g, '').replace(/\s+/g, '_');
+}
+
+function campaignMgmtPurchaseLabel(mode=CAMPAIGN_MGMT_MODE) {
+  if (mode === 'followup0') return 'campaign-month bought';
+  if (mode === 'followup01') return 'campaign/next-month bought';
+  return 'follow-up bought';
+}
+
+function campaignMgmtNotBoughtLabel(mode=CAMPAIGN_MGMT_MODE) {
+  if (mode === 'followup0') return 'not bought in campaign month';
+  if (mode === 'followup01') return 'not bought in M0/M1';
+  return 'not bought yet';
+}
+
+function campaignMgmtAuditTitle(mode=CAMPAIGN_MGMT_MODE) {
+  if (mode === 'followup0') return 'Campaign-month purchase audit';
+  if (mode === 'followup01') return 'Campaign + next-month purchase audit';
+  return 'Follow-up purchase audit';
+}
 
 function campaignMgmtMonthIndex(label) {
   const [mon, yy] = String(label || '').split(' ');
@@ -1666,7 +1844,7 @@ async function renderMonthlySummary() {
   } catch(e) { console.warn('[monthlySummary] workdays fetch failed:', e.message); }
   const fallbackWdays = D.working_days?.elapsed_working_days || 0;
 
-  // col layout: Agent | Normal(act/tgt/%) | MA(act/tgt/%) | 开新户口(act/tgt) | VIP(act/tgt) | 激活户口(act/tgt) | 加SKU(act/tgt) | 光顾率(act/tgt%) | 交易 | 工作日 | 平均交易 | KPI A+B
+  // col layout: Agent | Normal(act/tgt/%) | MA(act/tgt/%) | 开新户口(act/tgt) | VIP(act/tgt) | 激活户口(act/tgt) | 加SKU(act/tgt) | 光顾率(act/tgt%) | 交易 | 工作日 | 平均交易 | KPI A+B+C
   const cols = '68px 110px 110px 80px 70px 80px 80px 90px 55px 45px 55px 60px';
   const hdrs = [
     {l:'AGENT',         sub:''},
@@ -1680,7 +1858,7 @@ async function renderMonthlySummary() {
     {l:'交易次数',       sub:''},
     {l:'工作日',         sub:''},
     {l:'平均交易',       sub:''},
-    {l:'KPI A+B',       sub:'Score'},
+    {l:'KPI A+B+C',     sub:'Score'},
   ];
 
   // helper: act/tgt cell with colour on pct
@@ -1845,7 +2023,7 @@ async function renderMonthlySummary() {
         ['交易次数',  'Total unique invoices this agent this month'],
         ['工作日',    'Working days elapsed in current month'],
         ['平均交易',  'Avg invoices per working day'],
-        ['KPI A+B',   'Combined Section A (Sales) + B (Penetration/Service) KPI score'],
+        ['KPI A+B+C', 'Combined Section A (Sales) + B (Penetration/Service) + C (Campaign) KPI score'],
       ].map(([col, desc]) => `
         <div style="display:flex;gap:6px;align-items:baseline;min-width:260px;flex:1;">
           <span style="font-family:var(--mono);font-size:9px;font-weight:600;color:var(--ink2);white-space:nowrap;min-width:90px;">${col}</span>
@@ -1866,7 +2044,7 @@ function exportMonthlyExcel() {
   // Main summary sheet
   const summaryRows = [
     ['Agent','Target Normal','Actual Normal','Normal %','Target MA','Actual MA','MA %',
-     '开新户口','VIP','激活户口','加SKU','持续光顾率','交易次数','工作日','平均交易次数','KPI A+B Score']
+     '开新户口','VIP','激活户口','加SKU','持续光顾率','交易次数','工作日','平均交易次数','KPI A+B+C Score']
   ];
 
   agents.forEach(agent => {
@@ -2167,21 +2345,21 @@ function exportCampaignMgmtExcel() {
   if (typeof XLSX === 'undefined') { alert('Excel library not loaded.'); return; }
   const rows = CAMPAIGN_MGMT_EXPORT_ROWS || [];
   if (!rows.length) {
-    alert('No follow-up audit rows to export. Switch to M+1 or M+2 first.');
+    alert('No purchase audit rows to export. Switch to M+0, M+1, M0+M1, or M+2 first.');
     return;
   }
   const ws = XLSX.utils.json_to_sheet(rows);
   ws['!cols'] = [
     {wch:32}, {wch:8}, {wch:12}, {wch:14}, {wch:26},
-    {wch:10}, {wch:14}, {wch:34}, {wch:16}, {wch:10}, {wch:36}
+    {wch:10}, {wch:14}, {wch:34}, {wch:22}, {wch:10}, {wch:18}, {wch:36}
   ];
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Follow-up Audit');
+  XLSX.utils.book_append_sheet(wb, ws, 'Purchase Audit');
   const month = (CURRENT_DATA || DATA || {}).current_month || DATA?.current_month || '';
-  const mode = CAMPAIGN_MGMT_MODE === 'followup2' ? 'M2' : 'M1';
+  const mode = campaignMgmtModeFileLabel(CAMPAIGN_MGMT_MODE);
   const safeMonth = String(month || 'month').replace(/\s+/g, '_');
   const date = new Date().toISOString().slice(0,10);
-  XLSX.writeFile(wb, `MD_CampaignFollowup_${mode}_${safeMonth}_${date}.xlsx`);
+  XLSX.writeFile(wb, `MD_CampaignPurchase_${mode}_${safeMonth}_${date}.xlsx`);
 }
 
 // ── Pending Actions (Flags) ────────────────────────────────────────────────
@@ -2884,7 +3062,7 @@ function renderCampaignsMgmt() {
 
   const DELIV_STATUSES = new Set(['claimed','delivered','verified']);
   const isConversionCamp = camp => camp?.type === 'conversion_simple' || camp?.type === 'conversion_tiered';
-  const isFollowupMode = CAMPAIGN_MGMT_MODE === 'followup1' || CAMPAIGN_MGMT_MODE === 'followup2';
+  const isFollowupMode = campaignMgmtIsFollowupMode(CAMPAIGN_MGMT_MODE);
 
   function getCampaignClaims(camp) {
     const months = campaignMgmtClaimMonths(camp, VIEW_DATA.current_month || '');
@@ -2986,13 +3164,21 @@ function renderCampaignsMgmt() {
     });
   }
 
-  function computeFollowupStats(camp, followOffset) {
+  function computeFollowupStats(camp, followOffsets) {
+    const offsets = Array.isArray(followOffsets) ? followOffsets : [followOffsets];
     const notes = camp.notes || {};
     const baseMonth = _campaignMonth(camp);
-    const followMonth = _monthAdd(baseMonth, followOffset);
     const currentIdx = _monthIndex(VIEW_DATA.current_month || '');
-    const followIdx = _monthIndex(followMonth);
-    const unavailable = followIdx != null && currentIdx != null && followIdx > currentIdx;
+    const checkMonths = offsets
+      .map(offset => {
+        const label = _monthAdd(baseMonth, offset);
+        return { offset, label, idx: _monthIndex(label) };
+      })
+      .filter(m => m.label);
+    const availableMonths = checkMonths.filter(m => !(m.idx != null && currentIdx != null && m.idx > currentIdx));
+    const unavailable = checkMonths.length > 0 && !availableMonths.length;
+    const monthLabels = availableMonths.map(m => m.label);
+    const allMonthLabels = checkMonths.map(m => m.label);
     const targets = _followupTargets(camp);
     const matchMode = notes.follow_up_match || notes.qualifying_match || 'item_group';
     const pool = getCampaignPool(camp);
@@ -3007,26 +3193,32 @@ function renderCampaignsMgmt() {
       const found = lookup[code];
       const ag = (p.agent || found?.agent || '').toUpperCase();
       if (!ag || !perAgent[ag]) return;
-      const rows = found?.debtor?.month_breakdown?.[followMonth] || [];
-      const buyRows = !unavailable ? rows.filter(r => _followupRowMatches(r, targets, matchMode)) : [];
+      const buyRows = !unavailable ? availableMonths.flatMap(({ label }) => {
+        const rows = found?.debtor?.month_breakdown?.[label] || [];
+        return rows
+          .filter(r => _followupRowMatches(r, targets, matchMode))
+          .map(r => ({ ...r, __month: label }));
+      }) : [];
       const ctn = buyRows.reduce((s, r) => s + Number(r.ctn || 0), 0);
       const name = p.name || found?.debtor?.company_name || code;
       const itemMap = {};
       buyRows.forEach(r => {
         const item = String(r.item || r.sku || r.item_code || 'SKU').trim() || 'SKU';
-        itemMap[item] = (itemMap[item] || 0) + Number(r.ctn || 0);
+        const key = monthLabels.length > 1 ? `${r.__month} ${item}` : item;
+        itemMap[key] = (itemMap[key] || 0) + Number(r.ctn || 0);
       });
       const items = Object.entries(itemMap)
         .sort((a, b) => b[1] - a[1])
         .map(([item, qty]) => `${item} ${fi(qty)}`)
         .join(', ');
+      const purchaseMonths = [...new Set(buyRows.map(r => r.__month).filter(Boolean))].join(', ');
       perAgent[ag].poolCount++;
       perAgent[ag].effPool++;
       if (ctn > 0) {
         perAgent[ag].delivered++;
         perAgent[ag].onListDelivered++;
         perAgent[ag].convertedCtn += ctn;
-        perAgent[ag].boughtRows.push({ code, name, ctn, items });
+        perAgent[ag].boughtRows.push({ code, name, ctn, items, purchaseMonths });
       } else {
         perAgent[ag].notYetRows.push({ code, name });
       }
@@ -3045,7 +3237,18 @@ function renderCampaignsMgmt() {
       totalPoolCount, totalExcluded: 0, totalOnList: delivered, totalOffList: 0, allOffListCodes: [],
       effPool: totalPoolCount, delivered, totalYet: Math.max(0, totalPoolCount - delivered),
       pct: totalPoolCount > 0 ? Math.min(100, Math.round(delivered / totalPoolCount * 100)) : 0,
-      convertedCtn, followMonth, baseMonth, targets: targets.join(', '), missingConfig: !targets.length, unavailable,
+      convertedCtn,
+      followMonth: monthLabels.length ? monthLabels.join(' + ') : allMonthLabels.join(' + '),
+      purchaseMonths: monthLabels.length ? monthLabels.join(' + ') : allMonthLabels.join(' + '),
+      plannedMonths: allMonthLabels.join(' + '),
+      availableMonths: monthLabels.join(' + '),
+      baseMonth,
+      followOffsets: offsets,
+      mode: CAMPAIGN_MGMT_MODE,
+      modeLabel: campaignMgmtModeLabel(CAMPAIGN_MGMT_MODE),
+      targets: targets.join(', '),
+      missingConfig: !targets.length,
+      unavailable,
     };
   }
 
@@ -3055,7 +3258,7 @@ function renderCampaignsMgmt() {
     const isConversion = isConversionCamp(camp);
 
     if (isFollowupMode) {
-      return computeFollowupStats(camp, CAMPAIGN_MGMT_MODE === 'followup2' ? 2 : 1);
+      return computeFollowupStats(camp, CAMPAIGN_MGMT_FOLLOWUP_OFFSETS[CAMPAIGN_MGMT_MODE] || [1]);
     }
 
     if (isConversion) {
@@ -3231,30 +3434,32 @@ function renderCampaignsMgmt() {
         (a.boughtRows || []).forEach(row => {
           CAMPAIGN_MGMT_EXPORT_ROWS.push({
             Campaign: stats.camp.name || stats.camp.id || '',
-            Mode: CAMPAIGN_MGMT_MODE === 'followup2' ? 'M+2' : 'M+1',
+            Mode: stats.modeLabel || campaignMgmtModeLabel(CAMPAIGN_MGMT_MODE),
             'Base Month': stats.baseMonth || '',
-            'Follow-up Month': stats.followMonth || '',
+            'Purchase Month': stats.purchaseMonths || stats.followMonth || '',
             'Target SKU/Brand': stats.targets || '',
             Agent: agent,
             'Debtor Code': row.code,
             'Debtor Name': row.name,
             Status: 'Bought',
             CTN: Number(row.ctn || 0),
+            'Bought Month(s)': row.purchaseMonths || '',
             'Matched SKU/Items': row.items || '',
           });
         });
         (a.notYetRows || []).forEach(row => {
           CAMPAIGN_MGMT_EXPORT_ROWS.push({
             Campaign: stats.camp.name || stats.camp.id || '',
-            Mode: CAMPAIGN_MGMT_MODE === 'followup2' ? 'M+2' : 'M+1',
+            Mode: stats.modeLabel || campaignMgmtModeLabel(CAMPAIGN_MGMT_MODE),
             'Base Month': stats.baseMonth || '',
-            'Follow-up Month': stats.followMonth || '',
+            'Purchase Month': stats.purchaseMonths || stats.followMonth || '',
             'Target SKU/Brand': stats.targets || '',
             Agent: agent,
             'Debtor Code': row.code,
             'Debtor Name': row.name,
-            Status: 'Not bought yet',
+            Status: campaignMgmtNotBoughtLabel(stats.mode || CAMPAIGN_MGMT_MODE),
             CTN: 0,
+            'Bought Month(s)': '',
             'Matched SKU/Items': '',
           });
         });
@@ -3291,20 +3496,21 @@ function renderCampaignsMgmt() {
         const a = stats.perAgent[ag];
         const bought = (a.boughtRows || []).slice().sort((x, y) => y.ctn - x.ctn || x.name.localeCompare(y.name));
         const buyerRows = bought.length ? bought.map(row => `
-          <div style="display:grid;grid-template-columns:70px minmax(0,1fr) 90px minmax(120px,.8fr);gap:10px;align-items:center;padding:5px 8px;border-top:1px solid rgba(0,0,0,.05);font-family:var(--mono);font-size:9px;">
+          <div style="display:grid;grid-template-columns:70px minmax(0,1fr) 96px 70px minmax(120px,.8fr);gap:10px;align-items:center;padding:5px 8px;border-top:1px solid rgba(0,0,0,.05);font-family:var(--mono);font-size:9px;">
             <div style="color:var(--blue);font-weight:700;">${campMgmtEsc(row.code)}</div>
             <div style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink2);">${campMgmtEsc(row.name)}</div>
+            <div style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink3);">${campMgmtEsc(row.purchaseMonths || stats.purchaseMonths || stats.followMonth || '')}</div>
             <div style="text-align:right;color:var(--green);font-weight:700;">${fi(row.ctn)} CTN</div>
             <div style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink3);">${campMgmtEsc(row.items || 'matched target')}</div>
           </div>`).join('') : `
-          <div style="padding:7px 8px;border-top:1px solid rgba(0,0,0,.05);font-family:var(--mono);font-size:9px;color:var(--ink3);">No follow-up purchase yet.</div>`;
+          <div style="padding:7px 8px;border-top:1px solid rgba(0,0,0,.05);font-family:var(--mono);font-size:9px;color:var(--ink3);">No purchase found for this check month.</div>`;
         return `<div style="border:1px solid var(--border);border-radius:9px;overflow:hidden;background:rgba(255,255,255,.45);">
           <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:7px 9px;background:rgba(0,0,0,.03);">
             <div style="font-family:var(--display);font-size:14px;">${campMgmtEsc(ag)}</div>
             <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">
               <span style="color:var(--green);">${bought.length}/${a.effPool} bought</span>
               &nbsp;·&nbsp; ${fi(a.convertedCtn || 0)} CTN
-              &nbsp;·&nbsp; <span style="color:var(--accent);">${a.yet} not yet</span>
+              &nbsp;·&nbsp; <span style="color:var(--accent);">${a.yet} ${campaignMgmtNotBoughtLabel(stats.mode || CAMPAIGN_MGMT_MODE)}</span>
             </div>
           </div>
           ${buyerRows}
@@ -3313,13 +3519,13 @@ function renderCampaignsMgmt() {
     return `<div id="${cardId}-followup-audit" style="border-top:1px solid var(--border);padding:10px 14px;background:rgba(255,255,255,.28);">
       <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px;">
         <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;">
-          Follow-up purchase audit · ${campMgmtEsc(stats.followMonth || '')}
+          ${campaignMgmtAuditTitle(stats.mode || CAMPAIGN_MGMT_MODE)} · ${campMgmtEsc(stats.purchaseMonths || stats.followMonth || '')}
         </div>
         <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">
           ${stats.delivered}/${stats.effPool} debtors · ${fi(stats.convertedCtn || 0)} CTN
         </div>
       </div>
-      <div style="display:grid;gap:8px;">${agentBlocks || '<div style="font-family:var(--mono);font-size:10px;color:var(--ink3);">No follow-up audit rows.</div>'}</div>
+      <div style="display:grid;gap:8px;">${agentBlocks || '<div style="font-family:var(--mono);font-size:10px;color:var(--ink3);">No purchase audit rows.</div>'}</div>
     </div>`;
   }
 
@@ -3327,6 +3533,7 @@ function renderCampaignsMgmt() {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-family:var(--mono);font-size:9px;">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="color:var(--ink3);">Sorted by lowest completion first</span>
+        <span style="color:var(--ink3);">M+0 = campaign month · M+1 = next month · pool = uploaded campaign list</span>
         <button onclick="setCampaignMgmtView('current')"
           style="background:${CAMPAIGN_MGMT_VIEW==='current'?'var(--ink)':'rgba(0,0,0,.04)'};border:1px solid var(--border);color:${CAMPAIGN_MGMT_VIEW==='current'?'#fff':'var(--ink2)'};padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">
           Current ${currentCampaigns.length}
@@ -3336,15 +3543,19 @@ function renderCampaignsMgmt() {
           Expired ${expiredCampaigns.length}
         </button>
       </div>
-      <div style="display:flex;gap:6px;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
         <button onclick="setCampaignMgmtMode('execution')"
           style="background:${CAMPAIGN_MGMT_MODE==='execution'?'var(--ink)':'rgba(0,0,0,.04)'};border:1px solid var(--border);color:${CAMPAIGN_MGMT_MODE==='execution'?'#fff':'var(--ink2)'};padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">Execution</button>
+        <button onclick="setCampaignMgmtMode('followup0')"
+          style="background:${CAMPAIGN_MGMT_MODE==='followup0'?'var(--ink)':'rgba(0,0,0,.04)'};border:1px solid var(--border);color:${CAMPAIGN_MGMT_MODE==='followup0'?'#fff':'var(--ink2)'};padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">M+0</button>
         <button onclick="setCampaignMgmtMode('followup1')"
           style="background:${CAMPAIGN_MGMT_MODE==='followup1'?'var(--ink)':'rgba(0,0,0,.04)'};border:1px solid var(--border);color:${CAMPAIGN_MGMT_MODE==='followup1'?'#fff':'var(--ink2)'};padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">M+1</button>
+        <button onclick="setCampaignMgmtMode('followup01')"
+          style="background:${CAMPAIGN_MGMT_MODE==='followup01'?'var(--ink)':'rgba(0,0,0,.04)'};border:1px solid var(--border);color:${CAMPAIGN_MGMT_MODE==='followup01'?'#fff':'var(--ink2)'};padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">M0+M1</button>
         <button onclick="setCampaignMgmtMode('followup2')"
           style="background:${CAMPAIGN_MGMT_MODE==='followup2'?'var(--ink)':'rgba(0,0,0,.04)'};border:1px solid var(--border);color:${CAMPAIGN_MGMT_MODE==='followup2'?'#fff':'var(--ink2)'};padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">M+2</button>
         ${isFollowupMode ? `<button onclick="exportCampaignMgmtExcel()"
-          style="background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);color:var(--green);padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">📊 Export follow-up Excel</button>` : ''}
+          style="background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);color:var(--green);padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">📊 Export purchase Excel</button>` : ''}
         <button onclick="toggleAllCampCards(true)"
           style="background:rgba(0,0,0,.04);border:1px solid var(--border);color:var(--ink2);padding:3px 10px;border-radius:6px;font-family:var(--mono);font-size:9px;cursor:pointer;">Open all</button>
         <button onclick="toggleAllCampCards(false)"
@@ -3371,8 +3582,8 @@ function renderCampaignsMgmt() {
     let breakdown = '';
     if (stats.isFollowup) {
       if (stats.missingConfig) breakdown = ` <span style="color:var(--accent);">· follow-up not configured</span>`;
-      else if (stats.unavailable) breakdown = ` <span style="color:var(--ink3);">· ${stats.followMonth} not available yet</span>`;
-      else breakdown = ` <span style="color:var(--ink3);">· ${fi(convertedCtn || 0)} CTN in ${stats.followMonth}</span>`;
+      else if (stats.unavailable) breakdown = ` <span style="color:var(--ink3);">· ${stats.purchaseMonths || stats.followMonth} not available yet</span>`;
+      else breakdown = ` <span style="color:var(--ink3);">· ${fi(convertedCtn || 0)} CTN in ${stats.purchaseMonths || stats.followMonth}</span>`;
     } else if (isConversion) {
       breakdown = ` <span style="color:var(--ink3);">· ${fi(convertedCtn || 0)} CTN</span>`;
     } else if (isBday) {
@@ -3394,7 +3605,7 @@ function renderCampaignsMgmt() {
       .map(ag => {
         const a = perAgent[ag];
         const col  = barColor(a.pct);
-        const yetTxt = a.yet > 0 ? `<span style="color:var(--accent);">${a.yet} yet</span>` : `✓`;
+        const yetTxt = a.yet > 0 ? `<span style="color:var(--accent);">${a.yet} ${stats.isFollowup ? campaignMgmtNotBoughtLabel(stats.mode || CAMPAIGN_MGMT_MODE) : 'yet'}</span>` : `✓`;
         const excTxt = a.excluded > 0 ? ` · <span style="color:#ff8866;">${a.excluded} excl</span>` : '';
         const offTxt = (!isBday && a.offListDelivered > 0)
           ? ` · <span style="color:var(--purple);">+${a.offListDelivered} off-list</span>` : '';
@@ -3402,7 +3613,7 @@ function renderCampaignsMgmt() {
         const tierTxt = isConversion && a.tier
           ? ` · <span style="color:var(--green);">${a.tier}</span>`
           : (isConversion && a.nextTier ? ` · <span style="color:var(--ink3);">${a.toNext} to ${a.nextTier}</span>` : '');
-        const actionLabel = stats.isFollowup ? 'follow-up bought' : (isConversion ? 'converted' : 'delivered');
+        const actionLabel = stats.isFollowup ? campaignMgmtPurchaseLabel(stats.mode || CAMPAIGN_MGMT_MODE) : (isConversion ? 'converted' : 'delivered');
         // Display: delivered/effPool (from target list size)
         const poolTxt = `${a.delivered}/${a.effPool}`;
         return `
@@ -3455,7 +3666,7 @@ function renderCampaignsMgmt() {
             </div>
             <div style="font-family:var(--display);font-size:17px;letter-spacing:.04em;">${camp.name || camp.id || ''}</div>
             <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:3px;">
-              ${delivered} of ${effPool} ${stats.isFollowup ? 'follow-up bought' : (isConversion ? 'converted' : 'delivered')} · <span style="color:${totalYet>0?'var(--accent)':'var(--green)'};">${totalYet} ${stats.isFollowup ? 'not bought yet' : ('yet to ' + (isConversion ? 'convert' : 'deliver'))}</span> &nbsp;·&nbsp; ${stats.isFollowup ? ('Base ' + (stats.baseMonth || '—')) : deadlineMeta(camp.deadline)}${breakdown}
+              ${delivered} of ${effPool} ${stats.isFollowup ? campaignMgmtPurchaseLabel(stats.mode || CAMPAIGN_MGMT_MODE) : (isConversion ? 'converted' : 'delivered')} · <span style="color:${totalYet>0?'var(--accent)':'var(--green)'};">${totalYet} ${stats.isFollowup ? campaignMgmtNotBoughtLabel(stats.mode || CAMPAIGN_MGMT_MODE) : ('yet to ' + (isConversion ? 'convert' : 'deliver'))}</span> &nbsp;·&nbsp; ${stats.isFollowup ? ('Base ' + (stats.baseMonth || '—')) : deadlineMeta(camp.deadline)}${breakdown}
             </div>
           </div>
           <div style="display:flex;align-items:flex-start;gap:10px;flex-shrink:0;">
@@ -3499,7 +3710,7 @@ function setCampaignMgmtView(view) {
 }
 
 function setCampaignMgmtMode(mode) {
-  CAMPAIGN_MGMT_MODE = ['execution','followup1','followup2'].includes(mode) ? mode : 'execution';
+  CAMPAIGN_MGMT_MODE = ['execution','followup0','followup1','followup01','followup2'].includes(mode) ? mode : 'execution';
   renderCampaignsMgmt();
 }
 
@@ -4416,7 +4627,7 @@ function renderGainingDebtors(resetPage=true) {
       : `<span style="font-family:var(--mono);font-size:8px;color:var(--ink3);">—</span>`;
     return `
     <div style="padding:9px 14px;border-bottom:1px solid var(--border);background:${bg};">
-      <div style="display:grid;grid-template-columns:56px 1fr 70px 64px;gap:8px;align-items:center;margin-bottom:5px;">
+      <div style="display:grid;grid-template-columns:48px minmax(0,1fr) 64px 58px;gap:6px;align-items:center;margin-bottom:5px;">
         <div style="font-family:var(--display);font-size:13px;letter-spacing:.04em;color:var(--ink2);">${d.agent}</div>
         <div>
           <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.company_name||d.debtor_code}</div>
@@ -4432,7 +4643,7 @@ function renderGainingDebtors(resetPage=true) {
         </div>
         <div style="text-align:right;">${statusTag}</div>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-left:64px;">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-left:54px;">
         <span style="font-family:var(--mono);font-size:8px;color:var(--ink3);white-space:nowrap;">条数上升:</span>
         ${skuPills}
       </div>
@@ -4680,7 +4891,7 @@ function renderDroppingDebtors(resetPage=true) {
 
     return `
     <div style="padding:9px 14px;border-bottom:1px solid var(--border);background:${bg};">
-      <div style="display:grid;grid-template-columns:56px 1fr 70px 64px;gap:8px;align-items:center;margin-bottom:5px;">
+      <div style="display:grid;grid-template-columns:48px minmax(0,1fr) 64px 58px;gap:6px;align-items:center;margin-bottom:5px;">
         <div style="font-family:var(--display);font-size:13px;letter-spacing:.04em;color:var(--ink2);">${d.agent}</div>
         <div>
           <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.company_name||d.debtor_code}</div>
@@ -4697,7 +4908,7 @@ function renderDroppingDebtors(resetPage=true) {
         <div style="text-align:right;">${statusTag}</div>
       </div>
       <!-- SKU lapsed row -->
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-left:64px;">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-left:54px;">
         <span style="font-family:var(--mono);font-size:8px;color:var(--ink3);white-space:nowrap;">条数下降:</span>
         ${skuPills}
       </div>

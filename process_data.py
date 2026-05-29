@@ -1249,7 +1249,10 @@ def calc_aging(df, agents, cur_month):
                 "days_outstanding": days_outstanding,
                 "qty_ctn":          round(float(row.get("qty_ctn", 0)), 2),
                 "amount":           round(float(row.get("local_subtotal", 0)), 2),
+                "item_group":       row.get("item_group", ""),
                 "item_code":        row.get("item_code", ""),
+                "sales_type":       row.get("sales_type", ""),
+                "sales_type_group": row.get("sales_type_group", ""),
                 "overdue":          days_outstanding >= OVERDUE_DAYS,
             }
             all_unpaid_invoices.append(inv)

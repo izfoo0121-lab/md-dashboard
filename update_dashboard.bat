@@ -88,10 +88,10 @@ echo.
 REM -- Step 5: Push to GitHub -------------------------------
 echo [5/5] Pushing to GitHub...
 git add dashboard_data.json debtor_analysis_data.json history.xlsx history.json targets.json
-git add sales_dashboard.html management.html admin.html
-git add debtor_analysis.html index.html
+git add sales_dashboard.html management.html admin.html admin_context.js
+git add accounts.html campaign_audit.html stock.html stock_calendar.html debtor_analysis.html debtor_map.html index.html
 git add data_*.json months_index.json 2>nul
-git add reports\miracle-2a-sku-strength\index.html reports\miracle-2a-sku-strength\debtor_status.js reports\miracle-2a-sku-strength\agent_monthly_revenue.js reports\miracle-2a-sku-strength\build_report_data.py 2>nul
+git add reports\miracle-2a-sku-strength\index.html reports\miracle-2a-sku-strength\penetration.html reports\miracle-2a-sku-strength\gap_opportunities.html reports\miracle-2a-sku-strength\debtor_status.js reports\miracle-2a-sku-strength\agent_monthly_revenue.js reports\miracle-2a-sku-strength\build_report_data.py 2>nul
 if "%MONTH_OVERRIDE%"=="" (
     git commit -m "Daily update %date% %time%"
 ) else (

@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<script src="admin_context.js"></script>
 <title>Miracle MD — Stock Calendar</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -226,6 +227,13 @@ let STATE = {
   month: new Date().getMonth() + 1,
   company: 'all',
 };
+if (window.MDAdminContext) {
+  const [ctxYear, ctxMonth] = MDAdminContext.monthToIsoMonth(MDAdminContext.getWorkingMonth()).split('-').map(Number);
+  if (ctxYear && ctxMonth) {
+    STATE.year = ctxYear;
+    STATE.month = ctxMonth;
+  }
+}
 
 // ── Date helpers ───────────────────────────────────────────────────────────
 function todayStr(){ return new Date().toISOString().slice(0,10); }
@@ -503,6 +511,7 @@ function changeMonth(delta){
   STATE.month+=delta;
   if(STATE.month>12){STATE.month=1;STATE.year++;}
   if(STATE.month<1){STATE.month=12;STATE.year--;}
+  if (window.MDAdminContext) MDAdminContext.setWorkingMonth(`${STATE.year}-${String(STATE.month).padStart(2,'0')}`, { silent: true });
   renderAll();
 }
 

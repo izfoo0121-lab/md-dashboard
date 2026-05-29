@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <script src="admin_context.js"></script>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>MD Scoring — Accounts & Supervisor</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -174,7 +175,7 @@
   <!-- Controls -->
   <div class="controls">
     <span class="ctrl-label">Month:</span>
-    <select id="month-select" onchange="renderAll()">
+    <select id="month-select">
       <option value="Jan 26">Jan 26</option>
       <option value="Feb 26">Feb 26</option>
       <option value="Mar 26">Mar 26</option>
@@ -322,11 +323,39 @@ async function loadData() {
     const r = await fetch('dashboard_data.json?v=' + Date.now());
     DATA = await r.json();
   } catch(e) { DATA = {}; }
+  await populateAccountsMonthSelector();
   // Sync KPI scores from Gist before rendering
   if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
-    const month = document.getElementById('month-select')?.value || 'Apr 26';
+    const month = document.getElementById('month-select')?.value || DATA.current_month || 'Apr 26';
     await GistSync.syncToLocal(month).catch(()=>{});
   }
+  loadScores();
+  renderAll();
+}
+
+async function populateAccountsMonthSelector() {
+  const sel = document.getElementById('month-select');
+  if (!sel) return;
+  let indexMonths = [];
+  try {
+    const r = await fetch('months_index.json?v=' + Date.now());
+    if (r.ok) indexMonths = await r.json();
+  } catch(e) {}
+
+  const preferred = window.MDAdminContext
+    ? MDAdminContext.getWorkingMonth(DATA.current_month || '')
+    : (DATA.current_month || sel.value || 'Apr 26');
+  const monthOptions = window.MDAdminContext
+    ? MDAdminContext.monthOptions({ include: [DATA.current_month, sel.value, ...indexMonths], preferred, fallback: DATA.current_month })
+    : { opts: indexMonths.length ? indexMonths : ['Jan 26','Feb 26','Mar 26','Apr 26'], defaultSel: preferred };
+  const selected = monthOptions.opts.includes(preferred) ? preferred : monthOptions.defaultSel;
+  sel.innerHTML = monthOptions.opts.map(m => `<option value="${m}"${m === selected ? ' selected' : ''}>${m}</option>`).join('');
+  if (window.MDAdminContext) MDAdminContext.setWorkingMonth(selected, { silent: true });
+}
+
+function onAccountsMonthChange() {
+  const month = document.getElementById('month-select')?.value;
+  if (window.MDAdminContext && month) MDAdminContext.setWorkingMonth(month, { silent: true });
   loadScores();
   renderAll();
 }
@@ -527,7 +556,7 @@ function saveAgent(secId, agent) {
 // ── Month change ────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('month-select').addEventListener('change', () => {
-    loadScores(); renderAll();
+    onAccountsMonthChange();
   });
 });
 

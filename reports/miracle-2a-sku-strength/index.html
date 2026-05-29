@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="../../admin_context.js"></script>
   <title>Miracle 2A SKU Strength</title>
   <style>
     :root {
@@ -131959,11 +131960,16 @@
       const keys = monthKeys();
       const options = keys.map(key => `<option value="${key}">${data[key].label}</option>`);
       periodSelect.innerHTML = options.join("");
+      const contextPeriod = window.MDAdminContext ? MDAdminContext.monthToIsoMonth(MDAdminContext.getWorkingMonth()) : "";
+      if (contextPeriod && keys.includes(contextPeriod)) currentPeriods = [contextPeriod];
       currentPeriods = currentPeriods.filter(key => keys.includes(key));
       if (!currentPeriods.length) currentPeriods = [keys[keys.length - 1]];
       [...periodSelect.options].forEach(option => {
         option.selected = currentPeriods.includes(option.value);
       });
+      if (window.MDAdminContext && currentPeriods.length) {
+        MDAdminContext.setWorkingMonth(currentPeriods[currentPeriods.length - 1], { silent: true });
+      }
     }
 
     function statePill(state) {
@@ -132459,6 +132465,9 @@
       document.getElementById("stateSelect").value = "";
       document.getElementById("agentSelect").value = "";
       document.getElementById("skuSelect").value = "";
+      if (window.MDAdminContext && currentPeriods.length) {
+        MDAdminContext.setWorkingMonth(currentPeriods[currentPeriods.length - 1], { silent: true });
+      }
       render();
     });
     document.getElementById("stateSelect").addEventListener("change", () => {

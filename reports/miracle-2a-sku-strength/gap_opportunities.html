@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="../../admin_context.js"></script>
   <title>Miracle 2A SKU Gap Opportunities</title>
   <style>
     :root {
@@ -497,7 +498,10 @@
       document.getElementById("anchorSelect").innerHTML = months
         .map(month => `<option value="${month}">${escapeHtml(monthLabel(month))}</option>`)
         .join("");
-      document.getElementById("anchorSelect").value = months[months.length - 1] || "";
+      const contextMonth = window.MDAdminContext ? MDAdminContext.monthToIsoMonth(MDAdminContext.getWorkingMonth()) : "";
+      const selectedMonth = contextMonth && months.includes(contextMonth) ? contextMonth : (months[months.length - 1] || "");
+      document.getElementById("anchorSelect").value = selectedMonth;
+      if (window.MDAdminContext && selectedMonth) MDAdminContext.setWorkingMonth(selectedMonth, { silent: true });
 
       const records = data.records || [];
       const states = [...new Set(records.map(row => row.state).filter(Boolean))].sort();
@@ -523,6 +527,7 @@
       ["anchorSelect", "stateSelect", "agentSelect", "typeSelect", "sourceSkuSelect", "targetSkuSelect"].forEach(id => {
         document.getElementById(id).addEventListener("change", () => {
           if (id === "stateSelect" || id === "typeSelect") document.getElementById("agentSelect").value = "";
+          if (id === "anchorSelect" && window.MDAdminContext) MDAdminContext.setWorkingMonth(document.getElementById("anchorSelect").value, { silent: true });
           syncAgentOptions();
           render();
         });

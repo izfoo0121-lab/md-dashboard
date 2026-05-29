@@ -6,6 +6,7 @@
   <meta http-equiv="Expires" content="0">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<script src="admin_context.js"></script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
 <title>Touro MD Sales Dashboard</title>
 <style>
@@ -301,6 +302,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .aging-box.alert{border-color:var(--red);}
 .aging-val{font-family:var(--display);font-size:28px;letter-spacing:.03em;line-height:1;}
 .aging-lbl{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:4px;}
+.aging-chip-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
+.aging-chip{font-family:var(--mono);font-size:8px;line-height:1;border-radius:8px;padding:3px 7px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--muted);white-space:nowrap;}
+.aging-chip.target{background:rgba(61,220,132,.14);border-color:rgba(61,220,132,.35);color:var(--green);}
+.aging-chip.ga{background:rgba(77,166,255,.14);border-color:rgba(77,166,255,.35);color:var(--blue);}
+.aging-chip.ma{background:rgba(200,56,26,.14);border-color:rgba(200,56,26,.35);color:var(--accent);}
+.aging-chip.warn{background:rgba(255,95,95,.12);border-color:rgba(255,95,95,.32);color:var(--red);}
+.aging-inv-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-family:var(--mono);font-size:9px;color:var(--muted);}
 
 .invoice-row{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:6px;display:grid;grid-template-columns:1fr auto;gap:8px;}
 .invoice-row.overdue{border-color:rgba(255,95,95,.4);}
@@ -501,8 +509,70 @@ const DEFAULT_PINS = {
   'GT138888':'0000'
 };
 
+const AGENT_ACCESS_SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
+const AGENT_ACCESS_SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
+
 let _pin = '';
 let _pinLocked = false;
+
+function currentAccessMonth() {
+  return DATA?.current_month
+    || (window.MDAdminContext ? MDAdminContext.getWorkingMonth() : '')
+    || new Date().toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+}
+
+async function fetchSupabaseJson(path) {
+  const r = await fetch(`${AGENT_ACCESS_SUPABASE_URL}/rest/v1/${path}`, {
+    headers: {
+      'apikey': AGENT_ACCESS_SUPABASE_KEY,
+      'Authorization': `Bearer ${AGENT_ACCESS_SUPABASE_KEY}`
+    }
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return await r.json();
+}
+
+async function isAgentAccessAllowedForMonth(agent, month = currentAccessMonth()) {
+  if (!agent || agent === 'GT138888') return true;
+  try {
+    const [monthlyRows, agentRows] = await Promise.all([
+      fetchSupabaseJson(`targets_monthly?select=active&month=eq.${encodeURIComponent(month)}&agent=eq.${encodeURIComponent(agent)}&limit=1`),
+      fetchSupabaseJson(`targets_agents?select=active&agent=eq.${encodeURIComponent(agent)}&limit=1`)
+    ]);
+    if (monthlyRows?.length && typeof monthlyRows[0].active === 'boolean') {
+      return monthlyRows[0].active !== false;
+    }
+    if (agentRows?.length && typeof agentRows[0].active === 'boolean') {
+      return agentRows[0].active !== false;
+    }
+  } catch (e) {
+    console.warn('[agent access] Supabase check failed, allowing fallback access:', e.message);
+  }
+  return true;
+}
+
+function showPinError(message) {
+  for (let i=0;i<4;i++) {
+    const d = document.getElementById('pd'+i);
+    d.className='pin-dot err';
+  }
+  document.getElementById('pin-err').textContent = message;
+  setTimeout(()=>{
+    _pin=''; _pinLocked=false; updatePinDisplay();
+  }, 1200);
+}
+
+async function restoreAgentSession(agent) {
+  if (!agent || agent === 'GT138888') return;
+  if (await isAgentAccessAllowedForMonth(agent)) {
+    lockToAgent(agent);
+    return;
+  }
+  sessionStorage.removeItem('md_auth');
+  sessionStorage.removeItem('md_agent');
+  document.getElementById('pin-gate').style.display = 'flex';
+  showPinError(`${agent} access is off for ${currentAccessMonth()}`);
+}
 
 function pinPress(k) {
   if (_pinLocked) return;
@@ -559,6 +629,10 @@ async function checkPin() {
 
   if (match) {
     const agentName = match[0];
+    if (agentName !== 'GT138888' && !(await isAgentAccessAllowedForMonth(agentName))) {
+      showPinError(`${agentName} access is off for ${currentAccessMonth()}`);
+      return;
+    }
     // Flash green
     for (let i=0;i<4;i++) {
       const d = document.getElementById('pd'+i);
@@ -576,6 +650,8 @@ async function checkPin() {
     }, 600);
   } else {
     // Wrong PIN
+    showPinError('Wrong PIN - try again');
+    return;
     for (let i=0;i<4;i++) {
       const d = document.getElementById('pd'+i);
       d.className='pin-dot err';
@@ -1266,11 +1342,13 @@ async function loadMonthIndex(preloadedMonths) {
     const sel = document.getElementById('month-selector-agent');
     if (!sel) return;
     const currentSlug = CURRENT_MONTH_SLUG || monthSlug(DATA?.current_month||'');
+    const preferredMonth = window.MDAdminContext ? MDAdminContext.getWorkingMonth(DATA?.current_month || '') : '';
+    const preferredSlug = monthSlug(preferredMonth);
     sel.innerHTML = months.slice().reverse().map(m => {
       const slug = monthSlug(m);
       return `<option value="${slug}">${m.toUpperCase()}${slug===currentSlug?' ◀':''}</option>`;
     }).join('');
-    sel.value = currentSlug;
+    sel.value = months.some(m => monthSlug(m) === preferredSlug) ? preferredSlug : currentSlug;
     sel.style.display = 'block';
   } catch(e) {}
 }
@@ -1280,6 +1358,12 @@ async function switchMonth(slug) {
   const agSel = document.getElementById('agent-select');
   const prevAgent = (agSel && agSel.value) ? agSel.value : (currentAgent || '');
   const requestedSlug = slug || 'current';
+  const requestedMonth = requestedSlug === 'current'
+    ? (DATA?.current_month || '')
+    : monthLabelFromSlug(requestedSlug);
+  if (window.MDAdminContext && requestedMonth) {
+    MDAdminContext.setWorkingMonth(requestedMonth, { silent: true });
+  }
 
   // Future view: selected month has no generated data file yet.
   // Reuse currently loaded DATA, override metadata, and render forward-looking items.
@@ -1287,6 +1371,7 @@ async function switchMonth(slug) {
     DATA.current_month = monthLabelFromSlug(requestedSlug);
     DATA.is_future_view = true;
     CURRENT_MONTH_SLUG = requestedSlug;
+    await SupabaseKpiSync.apply(DATA);
     await ensureBirthdayOverridesForMonth(DATA.current_month || '');
     if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
       await GistSync.syncToLocal(DATA.current_month || '');
@@ -1328,6 +1413,7 @@ async function switchMonth(slug) {
     DATA = await r.json();
     DATA.is_future_view = false;
     CURRENT_MONTH_SLUG = requestedSlug;
+    if (window.MDAdminContext) MDAdminContext.setWorkingMonth(DATA.current_month || requestedMonth, { silent: true });
     await enrichMonthBreakdownsFromAnalysis();
     await SupabaseKpiSync.apply(DATA);
     await ensureBirthdayOverridesForMonth(DATA.current_month || '');
@@ -1393,23 +1479,26 @@ async function loadData() {
     const months = await fetchAvailableMonthLabels();
     const realMonth = getRealWorldMonthLabel();
     const realSlug = monthSlug(realMonth);
-    const hasRealMonthData = months.some(m => monthSlug(m) === realSlug);
-    const initialUrl = hasRealMonthData
-      ? `data_${realSlug}.json?v=` + Date.now()
+    const preferredMonth = window.MDAdminContext ? MDAdminContext.getWorkingMonth(realMonth) : realMonth;
+    const preferredSlug = monthSlug(preferredMonth);
+    const hasPreferredMonthData = months.some(m => monthSlug(m) === preferredSlug);
+    const initialUrl = hasPreferredMonthData
+      ? `data_${preferredSlug}.json?v=` + Date.now()
       : 'dashboard_data.json?v=' + Date.now();
 
     const r = await fetch(initialUrl);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     DATA = await r.json();
     const loadedSlug = monthSlug(DATA?.current_month || '');
-    const shouldShowFutureMonth = months.length > 0 && !hasRealMonthData && realSlug && realSlug !== loadedSlug;
-    CURRENT_MONTH_SLUG = hasRealMonthData ? realSlug : (shouldShowFutureMonth ? realSlug : loadedSlug);
+    const shouldShowFutureMonth = months.length > 0 && !hasPreferredMonthData && preferredSlug && preferredSlug !== loadedSlug;
+    CURRENT_MONTH_SLUG = hasPreferredMonthData ? preferredSlug : (shouldShowFutureMonth ? preferredSlug : loadedSlug);
     if (shouldShowFutureMonth) {
-      DATA.current_month = realMonth;
+      DATA.current_month = preferredMonth;
       DATA.is_future_view = true;
     } else {
       DATA.is_future_view = false;
     }
+    if (window.MDAdminContext) MDAdminContext.setWorkingMonth(DATA.current_month || preferredMonth, { silent: true });
     await enrichMonthBreakdownsFromAnalysis();
     // Fetch kpi_manual overrides from Supabase BEFORE init() so first render shows correct values
     await SupabaseKpiSync.apply(DATA);
@@ -1482,12 +1571,12 @@ const SupabaseKpiSync = (() => {
       });
       if (!r.ok) {
         console.warn(`[SupabaseKpiSync] campaign override fetch failed: HTTP ${r.status}`);
-        return [];
+        return null;
       }
       return await r.json();
     } catch (e) {
       console.warn('[SupabaseKpiSync] campaign override network error:', e.message);
-      return [];
+      return null;
     }
   }
 
@@ -1634,6 +1723,12 @@ const SupabaseKpiSync = (() => {
     });
     console.log(`[SupabaseKpiSync] Applied ${applied}/${rows.length} kpi_manual overrides for ${month}`);
 
+    const campaignRows = await fetch_kpi_manual_overrides(month);
+    if (!Array.isArray(campaignRows)) {
+      console.warn(`[SupabaseKpiSync] Keeping generated campaign KPI values because campaign override fetch failed for ${month}`);
+      return;
+    }
+
     Object.values(dataObj.agents || {}).forEach(agentData => {
       let resetAny = false;
       Object.values(agentData?.kpi?.items || {}).forEach(item => {
@@ -1652,7 +1747,6 @@ const SupabaseKpiSync = (() => {
       if (resetAny) recomputeAgentKpiTotals(agentData);
     });
 
-    const campaignRows = await fetch_kpi_manual_overrides(month);
     let campaignApplied = 0;
     const touchedAgents = new Set();
     campaignRows.forEach(row => {
@@ -1712,7 +1806,7 @@ function init() {
 
   // Apply agent lock after data loads (session restore)
   if (window._pendingAgent) {
-    setTimeout(()=>{ lockToAgent(window._pendingAgent); window._pendingAgent=null; }, 300);
+    setTimeout(()=>{ restoreAgentSession(window._pendingAgent); window._pendingAgent=null; }, 300);
   }
 
   // Last update
@@ -2337,6 +2431,59 @@ function birthdayRowsForCurrentAgent() {
 
 function birthdayCodeSetForCurrentAgent() {
   return new Set(birthdayRowsForCurrentAgent().map(row => row.code));
+}
+
+function agingSalesTypeClass(type) {
+  const t = String(type || '').toLowerCase();
+  if (t.includes('target')) return 'target';
+  if (t.includes('grey')) return 'ga';
+  if (t.includes('master') || t.includes('promo')) return 'ma';
+  if (t.includes('below')) return 'warn';
+  return '';
+}
+
+function agingItemBrandGroup(itemCode) {
+  const item = String(itemCode || '').trim().toUpperCase();
+  if (!item) return '';
+  const config = DATA?.config?.brand_config || {};
+  const norm = v => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const itemNorm = norm(item);
+  for (const [brand, codes] of Object.entries(config)) {
+    const values = Array.isArray(codes) ? codes : [brand];
+    if (values.some(code => {
+      const codeText = String(code || '').trim().toUpperCase();
+      const codeNorm = norm(codeText);
+      return codeText && (
+        item === codeText || itemNorm === codeNorm ||
+        item.includes(codeText) || itemNorm.includes(codeNorm)
+      );
+    })) return brand;
+  }
+  if (item.includes('EVO')) return 'EVO';
+  if (item.includes('SKN')) return 'SUKUN';
+  if (item.includes('BISON')) return 'BISON';
+  if (item.includes('IFACE')) return 'iFACE';
+  if (item.includes('LAM') || item.includes('LWM')) return 'LAM+LWM';
+  if (item.includes('TR')) return 'TR20';
+  return '';
+}
+
+function agingSalesInfoForInvoice(inv, debtor) {
+  const group = String(inv?.item_group || '').trim() || agingItemBrandGroup(inv?.item_code || inv?.item || inv?.sku || '');
+  const invoiceType = String(inv?.sales_type || '').trim();
+  const salesMap = debtor?.sku_sales_type || {};
+  const directType = group
+    ? (salesMap[group] || salesMap[group.toUpperCase()] || salesMap[group.replace('iFACE','IFACE')])
+    : '';
+  const fallbackTypes = Array.isArray(debtor?.sales_types) ? debtor.sales_types.filter(Boolean) : [];
+  const salesType = invoiceType || directType || (fallbackTypes.length === 1 ? fallbackTypes[0] : '');
+  return { group, salesType };
+}
+
+function agingSalesChipHtml(label, type='') {
+  if (!label) return '';
+  const cls = type ? agingSalesTypeClass(type) : '';
+  return `<span class="aging-chip ${cls}" title="${campEsc(type || label)}">${campEsc(label)}</span>`;
 }
 
 function birthdayMonthStorageKey(monthLabel = DATA?.current_month || '') {
@@ -4355,26 +4502,57 @@ function renderAging() {
     return;
   }
 
+  const debtorCards = DATA.agents[currentAgent]?.debtor_cards?.debtors || [];
+  const debtorByCode = new Map(debtorCards.map(d => [String(d.debtor_code || '').toUpperCase(), d]));
   const debtorHtml = debtorList.map(d => {
     const isOverdue  = d.overdue_count > 0;
     const borderCol  = isOverdue ? 'rgba(200,56,26,.5)' : 'rgba(255,154,60,.3)';
     const daysCol    = d.oldest_days >= 60 ? 'var(--red)' : d.oldest_days >= 30 ? 'var(--accent)' : 'var(--muted)';
-    const phone      = DATA.agents[currentAgent]?.debtor_cards?.debtors
-                         ?.find(x => x.debtor_code === d.debtor_code)?.phone || '';
+    const debtorCard = debtorByCode.get(String(d.debtor_code || '').toUpperCase()) || {};
+    const phone      = debtorCard.phone || '';
     const phoneClean = phone.replace(/\s/g,'');
+    const salesInfos = (d.invoices || []).map(inv => agingSalesInfoForInvoice(inv, debtorCard));
+    const salesKeyed = new Map();
+    salesInfos.forEach(info => {
+      const group = info.group || '';
+      const type = info.salesType || '';
+      const key = `${group}|${type}`;
+      if (group || type) salesKeyed.set(key, { group, type });
+    });
+    const debtorTypeChip = debtorCard.debtor_type ? agingSalesChipHtml(debtorCard.debtor_type) : '';
+    const salesTypeChips = [...salesKeyed.values()].map(info => {
+      const label = info.group && info.type ? `${info.group} ${info.type}`
+        : info.group ? `${info.group} No invoice type`
+        : info.type;
+      return agingSalesChipHtml(label, info.type);
+    }).join('');
+    const agingChipRow = (debtorTypeChip || salesTypeChips)
+      ? `<div class="aging-chip-row">${debtorTypeChip}${salesTypeChips}</div>`
+      : '';
 
     // Invoice rows (hidden by default, toggled)
-    const invoiceRows = d.invoices.map(inv => `
-      <div style="display:flex;justify-content:space-between;align-items:center;
+    const invoiceRows = d.invoices.map(inv => {
+      const info = agingSalesInfoForInvoice(inv, debtorCard);
+      const groupChip = info.group ? agingSalesChipHtml(info.group) : '';
+      const typeChip = info.salesType
+        ? agingSalesChipHtml(info.salesType, info.salesType)
+        : agingSalesChipHtml('No invoice type');
+      return `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;
                   padding:6px 10px;border-radius:6px;
                   background:${inv.overdue?'rgba(200,56,26,.08)':'rgba(255,255,255,.03)'};
                   margin-bottom:2px;">
-        <div>
+        <div style="min-width:0;">
           <div style="font-family:var(--mono);font-size:10px;color:${inv.overdue?'var(--red)':'var(--text)'};">
             ${inv.doc_no}
           </div>
-          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">
-            ${inv.invoice_date} · ${inv.item_code} · ${inv.days_outstanding}d
+          <div class="aging-inv-meta">
+            <span>${inv.invoice_date}</span>
+            <span>·</span>
+            <span>${campEsc(inv.item_code || '')}</span>
+            <span>·</span>
+            <span>${inv.days_outstanding}d</span>
+            ${groupChip}${typeChip}
             ${inv.overdue?'<span style="color:var(--red);"> ⚠ OVERDUE</span>':''}
           </div>
         </div>
@@ -4386,7 +4564,8 @@ function renderAging() {
             ${fmtRM0(inv.amount)}
           </div>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 
     return `
       <div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid ${borderCol};
@@ -4403,6 +4582,7 @@ function renderAging() {
               &nbsp;·&nbsp; ${d.invoice_count} invoice${d.invoice_count!==1?'s':''}
               ${d.overdue_count>0?`&nbsp;·&nbsp; <span style="color:var(--red);">${d.overdue_count} overdue</span>`:''}
             </div>
+            ${agingChipRow}
           </div>
           <div style="text-align:right;margin-left:10px;">
             <div style="font-family:var(--display);font-size:18px;color:${isOverdue?'var(--red)':'var(--accent)'};">
@@ -4857,8 +5037,14 @@ function renderKPI() {
   // ── Sections ──
   const SECTION_LABELS = { A:'A — 销售 (35%)', B:'B — 其它有关销售 (36%)', C:'C — Marketing Support' };
   let sectionsHtml = '';
+  const shouldShowKpiItem = item => {
+    if (!item || item.excluded === true) return false;
+    const maxScore = Number(item.max_score ?? (Number(item.weight || 0) * 100));
+    return Number.isFinite(maxScore) && maxScore > 0;
+  };
+
   ['A','B','C'].forEach(sec => {
-    const secItems = Object.entries(items).filter(([,v]) => v.section === sec);
+    const secItems = Object.entries(items).filter(([,v]) => v.section === sec && shouldShowKpiItem(v));
     if (!secItems.length) return;
     sectionsHtml += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
       <div class="kpi-section-hdr" style="border-top:none;margin-top:0;padding-top:0;">${SECTION_LABELS[sec]}</div>
