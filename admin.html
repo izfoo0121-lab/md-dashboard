@@ -5681,6 +5681,28 @@ async function bdayExcludeDebtor(code) {
 // ── Campaign Management ────────────────────────────────────────────────────
 let CAMPAIGNS_DATA = { campaigns: [] };
 let _campFileDebtors = [];
+let CAMPAIGN_ARCHIVE_MODE = 'month';
+let CAMPAIGN_ARCHIVE_SEARCH = '';
+const CAMPAIGN_TYPE_LABELS = {
+  free_sample: 'Free Sample',
+  birthday_gift: 'Birthday Gift',
+  promotion: 'Brand Promotion',
+  festive_gift: 'Festive Gift',
+  conversion_tiered: 'Conversion (Tiered)',
+  conversion_simple: 'Conversion (Simple)',
+  foc_sample: 'FOC Sample',
+  other: 'Other'
+};
+const CAMPAIGN_TYPE_COLORS = {
+  free_sample:'#c8860a',
+  foc_sample:'#c8860a',
+  birthday_gift:'#c8381a',
+  promotion:'#1a5c8f',
+  festive_gift:'#6b3fa0',
+  conversion_tiered:'#7c3aed',
+  conversion_simple:'#0f766e',
+  other:'#555'
+};
 
 function _campNumOrNull(v) {
   if (v === undefined || v === null || v === '') return null;
@@ -5880,16 +5902,22 @@ function renderDeliveryMonthOptions(selectedMonth = '') {
   return opts.map(m => `<option value="${m}"${m === selected ? ' selected' : ''}>${m}</option>`).join('');
 }
 
-function renderCampaignDeliveriesSection(c) {
+function renderCampaignDeliveriesSection(c, opts = {}) {
   const isConversion = c.type === 'conversion_simple' || c.type === 'conversion_tiered';
+  const readOnly = !!opts.readOnly;
+  const summaryLabel = readOnly ? 'Delivery history' : 'Manage Deliveries';
+  const readOnlyNote = readOnly
+    ? `<div style="background:rgba(136,136,136,.08);border-left:3px solid #999;padding:8px 10px;margin-bottom:10px;font-size:12px;color:#666;border-radius:4px;">Closed campaign: delivery history is read-only. Reopen this campaign before adding or removing deliveries.</div>`
+    : '';
   return `
-    <details class="campaign-deliveries-section" data-camp-id="${kpiAdminEscape(c.id)}" style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
+    <details class="campaign-deliveries-section" data-camp-id="${kpiAdminEscape(c.id)}" data-read-only="${readOnly ? 'true' : 'false'}" style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
       <summary style="cursor:pointer;font-weight:500;user-select:none;">
-        📦 Manage Deliveries
+        ${summaryLabel}
         <span class="deliveries-count-badge" data-deliveries-count style="margin-left:8px;padding:2px 8px;border-radius:10px;background:var(--bg);font-size:11px;color:var(--ink3);">0 delivered this month</span>
       </summary>
 
       <div style="margin-top:10px;">
+        ${readOnlyNote}
         <div class="deliveries-auto-note" style="display:${isConversion ? 'block' : 'none'};background:#f0f7ff;border-left:3px solid #3b82f6;padding:8px 10px;margin-bottom:10px;font-size:12px;color:#1e3a8a;border-radius:4px;">
           ℹ️ This campaign auto-detects deliveries from sales data. Manual upload is optional and overrides auto-detection.
         </div>
@@ -5899,7 +5927,7 @@ function renderCampaignDeliveriesSection(c) {
           <select class="deliveries-month-select" onchange="refreshCampaignDeliverySection('${kpiAdminEscape(c.id)}', this.closest('.campaign-deliveries-section'))" style="margin-left:6px;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:5px 8px;border-radius:6px;">${renderDeliveryMonthOptions()}</select>
         </div>
 
-        <details style="margin-bottom:8px;">
+        ${readOnly ? '' : `<details style="margin-bottom:8px;">
           <summary style="cursor:pointer;font-size:13px;">⬆️ Upload delivered list</summary>
           <div style="margin-top:8px;">
             <textarea class="deliveries-upload-textarea" placeholder="Paste debtor codes, one per line&#10;e.g.&#10;300-A001&#10;300-B042&#10;3EV-J0123" rows="8" style="width:100%;font-family:var(--mono);font-size:12px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--ink);box-sizing:border-box;"></textarea>
@@ -5910,7 +5938,7 @@ function renderCampaignDeliveriesSection(c) {
             </div>
             <div class="deliveries-validation-results" style="margin-top:8px;font-family:var(--mono);font-size:11px;"></div>
           </div>
-        </details>
+        </details>`}
 
         <details ontoggle="if(this.open) loadCampaignDeliveriesList('${kpiAdminEscape(c.id)}', this.closest('.campaign-deliveries-section'));">
           <summary style="cursor:pointer;font-size:13px;">👁️ View delivered list</summary>
@@ -5955,14 +5983,19 @@ async function fetchExistingCampaignDeliveries(campId, month) {
 async function refreshCampaignDeliveriesCount(campId, section) {
   const month = section?.querySelector('.deliveries-month-select')?.value || getAdminMonthOptions().defaultSel;
   const badge = section?.querySelector('[data-deliveries-count]');
+  const archiveBadges = Array.from(document.querySelectorAll('[data-archive-deliveries-count]'))
+    .filter(el => el.dataset.archiveDeliveriesCount === String(campId));
   if (!badge) return;
   badge.textContent = 'Loading...';
+  archiveBadges.forEach(el => { el.textContent = 'Loading delivered...'; });
   try {
     const rows = await fetchExistingCampaignDeliveries(campId, month);
     badge.textContent = `${rows.length} delivered this month`;
+    archiveBadges.forEach(el => { el.textContent = `${rows.length} delivered`; });
   } catch (e) {
     console.warn('[campaign_deliveries] count failed', e);
     badge.textContent = 'Count unavailable';
+    archiveBadges.forEach(el => { el.textContent = 'Delivery count unavailable'; });
   }
 }
 
@@ -5989,6 +6022,11 @@ function hydrateCampaignDeliveriesSections() {
 }
 
 async function validateCampaignDeliveries(campId, section) {
+  if (section?.dataset?.readOnly === 'true') {
+    const resultsEl = section?.querySelector('.deliveries-validation-results');
+    if (resultsEl) resultsEl.innerHTML = '<span style="color:#888">Closed campaign: reopen before editing deliveries.</span>';
+    return;
+  }
   const textareaEl = section?.querySelector('.deliveries-upload-textarea');
   const resultsEl = section?.querySelector('.deliveries-validation-results');
   const applyBtn = section?.querySelector('.deliveries-apply-btn');
@@ -6045,6 +6083,10 @@ async function validateCampaignDeliveries(campId, section) {
 }
 
 async function applyCampaignDeliveries(campId, section) {
+  if (section?.dataset?.readOnly === 'true') {
+    alert('Closed campaign: reopen before editing deliveries.');
+    return;
+  }
   const textareaEl = section?.querySelector('.deliveries-upload-textarea');
   const resultsEl = section?.querySelector('.deliveries-validation-results');
   const applyBtn = section?.querySelector('.deliveries-apply-btn');
@@ -6092,6 +6134,7 @@ function clearCampaignDeliveriesInput(section) {
 async function loadCampaignDeliveriesList(campId, section) {
   const month = section?.querySelector('.deliveries-month-select')?.value || getAdminMonthOptions().defaultSel;
   const container = section?.querySelector('.deliveries-list-display');
+  const readOnly = section?.dataset?.readOnly === 'true';
   if (!container) return;
   container.innerHTML = '<span style="color:var(--ink3)">Loading...</span>';
   try {
@@ -6108,12 +6151,12 @@ async function loadCampaignDeliveriesList(campId, section) {
       const rows = byAgent[agent].sort((a,b) => normalizeDeliveryCode(a.debtor_code).localeCompare(normalizeDeliveryCode(b.debtor_code)));
       html += `<div style="margin-bottom:12px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
         <strong>${kpiAdminEscape(agent)}</strong> (${rows.length} delivered)
-        <button type="button" onclick="removeCampaignAgentDeliveries('${kpiAdminEscape(campId)}','${kpiAdminEscape(agent)}', this.closest('.campaign-deliveries-section'))" style="margin-left:8px;font-size:11px;">Remove all</button>
+        ${readOnly ? '' : `<button type="button" onclick="removeCampaignAgentDeliveries('${kpiAdminEscape(campId)}','${kpiAdminEscape(agent)}', this.closest('.campaign-deliveries-section'))" style="margin-left:8px;font-size:11px;">Remove all</button>`}
         <ul style="margin:4px 0 0 20px;padding-left:0;">`;
       rows.forEach(r => {
         const info = getDeliveryDebtorInfo(r.debtor_code);
         const name = info ? info.name : '?';
-        html += `<li>${kpiAdminEscape(r.debtor_code)} — ${kpiAdminEscape(name)} <button type="button" onclick="removeCampaignDelivery('${kpiAdminEscape(campId)}','${kpiAdminEscape(r.debtor_code)}', this.closest('.campaign-deliveries-section'))" style="font-size:10px;">×</button></li>`;
+        html += `<li>${kpiAdminEscape(r.debtor_code)} — ${kpiAdminEscape(name)} ${readOnly ? '' : `<button type="button" onclick="removeCampaignDelivery('${kpiAdminEscape(campId)}','${kpiAdminEscape(r.debtor_code)}', this.closest('.campaign-deliveries-section'))" style="font-size:10px;">Remove</button>`}</li>`;
       });
       html += '</ul></div>';
     });
@@ -6124,6 +6167,10 @@ async function loadCampaignDeliveriesList(campId, section) {
 }
 
 async function removeCampaignDelivery(campId, debtorCode, section) {
+  if (section?.dataset?.readOnly === 'true') {
+    alert('Closed campaign: reopen before editing deliveries.');
+    return;
+  }
   const month = section?.querySelector('.deliveries-month-select')?.value || getAdminMonthOptions().defaultSel;
   if (!confirm(`Remove delivery ${debtorCode} for ${month}?`)) return;
   try {
@@ -6139,6 +6186,10 @@ async function removeCampaignDelivery(campId, debtorCode, section) {
 }
 
 async function removeCampaignAgentDeliveries(campId, agent, section) {
+  if (section?.dataset?.readOnly === 'true') {
+    alert('Closed campaign: reopen before editing deliveries.');
+    return;
+  }
   const month = section?.querySelector('.deliveries-month-select')?.value || getAdminMonthOptions().defaultSel;
   if (!confirm(`Remove all ${agent} deliveries for this campaign in ${month}?`)) return;
   try {
@@ -6457,6 +6508,137 @@ function toggleBrandFields(type) {
   toggleCampaignMechanismSections('new-camp', type);
 }
 
+function campaignArchiveMonthRange(monthLabel) {
+  const iso = adminMonthLabelToIso(monthLabel);
+  const match = String(iso || '').match(/^(\d{4})-(\d{2})$/);
+  if (!match) return { start: '', end: '' };
+  const year = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10);
+  const endDay = new Date(year, month, 0).getDate();
+  return {
+    start: `${match[1]}-${match[2]}-01`,
+    end: `${match[1]}-${match[2]}-${String(endDay).padStart(2, '0')}`
+  };
+}
+
+function campaignArchiveIsoDate(value) {
+  const raw = String(value || '').trim();
+  const iso = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  return iso ? iso[1] : '';
+}
+
+function campaignArchiveStartDate(camp) {
+  return campaignArchiveIsoDate(camp?.start_date || camp?.created_at || camp?.deadline);
+}
+
+function campaignArchiveEndDate(camp) {
+  return campaignArchiveIsoDate(camp?.deadline || camp?.start_date || camp?.created_at);
+}
+
+function campaignOverlapsWorkingMonth(camp, monthLabel) {
+  const month = campaignArchiveMonthRange(monthLabel);
+  if (!month.start || !month.end) return false;
+  const start = campaignArchiveStartDate(camp);
+  const end = campaignArchiveEndDate(camp);
+  if (!start && !end) return false;
+  const campStart = start || end;
+  const campEnd = end || start;
+  return campStart <= month.end && campEnd >= month.start;
+}
+
+function campaignArchiveSearchText(camp) {
+  const debtors = camp?.debtors || [];
+  const brands = Array.isArray(camp?.brands) ? camp.brands.join(' ') : (camp?.brand || '');
+  return [
+    camp?.name, camp?.type, CAMPAIGN_TYPE_LABELS[camp?.type], brands,
+    camp?.description, camp?.promo_detail, camp?.deadline, camp?.start_date, camp?.created_at,
+    `${debtors.length} debtors`,
+    ...debtors.slice(0, 250).map(d => `${d.code || d.debtor_code || ''} ${d.name || d.debtor_name || ''}`)
+  ].join(' ').toLowerCase();
+}
+
+function campaignArchiveSortDate(camp) {
+  return campaignArchiveStartDate(camp) || campaignArchiveEndDate(camp) || '';
+}
+
+function filterClosedCampaignsForArchive(campaigns, monthLabel, mode = CAMPAIGN_ARCHIVE_MODE, query = CAMPAIGN_ARCHIVE_SEARCH) {
+  const q = String(query || '').trim().toLowerCase();
+  return (campaigns || [])
+    .filter(c => c && c.active === false)
+    .filter(c => mode !== 'month' || campaignOverlapsWorkingMonth(c, monthLabel))
+    .filter(c => !q || campaignArchiveSearchText(c).includes(q))
+    .sort((a, b) => campaignArchiveSortDate(b).localeCompare(campaignArchiveSortDate(a)) || String(a.name || '').localeCompare(String(b.name || '')));
+}
+
+function setCampaignArchiveMode(mode) {
+  CAMPAIGN_ARCHIVE_MODE = mode === 'all' ? 'all' : 'month';
+  renderCampaignsList();
+}
+
+function setCampaignArchiveSearch(value) {
+  CAMPAIGN_ARCHIVE_SEARCH = String(value || '');
+  renderCampaignsList();
+}
+
+function renderClosedCampaignCard(c) {
+  const typeLabel = CAMPAIGN_TYPE_LABELS[c.type] || c.type || 'Other';
+  const color = CAMPAIGN_TYPE_COLORS[c.type] || 'var(--accent)';
+  const dateText = `${campaignArchiveStartDate(c) || 'no start'} to ${campaignArchiveEndDate(c) || 'no deadline'}`;
+  const debtors = c.debtors?.length || 0;
+  return `
+    <div class="admin-card" id="camp-card-${kpiAdminEscape(c.id)}" style="margin-bottom:8px;border-left:4px solid ${color};opacity:.82;">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
+        <div style="min-width:0;flex:1;">
+          <div style="font-family:var(--mono);font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.04em;">${kpiAdminEscape(typeLabel)} · CLOSED</div>
+          <div style="font-family:var(--display);font-size:17px;letter-spacing:.05em;white-space:normal;">${kpiAdminEscape(c.name || '')}</div>
+          <div style="font-family:var(--mono);font-size:10px;color:#666;margin-top:5px;">
+            ${debtors} debtors · <span data-archive-deliveries-count="${kpiAdminEscape(c.id)}">Loading delivered...</span> · ${kpiAdminEscape(dateText)}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:flex-start;flex-shrink:0;">
+          <button onclick="reopenCampaign('${kpiAdminEscape(c.id)}')" style="background:none;border:1px solid var(--green);color:var(--green);font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">Reopen</button>
+        </div>
+      </div>
+      <details style="margin-top:8px;">
+        <summary style="cursor:pointer;font-family:var(--mono);font-size:10px;color:#777;">Details and delivery history</summary>
+        <div style="margin-top:8px;">
+          ${c.description ? `<div style="font-family:var(--mono);font-size:9px;color:#888;margin-bottom:4px;">${kpiAdminEscape(c.description)}</div>` : ''}
+          ${renderCampaignMechanismSummary(c)}
+          ${renderCampaignDeliveriesSection(c, { readOnly: true })}
+          <details style="margin-top:10px;">
+            <summary style="cursor:pointer;font-family:var(--mono);font-size:9px;color:#b44;">Danger</summary>
+            <div style="margin-top:8px;font-family:var(--mono);font-size:9px;color:#888;">
+              Permanent delete is only for mistaken or test campaigns.
+              <button onclick="hardDeleteCampaign('${kpiAdminEscape(c.id)}')" style="margin-left:8px;background:none;border:1px solid rgba(255,90,90,.45);color:#ff5a5a;font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">Delete forever</button>
+            </div>
+          </details>
+        </div>
+      </details>
+    </div>`;
+}
+
+function renderCampaignArchiveDrawer(inactiveCampaigns, monthLabel = getAdminWorkingMonth()) {
+  const closed = (inactiveCampaigns || []).filter(c => c && c.active === false);
+  if (!closed.length) return '';
+  const filtered = filterClosedCampaignsForArchive(closed, monthLabel, CAMPAIGN_ARCHIVE_MODE, CAMPAIGN_ARCHIVE_SEARCH);
+  const monthActive = CAMPAIGN_ARCHIVE_MODE !== 'all';
+  const allActive = CAMPAIGN_ARCHIVE_MODE === 'all';
+  return `
+    <details id="campaign-archive-drawer" style="margin-top:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:10px 12px;">
+      <summary style="cursor:pointer;font-family:var(--display);font-size:17px;letter-spacing:.05em;">
+        Campaign Archive
+        <span style="font-family:var(--mono);font-size:10px;color:#888;margin-left:8px;">${filtered.length} shown · ${closed.length} closed</span>
+      </summary>
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button type="button" onclick="setCampaignArchiveMode('month')" style="border:1px solid ${monthActive?'var(--accent)':'var(--border)'};background:${monthActive?'rgba(200,56,26,.08)':'var(--bg)'};color:${monthActive?'var(--accent)':'var(--ink3)'};font-family:var(--mono);font-size:10px;padding:6px 10px;border-radius:8px;cursor:pointer;">This month</button>
+        <button type="button" onclick="setCampaignArchiveMode('all')" style="border:1px solid ${allActive?'var(--accent)':'var(--border)'};background:${allActive?'rgba(200,56,26,.08)':'var(--bg)'};color:${allActive?'var(--accent)':'var(--ink3)'};font-family:var(--mono);font-size:10px;padding:6px 10px;border-radius:8px;cursor:pointer;">All closed</button>
+        <input type="search" value="${kpiAdminEscape(CAMPAIGN_ARCHIVE_SEARCH)}" oninput="setCampaignArchiveSearch(this.value)" placeholder="Search closed campaigns..." style="flex:1;min-width:220px;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:10px;padding:7px 9px;border-radius:8px;">
+      </div>
+      <div style="font-family:var(--mono);font-size:9px;color:#888;margin:8px 0 10px;">Showing ${monthActive ? kpiAdminEscape(monthLabel) + ' overlap' : 'all closed campaigns'}. Delivery records are read-only until reopened.</div>
+      ${filtered.length ? filtered.map(renderClosedCampaignCard).join('') : '<div style="font-family:var(--mono);font-size:10px;color:#888;padding:8px 0;">No closed campaigns match this view.</div>'}
+    </details>`;
+}
+
 async function closeCampaign(id) {
   const c=CAMPAIGNS_DATA.campaigns.find(x=>x.id===id);
   if(!c || !confirm(`Close campaign "${c.name}"?`)) return;
@@ -6508,7 +6690,7 @@ function renderCampaignsList() {
         </div>
         <div style="display:flex;gap:6px;margin-left:8px;flex-shrink:0;">
           <button onclick="editCampaign('${c.id}')" style="background:none;border:1px solid var(--border);color:var(--blue);font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">✏ Edit</button>
-          ${!isInactive?`<button onclick="closeCampaign('${c.id}')" style="background:none;border:1px solid #ddd;color:#888;font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">Close</button>`:`<button onclick="reopenCampaign('${c.id}')" style="background:none;border:1px solid var(--green);color:var(--green);font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">Reopen</button><button onclick="hardDeleteCampaign('${c.id}')" style="background:none;border:1px solid rgba(255,90,90,.45);color:#ff5a5a;font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">Delete forever</button>`}
+          ${!isInactive?`<button onclick="closeCampaign('${c.id}')" style="background:none;border:1px solid #ddd;color:#888;font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">Close</button>`:''}
         </div>
       </div>
       <div style="font-family:var(--mono);font-size:10px;color:#555;">📋 ${c.debtors?.length||0} debtors &nbsp;·&nbsp; ⏰ ${c.deadline||'no deadline'} &nbsp;·&nbsp; 📅 Start: ${c.start_date||c.created_at||'—'}</div>
@@ -6516,8 +6698,7 @@ function renderCampaignsList() {
     </div>`;
 
   el.innerHTML = (active.length ? active.map(c=>renderCard(c,false)).join('') : '<div style="font-family:var(--mono);font-size:10px;color:#888;padding:8px 0;">No active campaigns.</div>')
-    + (inactive.length ? `<div style="font-family:var(--mono);font-size:9px;color:#888;margin-top:12px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Closed Campaigns (${inactive.length})</div>`
-    + inactive.map(c=>renderCard(c,true)).join('') : '');
+    + renderCampaignArchiveDrawer(inactive, getAdminWorkingMonth());
   hydrateCampaignDeliveriesSections();
 }
 
