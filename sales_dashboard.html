@@ -1268,14 +1268,54 @@ function monthSnapshotIndex(snapshotData, monthLabel) {
   return byDebtor;
 }
 
+function normalizePriceValues(values) {
+  const source = Array.isArray(values) ? values : [values];
+  const out = [];
+  source.forEach(value => {
+    const price = Math.round(Number(value || 0) * 100) / 100;
+    if (!Number.isFinite(price) || Math.abs(price) <= 0.0001) return;
+    if (!out.some(existing => Math.abs(existing - price) <= 0.0001)) out.push(price);
+  });
+  return out;
+}
+
+function mergePriceValues(...sets) {
+  return sets.reduce((out, set) => {
+    normalizePriceValues(set).forEach(price => {
+      if (!out.some(existing => Math.abs(existing - price) <= 0.0001)) out.push(price);
+    });
+    return out;
+  }, []);
+}
+
+function sourcePriceValues(item) {
+  const rebateValues = normalizePriceValues(item?.rm_ctn_rebate_values);
+  if (rebateValues.length) return rebateValues;
+  const baseValues = normalizePriceValues(item?.rm_ctn_values);
+  if (baseValues.length) return baseValues;
+  return normalizePriceValues(item?.rm_ctn);
+}
+
+function formatCtnPrice(item, fallbackRmCtn = 0) {
+  const values = sourcePriceValues(item);
+  const prices = values.length ? values : normalizePriceValues(fallbackRmCtn);
+  if (!prices.length) return '';
+  return prices.map(price => fmtMoney(price)).join(' / ') + '/CTN';
+}
+
 function analysisRowToBreakdownItem(row) {
   const ctn = Number(row?.ctn || 0);
   const amount = Number(row?.amount || 0);
+  const rmCtnValues = normalizePriceValues(row?.rm_ctn_values ?? row?.rm_ctn);
+  const rmCtnRebateValues = normalizePriceValues(row?.rm_ctn_rebate_values);
+  const sourceValues = rmCtnRebateValues.length ? rmCtnRebateValues : rmCtnValues;
   return {
     item: row?.sku || row?.item || '',
     ctn,
     amount,
-    rm_ctn: ctn ? amount / ctn : 0,
+    rm_ctn: sourceValues[0] || (ctn ? amount / ctn : 0),
+    rm_ctn_values: rmCtnValues,
+    rm_ctn_rebate_values: rmCtnRebateValues,
     agent: row?.agent || ''
   };
 }
@@ -1284,16 +1324,18 @@ function analysisRowsToBreakdownItems(analysisRows = []) {
   const byItem = new Map();
   analysisRows.map(analysisRowToBreakdownItem).filter(r => r.item).forEach(row => {
     const key = `${row.item}||${row.agent || ''}`;
-    const existing = byItem.get(key) || { item: row.item, ctn: 0, amount: 0, agent: row.agent || '' };
+    const existing = byItem.get(key) || { item: row.item, ctn: 0, amount: 0, agent: row.agent || '', rm_ctn_values: [], rm_ctn_rebate_values: [] };
     existing.ctn += Number(row.ctn || 0);
     existing.amount += Number(row.amount || 0);
+    existing.rm_ctn_values = mergePriceValues(existing.rm_ctn_values, row.rm_ctn_values);
+    existing.rm_ctn_rebate_values = mergePriceValues(existing.rm_ctn_rebate_values, row.rm_ctn_rebate_values);
     byItem.set(key, existing);
   });
   return [...byItem.values()].map(row => ({
     ...row,
     ctn: Math.round(row.ctn * 100) / 100,
     amount: Math.round(row.amount * 100) / 100,
-    rm_ctn: Math.abs(row.ctn) > 0.0001 ? row.amount / row.ctn : 0
+    rm_ctn: sourcePriceValues(row)[0] || (Math.abs(row.ctn) > 0.0001 ? row.amount / row.ctn : 0)
   })).sort((a, b) => Math.abs(b.ctn) - Math.abs(a.ctn));
 }
 
@@ -1311,11 +1353,16 @@ function mergeAmountIntoBreakdownRows(existingRows, analysisRows) {
     const matchCtn = Number(match.ctn || 0);
     const effectiveCtn = Math.abs(matchCtn) > 0.0001 && Math.abs(ctn - matchCtn) > 0.0001 ? matchCtn : ctn;
     const amount = Number(match.amount || 0);
+    const rmCtnValues = mergePriceValues(match.rm_ctn_values, row.rm_ctn_values, match.rm_ctn_values?.length ? [] : match.rm_ctn);
+    const rmCtnRebateValues = mergePriceValues(match.rm_ctn_rebate_values, row.rm_ctn_rebate_values);
+    const sourceValues = rmCtnRebateValues.length ? rmCtnRebateValues : rmCtnValues;
     return {
       ...row,
       ctn: effectiveCtn,
       amount,
-      rm_ctn: effectiveCtn ? amount / effectiveCtn : (Number(match.rm_ctn) || 0),
+      rm_ctn: sourceValues[0] || (effectiveCtn ? amount / effectiveCtn : (Number(match.rm_ctn) || 0)),
+      rm_ctn_values: rmCtnValues,
+      rm_ctn_rebate_values: rmCtnRebateValues,
       agent: row.agent || match.agent || ''
     };
   });
@@ -6334,6 +6381,7 @@ function showCtnBreakdown(mbKey, label, monthLabel) {
       const ctn = Number(item.ctn || 0);
       const amountInfo = itemAmountInfo(item || {});
       const rmCtn = Number(item.rm_ctn || (ctn ? amountInfo.amount / ctn : 0));
+      const priceText = formatCtnPrice(item, rmCtn);
       return `
         <div class="ctn-item-row">
           <div>
@@ -6345,7 +6393,7 @@ function showCtnBreakdown(mbKey, label, monthLabel) {
               <div class="ctn-item-ctn">${ctn % 1 === 0 ? ctn.toFixed(0) : ctn.toFixed(1)}</div>
               <div class="ctn-item-unit">CTN</div>
             </div>
-            <div class="ctn-item-price">${Number.isFinite(rmCtn) && rmCtn ? fmtMoney(rmCtn) + '/CTN' : ''}</div>
+            <div class="ctn-item-price">${priceText}</div>
           </div>
         </div>`;
     }).join('');

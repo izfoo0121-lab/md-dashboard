@@ -527,6 +527,7 @@ def load_sales_report():
     # Cast numeric columns
     df["qty_ctn"]       = pd.to_numeric(df["qty_ctn"],       errors="coerce").fillna(0)
     df["rm_ctn"]        = pd.to_numeric(df["rm_ctn"],        errors="coerce").fillna(0)
+    df["rm_ctn_rebate"] = pd.to_numeric(df["rm_ctn_rebate"], errors="coerce").fillna(0)
     df["local_subtotal"]= pd.to_numeric(df["local_subtotal"],errors="coerce").fillna(0)
 
     # Normalise string columns — strip whitespace
@@ -600,6 +601,18 @@ def _safe_str(v):
 def _sales_type_group(v):
     raw = _safe_str(v)
     return SALES_TYPE_MAP.get(raw, "normal" if raw in ("", "Target") else "other")
+
+
+def _price_points(series):
+    """Return unique non-zero source RM/CTN values while preserving invoice order."""
+    values = []
+    for val in pd.to_numeric(series, errors="coerce").dropna():
+        price = round(float(val), 2)
+        if abs(price) <= 0.0001:
+            continue
+        if not any(abs(price - existing) <= 0.0001 for existing in values):
+            values.append(price)
+    return values
 
 
 def build_debtor_analysis_data(df, debtor_df, cur_month):
@@ -677,6 +690,8 @@ def build_debtor_analysis_data(df, debtor_df, cur_month):
         paid_ctn=("_paid_ctn", "sum"),
         unpaid_ctn=("_unpaid_ctn", "sum"),
         amount=("local_subtotal", "sum"),
+        rm_ctn_values=("rm_ctn", _price_points),
+        rm_ctn_rebate_values=("rm_ctn_rebate", _price_points),
         invoices=("doc_no", "nunique"),
         last_date=("date_parsed", "max"),
     )
@@ -701,6 +716,8 @@ def build_debtor_analysis_data(df, debtor_df, cur_month):
             "paid_ctn": round(float(r.get("paid_ctn") or 0), 2),
             "unpaid_ctn": round(float(r.get("unpaid_ctn") or 0), 2),
             "amount": round(float(r.get("amount") or 0), 2),
+            "rm_ctn_values": list(r.get("rm_ctn_values") or []),
+            "rm_ctn_rebate_values": list(r.get("rm_ctn_rebate_values") or []),
             "invoices": int(r.get("invoices") or 0),
             "last_date": r.get("last_date").strftime("%Y-%m-%d") if pd.notnull(r.get("last_date")) else "",
         })
@@ -1833,9 +1850,17 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 if "local_subtotal" not in m_rows.columns:
                     m_rows = m_rows.copy()
                     m_rows["local_subtotal"] = 0.0
+                if "rm_ctn" not in m_rows.columns:
+                    m_rows = m_rows.copy()
+                    m_rows["rm_ctn"] = 0.0
+                if "rm_ctn_rebate" not in m_rows.columns:
+                    m_rows = m_rows.copy()
+                    m_rows["rm_ctn_rebate"] = 0.0
                 grp = m_rows.groupby(grp_cols).agg(
                     qty_ctn=("qty_ctn", "sum"),
-                    amount=("local_subtotal", "sum")
+                    amount=("local_subtotal", "sum"),
+                    rm_ctn_values=("rm_ctn", _price_points),
+                    rm_ctn_rebate_values=("rm_ctn_rebate", _price_points),
                 ).reset_index()
                 grp = grp[grp["qty_ctn"].abs() > 0.0001].sort_values("qty_ctn", ascending=False)
                 rows = []
@@ -1847,6 +1872,8 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                         "ctn": ctn,
                         "amount": amount,
                         "rm_ctn": round(amount / ctn, 2) if abs(ctn) > 0.0001 else 0,
+                        "rm_ctn_values": list(r.get("rm_ctn_values") or []),
+                        "rm_ctn_rebate_values": list(r.get("rm_ctn_rebate_values") or []),
                         "agent": str(r["agent"]) if "agent" in r and pd.notna(r["agent"]) else ""
                     })
                 return rows
