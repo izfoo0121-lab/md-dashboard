@@ -32,6 +32,28 @@ if "%PYTHON%"=="" (
     pause & exit /b 1
 )
 
+REM -- Step 0: Verify Git can fast-forward main ----------------
+echo [0/5] Checking GitHub main sync...
+git rev-parse --is-inside-work-tree >nul 2>&1
+if %errorlevel% neq 0 (
+    echo ERROR: This folder is not a Git repository.
+    pause & exit /b 1
+)
+git fetch origin main
+if %errorlevel% neq 0 (
+    echo ERROR: Could not fetch origin/main.
+    pause & exit /b 1
+)
+git merge-base --is-ancestor origin/main HEAD
+if %errorlevel% neq 0 (
+    echo ERROR: This checkout is behind or diverged from GitHub main.
+    echo        Open md-dashboard-live-main or sync this folder before running update_dashboard.bat.
+    echo        No data was regenerated, so GitHub main is protected from stale pushes.
+    pause & exit /b 1
+)
+echo Done.
+echo.
+
 REM -- Step 1: Process data ---------------------------------
 if "%MONTH_OVERRIDE%"=="" (
     if "%FAST_FLAG%"=="" (
@@ -87,17 +109,17 @@ echo.
 
 REM -- Step 5: Push to GitHub -------------------------------
 echo [5/5] Pushing to GitHub...
-git add dashboard_data.json debtor_analysis_data.json history.xlsx history.json targets.json
-git add sales_dashboard.html management.html admin.html
-git add debtor_analysis.html index.html
+git add dashboard_data.json debtor_analysis_data.json history.json targets.json
+git add sales_dashboard.html management.html admin.html admin_context.js
+git add accounts.html campaign_audit.html stock.html stock_calendar.html debtor_analysis.html debtor_map.html index.html
 git add data_*.json months_index.json 2>nul
-git add reports\miracle-2a-sku-strength\index.html reports\miracle-2a-sku-strength\debtor_status.js reports\miracle-2a-sku-strength\agent_monthly_revenue.js reports\miracle-2a-sku-strength\build_report_data.py 2>nul
+git add reports\miracle-2a-sku-strength\index.html reports\miracle-2a-sku-strength\penetration.html reports\miracle-2a-sku-strength\gap_opportunities.html reports\miracle-2a-sku-strength\debtor_status.js reports\miracle-2a-sku-strength\agent_monthly_revenue.js reports\miracle-2a-sku-strength\sku_debtor_history.js reports\miracle-2a-sku-strength\sku_gap_opportunities.js reports\miracle-2a-sku-strength\sku_penetration_data.js reports\miracle-2a-sku-strength\build_report_data.py 2>nul
 if "%MONTH_OVERRIDE%"=="" (
     git commit -m "Daily update %date% %time%"
 ) else (
     git commit -m "Regenerate %MONTH_OVERRIDE% - %date% %time%"
 )
-git push origin main
+git push origin HEAD:main
 if %errorlevel% neq 0 (
     echo ERROR: Git push failed!
     pause & exit /b 1

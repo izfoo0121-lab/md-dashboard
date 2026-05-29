@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <script src="admin_context.js"></script>
   <meta http-equiv="Cache-Control" content="no-cache,no-store,must-revalidate">
   <title>Campaign Audit — MIRACLE-奇迹 MD</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -279,7 +280,19 @@ const CAMP_LABEL = {free_sample:'FOC Sample',foc_sample:'FOC Sample',birthday_gi
 
 let DASH_DATA  = null;   // current month data
 let CAMP_DATA  = null;   // campaigns.json
-let activeCampId = 'ALL';
+function auditCampFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search || '');
+    const raw = String(params.get('camp') || params.get('view') || params.get('tab') || '').trim();
+    if (/^(bday|birthday|birthday_list|bday_list)$/i.test(raw)) return 'BDAY_LIST';
+    if (/^flags?$/i.test(raw)) return 'FLAGS_LIST';
+    return raw || 'ALL';
+  } catch (_) {
+    return 'ALL';
+  }
+}
+
+let activeCampId = auditCampFromUrl();
 let _lastAuditExport = null;  // populated by render functions, consumed by export
 let _lastBirthdayAuditState = null;
 let _lastBirthdayImportPlan = null;
@@ -329,6 +342,16 @@ function isCampaignActiveInMonth(camp, monthStr) {
 // Default-selects current real-world month if available, otherwise latest.
 // Mirrors the admin.html pattern (commit 738a40a / 5cfadda).
 function populateAuditMonthDropdown() {
+  if (window.MDAdminContext) {
+    const el = document.getElementById('month-select');
+    if (!el) return;
+    const preferred = MDAdminContext.getWorkingMonth(el.value);
+    const { opts, defaultSel } = MDAdminContext.monthOptions({ include: [el.value], preferred });
+    const selected = opts.includes(preferred) ? preferred : defaultSel;
+    el.innerHTML = opts.map(o => `<option value="${o}"${o === selected ? ' selected' : ''}>${o}</option>`).join('');
+    MDAdminContext.setWorkingMonth(selected, { silent: true });
+    return;
+  }
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const START_YEAR = 2026;
   const START_MONTH = 0;
@@ -528,6 +551,7 @@ async function saveAudit(month, agent, campId, debtorCode, auditData) {
 // ── Load data ─────────────────────────────────────────────────────────────
 async function loadAuditData() {
   const month = document.getElementById('month-select').value;
+  if (window.MDAdminContext && month) MDAdminContext.setWorkingMonth(month, { silent: true });
   const slug  = month.toLowerCase().replace(' ','');
 
   // Show loading state

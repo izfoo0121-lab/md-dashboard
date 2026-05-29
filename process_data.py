@@ -1035,6 +1035,42 @@ def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_con
             non_buyers = all_agent_debtors - prev_buyers
             non_buyer_count = len(non_buyers)
 
+            pen_detail_rows = pen_cur_rows[pen_cur_rows["debtor_code"].isin(new_penetrations)].copy()
+            penetration_debtors = []
+            if not pen_detail_rows.empty:
+                for dcode in sorted(new_penetrations, key=lambda c: (debtor_info.get(c, {}).get("name") or c).upper()):
+                    d_rows = pen_detail_rows[pen_detail_rows["debtor_code"] == dcode]
+                    if d_rows.empty:
+                        continue
+                    info = debtor_info.get(dcode, {})
+                    total_ctn = round(float(d_rows["qty_ctn"].sum()), 2)
+                    total_amount = round(float(d_rows["local_subtotal"].sum()), 2) if "local_subtotal" in d_rows.columns else 0.0
+                    last_date = d_rows["date_parsed"].max() if "date_parsed" in d_rows.columns else None
+                    item_rows = []
+                    item_grouped = d_rows.groupby("item_code", dropna=False).agg(
+                        qty_ctn=("qty_ctn", "sum"),
+                        amount=("local_subtotal", "sum") if "local_subtotal" in d_rows.columns else ("qty_ctn", "sum"),
+                    ).reset_index()
+                    for _, ir in item_grouped.sort_values("qty_ctn", ascending=False).iterrows():
+                        ctn = round(float(ir.get("qty_ctn") or 0), 2)
+                        amount = round(float(ir.get("amount") or 0), 2)
+                        item_rows.append({
+                            "item": _safe_str(ir.get("item_code")),
+                            "ctn": ctn,
+                            "amount": amount,
+                            "rm_ctn": round(amount / ctn, 2) if abs(ctn) > 0.0001 else 0,
+                        })
+                    penetration_debtors.append({
+                        "debtor_code": dcode,
+                        "company_name": _safe_str(info.get("name")) or _safe_str(d_rows.iloc[0].get("company_name")),
+                        "debtor_type": _safe_str(info.get("type")),
+                        "phone": _safe_str(info.get("phone")),
+                        "ctn": total_ctn,
+                        "amount": total_amount,
+                        "last_invoice_date": last_date.strftime("%d/%m/%Y") if last_date is not None and pd.notnull(last_date) else "",
+                        "items": item_rows,
+                    })
+
             result[agent][brand] = {
                 "penetration": {
                     "count":    penetration_count,
@@ -1056,6 +1092,7 @@ def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_con
                 "non_buyers":     non_buyer_count,
                 "cur_buyers":     len(cur_buyers),
                 "new_penetrations": penetration_count,
+                "penetration_debtors": penetration_debtors,
             }
 
     return result
@@ -1249,7 +1286,10 @@ def calc_aging(df, agents, cur_month):
                 "days_outstanding": days_outstanding,
                 "qty_ctn":          round(float(row.get("qty_ctn", 0)), 2),
                 "amount":           round(float(row.get("local_subtotal", 0)), 2),
+                "item_group":       row.get("item_group", ""),
                 "item_code":        row.get("item_code", ""),
+                "sales_type":       row.get("sales_type", ""),
+                "sales_type_group": row.get("sales_type_group", ""),
                 "overdue":          days_outstanding >= OVERDUE_DAYS,
             }
             all_unpaid_invoices.append(inv)
