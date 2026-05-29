@@ -1308,11 +1308,15 @@ function mergeAmountIntoBreakdownRows(existingRows, analysisRows) {
     if (!match) return row;
     used.add(itemIdx);
     const ctn = Number(row.ctn || 0);
+    const matchCtn = Number(match.ctn || 0);
+    const effectiveCtn = Math.abs(matchCtn) > 0.0001 && Math.abs(ctn - matchCtn) > 0.0001 ? matchCtn : ctn;
     const amount = Number(match.amount || 0);
     return {
       ...row,
+      ctn: effectiveCtn,
       amount,
-      rm_ctn: ctn ? amount / ctn : (Number(match.rm_ctn) || 0)
+      rm_ctn: effectiveCtn ? amount / effectiveCtn : (Number(match.rm_ctn) || 0),
+      agent: row.agent || match.agent || ''
     };
   });
   analysisItems.forEach((item, idx) => {
