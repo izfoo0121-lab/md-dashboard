@@ -1,6 +1,6 @@
 {
   "_comment": "MD Sales Dashboard — loaded from Supabase",
-  "_loaded_at": "2026-05-29T12:19:31.235223",
+  "_loaded_at": "2026-05-30T11:20:28.040971",
   "agents": {
     "KI-MI": {
       "is_newbie": true,
@@ -4057,6 +4057,86 @@
         "total_debtors": 139
       }
     },
+    "Mar 26": {
+      "CJ": {
+        "non_personal": 116,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 27,
+        "total_debtors": 129
+      },
+      "JW": {
+        "non_personal": 49,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 16,
+        "total_debtors": 110
+      },
+      "KF": {
+        "non_personal": 159,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 60,
+        "total_debtors": 224
+      },
+      "KW": {
+        "non_personal": 140,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 36,
+        "total_debtors": 182
+      },
+      "YI": {
+        "non_personal": 169,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 82,
+        "total_debtors": 265
+      },
+      "BEN": {
+        "non_personal": 91,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 46,
+        "total_debtors": 139
+      },
+      "KEE": {
+        "non_personal": 124,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 50,
+        "total_debtors": 162
+      },
+      "NMK": {
+        "non_personal": 122,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 34,
+        "total_debtors": 152
+      },
+      "KEAN": {
+        "non_personal": 118,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 28,
+        "total_debtors": 215
+      },
+      "LEON": {
+        "non_personal": 114,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 27,
+        "total_debtors": 159
+      },
+      "JACKY": {
+        "non_personal": 142,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 65,
+        "total_debtors": 189
+      },
+      "JAMES": {
+        "non_personal": 128,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 19,
+        "total_debtors": 200
+      },
+      "KI-MI": {
+        "non_personal": 157,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 60,
+        "total_debtors": 256
+      }
+    },
     "May 26": {
       "CJ": {
         "non_personal": 104,
@@ -4141,86 +4221,6 @@
         "captured_date": "2026-05-07",
         "prev_inactive": 66,
         "total_debtors": 264
-      }
-    },
-    "Mar 26": {
-      "CJ": {
-        "non_personal": 116,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 27,
-        "total_debtors": 129
-      },
-      "JW": {
-        "non_personal": 49,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 16,
-        "total_debtors": 110
-      },
-      "KF": {
-        "non_personal": 159,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 60,
-        "total_debtors": 224
-      },
-      "KW": {
-        "non_personal": 140,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 36,
-        "total_debtors": 182
-      },
-      "YI": {
-        "non_personal": 169,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 82,
-        "total_debtors": 265
-      },
-      "BEN": {
-        "non_personal": 91,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 46,
-        "total_debtors": 139
-      },
-      "KEE": {
-        "non_personal": 124,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 50,
-        "total_debtors": 162
-      },
-      "NMK": {
-        "non_personal": 122,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 34,
-        "total_debtors": 152
-      },
-      "KEAN": {
-        "non_personal": 118,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 28,
-        "total_debtors": 215
-      },
-      "LEON": {
-        "non_personal": 114,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 27,
-        "total_debtors": 159
-      },
-      "JACKY": {
-        "non_personal": 142,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 65,
-        "total_debtors": 189
-      },
-      "JAMES": {
-        "non_personal": 128,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 19,
-        "total_debtors": 200
-      },
-      "KI-MI": {
-        "non_personal": 157,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 60,
-        "total_debtors": 256
       }
     }
   },
@@ -4471,12 +4471,12 @@
         "LAM+LWM": 151
       },
       "KEE": {
-        "EVO": 108,
-        "TR20": 106,
-        "BISON": 113,
-        "SUKUN": 81,
-        "iFACE": 126,
-        "LAM+LWM": 127
+        "EVO": 110,
+        "TR20": 108,
+        "BISON": 115,
+        "SUKUN": 83,
+        "iFACE": 128,
+        "LAM+LWM": 129
       },
       "NMK": {
         "EVO": 51,
@@ -4571,7 +4571,7 @@
   "penetration_snapshot_meta": {
     "May 26": {
       "pool_version": "dm_active_nonpersonal_debtorwide_v2",
-      "updated_at": "2026-05-29T12:20:14"
+      "updated_at": "2026-05-30T11:22:04"
     }
   }
 }
