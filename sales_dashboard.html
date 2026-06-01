@@ -1218,6 +1218,22 @@ function futureViewEmptyHtml(label) {
   </div>`;
 }
 
+function futureDebtorPlanningCopy(debtor = {}) {
+  const campaigns = Array.isArray(debtor.campaigns)
+    ? debtor.campaigns.map(c => ({ ...c, converted: false, current_ctn: 0, current_rm: 0, status: c.status || 'pending' }))
+    : [];
+  return {
+    ...debtor,
+    status: 'pending',
+    ctn_cur: 0,
+    rm_cur: 0,
+    invoice_count_cur: 0,
+    volume_drop_pct: null,
+    is_future_planning: true,
+    campaigns
+  };
+}
+
 // ── Month Selector ─────────────────────────────────────────────────────────
 let CURRENT_MONTH_FILE = 'dashboard_data.json'; // default
 let CURRENT_MONTH_SLUG = 'current'; // tracks selected month slug
@@ -1911,6 +1927,7 @@ function init() {
 
   // Update sync status indicator
   try { updateSyncStatus(); } catch {}
+  applyInitialViewFromUrl();
 }
 
 // ── Navigation ─────────────────────────────────────────────────────────────
@@ -1956,11 +1973,23 @@ function restoreLastAgentSelection() {
 }
 
 function switchView(view, el) {
+  const target = document.getElementById('view-' + view);
+  if (!target) return;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('view-' + view).classList.add('active');
-  el.classList.add('active');
+  target.classList.add('active');
+  const nav = el || Array.from(document.querySelectorAll('.nav-item')).find(n => (n.getAttribute('onclick') || '').includes(`'${view}'`));
+  if (nav) nav.classList.add('active');
   currentView = view;
+}
+function initialViewFromUrl() {
+  const view = new URLSearchParams(location.search).get('view') || '';
+  const allowed = new Set(['debtors','sales','brand','group','kpi','camps','newbie','aging']);
+  return allowed.has(view) ? view : '';
+}
+function applyInitialViewFromUrl() {
+  const view = initialViewFromUrl();
+  if (view) switchView(view);
 }
 
 // ── Agent Selection ────────────────────────────────────────────────────────
@@ -2196,6 +2225,85 @@ function fmtNum(n) { return n == null ? '—' : parseFloat(n).toLocaleString('en
 function fmtPct(p) { return p == null ? '—' : p.toFixed(1) + '%'; }
 function fmtRM(n) { return 'RM ' + parseFloat(n||0).toFixed(2); }
 function fmtRM0(n) { return 'RM ' + parseFloat(n||0).toLocaleString('en-MY', {minimumFractionDigits:0, maximumFractionDigits:0}); }
+
+function normalizeFocUnitDisplay(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  const units = {
+    ctn: 'ctn', carton: 'ctn', cartons: 'ctn',
+    pack: 'packs', packs: 'packs', pkt: 'packs', pkts: 'packs', packet: 'packs', packets: 'packs',
+    box: 'box', boxes: 'box',
+    piece: 'piece', pieces: 'piece', pc: 'piece', pcs: 'piece'
+  };
+  return units[raw] || raw;
+}
+function formatCampaignFocPackage(c = {}) {
+  if (c.foc_package) return `FOC: ${c.foc_package}`;
+  const fmtQty = qty => {
+    const n = Number(qty || 0);
+    if (!n) return '';
+    return Number.isInteger(n) ? String(n) : String(Number(n.toFixed(3)));
+  };
+  const line = (item, qty, unit) => {
+    const sku = String(item || '').trim().toUpperCase();
+    if (!sku) return '';
+    const q = fmtQty(qty);
+    const u = normalizeFocUnitDisplay(unit);
+    return `${sku}${q ? ` x ${q}` : ''}${u ? ` ${u}` : ''}`;
+  };
+  const unit1 = normalizeFocUnitDisplay(c.foc_unit || c.default_foc_unit || c.redemption_unit || '');
+  const first = line(c.foc_item_resolved || c.foc_item || c.default_foc_item, c.foc_qty || c.default_foc_qty, unit1);
+  const second = line(c.foc_item_2 || c.foc_item2 || c.default_foc_item_2 || c.default_foc_item2, c.foc_qty_2 || c.foc_qty2 || c.default_foc_qty_2 || c.default_foc_qty2, c.foc_unit_2 || c.foc_unit2 || c.default_foc_unit_2 || c.default_foc_unit2 || unit1);
+  const text = [first, second].filter(Boolean).join(' + ');
+  return text ? `FOC: ${text}` : '';
+}
+
+function isIfaceCampaign(c = {}) {
+  const notes = c.notes || {};
+  const values = [
+    c.name, c.brand,
+    notes.qualifying_item_group,
+    notes.qualifying_value,
+    ...(Array.isArray(notes.qualifying_values) ? notes.qualifying_values : [])
+  ];
+  return values.some(v => String(v || '').toUpperCase().includes('IFACE'));
+}
+
+function campaignLookbackLabel(c = {}) {
+  const months = c.notes?.lookback_months || [];
+  if (months.length) return months.join('-');
+  return 'Lookback';
+}
+
+function renderIfaceMissionSummary(c = {}, stats = {}) {
+  const debtors = c.debtors || [];
+  const claimed = debtors.filter(d => getCampClaims(currentAgent, c.id, d.debtor_code)).length;
+  const delivered = debtors.filter(d => {
+    const claim = getCampClaims(currentAgent, c.id, d.debtor_code);
+    return claim && String(claim.status || '').toLowerCase() !== 'excluded';
+  }).length;
+  const awaiting = Number(stats.awaitingCtn || 0);
+  return `<div style="padding:0 16px 12px;">
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:8px;">
+      <div style="border:1px solid rgba(77,166,255,.25);background:rgba(77,166,255,.08);border-radius:10px;padding:9px 10px;">
+        <div style="font-family:var(--display);font-size:20px;color:var(--blue);">${fmtNum(stats.totalEnrolled || debtors.length)}</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">Eligible debtors</div>
+      </div>
+      <div style="border:1px solid rgba(61,220,132,.28);background:rgba(61,220,132,.08);border-radius:10px;padding:9px 10px;">
+        <div style="font-family:var(--display);font-size:20px;color:var(--green);">${fmtNum(stats.convertedCount || 0)}</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">Converted IFACE customers</div>
+      </div>
+      <div style="border:1px solid rgba(255,204,102,.28);background:rgba(255,204,102,.08);border-radius:10px;padding:9px 10px;">
+        <div style="font-family:var(--display);font-size:20px;color:var(--accent);">${fmtNum(stats.convertedCtn || 0)}</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">IFACE paid CTN${awaiting ? ` · ${fmtNum(awaiting)} unpaid` : ''}</div>
+      </div>
+      <div style="border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.045);border-radius:10px;padding:9px 10px;">
+        <div style="font-family:var(--display);font-size:20px;color:var(--text);">${claimed}/${debtors.length}</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">FOC claimed · delivered ${delivered}</div>
+      </div>
+    </div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--accent);margin-top:8px;">FOC: SUKUN x 4 packs · Note: IFACE PEN · one FOC claim per debtor</div>
+  </div>`;
+}
 
 function conversionCampaignStatus(c = {}) {
   const lookback = Number(c.lookback_ctn ?? 0);
@@ -3551,6 +3659,9 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
         const lbMonths = (c.notes && c.notes.lookback_months) || [];
         const lbLabel  = lbMonths.length >= 2 ? `${lbMonths[0]}-${lbMonths[lbMonths.length-1]}` : (lbMonths[0] || 'Lookback');
         const summaryLine = `${lbLabel}: ${fmtNum(lookbackCtn)} CTN · ${conv.currentText}`;
+        const focPackageText = formatCampaignFocPackage(c);
+        const eligibilityReason = c.eligibility_reason || c.promo_logic || '';
+        const focNote = c.foc_note || c.notes?.foc_note || (isIfaceCampaign(c) ? 'IFACE PEN' : '');
 
         const convertedChip = `<span style="font-family:var(--mono);font-size:9px;color:${conv.color};background:${conv.bg};border:1px solid ${conv.border};padding:2px 6px;border-radius:4px;font-weight:600;">${conv.label}</span>`;
         const claimData = getCampClaims(currentAgent, c.id, d.debtor_code);
@@ -3573,6 +3684,9 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
             ${convertedChip}
           </div>
           <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:4px;">${promoText}</div>
+          ${eligibilityReason ? `<div style="font-family:var(--mono);font-size:9px;color:var(--blue);margin-bottom:3px;">Reason: ${eligibilityReason}</div>` : ''}
+          ${focPackageText ? `<div style="font-family:var(--mono);font-size:9px;color:var(--accent);margin-bottom:3px;">${focPackageText}</div>` : ''}
+          ${focNote ? `<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:3px;">Note: ${focNote}</div>` : ''}
           <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">${summaryLine}</div>
           <div style="font-family:var(--mono);font-size:9px;color:${conv.color};margin-top:2px;">${conv.note}</div>
           <div style="font-family:var(--mono);font-size:9px;color:${claimInfo.color};margin-top:2px;">Claim: ${claimInfo.label}</div>
@@ -3589,6 +3703,7 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
       const accum      = c.accumulation || 'per_transaction';
       const rLimit     = c.redemption_limit || 0;
       const focItem    = c.foc_item_resolved || c.foc_item || '';
+      const focPackageText = formatCampaignFocPackage(c);
       const catLabel   = c.cat ? `CAT ${c.cat}` : '';
       const groupLabel = c.group ? `[${c.group}]` : '';
       const approvalFlag = c.approval_required
@@ -3647,6 +3762,7 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
           </div>
         </div>
         <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:4px;">${promoText}</div>
+        ${focPackageText ? `<div style="font-family:var(--mono);font-size:10px;color:var(--accent);margin-bottom:4px;font-weight:700;">${campEsc(focPackageText)}</div>` : ''}
         ${minCtn > 0 ? `
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
           <div style="flex:1;height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;">
@@ -3837,7 +3953,7 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
 
 function renderDebtors() {
   if (!currentAgent || !DATA) return;
-  if (DATA.is_future_view) {
+  if (DATA.is_future_view && false) {
     ['sum-total','sum-active','sum-reactiv','sum-rate','sum-flags'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.textContent = id === 'sum-flags' ? '0' : '—';
@@ -3846,27 +3962,29 @@ function renderDebtors() {
     if (deltaEl) deltaEl.style.display = 'none';
     buildTypeChipRow({}, 0, 'all');
     const listEl = document.getElementById('debtor-list');
-    if (listEl) listEl.innerHTML = futureViewEmptyHtml('Debtor list');
+    if (listEl) listEl.innerHTML = futureViewEmptyHtml('Sales-only debtor list');
     return;
   }
   const agData  = DATA.agents[currentAgent]?.debtor_cards || {};
-  const debtors = agData.debtors || [];
+  const debtors = DATA.is_future_view
+    ? (agData.debtors || []).map(futureDebtorPlanningCopy)
+    : (agData.debtors || []);
   const birthdayCodeSet = birthdayCodeSetForCurrentAgent();
 
   // Summary strip — activation rate (excl. Personal) + 待激活
-  const total   = agData.total_debtors || 0;
-  const active  = agData.active_count  || 0;
-  const pending = agData.pending_count || 0;
-  const inactive = agData.pending_activation ?? agData.inactive_count ?? 0;
-  const reactiv = agData.reactivation_count || 0;  // KPI: reactivated this month
-  const rate    = agData.activation_rate ?? 0;
-  const npTotalLive   = agData.activation_base_live ?? total;
-  const npTotalFrozen = agData.activation_base ?? npTotalLive;
-  const isFrozen      = agData.activation_base_frozen === true;
-  const isBaselinePending = agData.activation_base_frozen === false;
+  const total   = DATA.is_future_view ? debtors.length : (agData.total_debtors || 0);
+  const active  = DATA.is_future_view ? 0 : (agData.active_count || 0);
+  const pending = DATA.is_future_view ? debtors.length : (agData.pending_count || 0);
+  const inactive = DATA.is_future_view ? (agData.pending_activation ?? agData.inactive_count ?? 0) : (agData.pending_activation ?? agData.inactive_count ?? 0);
+  const reactiv = DATA.is_future_view ? 0 : (agData.reactivation_count || 0);  // KPI: reactivated this month
+  const rate    = DATA.is_future_view ? 0 : (agData.activation_rate ?? 0);
+  const npTotalLive   = DATA.is_future_view ? total : (agData.activation_base_live ?? total);
+  const npTotalFrozen = DATA.is_future_view ? total : (agData.activation_base ?? npTotalLive);
+  const isFrozen      = DATA.is_future_view ? false : agData.activation_base_frozen === true;
+  const isBaselinePending = DATA.is_future_view ? false : agData.activation_base_frozen === false;
   const snapDate      = agData.activation_snapshot_date || null;
-  const openedThisMonth = agData.opened_this_month ?? 0;
-  const npActive      = agData.activation_active ?? active;
+  const openedThisMonth = DATA.is_future_view ? 0 : (agData.opened_this_month ?? 0);
+  const npActive      = DATA.is_future_view ? 0 : (agData.activation_active ?? active);
 
   const sumTotalEl = document.getElementById('sum-total');
   sumTotalEl.textContent = npTotalLive;
@@ -4110,7 +4228,10 @@ function renderDebtors() {
   document.getElementById('btn-next').onclick = () => changePage(1);
 
   // Render cards
-  const html = items.map((d, idx) => renderDebtorCard(d, start + idx + 1, renderSpecialFilterExtra(d))).join('');
+  const planningNote = DATA.is_future_view
+    ? `<div style="margin-bottom:10px;padding:10px 12px;border:1px solid rgba(240,192,64,.35);border-radius:10px;background:rgba(240,192,64,.12);font-family:var(--mono);font-size:10px;color:var(--accent);">June planning view: debtor list is available before June sales targets/purchases are regenerated. Sales-only figures remain pending.</div>`
+    : '';
+  const html = planningNote + items.map((d, idx) => renderDebtorCard(d, start + idx + 1, renderSpecialFilterExtra(d))).join('');
 
   document.getElementById('debtor-list').innerHTML = html ||
     `<div style="text-align:center;padding:30px;font-family:var(--mono);font-size:11px;color:var(--muted);">No debtors match filter</div>`;
@@ -5360,8 +5481,12 @@ function isVisibleDebtorCampaign(c) {
   return Number(c.lookback_ctn || 0) <= 0;
 }
 
+function campaignVisibleForSelectedMonth(c) {
+  return !DATA?.current_month || isCampaignActiveInMonth(c, DATA.current_month);
+}
+
 function visibleDebtorCampaigns(debtor) {
-  return (debtor?.campaigns || []).filter(isVisibleDebtorCampaign);
+  return (debtor?.campaigns || []).filter(campaignVisibleForSelectedMonth).filter(isVisibleDebtorCampaign);
 }
 
 // ── Campaign Visit Status Storage ──────────────────────────────────────────
@@ -5641,6 +5766,13 @@ function renderCamps() {
       const conversionRows = c.debtors.map(d => campDebtorConversionInfo(c, d));
       const awaitingCount = conversionRows.filter(r => r.group === 'awaiting_payment').length;
       const awaitingCtn = conversionRows.reduce((sum, r) => sum + (r.group === 'awaiting_payment' ? (r.unpaid || 0) : 0), 0);
+      const ifaceMission = isIfaceCampaign(c) ? renderIfaceMissionSummary(c, {
+        totalEnrolled,
+        convertedCount,
+        convertedCtn,
+        awaitingCount,
+        awaitingCtn
+      }) : '';
 
       return '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;">' +
         // Header section
@@ -5672,14 +5804,15 @@ function renderCamps() {
               : '') +
           '</div>' +
         '</div>' +
+        ifaceMission +
         // Body: agent-level tier status
-        '<div style="padding:10px 16px 14px;">' +
+        (isIfaceCampaign(c) ? '' : '<div style="padding:10px 16px 14px;">' +
           '<div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Agent tier status</div>' +
           '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
             '<span style="font-family:var(--mono);font-size:9px;color:' + tierDisplay.color + ';background:' + tierDisplay.bg + ';border:1px solid ' + tierDisplay.border + ';padding:3px 9px;border-radius:10px;font-weight:600;">' + tierDisplay.label + '</span>' +
             '<span style="font-family:var(--mono);font-size:9px;color:' + tierDisplay.color + ';">' + tierDisplay.hint + '</span>' +
           '</div>' +
-        '</div>' +
+        '</div>') +
         renderCampaignDebtorPanel(c) +
       '</div>';
     }
@@ -5741,6 +5874,8 @@ function renderCamps() {
           const claimBg    = claimInfo.bg;
           const claimColor = claimInfo.color;
           const claimBdr   = claimInfo.border;
+          const debtorCamp = visibleDebtorCampaigns(d).find(cc => cc.id === c.id) || c;
+          const packageLine = formatCampaignFocPackage(debtorCamp);
           const metaLine   = isExcluded ? d.debtor_code + ' \u00B7 ' + unableReasonLabel(cd.reason) + (cd.remark ? ' \u2014 ' + cd.remark : '') : d.debtor_code + ' \u00B7 ' + claimInfo.label + (cd?.ts ? ' \u00B7 ' + cd.ts : '') + (cd?.count > 1 ? ' \u00B7 ' + cd.count + '\u00D7 requests' : '');
           const rowBg      = isExcluded ? 'rgba(255,136,102,.04)' : isClaimed ? claimInfo.bg : 'rgba(255,255,255,.03)';
           const rowBorder  = isExcluded ? 'rgba(255,136,102,.2)' : isClaimed ? claimInfo.border : 'transparent';
@@ -5750,7 +5885,9 @@ function renderCamps() {
           return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 8px;background:' + rowBg + ';border-radius:8px;margin-bottom:3px;border:1px solid ' + rowBorder + ';opacity:' + rowOp + ';">' +
             '<div style="flex:1;min-width:0;">' +
             '<div style="font-family:var(--body);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' + (isExcluded?'text-decoration:line-through;':'') + '">' + (d.company_name||d.debtor_code) + '</div>' +
-            '<div style="font-family:var(--mono);font-size:9px;color:var(--muted);">' + metaLine + '</div></div>' +
+            '<div style="font-family:var(--mono);font-size:9px;color:var(--muted);">' + metaLine + '</div>' +
+            (packageLine ? '<div style="font-family:var(--mono);font-size:9px;color:var(--accent);margin-top:2px;">' + campEsc(packageLine) + '</div>' : '') +
+            '</div>' +
             '<div style="display:flex;gap:6px;align-items:center;margin-left:8px;">' +
             (phone ? '<a href="tel:' + phone + '" onclick="event.stopPropagation()" style="font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;">\uD83D\uDCDE</a>' : '') +
             (showUnable ? '<button onclick="openUnableModal(event,\'' + d.debtor_code + '\',\'' + c.id + '\',\'' + dname + '\',\'' + c.type + '\')" style="background:rgba(255,136,102,.12);border:1px solid rgba(255,136,102,.3);color:#ff8866;font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;">\uD83D\uDEAB</button>' : '') +
@@ -5986,11 +6123,18 @@ function renderCampaignDebtorPanel(camp) {
     const claimOnclick = canClaim
       ? `onclick='toggleCampClaim(event,${JSON.stringify(d.debtor_code || '')},${JSON.stringify(campId)},${JSON.stringify(d.company_name || d.debtor_code || '')},${JSON.stringify(camp.promo_detail || camp.name || '')},${JSON.stringify(camp.type || 'other')})'`
       : `onclick='event.stopPropagation()' disabled`;
+    const debtorCamp = visibleDebtorCampaigns(d).find(cc => cc.id === campId) || camp;
+    const packageLine = formatCampaignFocPackage(debtorCamp);
+    const eligibilityReason = debtorCamp.eligibility_reason || debtorCamp.promo_logic || '';
+    const focNote = debtorCamp.foc_note || camp.foc_note || debtorCamp.notes?.foc_note || (isIfaceCampaign(camp) ? 'IFACE PEN' : '');
     return header + `<div class="camp-debtor-row" style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 88px 82px 82px 112px;gap:8px;align-items:center;padding:7px 8px;background:${rowBg};border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;">
       <div class="camp-debtor-idx" style="font-family:var(--mono);color:var(--muted);">${start + i + 1}</div>
       <div class="camp-debtor-main" style="min-width:0;">
         <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;">${campEsc(d.company_name || d.debtor_code)}</div>
         <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">${campEsc(d.phone || '')}</div>
+        ${eligibilityReason ? `<div style="font-family:var(--mono);font-size:8px;color:var(--blue);margin-top:2px;">Reason: ${campEsc(eligibilityReason)}</div>` : ''}
+        ${packageLine ? `<div style="font-family:var(--mono);font-size:8px;color:var(--accent);margin-top:2px;">${campEsc(packageLine)}</div>` : ''}
+        ${focNote ? `<div style="font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:2px;">Note: ${campEsc(focNote)}</div>` : ''}
       </div>
       <div class="camp-debtor-code" style="font-family:var(--mono);font-size:9px;color:var(--muted);">${campEsc(d.debtor_code || '')}</div>
       <div class="camp-debtor-status"><span style="font-family:var(--mono);font-size:8px;color:${t.color};background:${t.bg};border:1px solid ${t.border};padding:2px 6px;border-radius:8px;white-space:nowrap;">${campEsc(t.label)}</span></div>
@@ -6009,7 +6153,7 @@ function renderCampaignDebtorPanel(camp) {
   return toggle + `<div style="padding:0 16px 14px;">
     <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:rgba(255,255,255,.025);">
       <div class="camp-debtor-head" style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 88px 82px 82px 112px;gap:8px;padding:6px 8px;background:rgba(255,255,255,.045);font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">
-        <div>#</div><div>Company</div><div>Code</div><div>Status</div><div style="text-align:right;">Feb-Apr</div><div style="text-align:right;">May</div><div>Claim</div>
+        <div>#</div><div>Company</div><div>Code</div><div>Status</div><div style="text-align:right;">${campEsc(campaignLookbackLabel(camp))}</div><div style="text-align:right;">${campEsc(DATA.current_month || 'Current')}</div><div>Claim</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;padding:7px 8px;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:9px;color:var(--muted);">
         <span style="color:var(--green);">✓ Converted ${convertedTotal}</span>

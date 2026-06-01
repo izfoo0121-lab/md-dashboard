@@ -321,6 +321,14 @@ DEFAULT_BRAND_CONFIG = {
     "LAM+LWM": ["LAM", "LWM"],
 }
 
+IFACE_ITEM_CODES = ["IFACE B", "IFACE M", "IFACE R", "IFACE DB"]
+IFACE_PK_POOL_RATE = 3.5
+IFACE_FOC_ITEM = "SUKUN"
+IFACE_FOC_QTY = 4
+IFACE_FOC_UNIT = "packs"
+IFACE_FOC_NOTE = "IFACE PEN"
+BRAND_PENETRATION_PRESET_ORDER = ["IFACE", "SUKUN", "EVO", "BISON", "TR20", "LAM+LWM"]
+
 # All Canggih in-house item codes (used for total Canggih CTN)
 # Managed via Admin Page — loaded from targets.json if present
 DEFAULT_INHOUSE_CODES = [
@@ -348,6 +356,18 @@ DEFAULT_GROUP_BRAND_CONFIG = {
     "TR":        ["TR20", "TR-002"],
 }
 
+# Management SKU Trace defaults. Admin can override this via targets.json /
+# targets_static.sku_trace_config. "Target CTN" means Sales type == Target.
+DEFAULT_SKU_TRACE_CONFIG = [
+    {"label": "DPM EVO Sales", "item_codes": ["DPM EVO"], "commission_rate": 1.3},
+    {"label": "LR22 Sales", "item_codes": ["LR22"], "commission_rate": 5},
+    {"label": "LB22 + LG22 Sales", "item_codes": ["LB22", "LG22"], "commission_rate": 0},
+    {"label": "LBOLD Sales", "item_codes": ["LBOLD"], "commission_rate": 1.3},
+    {"label": "MARISE Sales", "item_codes": ["MARISE"], "commission_rate": 5},
+    {"label": "CMX Sales", "item_codes": ["CMX"], "commission_rate": 0},
+    {"label": "CMP Sales", "item_codes": ["CMP"], "commission_rate": 0},
+]
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def log(msg):
@@ -356,6 +376,387 @@ def log(msg):
         print(text, flush=True)
     except UnicodeEncodeError:
         print(text.encode("ascii", "replace").decode("ascii"), flush=True)
+
+
+def normalize_foc_unit(value):
+    """Return the dashboard display unit for an Admin-uploaded FOC package."""
+    raw = str(value or "").strip().lower()
+    if not raw:
+        return ""
+    unit_map = {
+        "ctn": "ctn",
+        "carton": "ctn",
+        "cartons": "ctn",
+        "pack": "packs",
+        "packs": "packs",
+        "pkt": "packs",
+        "pkts": "packs",
+        "packet": "packs",
+        "packets": "packs",
+        "box": "box",
+        "boxes": "box",
+        "piece": "piece",
+        "pieces": "piece",
+        "pc": "piece",
+        "pcs": "piece",
+    }
+    return unit_map.get(raw, raw)
+
+
+def _clean_foc_qty(value):
+    if value is None or value == "":
+        return 0
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return 0
+    if n.is_integer():
+        return int(n)
+    return round(n, 3)
+
+
+def _foc_value(source, *keys):
+    if not isinstance(source, dict):
+        return ""
+    for key in keys:
+        val = source.get(key)
+        if val is not None and str(val).strip() != "":
+            return val
+    return ""
+
+
+def _foc_source_has_package(source):
+    return bool(_foc_value(source, "foc_item", "default_foc_item"))
+
+
+def _format_foc_line(item, qty, unit):
+    item = str(item or "").strip().upper()
+    qty = _clean_foc_qty(qty)
+    unit = normalize_foc_unit(unit)
+    if not item:
+        return ""
+    if qty:
+        return f"{item} x {qty:g} {unit}".strip()
+    return f"{item} {unit}".strip()
+
+
+def campaign_foc_package(camp=None, rule=None, debtor=None):
+    """Resolve exact FOC package by priority: debtor row, CAT rule, campaign default."""
+    camp = camp or {}
+    rule = rule or {}
+    debtor = debtor or {}
+    if _foc_source_has_package(debtor):
+        source = debtor
+        prefix = ""
+    elif _foc_source_has_package(rule):
+        source = rule
+        prefix = ""
+    else:
+        source = camp
+        prefix = "default_"
+
+    item = _foc_value(source, f"{prefix}foc_item", "foc_item")
+    qty = _clean_foc_qty(_foc_value(source, f"{prefix}foc_qty", "foc_qty"))
+    unit = normalize_foc_unit(_foc_value(source, f"{prefix}foc_unit", "foc_unit"))
+    item2 = _foc_value(source, f"{prefix}foc_item_2", f"{prefix}foc_item2", "foc_item_2", "foc_item2")
+    qty2 = _clean_foc_qty(_foc_value(source, f"{prefix}foc_qty_2", f"{prefix}foc_qty2", "foc_qty_2", "foc_qty2"))
+    unit2 = normalize_foc_unit(_foc_value(source, f"{prefix}foc_unit_2", f"{prefix}foc_unit2", "foc_unit_2", "foc_unit2")) or unit
+    line1 = _format_foc_line(item, qty, unit)
+    line2 = _format_foc_line(item2, qty2, unit2)
+    package = " + ".join([x for x in (line1, line2) if x])
+    return {
+        "foc_item": str(item or "").strip().upper(),
+        "foc_qty": qty,
+        "foc_unit": unit,
+        "foc_item_2": str(item2 or "").strip().upper(),
+        "foc_qty_2": qty2,
+        "foc_unit_2": unit2 if item2 else "",
+        "foc_package": package,
+    }
+
+
+def _month_anchor(month_label):
+    """Return a first-of-month date for labels like 'Jun 26'."""
+    try:
+        mon, yy = str(month_label or "").strip().split()[:2]
+        mons = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+        return date(2000 + int(yy), mons.index(mon[:3].title()) + 1, 1)
+    except Exception:
+        return None
+
+
+def previous_month_labels_for(month_label, n=3):
+    anchor = _month_anchor(month_label)
+    if not anchor:
+        return []
+    labels = []
+    cur = anchor
+    for _ in range(n):
+        cur = (cur - timedelta(days=1)).replace(day=1)
+        labels.append(cur.strftime("%b %y"))
+    return labels
+
+
+def _is_iface_campaign(camp):
+    notes = (camp or {}).get("notes") or {}
+    values = [
+        (camp or {}).get("name", ""),
+        (camp or {}).get("brand", ""),
+        notes.get("qualifying_item_group", ""),
+        notes.get("qualifying_value", ""),
+    ]
+    values.extend(notes.get("qualifying_values") or [])
+    return any("IFACE" in str(v or "").upper() for v in values)
+
+
+def _campaign_pk_pool_rate(camp):
+    notes = (camp or {}).get("notes") or {}
+    raw = notes.get("pk_pool_rate")
+    if raw is None and _is_iface_campaign(camp):
+        raw = IFACE_PK_POOL_RATE
+    try:
+        return _num2(raw)
+    except Exception:
+        return 0
+
+
+def _brand_match_mask(df, qualifying_values):
+    if df is None or df.empty:
+        return pd.Series(False, index=df.index if df is not None else [])
+    values = {_norm_code(v) for v in (qualifying_values or []) if str(v or "").strip()}
+    if not values:
+        return pd.Series(False, index=df.index)
+    item_group = df.get("item_group", pd.Series("", index=df.index)).map(_norm_code)
+    item_code = df.get("item_code", pd.Series("", index=df.index)).map(_norm_code)
+    return item_group.isin(values) | item_code.isin(values)
+
+
+def _iface_match_mask(df):
+    return _brand_match_mask(df, ["IFACE", *IFACE_ITEM_CODES])
+
+
+def _brand_penetration_key(value):
+    key = str(value or "").strip().upper()
+    return "IFACE" if key == "IFACE" else key
+
+
+def _brand_penetration_config(brand_config=None):
+    config = {}
+    for brand, codes in {**DEFAULT_BRAND_CONFIG, **(brand_config or {})}.items():
+        key = _brand_penetration_key(brand)
+        values = [key]
+        if key == "IFACE":
+            values.append("iFACE")
+        values.extend(codes or [])
+        seen = set()
+        clean = []
+        for value in values:
+            norm = _norm_code(value)
+            if norm and norm not in seen:
+                seen.add(norm)
+                clean.append(norm)
+        if clean:
+            config[key] = clean
+    return config
+
+
+def build_brand_penetration_candidate_sets(
+    debtor_info,
+    df,
+    agents,
+    month_labels,
+    brand_config=None,
+    agent_group_map=None,
+):
+    """Build Admin-ready brand penetration candidate data for selectable brands."""
+    months = [m for m in (month_labels or []) if str(m or "").strip()]
+    presets = _brand_penetration_config(brand_config)
+    ordered_keys = [k for k in BRAND_PENETRATION_PRESET_ORDER if k in presets]
+    ordered_keys.extend(k for k in sorted(presets) if k not in ordered_keys)
+
+    by_month = {}
+    current = {}
+    preset_meta = {}
+    for brand in ordered_keys:
+        values = presets[brand]
+        preset_meta[brand] = {
+            "brand": brand,
+            "label": brand,
+            "match_values": values,
+            "exclude_type_keywords": ["Personal", "End User"],
+            "lookback_months": 3,
+            "pk_pool_rate": IFACE_PK_POOL_RATE if brand == "IFACE" else 0,
+            "foc_item": IFACE_FOC_ITEM if brand == "IFACE" else "",
+            "foc_qty": IFACE_FOC_QTY if brand == "IFACE" else 0,
+            "foc_unit": IFACE_FOC_UNIT if brand == "IFACE" else "",
+            "foc_note": IFACE_FOC_NOTE if brand == "IFACE" else "",
+        }
+        by_month[brand] = {}
+        for month in months:
+            by_month[brand][month] = build_brand_penetration_campaign_candidates(
+                debtor_info=debtor_info,
+                df=df,
+                agents=agents,
+                cur_month=month,
+                brand_label=brand,
+                qualifying_values=values,
+                foc_item=preset_meta[brand]["foc_item"],
+                foc_qty=preset_meta[brand]["foc_qty"],
+                foc_unit=preset_meta[brand]["foc_unit"],
+                foc_note=preset_meta[brand]["foc_note"],
+                exclude_type_keywords=preset_meta[brand]["exclude_type_keywords"],
+                agent_group_map=agent_group_map,
+                lookback_months=previous_month_labels_for(month, 3),
+            )
+        current[brand] = by_month[brand].get(months[0], []) if months else []
+    return current, by_month, preset_meta
+
+
+def _debtor_type_is_campaign_excluded(value, keywords=None):
+    raw = str(value or "").strip().lower()
+    raw_alt = raw.replace("-", " ")
+    checks = keywords or ["personal", "end user", "end-user"]
+    return any(str(k or "").strip().lower().replace("-", " ") in raw_alt for k in checks if str(k or "").strip())
+
+
+def _open_date_in_month(open_date, month_label):
+    anchor = _month_anchor(month_label)
+    if not anchor or open_date is None or str(open_date).strip() == "":
+        return False
+    try:
+        od = pd.to_datetime(open_date, errors="coerce")
+    except Exception:
+        return False
+    if pd.isna(od):
+        return False
+    return od.year == anchor.year and od.month == anchor.month
+
+
+def build_brand_penetration_campaign_candidates(
+    debtor_info,
+    df,
+    agents,
+    cur_month,
+    brand_label,
+    qualifying_values,
+    foc_item="",
+    foc_qty=0,
+    foc_unit="",
+    foc_note="",
+    exclude_type_keywords=None,
+    agent_group_map=None,
+    lookback_months=None,
+):
+    """Suggest brand penetration candidates from debtor maintenance + paid history.
+
+    The candidate list is advisory for Admin. Admin still confirms/uploads the
+    final debtor list before saving a campaign to Supabase.
+    """
+    debtor_info = debtor_info or {}
+    brand = str(brand_label or "Brand").strip().upper() or "BRAND"
+    match_values = [v for v in (qualifying_values or []) if str(v or "").strip()]
+    active_agents = {str(a or "").strip().upper() for a in (agents or []) if str(a or "").strip()}
+    group_map = {str(k or "").strip().upper(): str(v or "").strip().upper()
+                 for k, v in (agent_group_map or {}).items()}
+    lookback = lookback_months or previous_month_labels_for(cur_month, 3)
+    month_anchor = _month_anchor(cur_month)
+    current_months = {cur_month}
+
+    history = df.copy() if df is not None else pd.DataFrame()
+    if history.empty:
+        history = pd.DataFrame(columns=["debtor_code", "item_group", "item_code", "paid_on", "tranx_mth_full", "qty_ctn"])
+    for col in ("debtor_code", "item_group", "item_code", "paid_on", "tranx_mth_full"):
+        if col not in history.columns:
+            history[col] = ""
+    if "qty_ctn" not in history.columns:
+        history["qty_ctn"] = 0
+    history["debtor_code"] = history["debtor_code"].map(_norm_code)
+    history["qty_ctn"] = pd.to_numeric(history["qty_ctn"], errors="coerce").fillna(0)
+    brand_rows = history[_brand_match_mask(history, match_values)].copy()
+    paid_month_col = "paid_on" if "paid_on" in brand_rows.columns else "tranx_mth_full"
+    brand_rows = brand_rows[
+        brand_rows[paid_month_col].fillna("").astype(str).str.strip().ne("")
+        & (brand_rows["qty_ctn"] > 0)
+    ]
+
+    rows = []
+    for code_raw, info in debtor_info.items():
+        code = _norm_code(code_raw)
+        if not code:
+            continue
+        agent = str(info.get("agent") or "").strip().upper()
+        dtype = str(info.get("type") or "").strip()
+        if not info.get("dm_active", True):
+            continue
+        if _debtor_type_is_campaign_excluded(dtype, exclude_type_keywords):
+            continue
+        if active_agents and agent not in active_agents:
+            continue
+
+        debtor_rows = brand_rows[brand_rows["debtor_code"] == code]
+        paid_months = {str(v).strip() for v in debtor_rows[paid_month_col].fillna("").tolist() if str(v).strip()}
+        before_current = paid_months - current_months
+        lookback_hits = bool(set(lookback) & paid_months)
+        opened_this_month = _open_date_in_month(info.get("open_date"), cur_month)
+
+        reason = ""
+        if opened_this_month:
+            reason = "New account"
+        elif not before_current:
+            reason = f"Never bought {brand}"
+        elif not lookback_hits:
+            reason = f"3-month no {brand}"
+        if not reason:
+            continue
+
+        group = group_map.get(agent, "")
+        row = {
+            "code": code,
+            "debtor_code": code,
+            "name": info.get("name") or code,
+            "debtor_name": info.get("name") or code,
+            "agent": agent,
+            "debtor_type": dtype,
+            "cat": "",
+            "cat_group": group,
+            "group": group,
+            "eligibility_reason": reason,
+            "promo_logic": reason,
+            "campaign_family": "brand_penetration",
+            "brand": brand,
+            "qualifying_values": match_values,
+            "foc_item": foc_item,
+            "foc_qty": foc_qty,
+            "foc_unit": foc_unit,
+            "foc_note": foc_note,
+            "notes": reason,
+        }
+        row["foc_package"] = campaign_foc_package({}, {}, row)["foc_package"]
+        if month_anchor:
+            row["campaign_month"] = month_anchor.strftime("%b %y")
+        rows.append(row)
+
+    reason_rank = {"New account": 0, f"Never bought {brand}": 1, f"3-month no {brand}": 2}
+    return sorted(rows, key=lambda r: (r.get("agent", ""), reason_rank.get(r.get("eligibility_reason"), 99), r.get("debtor_code", "")))
+
+
+def build_iface_campaign_candidates(debtor_info, df, agents, cur_month, agent_group_map=None, lookback_months=None):
+    """Compatibility wrapper for the IFACE June preset."""
+    return build_brand_penetration_campaign_candidates(
+        debtor_info=debtor_info,
+        df=df,
+        agents=agents,
+        cur_month=cur_month,
+        brand_label="IFACE",
+        qualifying_values=["IFACE", *IFACE_ITEM_CODES],
+        foc_item=IFACE_FOC_ITEM,
+        foc_qty=IFACE_FOC_QTY,
+        foc_unit=IFACE_FOC_UNIT,
+        foc_note=IFACE_FOC_NOTE,
+        exclude_type_keywords=["Personal", "End User"],
+        agent_group_map=agent_group_map,
+        lookback_months=lookback_months,
+    )
 
 
 def load_targets():
@@ -473,6 +874,241 @@ def color_code(pct_val):
     if pct_val >= 50:
         return "amber"
     return "red"
+
+
+def _num2(value):
+    """Round numeric dashboard values without leaking -0.0 into JSON."""
+    try:
+        n = round(float(value or 0), 2)
+    except (TypeError, ValueError):
+        return 0
+    return 0 if abs(n) < 0.0001 else n
+
+
+def _norm_code(value):
+    return str(value or "").strip().upper()
+
+
+def _clean_sku_trace_config(config):
+    rows = config if isinstance(config, list) and config else DEFAULT_SKU_TRACE_CONFIG
+    clean = []
+    for idx, row in enumerate(rows):
+        if not isinstance(row, dict):
+            continue
+        codes = row.get("item_codes") or row.get("codes") or row.get("items") or []
+        if isinstance(codes, str):
+            codes = [c.strip() for c in codes.split(",")]
+        codes = [_norm_code(c) for c in codes if _norm_code(c)]
+        label = str(row.get("label") or row.get("name") or (codes[0] if codes else f"Trace {idx+1}")).strip()
+        if not codes or not label:
+            continue
+        try:
+            commission_rate = float(row.get("commission_rate") or row.get("comm_rate") or 0)
+        except (TypeError, ValueError):
+            commission_rate = 0
+        clean.append({
+            "key": str(row.get("key") or label).lower().replace(" ", "_").replace("+", "_"),
+            "label": label,
+            "item_codes": codes,
+            "commission_rate": _num2(commission_rate),
+            "qualifier": "Sales type = Target",
+        })
+    return clean
+
+
+def calc_sku_trace(df, sku_trace_config, agents, cur_month):
+    """
+    Build Management SKU trace summaries from MD Sales Report rows.
+
+    tranx_ctn: invoice date month == cur_month.
+    paid_ctn: PAID ON == cur_month.
+    target_ctn: PAID ON == cur_month and Sales type == Target.
+    8COM rows are excluded because this trace is for Canggih in-house SKUs.
+    """
+    trace_config = _clean_sku_trace_config(sku_trace_config)
+    agent_list = sorted(str(a) for a in (agents or []))
+    out = {"month": cur_month, "items": []}
+    if df is None or df.empty:
+        for cfg in trace_config:
+            out["items"].append({
+                **cfg,
+                "agents": {agent: {"tranx_ctn": 0, "paid_ctn": 0, "target_ctn": 0, "commission": 0} for agent in agent_list},
+                "totals": {"tranx_ctn": 0, "paid_ctn": 0, "target_ctn": 0, "commission": 0},
+            })
+        return out
+
+    work = df.copy()
+    for col in ("agent", "item_group", "item_code", "tranx_mth_full", "paid_on", "sales_type"):
+        if col not in work.columns:
+            work[col] = ""
+        work[col] = work[col].fillna("").astype(str).str.strip()
+    if "qty_ctn" not in work.columns:
+        work["qty_ctn"] = 0
+    work["qty_ctn"] = pd.to_numeric(work["qty_ctn"], errors="coerce").fillna(0)
+    work["_item_norm"] = work["item_code"].map(_norm_code)
+    work = work[work["item_group"].map(_norm_code) != EIGHTCOM_GROUP]
+
+    if not agent_list:
+        agent_list = sorted(a for a in work["agent"].dropna().astype(str).str.strip().unique() if a)
+
+    for cfg in trace_config:
+        rows = work[work["_item_norm"].isin(cfg["item_codes"])]
+        agent_map = {}
+        totals = {"tranx_ctn": 0, "paid_ctn": 0, "target_ctn": 0, "commission": 0}
+        for agent in agent_list:
+            ag_rows = rows[rows["agent"] == agent]
+            tranx_ctn = _num2(ag_rows.loc[ag_rows["tranx_mth_full"] == cur_month, "qty_ctn"].sum())
+            paid_rows = ag_rows[ag_rows["paid_on"] == cur_month]
+            paid_ctn = _num2(paid_rows["qty_ctn"].sum())
+            target_ctn = _num2(paid_rows.loc[
+                paid_rows["sales_type"].map(lambda v: str(v).strip().upper()) == "TARGET",
+                "qty_ctn",
+            ].sum())
+            commission = _num2(target_ctn * cfg["commission_rate"])
+            agent_map[agent] = {
+                "tranx_ctn": tranx_ctn,
+                "paid_ctn": paid_ctn,
+                "target_ctn": target_ctn,
+                "commission": commission,
+            }
+            totals["tranx_ctn"] += tranx_ctn
+            totals["paid_ctn"] += paid_ctn
+            totals["target_ctn"] += target_ctn
+            totals["commission"] += commission
+        out["items"].append({
+            **cfg,
+            "agents": agent_map,
+            "totals": {k: _num2(v) for k, v in totals.items()},
+        })
+    return out
+
+
+def _campaign_group_value(row):
+    if not isinstance(row, dict):
+        return ""
+    for key in ("group", "team", "cat_group", "cat"):
+        value = str(row.get(key) or "").strip()
+        if value:
+            return value.upper()
+    return ""
+
+
+def _rank_group_rows(rows, field):
+    sorted_rows = sorted(rows, key=lambda r: (-float(r.get(field) or 0), r.get("group", "")))
+    last_value = None
+    last_rank = 0
+    for idx, row in enumerate(sorted_rows, start=1):
+        value = float(row.get(field) or 0)
+        if last_value is None or value != last_value:
+            last_rank = idx
+            last_value = value
+        row[f"rank_{field}"] = last_rank
+        if field == "new_accounts":
+            row["rank_accounts"] = last_rank
+        elif field == "converted_ctn":
+            row["rank_ctn"] = last_rank
+
+
+def calc_conversion_campaign_group_progress(debtor_cards, campaigns):
+    """
+    Aggregate conversion campaign progress by uploaded group/team.
+    Group comes from campaign debtor metadata; blank legacy rows fall back to MIRACLE.
+    """
+    campaigns = [c for c in (campaigns or []) if c and c.get("id")]
+    camp_lookup = {c.get("id"): c for c in campaigns}
+    debtor_group = {}
+    for camp in campaigns:
+        cid = camp.get("id")
+        for row in camp.get("debtors") or []:
+            code = _norm_code(row.get("debtor_code") or row.get("code"))
+            if not code:
+                continue
+            debtor_group[(cid, code)] = _campaign_group_value(row) or "MIRACLE"
+
+    out = {}
+    for cid, camp in camp_lookup.items():
+        pk_rate = _campaign_pk_pool_rate(camp)
+        out[cid] = {
+            "id": cid,
+            "name": camp.get("name", cid),
+            "is_iface_campaign": _is_iface_campaign(camp),
+            "pk_pool_rate": pk_rate,
+            "groups": {},
+            "agents": {},
+            "totals": {"new_accounts": 0, "converted_count": 0, "converted_ctn": 0, "pool_value": 0},
+            "winner_by_accounts": "",
+            "winner_by_ctn": "",
+        }
+
+    for agent, block in (debtor_cards or {}).items():
+        for card in (block or {}).get("debtors", []) or []:
+            code = _norm_code(card.get("debtor_code") or card.get("code"))
+            name = card.get("company_name") or card.get("name") or code
+            for camp in card.get("campaigns") or []:
+                if camp.get("type") not in ("conversion_simple", "conversion_tiered"):
+                    continue
+                cid = camp.get("id")
+                if cid not in out:
+                    continue
+                group = debtor_group.get((cid, code)) or _campaign_group_value(camp) or "MIRACLE"
+                group_entry = out[cid]["groups"].setdefault(group, {
+                    "group": group,
+                    "new_accounts": 0,
+                    "converted_count": 0,
+                    "not_converted_count": 0,
+                    "converted_ctn": 0,
+                    "pool_value": 0,
+                    "rank_new_accounts": 0,
+                    "rank_converted_ctn": 0,
+                })
+                agent_entry = out[cid]["agents"].setdefault(agent, {
+                    "agent": agent,
+                    "group": group,
+                    "new_accounts": 0,
+                    "converted_count": 0,
+                    "not_converted_count": 0,
+                    "converted_ctn": 0,
+                    "pool_value": 0,
+                    "converted_debtors": [],
+                    "not_converted_debtors": [],
+                })
+                converted = bool(camp.get("converted"))
+                ctn = _num2(camp.get("current_ctn") or camp.get("current_paid_ctn") or 0)
+                debtor_row = {"code": code, "name": name, "ctn": ctn}
+
+                group_entry["new_accounts"] += 1
+                agent_entry["new_accounts"] += 1
+                out[cid]["totals"]["new_accounts"] += 1
+                if converted:
+                    group_entry["converted_count"] += 1
+                    agent_entry["converted_count"] += 1
+                    group_entry["converted_ctn"] = _num2(group_entry["converted_ctn"] + ctn)
+                    agent_entry["converted_ctn"] = _num2(agent_entry["converted_ctn"] + ctn)
+                    out[cid]["totals"]["converted_count"] += 1
+                    out[cid]["totals"]["converted_ctn"] = _num2(out[cid]["totals"]["converted_ctn"] + ctn)
+                    pk_rate = float(out[cid].get("pk_pool_rate") or 0)
+                    if pk_rate:
+                        pool_value = _num2(ctn * pk_rate)
+                        group_entry["pool_value"] = _num2(group_entry["pool_value"] + pool_value)
+                        agent_entry["pool_value"] = _num2(agent_entry["pool_value"] + pool_value)
+                        out[cid]["totals"]["pool_value"] = _num2(out[cid]["totals"]["pool_value"] + pool_value)
+                    agent_entry["converted_debtors"].append(debtor_row)
+                else:
+                    group_entry["not_converted_count"] += 1
+                    agent_entry["not_converted_count"] += 1
+                    agent_entry["not_converted_debtors"].append(debtor_row)
+
+    for camp_data in out.values():
+        group_rows = list(camp_data["groups"].values())
+        _rank_group_rows(group_rows, "new_accounts")
+        _rank_group_rows(group_rows, "converted_ctn")
+        group_rows.sort(key=lambda r: (r.get("rank_new_accounts", 999), r.get("group", "")))
+        camp_data["group_rows"] = group_rows
+        if group_rows:
+            camp_data["winner_by_accounts"] = min(group_rows, key=lambda r: (r.get("rank_new_accounts", 999), r.get("group", "")))["group"]
+            camp_data["winner_by_ctn"] = min(group_rows, key=lambda r: (r.get("rank_converted_ctn", 999), r.get("group", "")))["group"]
+        camp_data["agent_rows"] = sorted(camp_data["agents"].values(), key=lambda r: (r.get("group", ""), r.get("agent", "")))
+    return out
 
 
 # ── Load MD Sales Report ──────────────────────────────────────────────────────
@@ -1393,11 +2029,16 @@ def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups, 
             tier_names      = notes.get("tier_names") or []
             lookback_months = notes.get("lookback_months") or []
             qual_group      = notes.get("qualifying_item_group") or ""
-            price_floor = float(
-                notes.get("min_rm_per_ctn")
-                or notes.get("price_floor")
-                or (37.5 if qual_group == "TR-002" else 41.0)
-            )
+            qual_values = notes.get("qualifying_values") or ([qual_group] if qual_group else [])
+            qual_values = [_norm_code(v) for v in qual_values if _norm_code(v)]
+            if _norm_code(qual_group) == "IFACE" or "IFACE" in qual_values:
+                qual_values = sorted(set(qual_values + ["IFACE"] + [_norm_code(v) for v in IFACE_ITEM_CODES]))
+            floor_raw = notes.get("min_rm_per_ctn")
+            if floor_raw is None or floor_raw == "":
+                floor_raw = notes.get("price_floor")
+            if floor_raw is None or floor_raw == "":
+                floor_raw = 37.5 if qual_group == "TR-002" else 41.0
+            price_floor = float(floor_raw)
 
             # Build lookback paid_on strings using the campaign deadline year
             # (e.g. ["Feb 26", "Mar 26", "Apr 26"] for a 2026 campaign).
@@ -1427,15 +2068,17 @@ def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups, 
             # Filter by item_group, not item_code. item_code is SKU-level;
             # item_group is the brand/group line used for this conversion.
             conv_rows = invoice_rows if invoice_rows is not None else d_rows
-            if conv_rows.empty or not qual_group or "item_group" not in conv_rows.columns:
+            if conv_rows.empty or not (qual_group or qual_values) or "item_group" not in conv_rows.columns:
                 lookback_ctn = 0.0
                 current_ctn = 0.0
                 current_invoice_ctn = 0.0
                 current_unpaid_ctn = 0.0
             else:
-                group_mask = conv_rows["item_group"] == qual_group
+                item_group_norm = conv_rows["item_group"].map(_norm_code)
+                group_mask = item_group_norm.isin(qual_values or [_norm_code(qual_group)])
                 if "item_code" in conv_rows.columns:
-                    group_mask = group_mask | (conv_rows["item_code"] == qual_group)
+                    item_code_norm = conv_rows["item_code"].map(_norm_code)
+                    group_mask = group_mask | item_code_norm.isin(qual_values or [_norm_code(qual_group)])
                 group_rows = conv_rows[group_mask]
                 month_col = "tranx_mth_full" if "tranx_mth_full" in group_rows.columns else "paid_on"
                 lookback_rows = group_rows[group_rows[month_col].isin(lookback_keys)] if lookback_keys else group_rows.iloc[0:0]
@@ -3593,9 +4236,10 @@ def main():
             pass  # if date parsing fails, include campaign
         return True
 
-    def _append_campaign_map_entry(camp, code, cat, cat_group, crule):
+    def _append_campaign_map_entry(camp, code, cat, cat_group, crule, debtor=None):
         if not code: return
         if code not in campaign_map: campaign_map[code] = []
+        foc_package = campaign_foc_package(camp, crule, debtor or {})
         # TODO: Supabase schema does not yet include redemption_type,
         # accumulation, redemption_limit, redemption_unit, foc_per_ctn,
         # foc_per_threshold, foc_item_rule, foc_note, voucher_amount,
@@ -3617,19 +4261,28 @@ def main():
             "redemption_type": crule.get("redemption_type", "free_goods"),
             "accumulation":    crule.get("accumulation", "per_transaction"),
             "redemption_limit":crule.get("redemption_limit", 0),
-            "redemption_unit": crule.get("redemption_unit", "ctn"),
+            "redemption_unit": foc_package.get("foc_unit") or crule.get("redemption_unit", "ctn"),
             "min_order_ctn":   crule.get("min_order_ctn", camp.get("min_order_ctn", 0)),
             "foc_per_ctn":     crule.get("foc_per_ctn", 0),
             "foc_per_threshold": crule.get("foc_per_threshold", 0),
-            "foc_item":        crule.get("foc_item", ""),
+            "foc_item":        foc_package.get("foc_item", ""),
+            "foc_qty":         foc_package.get("foc_qty", 0),
+            "foc_unit":        foc_package.get("foc_unit", ""),
+            "foc_item_2":      foc_package.get("foc_item_2", ""),
+            "foc_qty_2":       foc_package.get("foc_qty_2", 0),
+            "foc_unit_2":      foc_package.get("foc_unit_2", ""),
+            "foc_package":     foc_package.get("foc_package", ""),
             "foc_item_rule":   crule.get("foc_item_rule", {}),
-            "foc_note":        crule.get("foc_note", ""),
+            "foc_note":        crule.get("foc_note", camp.get("foc_note", "")),
             "voucher_amount":  crule.get("voucher_amount", 0),
             "voucher_tracking":crule.get("voucher_tracking", False),
             "eligible_sales_type": camp.get("eligible_sales_type", []),
             "eligible_types":  camp.get("eligible_types", []),
             "target_pct":      crule.get("target_pct", 0),
             "target_label":    crule.get("target_label", ""),
+            "cat_group":       cat_group or _campaign_group_value(debtor or {}),
+            "debtor_group":    cat_group or _campaign_group_value(debtor or {}),
+            "eligibility_reason": (debtor or {}).get("eligibility_reason") or (debtor or {}).get("promo_logic") or (debtor or {}).get("notes") or "",
             # Progress fields — filled in calc_debtor_cards
             "ctn_this_month":  0,
             "foc_earned":      0,
@@ -3659,7 +4312,7 @@ def main():
                 # Get CAT-specific rules — try full key first (e.g. "D2"), then first char (e.g. "D")
                 cat_group = cat[0].upper() if cat else ""
                 crule = cat_rules.get(cat) or cat_rules.get(cat_group) or {} if cat else {}
-                _append_campaign_map_entry(camp, code, cat, cat_group, crule)
+                _append_campaign_map_entry(camp, code, cat, cat_group, crule, d if isinstance(d, dict) else {})
         return loaded
 
     try:
@@ -3672,6 +4325,10 @@ def main():
                 "promo_detail": r.get("promo_detail") or "",
                 "min_order_ctn": r.get("min_order_ctn") or 0,
                 "foc_item": r.get("foc_item") or "",
+                "foc_qty": r.get("foc_qty") or 0,
+                "foc_unit": r.get("foc_unit") or "",
+                "foc_type": r.get("foc_type") or "",
+                "cap": r.get("cap") or 0,
                 "target_pct": r.get("target_pct") or 0,
                 "target_label": r.get("target_label") or "",
             }
@@ -3695,21 +4352,50 @@ def main():
                 "notes": camp_row.get("notes"),
                 "min_order_ctn": camp_row.get("min_order_ctn", 0) or 0,
                 "promo_detail": camp_row.get("promo_detail","") or "",
+                "default_foc_item": camp_row.get("default_foc_item","") or "",
+                "default_foc_qty": camp_row.get("default_foc_qty") or 0,
+                "default_foc_unit": camp_row.get("default_foc_unit","") or "",
+                "default_foc_item_2": camp_row.get("default_foc_item_2","") or "",
+                "default_foc_qty_2": camp_row.get("default_foc_qty_2") or 0,
+                "default_foc_unit_2": camp_row.get("default_foc_unit_2","") or "",
+                "foc_note": camp_row.get("foc_note","") or "",
                 "kpi_numerators": camp_row.get("kpi_numerators") or ["count"],
                 "approval_required": False,
                 "eligible_sales_type": [],
                 "eligible_types": [],
             }
             if not _campaign_active_in_month(camp): continue
+            camp_debtors = debtors_by_campaign.get(camp["id"], [])
+            camp["debtors"] = [{
+                "code": d.get("debtor_code", ""),
+                "debtor_code": d.get("debtor_code", ""),
+                "name": d.get("debtor_name", ""),
+                "debtor_name": d.get("debtor_name", ""),
+                "agent": d.get("agent", ""),
+                "cat": d.get("cat", "") or "",
+                "cat_group": d.get("cat_group", "") or "",
+                "group": d.get("cat_group", "") or d.get("group", "") or d.get("team", ""),
+                "team": d.get("team", "") or "",
+                "debtor_type": d.get("debtor_type", "") or "",
+                "eligibility_reason": d.get("eligibility_reason") or d.get("promo_logic") or d.get("notes") or "",
+                "promo_logic": d.get("promo_logic") or "",
+                "notes": d.get("notes") or "",
+                "foc_item": d.get("foc_item") or "",
+                "foc_qty": d.get("foc_qty") or 0,
+                "foc_unit": d.get("foc_unit") or "",
+                "foc_item_2": d.get("foc_item_2") or "",
+                "foc_qty_2": d.get("foc_qty_2") or 0,
+                "foc_unit_2": d.get("foc_unit_2") or "",
+            } for d in camp_debtors]
             active_count += 1
             if camp["type"] in ("conversion_tiered", "conversion_simple"):
                 active_conversion_campaigns.append(camp)
-            for d in debtors_by_campaign.get(camp["id"], []):
+            for d in camp_debtors:
                 code = d.get("debtor_code","")
                 cat  = d.get("cat","") or ""
                 cat_group = d.get("cat_group") or (cat[0].upper() if cat else "")
                 crule = rules_by_key.get((camp["id"], cat_group)) or {}
-                _append_campaign_map_entry(camp, code, cat, cat_group, crule)
+                _append_campaign_map_entry(camp, code, cat, cat_group, crule, d)
 
         log(f"Campaigns (Supabase): {active_count} active, {len(campaign_map)} debtors tagged")
     except Exception as e:
@@ -3728,6 +4414,7 @@ def main():
     # ── Brand config (from targets.json or default) ─────────────────
     brand_config = targets.get("brand_config", DEFAULT_BRAND_CONFIG)
     group_brand_config = targets.get("group_brand_config", DEFAULT_GROUP_BRAND_CONFIG)
+    sku_trace_config = _clean_sku_trace_config(targets.get("sku_trace_config", DEFAULT_SKU_TRACE_CONFIG))
 
     # ── Agent list ─────────────────────────────────────────────────
     agents_from_targets = list(targets.get("agents", {}).keys())
@@ -3810,6 +4497,29 @@ def main():
     log(f"  Shared debtor_info built: {len(debtor_info_shared)} debtors")
     bp_checked = sum(1 for v in debtor_info_shared.values() if v.get("has_bonus_point"))
     log(f"  Has Bonus Point = Checked: {bp_checked} debtors")
+    iface_agent_group_map = (
+        targets.get("iface_campaign", {}).get("agent_group_map")
+        or targets.get("campaign_agent_group_map", {})
+        or {}
+    )
+    brand_candidate_months = [cur_month]
+    real_world_month = current_month_label(today)
+    if real_world_month not in brand_candidate_months:
+        brand_candidate_months.append(real_world_month)
+    (
+        brand_penetration_candidates,
+        brand_penetration_candidates_by_month,
+        brand_penetration_presets,
+    ) = build_brand_penetration_candidate_sets(
+        debtor_info=debtor_info_shared,
+        df=df,
+        agents=agents,
+        month_labels=brand_candidate_months,
+        brand_config=brand_config,
+        agent_group_map=iface_agent_group_map,
+    )
+    iface_campaign_candidates_by_month = brand_penetration_candidates_by_month.get("IFACE", {})
+    iface_campaign_candidates = iface_campaign_candidates_by_month.get(cur_month, [])
     _PERSONAL_TYPES = {"P-Personal","P-PERSONAL","personal","Personal","PERSONAL"}
 
     def _is_new_open_account(info):
@@ -3840,7 +4550,7 @@ def main():
             cid = camp.get("id")
             if not cid or cid in existing_campaign_ids:
                 continue
-            _append_campaign_map_entry(camp, code, "", "", {})
+            _append_campaign_map_entry(camp, code, "", "", {}, {})
             existing_campaign_ids.add(cid)
             auto_added += 1
             auto_rows.append({
@@ -3876,6 +4586,7 @@ def main():
     newbie      = calc_newbie_scheme(df, targets, agents, cur_month, debtor_info=debtor_info_shared, manual_overrides=_sb_kpi)
     aging       = calc_aging(df, all_agents, cur_month)
     debtor_cards = calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map, area_groups)
+    sku_trace   = calc_sku_trace(df, sku_trace_config, all_agents, cur_month)
 
     # ── Save month-start snapshot + auto-calc KPI targets ───────────────────
     targets      = save_debtor_snapshot(debtor_cards, targets, cur_month)
@@ -4018,6 +4729,8 @@ def main():
     log(f"Conversion campaigns rollup: {len(conversion_campaigns_by_agent)} agents have enrolled debtors")
     # ── end conversion campaigns rollup ─────────────────────────────────────
 
+    campaign_group_progress = calc_conversion_campaign_group_progress(debtor_cards, active_conversion_campaigns)
+
     active_campaigns_for_month = {}
     for camp_list in campaign_map.values():
         for camp in camp_list:
@@ -4038,11 +4751,19 @@ def main():
         "birthday_by_month":   birthday_by_month,
         "brand_campaigns":     brand_camps,
         "agent_activity_daily": agent_activity_daily,
+        "sku_trace":           sku_trace,
+        "iface_campaign_candidates": iface_campaign_candidates,
+        "iface_campaign_candidates_by_month": iface_campaign_candidates_by_month,
+        "brand_penetration_candidates": brand_penetration_candidates,
+        "brand_penetration_candidates_by_month": brand_penetration_candidates_by_month,
+        "brand_penetration_presets": brand_penetration_presets,
+        "campaign_group_progress": campaign_group_progress,
         "agents":         {},
         "team":           team,
         "config": {
             "brand_config":       brand_config,
             "group_brand_config": group_brand_config,
+            "sku_trace_config":   sku_trace_config,
             "inhouse_codes":      targets.get("inhouse_codes", DEFAULT_INHOUSE_CODES),
             "scope":              SCOPE_AREA,
             "group_incentive":    targets.get("team", {}).get("incentive", None),

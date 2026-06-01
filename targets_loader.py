@@ -242,7 +242,7 @@ def sync_to_supabase(targets):
 
     # 3. Static config (brand_config, etc.)
     for key in ["brand_config", "group_brand_config", "inhouse_codes",
-                "kpi_weights", "newbie_scheme"]:
+                "kpi_weights", "newbie_scheme", "sku_trace_config"]:
         if key in targets:
             sb.table("targets_static").upsert({
                 "key": key, "value": targets[key]

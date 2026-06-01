@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <script src="admin_context.js"></script>
 <title>Touro MD — Management</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f5f3ee;--surface:#ffffff;--card:#fdfcf9;--border:#e2ddd5;--ink:#1a1714;--ink2:#5a5550;--ink3:#9a9590;--accent:#c8381a;--green:#2a7a4b;--gold:#c8860a;--blue:#1a5c8f;--purple:#6b3fa0;--orange:#c85a1a;--red-bg:#fde8e4;--green-bg:#edf6f1;--gold-bg:#fdf8ed;--blue-bg:#edf3f9;--display:'Bebas Neue',sans-serif;--body:'DM Sans',sans-serif;--mono:'DM Mono',monospace;}
+:root{--bg:#f5f3ee;--surface:#ffffff;--card:#fdfcf9;--border:#e2ddd5;--ink:#1a1714;--ink2:#5a5550;--ink3:#9a9590;--accent:#c8381a;--green:#2a7a4b;--gold:#c8860a;--blue:#1a5c8f;--purple:#6b3fa0;--orange:#c85a1a;--red-bg:#fde8e4;--green-bg:#edf6f1;--gold-bg:#fdf8ed;--blue-bg:#edf3f9;--display:'DM Sans',sans-serif;--body:'DM Sans',sans-serif;--mono:'DM Sans',sans-serif;}
 *{margin:0;padding:0;box-sizing:border-box;}
 input,select,textarea,button{max-width:100%;}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:100vh;padding-bottom:30px;}
@@ -15,41 +15,93 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 /* Header */
 .mgmt-header{background:var(--ink);color:#fff;padding:14px 18px;position:sticky;top:0;z-index:100;}
 .header-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
-.header-title{font-family:var(--display);font-size:26px;letter-spacing:.05em;line-height:1;}
+.header-title{font-family:var(--body);font-size:26px;font-weight:800;letter-spacing:0;line-height:1;}
 .header-sub{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;margin-top:2px;}
 .month-tag{background:rgba(255,255,255,.12);font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:20px;}
 .day-tag{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.4);margin-top:3px;text-align:right;}
 .kpi-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;}
 .kpi-box{background:rgba(255,255,255,.07);border-radius:8px;padding:7px 8px;}
-.kpi-val{font-family:var(--display);font-size:18px;color:#fff;letter-spacing:.03em;line-height:1;}
+.kpi-val{font-family:var(--body);font-size:18px;font-weight:800;color:#fff;letter-spacing:0;line-height:1;}
 .kpi-val.g{color:#5de89a;}.kpi-val.w{color:#ffc94d;}.kpi-val.r{color:#ff6b6b;}.kpi-val.b{color:#4da6ff;}
 .kpi-lbl{font-family:var(--mono);font-size:7px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;}
 /* Page */
 .page{padding:12px 14px;max-width:900px;width:100%;margin:0 auto;}
 @media(min-width:600px){.page{padding:16px 24px;}}
-.sec-lbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink3);padding:4px 0 6px;border-top:1px solid var(--border);margin:14px 0 8px;}
+.sec-lbl{font-family:var(--body);font-size:10px;font-weight:700;text-transform:none;letter-spacing:0;color:var(--ink3);padding:4px 0 6px;border-top:1px solid var(--border);margin:14px 0 8px;}
 .sec-lbl:first-child,.sec-lbl.no-border{border-top:none;margin-top:0;}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:10px;}
 .card>*{min-width:0;}
 .card-pad{padding:14px 16px;}
 /* Overall card */
-.overall-card{background:var(--ink);border-radius:14px;padding:16px;margin-bottom:10px;position:relative;overflow:hidden;}
+.overall-card{background:linear-gradient(135deg,#15130f,#201d18 62%,#15130f);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px;margin-bottom:10px;position:relative;overflow:hidden;box-shadow:0 10px 26px rgba(26,23,20,.08);}
 .overall-card::after{display:none;}
-.ov-pct{font-family:var(--display);font-size:52px;letter-spacing:.02em;color:#fff;line-height:1;}
-.ov-meta{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.4);margin-top:4px;}
-.ov-bar-wrap{height:8px;background:rgba(255,255,255,.12);border-radius:4px;overflow:hidden;margin:12px 0 4px;}
+.ov-card-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,auto);gap:12px;align-items:start;margin-bottom:8px;}
+.ov-primary,.ov-side{min-width:0;}
+.ov-side{text-align:right;}
+.ov-section-label,.ov-total-label,.ov-summary-title{font-family:var(--body);font-size:9px;font-weight:700;color:rgba(255,255,255,.48);letter-spacing:0;text-transform:none;}
+.ov-section-label{margin-bottom:5px;}
+.ov-total-label{margin-top:3px;}
+.ov-summary-title{margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.1);}
+.ov-pct{font-family:var(--body);font-size:38px;font-weight:800;letter-spacing:0;color:#fff;line-height:1;}
+.ov-total{font-family:var(--body);font-size:30px;font-weight:800;letter-spacing:0;color:#fff;line-height:1;}
+.ov-gap{font-family:var(--body);font-size:11px;font-weight:700;margin-top:4px;}
+.ov-meta{font-family:var(--body);font-size:10px;color:rgba(255,255,255,.68);margin-top:4px;}
+.ov-bar-wrap{height:8px;background:rgba(255,255,255,.12);border-radius:4px;overflow:hidden;margin:10px 0 5px;}
 .ov-bar{height:100%;border-radius:4px;transition:width .6s ease;}
-.ov-bar-labels{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);}
-.ov-totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.1);}
-.ov-stat{background:rgba(255,255,255,.06);border-radius:8px;padding:7px;text-align:center;}
-.ov-stat-val{font-family:var(--mono);font-size:13px;font-weight:500;}
-.ov-stat-lbl{font-family:var(--mono);font-size:8px;color:rgba(255,255,255,.35);text-transform:uppercase;margin-top:1px;}
+.ov-bar-labels{display:flex;justify-content:space-between;font-family:var(--body);font-size:10px;color:rgba(255,255,255,.58);}
+.ov-totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.1);}
+.ov-stat{background:rgba(255,255,255,.085);border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:7px 8px;text-align:center;}
+.ov-stat-val{font-family:var(--body);font-size:16px;font-weight:800;letter-spacing:0;}
+.ov-stat-lbl{font-family:var(--body);font-size:9px;color:rgba(255,255,255,.6);margin-top:1px;}
+.ov-stat-target{font-family:var(--body);font-size:9px;color:rgba(255,255,255,.72);margin-top:3px;line-height:1.2;}
+.ov-ctn-breakdown{display:inline-block;font-family:var(--body);font-size:9px;color:rgba(255,255,255,.78);background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:3px 8px;margin-top:6px;line-height:1.3;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ov-paid-breakdown{display:block;font-family:var(--body);font-size:9px;color:rgba(255,255,255,.68);margin-top:5px;line-height:1.3;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ov-team-summary{display:grid;grid-template-columns:repeat(7,minmax(104px,1fr));gap:7px;margin-top:7px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.ov-team-chip{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);border-radius:9px;padding:7px 8px;min-width:0;}
+.ov-team-val{font-family:var(--body);font-size:14px;font-weight:800;letter-spacing:0;line-height:1;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ov-team-lbl{font-family:var(--body);font-size:9px;color:rgba(255,255,255,.62);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ov-team-sub{font-family:var(--body);font-size:8px;color:rgba(255,255,255,.52);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* Agent Progress Board */
+.ap-board{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:10px;}
+.ap-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--border);}
+.ap-title{font-family:var(--display);font-size:20px;letter-spacing:.05em;line-height:1;}
+.ap-note{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:3px;}
+.ap-tabs,.ap-subtabs{display:flex;gap:6px;flex-wrap:wrap;}
+.ap-tab,.ap-chip{font-family:var(--body);font-size:11px;border:1px solid var(--border);background:var(--card);color:var(--ink2);border-radius:8px;padding:5px 9px;cursor:pointer;}
+.ap-tab.active,.ap-chip.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+.ap-body{padding:12px 14px;}
+.ap-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.ap-table{min-width:760px;border-top:1px solid var(--border);border-left:1px solid var(--border);}
+.ap-row{display:grid;align-items:stretch;}
+.ap-cell{font-family:var(--body);font-size:11px;padding:6px 8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);line-height:1.22;background:#fff;min-width:0;}
+.ap-hdr .ap-cell{background:var(--card);font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.03em;font-weight:700;}
+.ap-agent{font-weight:700;color:var(--blue);cursor:pointer;}
+.ap-kpi{font-weight:700;font-size:13px;}
+.ap-sub{font-family:var(--body);font-size:9px;color:var(--ink3);margin-top:2px;line-height:1.2;}
+.ap-metric-line{display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;}
+.ap-subline{font-family:var(--body);font-size:9px;color:var(--ink3);white-space:nowrap;}
+.ap-hit{color:var(--green);}.ap-pace{color:var(--gold);}.ap-behind{color:var(--accent);}
+.ap-pill{display:inline-flex;align-items:center;border-radius:999px;padding:2px 7px;font-size:8px;font-family:var(--mono);background:var(--bg);border:1px solid var(--border);color:var(--ink2);}
+.ap-pill.good{background:var(--green-bg);border-color:rgba(42,122,75,.24);color:var(--green);}
+.ap-pill.warn{background:var(--gold-bg);border-color:rgba(200,134,10,.24);color:var(--gold);}
+.ap-pill.bad{background:var(--red-bg);border-color:rgba(200,56,26,.22);color:var(--accent);}
+.ap-empty{font-family:var(--mono);font-size:10px;color:var(--ink3);padding:14px;border:1px dashed var(--border);border-radius:10px;background:var(--card);}
+.ap-summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px;}
+.ap-summary{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 11px;}
+.ap-summary-val{font-family:var(--body);font-size:20px;font-weight:800;letter-spacing:0;line-height:1;}
+.ap-summary-lbl{font-family:var(--body);font-size:9px;color:var(--ink3);text-transform:uppercase;margin-top:3px;}
+.ap-detail{margin-top:8px;border-top:1px solid var(--border);padding-top:8px;}
+.ap-detail summary{font-family:var(--mono);font-size:9px;color:var(--ink2);cursor:pointer;}
 /* Leaderboard */
-.lb-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px 8px;}
+.lb-header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;gap:10px;flex-wrap:wrap;}
+.lb-title-wrap{min-width:180px;flex:1;}
 .lb-title{font-family:var(--display);font-size:18px;letter-spacing:.05em;}
+.lb-mini{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:2px;line-height:1.35;}
+.lb-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .lb-toggle{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
 .lb-btn{font-family:var(--mono);font-size:9px;padding:4px 10px;background:transparent;border:none;color:var(--ink3);cursor:pointer;text-transform:uppercase;letter-spacing:.05em;}
 .lb-btn.active{background:var(--ink);color:#fff;}
+.lb-collapse-btn{font-family:var(--mono);font-size:9px;padding:5px 10px;border:1px solid var(--border);background:var(--card);color:var(--ink2);border-radius:8px;cursor:pointer;}
 .lb-row{padding:10px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:24px minmax(0,1fr) 60px 50px;align-items:center;gap:8px;cursor:pointer;transition:background .15s;}
 .lb-row:last-child{border-bottom:none;}
 .lb-row:hover,.lb-row:active{background:#faf8f5;}
@@ -61,7 +113,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 .lb-bar-fill{height:100%;border-radius:3px;}
 .lb-pct{font-family:var(--mono);font-size:11px;font-weight:500;text-align:right;}
 /* Group brands */
-.grp-row{padding:10px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:80px minmax(0,1fr) 100px;align-items:center;gap:8px;}
+.grp-row{padding:10px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:80px minmax(0,1fr) 120px;align-items:center;gap:8px;}
 .grp-row:last-child{border-bottom:none;}
 .grp-name{font-family:var(--display);font-size:15px;letter-spacing:.04em;}
 .grp-nums{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:1px;}
@@ -81,12 +133,24 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 .brand-team-title{font-family:var(--display);font-size:18px;letter-spacing:.05em;margin-bottom:3px;}
 .brand-team-note{font-family:var(--mono);font-size:9px;color:var(--ink3);line-height:1.45;}
 .brand-team-grid{display:grid;grid-template-columns:minmax(0,.86fr) minmax(0,1.14fr);border-top:1px solid var(--border);}
+.brand-team-grid.merged{display:block;}
 .brand-team-panel{min-width:0;padding:10px 12px 12px;}
 .brand-team-panel+.brand-team-panel{border-left:1px solid var(--border);}
+.brand-team-grid.merged .brand-team-panel+.brand-team-panel{border-left:none;}
 .brand-team-panel-title{font-family:var(--mono);font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .brand-team-export{display:flex;justify-content:flex-end;gap:6px;}
 .brand-team-export button{font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(42,122,75,.12);border:1px solid rgba(42,122,75,.35);border-radius:6px;color:var(--green);cursor:pointer;}
-#brand-sku-status{min-width:700px;}
+#comm-heatmap{min-width:920px;}
+.comm-merged-table{width:100%;border-collapse:collapse;font-family:var(--body);font-size:10px;}
+.comm-merged-table th{padding:7px 8px;text-align:center;border-bottom:1px solid var(--border);color:var(--ink3);font-weight:700;background:var(--card);}
+.comm-merged-table td{border-bottom:1px solid var(--border);border-left:1px solid var(--border);}
+.comm-agent-cell{position:sticky;left:0;z-index:1;background:var(--surface);padding:8px 10px;font-weight:800;color:var(--blue);white-space:nowrap;cursor:pointer;border-left:none!important;}
+.comm-status-cell{min-width:118px;padding:6px 8px;text-align:center;vertical-align:middle;}
+.comm-status-main{font-size:15px;font-weight:800;line-height:1;}
+.comm-status-meta{font-size:9px;font-weight:700;margin-top:3px;color:var(--ink);}
+.comm-status-sub{font-size:8px;color:var(--ink2);margin-top:2px;white-space:nowrap;}
+.comm-brand-sub{display:block;font-size:7px;color:var(--ink3);font-weight:600;margin-top:2px;}
+.comm-total-cell{padding:7px 8px;text-align:center;font-weight:800;}
 /* Activity Map */
 .activity-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
 .activity-nav{display:flex;align-items:center;gap:8px;}
@@ -106,17 +170,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 .activity-pill.mc{background:var(--gold-bg);color:var(--gold);}
 .activity-pill.off{background:var(--blue-bg);color:var(--blue);}
 .activity-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-family:var(--mono);font-size:9px;color:var(--ink3);}
-/* Newbie */
-.nb-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:8px;border-left:4px solid var(--purple);}
-.nb-agent{font-family:var(--display);font-size:18px;letter-spacing:.05em;margin-bottom:10px;}
-.nb-tiers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:8px;}
-.nb-tier{background:var(--bg);border-radius:8px;padding:8px;text-align:center;border:1px solid transparent;}
-.nb-tier.hit{border-color:rgba(42,122,75,.3);background:var(--green-bg);}
-.nb-tier.curr{border-color:rgba(200,56,26,.3);background:var(--red-bg);}
-.nb-tier-lbl{font-family:var(--mono);font-size:7px;text-transform:uppercase;color:var(--ink3);letter-spacing:.06em;}
-.nb-tier-val{font-family:var(--display);font-size:20px;letter-spacing:.03em;margin:2px 0;}
-.nb-tier-rew{font-family:var(--mono);font-size:9px;color:var(--green);}
-.nb-acc{display:flex;justify-content:space-between;align-items:center;background:var(--bg);border-radius:8px;padding:8px 12px;}
 /* Aging grid */
 .aging-summary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:12px;}
 @media(min-width:480px){.aging-summary-grid{grid-template-columns:repeat(4,1fr);}}
@@ -202,14 +255,56 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
 #yearly-view #yr-table{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
 #yearly-view select option{background:#1b1916;color:#f4efe6;}
 #yearly-view b{color:var(--ink);}
+/* Typography alignment: keep older Management sections consistent with the Agent Progress Board. */
+.ap-title,.lb-title,.grp-name,.brand-team-title,.activity-month,.aging-val,.dr-name,.dr-rank,.dr-stat-val,.bc-brand,.kpi-val-d,.camp-prog-name{font-family:var(--body);letter-spacing:0;}
+.header-sub,.kpi-lbl,.ap-note,.ap-pill,.ap-empty,.ap-detail summary,.lb-mini,.lb-btn,.lb-collapse-btn,.lb-sub,.lb-pct,.grp-nums,.grp-pct,.grp-gap,.h-hdr,.h-cell,.brand-team-note,.brand-team-panel-title,.brand-team-export button,.activity-btn,.activity-date,.activity-cell,.activity-pill,.activity-legend,.aging-lbl,.dr-sub,.dr-stat-lbl,.tier-lbl,.tier-pct,.tier-gap,.bc-badge,.bc-lbl,.bc-val,.bc-sub,.kpi-lbl-d,.kpi-sub-d,.camp-prog-meta,.camp-stat,.action-agent,.action-reason,.action-note,.action-date,.resolve-btn{font-family:var(--body);letter-spacing:0;}
+#overview-view [style*="font-family:var(--mono)"],
+#overview-view [style*="font-family:var(--display)"],
+#drill-view [style*="font-family:var(--mono)"],
+#drill-view [style*="font-family:var(--display)"],
+#analytics-view [style*="font-family:var(--mono)"],
+#analytics-view [style*="font-family:var(--display)"],
+#yearly-view [style*="font-family:var(--mono)"],
+#yearly-view [style*="font-family:var(--display)"]{font-family:var(--body)!important;letter-spacing:0!important;}
 @keyframes slideIn{from{opacity:0;transform:translateX(16px);}to{opacity:1;transform:translateX(0);}}
 .page>*{animation:slideUp .3s ease both;}
 #drill-view{animation:slideIn .25s ease both;}
+@media(min-width:900px){
+  #overview-view .mgmt-header{position:static;padding:6px 12px;}
+  #overview-view .header-row{display:grid;grid-template-columns:minmax(190px,1fr) auto minmax(360px,1fr);align-items:center;gap:10px;margin-bottom:5px;}
+  #overview-view .header-row>div:nth-child(2){flex-direction:row!important;align-items:center!important;gap:6px!important;}
+  #overview-view .header-row>div:nth-child(3){justify-content:flex-end;flex-wrap:wrap;gap:6px!important;}
+  #overview-view .header-row a,
+  #overview-view .header-row button{font-size:8px!important;padding:3px 7px!important;border-radius:7px!important;}
+  #overview-view #month-selector{font-size:8px!important;padding:2px 7px!important;}
+  .header-title{font-family:var(--body);font-size:20px;font-weight:800;letter-spacing:.01em;}
+  .header-sub{font-size:8px;margin-top:1px;}
+  .month-tag{font-size:9px;padding:2px 8px;}
+  .day-tag{font-size:8px;margin-top:0;}
+  .kpi-strip{gap:6px;}
+  .kpi-box{border-radius:7px;padding:5px 8px;}
+  .kpi-val{font-family:var(--body);font-size:15px;font-weight:800;letter-spacing:0;}
+  .kpi-lbl{font-size:7px;margin-top:1px;}
+  .page{max-width:1180px;padding:10px 16px;}
+  .overall-card{padding:10px 12px;border-radius:10px;margin-bottom:8px;}
+  .ov-pct{font-family:var(--body);font-size:28px;font-weight:800;letter-spacing:0;}
+  .ov-meta{font-size:9px;}
+  .ov-bar-wrap{height:5px;margin:8px 0 3px;}
+  .ov-totals{margin-top:6px;padding-top:6px;}
+  .ov-stat{padding:5px;}
+  .ov-team-summary{grid-template-columns:repeat(7,minmax(100px,1fr));gap:5px;margin-top:8px;}
+  .ov-team-chip{padding:6px 7px;}
+  .ap-head{padding:10px 12px;}
+  .ap-title{font-family:var(--body);font-size:16px;font-weight:800;letter-spacing:0;}
+  .ap-note{font-family:var(--body);font-size:9px;}
+  .ap-body{padding:10px 12px;}
+  .ap-table{min-width:0;width:100%;}
+}
 @media(max-width:600px){
   .header-row{gap:12px;flex-wrap:wrap;}
   .kpi-strip{grid-template-columns:repeat(2,minmax(0,1fr));}
-  .ov-totals,.dr-stats{grid-template-columns:1fr;}
-  .nb-tiers{grid-template-columns:1fr;}
+  .ov-totals{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;}
+  .dr-stats{grid-template-columns:1fr;}
   .bc-crit,.kpi-grid{grid-template-columns:1fr;}
   .brand-team-grid{grid-template-columns:1fr;}
   .brand-team-panel+.brand-team-panel{border-left:none;border-top:1px solid var(--border);}
@@ -370,28 +465,61 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
     </div>
 
     <!-- 1. Team Sales -->
-    <div class="sec-lbl no-border">📊 Team Sales Progress</div>
+    <div class="sec-lbl no-border">📊 团队销售进度</div>
     <div class="overall-card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
-        <div>
-          <div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">Normal T1 Achievement</div>
+      <div class="ov-card-head">
+        <div class="ov-primary">
+          <div class="ov-section-label">普通价 T1 达成率</div>
           <div class="ov-pct" id="ov-pct">—%</div>
-          <div class="ov-meta" id="ov-meta">— CTN of — target</div>
-          <div id="ov-gap" style="font-family:var(--mono);font-size:11px;margin-top:3px;"></div>
+          <div class="ov-meta" id="ov-meta">— 条 / 目标 —</div>
+          <div class="ov-gap" id="ov-gap"></div>
         </div>
-        <div style="text-align:right;">
-          <div style="font-family:var(--display);font-size:28px;color:#fff;" id="ov-ctn">—</div>
-          <div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.35);">Total Paid CTN</div>
-          <div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.35);margin-top:4px;" id="ov-days"></div>
+        <div class="ov-side">
+          <div class="ov-total" id="ov-ctn">—</div>
+          <div class="ov-total-label">总已付款条数</div>
+          <div class="ov-ctn-breakdown" id="ov-ctn-breakdown">普通价 + GA + MA</div>
+          <div class="ov-paid-breakdown" id="ov-paid-month-breakdown">发票付款拆分 —</div>
+          <div class="ov-total-label" id="ov-days"></div>
         </div>
       </div>
       <div class="ov-bar-wrap"><div class="ov-bar" id="ov-bar" style="width:0%"></div></div>
       <div class="ov-bar-labels"><span>0</span><span id="ov-bar-mid"></span><span id="ov-bar-max"></span></div>
       <div class="ov-totals">
-        <div class="ov-stat"><div class="ov-stat-val" style="color:#ffc94d" id="ov-normal">—</div><div class="ov-stat-lbl">Normal CTN</div></div>
-        <div class="ov-stat"><div class="ov-stat-val" style="color:#4da6ff" id="ov-ga">—</div><div class="ov-stat-lbl">GA CTN</div></div>
-        <div class="ov-stat"><div class="ov-stat-val" style="color:#a78bfa" id="ov-ma">—</div><div class="ov-stat-lbl">MA CTN</div></div>
+        <div class="ov-stat"><div class="ov-stat-val" style="color:#ffc94d" id="ov-normal">—</div><div class="ov-stat-lbl">普通价条数</div><div class="ov-stat-target" id="ov-normal-target">目标 —</div></div>
+        <div class="ov-stat"><div class="ov-stat-val" style="color:#4da6ff" id="ov-ga">—</div><div class="ov-stat-lbl">GA 条数</div><div class="ov-stat-target" id="ov-ga-target">目标 —</div></div>
+        <div class="ov-stat"><div class="ov-stat-val" style="color:#a78bfa" id="ov-ma">—</div><div class="ov-stat-lbl">MA 条数</div><div class="ov-stat-target" id="ov-ma-target">目标 —</div></div>
       </div>
+      <div class="ov-summary-title">团队 KPI 摘要</div>
+      <div class="ov-team-summary" id="ov-team-summary">
+        <div class="ov-team-chip"><div class="ov-team-val" id="ov-team-new">—</div><div class="ov-team-lbl">开新户口</div><div class="ov-team-sub" id="ov-team-new-sub">目标 —</div></div>
+        <div class="ov-team-chip"><div class="ov-team-val" id="ov-team-rate">—</div><div class="ov-team-lbl">持续光顾率</div><div class="ov-team-sub" id="ov-team-rate-sub">目标 80%</div></div>
+        <div class="ov-team-chip"><div class="ov-team-val" id="ov-team-reactivation">—</div><div class="ov-team-lbl">激活户口</div><div class="ov-team-sub" id="ov-team-reactivation-sub">目标 —</div></div>
+        <div class="ov-team-chip"><div class="ov-team-val" id="ov-team-sku">—</div><div class="ov-team-lbl">加SKU</div><div class="ov-team-sub" id="ov-team-sku-sub">目标 —</div></div>
+        <div class="ov-team-chip"><div class="ov-team-val" id="ov-team-event">—</div><div class="ov-team-lbl">EVENT</div><div class="ov-team-sub" id="ov-team-event-sub">目标 —</div></div>
+        <div class="ov-team-chip"><div class="ov-team-val" id="ov-team-birthday">—</div><div class="ov-team-lbl">Birthday Gift</div><div class="ov-team-sub" id="ov-team-birthday-sub">目标 —</div></div>
+        <div class="ov-team-chip"><div class="ov-team-val" id="ov-team-3m-return">—</div><div class="ov-team-lbl">3个月回流</div><div class="ov-team-sub">三个月没开单，本月有开单</div></div>
+      </div>
+    </div>
+
+    <!-- 1a. Agent Progress Board -->
+    <div class="sec-lbl">代理进度看板</div>
+    <div class="ap-board" id="agent-progress-board">
+      <div class="ap-head">
+        <div>
+          <div class="ap-title">Flip Results By Agent</div>
+          <div class="ap-note" id="ap-board-note">Sales report, KPI, ZLB, SKU trace, and campaign progress in one control view.</div>
+        </div>
+        <div class="ap-tabs" id="agent-progress-tabs">
+          <button class="ap-tab active" data-tab="sales" onclick="setAgentProgressTab('sales')">Sales Types</button>
+          <button class="ap-tab" data-tab="paid" onclick="setAgentProgressTab('paid')">Paid vs Unpaid</button>
+          <button class="ap-tab" data-tab="newbie" onclick="setAgentProgressTab('newbie')">Newbie</button>
+          <button class="ap-tab" data-tab="kpi" onclick="setAgentProgressTab('kpi')">KPI</button>
+          <button class="ap-tab" data-tab="zlb" onclick="setAgentProgressTab('zlb')">ZLB</button>
+          <button class="ap-tab" data-tab="sku" onclick="setAgentProgressTab('sku')">SKU Trace</button>
+          <button class="ap-tab" data-tab="campaigns" onclick="setAgentProgressTab('campaigns')">Campaigns</button>
+        </div>
+      </div>
+      <div class="ap-body" id="agent-progress-board-content"></div>
     </div>
 
     <!-- 1b. Annual YTD Progress -->
@@ -401,14 +529,20 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
     </div>
 
     <!-- 2. Leaderboard -->
-    <div class="sec-lbl">🏆 Agent Leaderboard · Tap to drill down</div>
+    <div class="sec-lbl">🏆 Agent Leaderboard · Expand to drill down</div>
     <div class="card">
       <div class="lb-header">
-        <div class="lb-title">Rankings</div>
-        <div class="lb-toggle">
-          <button class="lb-btn active" onclick="setLbMode('pct',this)">% T1</button>
-          <button class="lb-btn" onclick="setLbMode('ctn',this)">CTN</button>
-          <button class="lb-btn" onclick="setLbMode('gap',this)">Gap</button>
+        <div class="lb-title-wrap">
+          <div class="lb-title">Rankings</div>
+          <div class="lb-mini" id="leaderboard-mini">Top 3 summary loading...</div>
+        </div>
+        <div class="lb-actions">
+          <button class="lb-collapse-btn" id="leaderboard-toggle-view" type="button" onclick="toggleLeaderboard()">展开</button>
+          <div class="lb-toggle">
+            <button class="lb-btn active" onclick="setLbMode('pct',this)">% T1</button>
+            <button class="lb-btn" onclick="setLbMode('ctn',this)">CTN</button>
+            <button class="lb-btn" onclick="setLbMode('gap',this)">Gap</button>
+          </div>
         </div>
       </div>
       <div id="leaderboard"></div>
@@ -432,29 +566,19 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
       <div class="card-pad brand-team-head">
         <div>
           <div class="brand-team-title">Whole Team Brand Commission</div>
-          <div class="brand-team-note">Left: commission status by brand. Right: penetration/non-buyer target used for the same commission concept.</div>
-          <div class="brand-team-note">✓ Both hit &nbsp;·&nbsp; ½ One criteria &nbsp;·&nbsp; ✗ Not earned &nbsp;·&nbsp; Auto target = 5% of non-buyers</div>
+          <div class="brand-team-note">Each brand cell blends commission result with penetration target, non-buyers, and CTN target.</div>
+          <div class="brand-team-note">✓ Both hit &nbsp;·&nbsp; ½ One criteria &nbsp;·&nbsp; ✗ Not earned &nbsp;·&nbsp; Pen target = 5% of non-buyers where auto applies</div>
         </div>
         <div id="brand-export-bar" class="brand-team-export">
           <button onclick="exportBrandNonbuyersExcel()">Export Excel</button>
         </div>
       </div>
-      <div class="brand-team-grid">
+      <div class="brand-team-grid merged">
         <div class="brand-team-panel">
-          <div class="brand-team-panel-title">Commission Status</div>
+          <div class="brand-team-panel-title">Commission Status + Penetration</div>
           <div class="heat-scroll"><div id="comm-heatmap"></div></div>
         </div>
-        <div class="brand-team-panel">
-          <div class="brand-team-panel-title">Penetration / Non-buyers</div>
-          <div class="heat-scroll"><div id="brand-sku-status"></div></div>
-        </div>
       </div>
-    </div>
-
-    <!-- 6. Newbie -->
-    <div id="newbie-section" style="display:none;">
-      <div class="sec-lbl">🎓 Newbie Scheme Progress</div>
-      <div id="newbie-cards"></div>
     </div>
 
     <!-- 5c. Brand Volume Alert -->
@@ -735,8 +859,14 @@ document.getElementById('mgmt-pw').addEventListener('keydown', e => {
   if (e.key === 'Enter') doMgmtLogin();
 });
 let DATA=null, lbMode='pct';
+let LEADERBOARD_EXPANDED = false;
 let CURRENT_DATA = null; // current displayed data (may be historical)
 let HISTORY_MONTHLY = null; // from window.HISTORY_DATA
+let AGENT_PROGRESS_TAB = 'sales';
+let KPI_PROGRESS_METRIC = 'activation_rate';
+let ZLB_PROGRESS_BRAND = 'iFACE';
+let SKU_TRACE_PROGRESS_IDX = 0;
+let CAMPAIGN_PROGRESS_FOCUS = '';
 
 // ── Month Selector Init ────────────────────────────────────────────────────
 function populateMonthSelector(historyRows) {
@@ -942,6 +1072,627 @@ const fp = p => p==null?'—':parseFloat(p).toFixed(1)+'%';
 const fr = n => 'RM '+parseFloat(n||0).toFixed(2);
 const pc = p => p==null?'var(--ink3)':p>=80?'var(--green)':p>=50?'var(--gold)':'var(--accent)';
 const bc = p => p==null?'var(--border)':p>=80?'#2a7a4b':p>=50?'#c8860a':'#c8381a';
+
+function overviewThreeMonthReturnCount(D) {
+  const seen = new Set();
+  Object.values(D?.agents || {}).forEach(agentData => {
+    (agentData?.debtor_cards?.debtors || []).forEach(d => {
+      if (d?.is_new) return;
+      if (String(d?.debtor_type || '').toLowerCase().includes('personal')) return;
+      const current = Number(d?.ctn_cur ?? d?.current_ctn ?? 0);
+      const prevThree =
+        Number(d?.ctn_prev1 || 0) +
+        Number(d?.ctn_prev2 || 0) +
+        Number(d?.ctn_prev3 || 0);
+      if (current <= 0 || prevThree > 0) return;
+      const key = String(d?.debtor_code || d?.company_name || '').trim();
+      if (key) seen.add(key);
+    });
+  });
+  return seen.size;
+}
+
+function mgmtEsc(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function apAgents(D=CURRENT_DATA||DATA) {
+  return Object.keys(D?.agents || {}).sort((a,b)=>a.localeCompare(b));
+}
+
+function apPace(D=CURRENT_DATA||DATA) {
+  const wd = D?.working_days || {};
+  const pct = Number(wd.theoretical_pct);
+  if (Number.isFinite(pct) && pct > 0) return pct;
+  const elapsed = Number(wd.elapsed_working_days || 0);
+  const total = Number(wd.total_working_days || 0);
+  return total > 0 ? elapsed / total * 100 : 100;
+}
+
+function apStatusClass(pct, D=CURRENT_DATA||DATA) {
+  const value = Number(pct || 0);
+  if (value >= 100) return 'ap-hit';
+  if (value >= apPace(D)) return 'ap-pace';
+  return 'ap-behind';
+}
+
+function apPillClass(pct, D=CURRENT_DATA||DATA) {
+  const value = Number(pct || 0);
+  if (value >= 100) return 'good';
+  if (value >= apPace(D)) return 'warn';
+  return 'bad';
+}
+
+function apPct(actual, target) {
+  const t = Number(target || 0);
+  if (!t) return 0;
+  return Number(actual || 0) / t * 100;
+}
+
+function apMetricCell(actual, target, D=CURRENT_DATA||DATA, pctOverride=null) {
+  const pct = pctOverride == null ? apPct(actual, target) : Number(pctOverride || 0);
+  const gap = Number(actual || 0) - Number(target || 0);
+  return `<div class="ap-metric-line">
+    <span class="ap-kpi ${apStatusClass(pct, D)}">${fn(actual)}</span>
+    <span class="ap-subline">/ ${fn(target)} · ${fp(pct)} · ${gap >= 0 ? '+' : ''}${fn(gap)}</span>
+  </div>`;
+}
+
+function apTable(cols, headers, rowsHtml) {
+  return `<div class="ap-table-wrap"><div class="ap-table">
+    <div class="ap-row ap-hdr" style="grid-template-columns:${cols};">${headers.map(h=>`<div class="ap-cell">${mgmtEsc(h)}</div>`).join('')}</div>
+    ${rowsHtml}
+  </div></div>`;
+}
+
+function setAgentProgressTab(tab) {
+  AGENT_PROGRESS_TAB = tab || 'sales';
+  document.querySelectorAll('#agent-progress-tabs .ap-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === AGENT_PROGRESS_TAB);
+  });
+  renderAgentProgressBoard();
+}
+
+function setProgressKpiMetric(key) {
+  KPI_PROGRESS_METRIC = key;
+  renderAgentProgressBoard();
+}
+
+function setProgressZlbBrand(brand) {
+  const D = CURRENT_DATA || DATA;
+  const brands = progressZlbBrands(D);
+  ZLB_PROGRESS_BRAND = brands.find(b => String(b).trim().toUpperCase() === String(brand || '').trim().toUpperCase()) || brand;
+  renderAgentProgressBoard();
+}
+
+function setProgressSkuTrace(idx) {
+  SKU_TRACE_PROGRESS_IDX = Number(idx) || 0;
+  renderAgentProgressBoard();
+}
+
+function setProgressCampaignFocus(id) {
+  CAMPAIGN_PROGRESS_FOCUS = id || '';
+  renderAgentProgressBoard();
+}
+
+function renderAgentProgressBoard() {
+  const D = CURRENT_DATA || DATA;
+  const el = document.getElementById('agent-progress-board-content');
+  if (!D || !el) return;
+  const note = document.getElementById('ap-board-note');
+  if (note) note.textContent = `${D.current_month || ''} · pace ${fp(apPace(D))}`;
+
+  const tabs = {
+    sales: renderAgentProgressSales,
+    paid: renderAgentProgressPaid,
+    newbie: renderAgentProgressNewbie,
+    kpi: renderAgentProgressKpi,
+    zlb: renderAgentProgressZlb,
+    sku: renderAgentProgressSkuTrace,
+    campaigns: renderAgentProgressCampaigns,
+  };
+  const renderer = tabs[AGENT_PROGRESS_TAB] || tabs.sales;
+  el.innerHTML = renderer(D);
+  el.querySelectorAll('[data-kpi-key]').forEach(btn => {
+    btn.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      setProgressKpiMetric(btn.dataset.kpiKey || btn.textContent);
+    });
+  });
+  el.querySelectorAll('[data-zlb-brand]').forEach(btn => {
+    btn.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      setProgressZlbBrand(btn.dataset.zlbBrand || btn.textContent);
+    });
+  });
+  el.querySelectorAll('[data-zlb-customer-agent]').forEach(btn => {
+    btn.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      openAgentZlbCustomers(
+        btn.dataset.zlbCustomerAgent || '',
+        btn.dataset.zlbCustomerBrand || ZLB_PROGRESS_BRAND,
+        btn.dataset.zlbCustomerView || 'buyers'
+      );
+    });
+  });
+}
+
+function renderAgentProgressSales(D) {
+  const agents = apAgents(D);
+  const tierDefs = [
+    ['normal_t1', 'Normal T1'],
+    ['normal_t2', 'Normal T2'],
+    ['ga', 'GA'],
+    ['ma', 'MA'],
+  ];
+  const rows = agents.map(agent => {
+    const sp = D.agents[agent]?.sales_progression || {};
+    const tiers = sp.tiers || {};
+    const cells = tierDefs.map(([key]) => {
+      const tier = tiers[key] || {};
+      const actual = Number(tier.actual ?? (key === 'ga' ? sp.ga_ctn : key === 'ma' ? sp.ma_ctn : sp.normal_ctn) ?? 0);
+      const target = Number(tier.target || 0);
+      const pct = Number(tier.pct ?? apPct(actual, target));
+      return `<div class="ap-cell">${apMetricCell(actual, target, D, pct)}</div>`;
+    }).join('');
+    return `<div class="ap-row" style="grid-template-columns:90px repeat(4,minmax(150px,1fr));">
+      <div class="ap-cell ap-agent" onclick="openDrill(${JSON.stringify(agent)})">${mgmtEsc(agent)}</div>${cells}
+    </div>`;
+  }).join('');
+  return apTable('90px repeat(4,minmax(150px,1fr))', ['Agent', ...tierDefs.map(x=>x[1])], rows);
+}
+
+function renderAgentProgressPaid(D) {
+  const agents = apAgents(D);
+  let totalPaid = 0, totalUnpaid = 0, totalOverdue = 0, totalAmount = 0;
+  const rows = agents.map(agent => {
+    const sp = D.agents[agent]?.sales_progression || {};
+    const aging = D.agents[agent]?.aging || {};
+    const paid = Number(sp.total_canggih_ctn ?? aging.canggih_paid_ctn ?? 0);
+    const unpaid = Number(aging.canggih_unpaid_ctn || 0);
+    const overdue = Number(aging.overdue_count || 0);
+    const amount = Number(aging.canggih_unpaid_amount || 0);
+    const unpaidPct = paid + unpaid > 0 ? unpaid / (paid + unpaid) * 100 : 0;
+    totalPaid += paid; totalUnpaid += unpaid; totalOverdue += overdue; totalAmount += amount;
+    return `<div class="ap-row" style="grid-template-columns:90px repeat(5,minmax(110px,1fr));">
+      <div class="ap-cell ap-agent" onclick="openDrill(${JSON.stringify(agent)})">${mgmtEsc(agent)}</div>
+      <div class="ap-cell"><div class="ap-kpi ap-hit">${fi(paid)}</div><div class="ap-sub">paid CTN</div></div>
+      <div class="ap-cell"><div class="ap-kpi ${unpaid ? 'ap-behind' : 'ap-hit'}">${fi(unpaid)}</div><div class="ap-sub">pending CTN</div></div>
+      <div class="ap-cell"><span class="ap-pill ${unpaidPct <= 5 ? 'good' : unpaidPct <= 15 ? 'warn' : 'bad'}">${fp(unpaidPct)}</span></div>
+      <div class="ap-cell"><div class="ap-kpi ${overdue ? 'ap-behind' : 'ap-hit'}">${fi(overdue)}</div><div class="ap-sub">overdue invoices</div></div>
+      <div class="ap-cell"><div class="ap-kpi">${fr(amount)}</div><div class="ap-sub">unpaid amount</div></div>
+    </div>`;
+  }).join('');
+  const summary = `<div class="ap-summary-grid">
+    <div class="ap-summary"><div class="ap-summary-val">${fi(totalPaid)}</div><div class="ap-summary-lbl">Team paid CTN</div></div>
+    <div class="ap-summary"><div class="ap-summary-val">${fi(totalUnpaid)}</div><div class="ap-summary-lbl">Team unpaid CTN</div></div>
+    <div class="ap-summary"><div class="ap-summary-val">${fp(totalPaid + totalUnpaid ? totalUnpaid/(totalPaid+totalUnpaid)*100 : 0)}</div><div class="ap-summary-lbl">Unpaid %</div></div>
+    <div class="ap-summary"><div class="ap-summary-val">${fi(totalOverdue)}</div><div class="ap-summary-lbl">Overdue invoices</div></div>
+  </div>`;
+  return summary + apTable('90px repeat(5,minmax(110px,1fr))', ['Agent','Paid CTN','Unpaid CTN','Unpaid %','Overdue','Unpaid RM'], rows);
+}
+
+function renderAgentProgressNewbie(D) {
+  const agents = apAgents(D).filter(a => D.agents[a]?.newbie_scheme?.is_newbie);
+  if (!agents.length) return `<div class="ap-empty">No newbie agents are active for this month.</div>`;
+  const newbieTierLine = (tiers=[], value=0, targetKey='threshold') => {
+    const rows = (tiers || [])
+      .map(t => {
+        const target = Number(t[targetKey] || 0);
+        const reward = Number(t.reward || 0);
+        const hit = target > 0 && Number(value || 0) >= target;
+        return `<span class="ap-pill ${hit ? 'good' : 'bad'}">${fi(target)} = RM ${fi(reward)}</span>`;
+      })
+      .join(' ');
+    return rows || '<span class="ap-sub">No tier target</span>';
+  };
+  const rows = agents.map(agent => {
+    const nb = D.agents[agent]?.newbie_scheme || {};
+    const aging = D.agents[agent]?.aging || {};
+    const ctnHit = (nb.ctn_tiers || []).filter(t => Number(nb.normal_ctn || 0) >= Number(t.threshold || 0)).length;
+    const accHit = (nb.account_tiers || []).filter(t => Number(nb.new_accounts || 0) >= Number(t.count || 0)).length;
+    return `<div class="ap-row" style="grid-template-columns:90px 115px minmax(220px,1.25fr) 110px 110px minmax(220px,1.25fr) 110px 110px;">
+      <div class="ap-cell ap-agent" onclick="openDrill(${JSON.stringify(agent)})">${mgmtEsc(agent)}</div>
+      <div class="ap-cell"><div class="ap-kpi ap-hit">${fi(nb.normal_ctn || 0)}</div><div class="ap-sub">paid CTN only</div></div>
+      <div class="ap-cell"><div style="display:flex;gap:4px;flex-wrap:wrap;">${newbieTierLine(nb.ctn_tiers, nb.normal_ctn, 'threshold')}</div><div class="ap-sub">hit ${ctnHit}/${(nb.ctn_tiers || []).length}</div></div>
+      <div class="ap-cell"><div class="ap-kpi">${fr(nb.ctn_reward || 0)}</div><div class="ap-sub">CTN reward</div></div>
+      <div class="ap-cell"><div class="ap-kpi">${fi(nb.new_accounts || 0)}</div><div class="ap-sub">开新户口</div></div>
+      <div class="ap-cell"><div style="display:flex;gap:4px;flex-wrap:wrap;">${newbieTierLine(nb.account_tiers, nb.new_accounts, 'count')}</div><div class="ap-sub">hit ${accHit}/${(nb.account_tiers || []).length}</div></div>
+      <div class="ap-cell"><div class="ap-kpi">${fr(nb.acc_reward || 0)}</div><div class="ap-sub">account reward</div></div>
+      <div class="ap-cell"><div class="ap-kpi ${aging.canggih_unpaid_ctn ? 'ap-behind' : 'ap-hit'}">${fi(aging.canggih_unpaid_ctn || 0)}</div><div class="ap-sub">unpaid risk, not earned</div></div>
+    </div>`;
+  }).join('');
+  return apTable(
+    '90px 115px minmax(220px,1.25fr) 110px 110px minmax(220px,1.25fr) 110px 110px',
+    ['Agent','Paid CTN','CTN Tier Target','CTN Reward','开新户口','开新户口 Tier Target','Account Reward','Pending'],
+    rows
+  );
+}
+
+function progressKpiOptions(D) {
+  const fixed = [
+    ['activation_rate', '光顾率'],
+    ['new_accounts', '开新户口'],
+    ['vip_count', 'VIP'],
+    ['reactivation', '激活户口'],
+    ['new_sku', '加SKU'],
+    ['event', 'Event/PSR'],
+    ['birthday_campaign', 'Birthday'],
+    ['campaign_1', 'Campaign'],
+  ];
+  const seen = new Set(fixed.map(x=>x[0]));
+  apAgents(D).forEach(agent => {
+    const items = D.agents[agent]?.kpi?.items || {};
+    Object.entries(items).forEach(([key, item]) => {
+      if (!seen.has(key) && key.startsWith('camp_') && !item?.excluded) {
+        fixed.push([key, item?.label || key]);
+        seen.add(key);
+      }
+    });
+  });
+  return fixed;
+}
+
+function renderAgentProgressKpi(D) {
+  const options = progressKpiOptions(D);
+  if (!options.some(([k]) => k === KPI_PROGRESS_METRIC)) KPI_PROGRESS_METRIC = options[0]?.[0] || 'activation_rate';
+  const chips = `<div class="ap-subtabs" style="margin-bottom:10px;">${options.map(([key,label]) =>
+    `<button type="button" class="ap-chip ${key===KPI_PROGRESS_METRIC?'active':''}" data-kpi-key="${mgmtEsc(key)}">${mgmtEsc(label)}</button>`
+  ).join('')}</div>`;
+  const rows = apAgents(D).map(agent => {
+    const item = D.agents[agent]?.kpi?.items?.[KPI_PROGRESS_METRIC];
+    if (!item || item.excluded) {
+      return `<div class="ap-row" style="grid-template-columns:90px repeat(5,minmax(105px,1fr));">
+        <div class="ap-cell ap-agent" onclick="openDrill(${JSON.stringify(agent)})">${mgmtEsc(agent)}</div>
+        <div class="ap-cell" style="grid-column:span 5;color:var(--ink3);">Not active for this agent/month</div>
+      </div>`;
+    }
+    const actual = Number(item.final_actual ?? item.override_actual ?? item.actual ?? 0);
+    const target = Number(item.target || 0);
+    const pct = Number(item.pct ?? apPct(actual, target));
+    const gap = actual - target;
+    const score = Number(item.score || 0);
+    const max = Number(item.max_score || 0);
+    const source = item.source === 'manual_override' ? 'manual override' : (item.source || 'auto');
+    return `<div class="ap-row" style="grid-template-columns:90px repeat(5,minmax(105px,1fr));">
+      <div class="ap-cell ap-agent" onclick="openDrill(${JSON.stringify(agent)})">${mgmtEsc(agent)}</div>
+      <div class="ap-cell"><div class="ap-kpi ${apStatusClass(pct,D)}">${fn(actual)}</div><div class="ap-sub">${mgmtEsc(source)}</div></div>
+      <div class="ap-cell">${fn(target)}</div>
+      <div class="ap-cell"><span class="ap-pill ${apPillClass(pct,D)}">${fp(pct)}</span></div>
+      <div class="ap-cell"><div class="ap-kpi ${gap>=0?'ap-hit':'ap-behind'}">${gap>=0?'+':''}${fn(gap)}</div></div>
+      <div class="ap-cell"><div class="ap-kpi">${fn(score)} / ${fn(max)}</div><div class="ap-sub">Section ${mgmtEsc(item.section || '')}</div></div>
+    </div>`;
+  }).join('');
+  return chips + apTable('90px repeat(5,minmax(105px,1fr))', ['Agent','Actual','Target','%','Gap','Score'], rows);
+}
+
+const PROGRESS_ZLB_BRAND_ORDER = ['iFACE', 'SUKUN', 'EVO', 'BISON', 'LAM+LWM'];
+
+function progressZlbBrandSortKey(brand) {
+  const upper = String(brand || '').trim().toUpperCase();
+  const idx = PROGRESS_ZLB_BRAND_ORDER.findIndex(item => item.toUpperCase() === upper);
+  return idx >= 0 ? idx : 100 + upper.charCodeAt(0);
+}
+
+function progressZlbBrandLabel(brand) {
+  const upper = String(brand || '').trim().toUpperCase();
+  if (upper === 'IFACE') return 'iFACE';
+  if (upper === 'SUKUN') return 'Sukun';
+  return brand;
+}
+
+function progressZlbBrands(D) {
+  const brands = new Set(Object.keys(D?.config?.brand_config || {}));
+  apAgents(D).forEach(agent => Object.keys(D.agents[agent]?.brand_commission || {}).forEach(b=>brands.add(b)));
+  return [...brands].filter(Boolean).sort((a,b) => progressZlbBrandSortKey(a) - progressZlbBrandSortKey(b) || String(a).localeCompare(String(b)));
+}
+
+function progressZlbBrandItems(D, brand) {
+  const brandKey = String(brand || '').trim().toUpperCase();
+  const fallback = {
+    IFACE: ['IFACE B','IFACE DB','IFACE M','IFACE R'],
+    SUKUN: ['SKNR','SKNW'],
+    EVO: ['EVO','DPM EVO'],
+    BISON: ['BISON-G','BISON-M','BISON-R'],
+    TR20: ['TR20'],
+    'TR-002': ['TR-002'],
+    'LAM+LWM': ['LAM','LWM'],
+  };
+  const configured = (D?.config?.brand_config?.[brand] || D?.config?.brand_config?.[brandKey] || [])
+    .filter(Boolean);
+  const sourceItems = configured.length ? configured : (fallback[brand] || fallback[brandKey] || []);
+  return [...new Set(sourceItems)]
+    .map(item => String(item || '').trim().toUpperCase())
+    .filter(Boolean);
+}
+
+function progressZlbMonthLabelFromIndex(monthIndex) {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const year = Math.floor(monthIndex / 12);
+  const idx = ((monthIndex % 12) + 12) % 12;
+  return `${months[idx]} ${String(year % 100).padStart(2, '0')}`;
+}
+
+function progressZlbPrevMonthLabels(D, count=3) {
+  const curIdx = mgmtMonthIndex(D?.current_month || '');
+  if (curIdx != null) {
+    return Array.from({length: count}, (_, idx) => progressZlbMonthLabelFromIndex(curIdx - idx - 1));
+  }
+  const months = new Set();
+  apAgents(D).forEach(agent => {
+    (D.agents[agent]?.debtor_cards?.debtors || []).forEach(debtor => {
+      Object.keys(debtor.month_breakdown || {}).forEach(month => months.add(month));
+    });
+  });
+  return [...months]
+    .filter(month => {
+      const idx = mgmtMonthIndex(month);
+      return idx != null;
+    })
+    .sort((a,b) => mgmtMonthIndex(b) - mgmtMonthIndex(a))
+    .slice(0, count);
+}
+
+function progressZlbPrevMonthLabel(D) {
+  return progressZlbPrevMonthLabels(D, 1)[0] || '';
+}
+
+function progressZlbBrandCtnForMonth(D, agent, brand, month) {
+  if (!month) return 0;
+  const itemSet = new Set(progressZlbBrandItems(D, brand));
+  if (!itemSet.size) return 0;
+  return (D.agents[agent]?.debtor_cards?.debtors || []).reduce((sum, debtor) => {
+    return sum + (debtor.month_breakdown?.[month] || []).reduce((rowSum, row) => {
+      const item = String(row.item || '').trim().toUpperCase();
+      return rowSum + (itemSet.has(item) ? Number(row.ctn || 0) : 0);
+    }, 0);
+  }, 0);
+}
+
+function progressZlbBrandAverageForMonths(D, agent, brand, months) {
+  const labels = (months || []).filter(Boolean);
+  if (!labels.length) return 0;
+  return labels.reduce((sum, month) => sum + progressZlbBrandCtnForMonth(D, agent, brand, month), 0) / labels.length;
+}
+
+function progressZlbBrandMinForMonths(D, agent, brand, months) {
+  const labels = (months || []).filter(Boolean);
+  if (!labels.length) return 0;
+  return Math.min(...labels.map(month => progressZlbBrandCtnForMonth(D, agent, brand, month)));
+}
+
+function progressZlbTotalDebtors(D, agent) {
+  const dc = D.agents[agent]?.debtor_cards || {};
+  const nonPersonalDebtors = (dc.debtors || []).filter(debtor => !mgmtIsPersonal(debtor) && debtor.dm_active !== false);
+  if (nonPersonalDebtors.length || (dc.debtors || []).length) return nonPersonalDebtors.length;
+  const direct = Number(dc.total_debtors ?? dc.activation_base);
+  if (Number.isFinite(direct) && direct > 0) return direct;
+  return 0;
+}
+
+function progressZlbUnpurchasedBrandKey(brand) {
+  const upper = String(brand || '').trim().toUpperCase();
+  try {
+    const keys = Object.keys(MGMT_UNPURCHASED_BRAND_ITEMS || {});
+    return keys.find(key => key.toUpperCase() === upper) || (upper === 'IFACE' ? 'IFACE' : brand);
+  } catch(e) {
+    return upper === 'IFACE' ? 'IFACE' : brand;
+  }
+}
+
+function openAgentZlbCustomers(agent, brand=ZLB_PROGRESS_BRAND, view='buyers') {
+  const selectedAgent = String(agent || '').trim();
+  mgmtUnpurchasedBrand = progressZlbUnpurchasedBrandKey(brand || ZLB_PROGRESS_BRAND);
+  mgmtUnpurchasedView = view || 'buyers';
+  mgmtUnpurchasedAgent = selectedAgent || 'all';
+  mgmtUnpurchasedMode = 'combined';
+  mgmtUnpurchasedType = 'all';
+  mgmtUnpurchasedSearch = '';
+  mgmtUnpurchasedCombinedPage = 1;
+  mgmtUnpurchasedExpandedAgent = selectedAgent;
+  mgmtUnpurchasedAgentPages = {};
+  setDropGainActive('unpurchased');
+  document.getElementById('debtor-movement-section')?.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function renderAgentProgressZlb(D) {
+  const brands = progressZlbBrands(D);
+  if (!brands.length) return `<div class="ap-empty">No brand commission data for this month.</div>`;
+  if (!brands.includes(ZLB_PROGRESS_BRAND)) ZLB_PROGRESS_BRAND = brands[0];
+  const prevMonths = progressZlbPrevMonthLabels(D, 3);
+  const prevMonth = prevMonths[0] || '';
+  const totals = { curBuyers: 0, penCount: 0, penTarget: 0, nonBuyers: 0, totalDebtors: 0, prevCtn: 0, ctnSold: 0, ctnTarget: 0, avg3: 0, min3: 0, comm: 0 };
+  const chips = `<div class="ap-subtabs" style="margin-bottom:10px;">${brands.map(brand =>
+    `<button type="button" class="ap-chip ${brand===ZLB_PROGRESS_BRAND?'active':''}" data-zlb-brand="${mgmtEsc(brand)}">${mgmtEsc(progressZlbBrandLabel(brand))}</button>`
+  ).join('')}</div>`;
+  const rows = apAgents(D).map(agent => {
+    const b = D.agents[agent]?.brand_commission?.[ZLB_PROGRESS_BRAND] || {};
+    const pen = b.penetration || {};
+    const ctn = b.ctn || {};
+    const penCount = Number(pen.count ?? b.new_penetrations ?? 0);
+    const penTarget = Number(pen.target ?? b.penetration_target ?? 0);
+    const curBuyers = Number(b.cur_buyers ?? penCount);
+    const ctnSold = Number(ctn.sold ?? b.cur_ctn ?? 0);
+    const ctnTarget = Number(ctn.target ?? b.ctn_target ?? 0);
+    const nonBuyers = Number(b.non_buyers ?? 0);
+    const totalDebtors = progressZlbTotalDebtors(D, agent);
+    const prevCtn = progressZlbBrandCtnForMonth(D, agent, ZLB_PROGRESS_BRAND, prevMonth);
+    const avg3 = progressZlbBrandAverageForMonths(D, agent, ZLB_PROGRESS_BRAND, prevMonths);
+    const min3 = progressZlbBrandMinForMonths(D, agent, ZLB_PROGRESS_BRAND, prevMonths);
+    const nonBuyerPct = totalDebtors > 0 ? nonBuyers / totalDebtors * 100 : 0;
+    const statusKey = b.both_hit || b.status === 'both_hit' ? 'both_hit' : b.status === 'one_hit' ? 'one_hit' : 'miss';
+    const status = statusKey === 'both_hit' ? '已达成' : statusKey === 'one_hit' ? '1 of 2' : '未达成';
+    const pill = statusKey === 'both_hit' ? 'good' : statusKey === 'one_hit' ? 'warn' : 'bad';
+    const comm = Number(b.comm_earned || 0);
+    totals.curBuyers += curBuyers;
+    totals.penCount += penCount;
+    totals.penTarget += penTarget;
+    totals.nonBuyers += nonBuyers;
+    totals.totalDebtors += totalDebtors;
+    totals.prevCtn += prevCtn;
+    totals.ctnSold += ctnSold;
+    totals.ctnTarget += ctnTarget;
+    totals.avg3 += avg3;
+    totals.min3 += min3;
+    totals.comm += comm;
+    return `<div class="ap-row" style="grid-template-columns:90px 96px 120px 96px 96px 120px 96px 96px 86px 96px 72px;">
+      <div class="ap-cell ap-agent" onclick="openDrill(${JSON.stringify(agent)})">${mgmtEsc(agent)}</div>
+      <div class="ap-cell"><div class="ap-kpi ${curBuyers ? 'ap-hit' : 'ap-behind'}">${fi(curBuyers)}</div><div class="ap-sub">本月购买顾客</div></div>
+      <div class="ap-cell">${apMetricCell(penCount, penTarget, D)}</div>
+      <div class="ap-cell"><div class="ap-kpi ${nonBuyers ? 'ap-behind' : 'ap-hit'}">${fi(nonBuyers)} / ${fi(totalDebtors)}</div><div class="ap-sub">未购买 · ${fp(nonBuyerPct)}</div></div>
+      <div class="ap-cell"><div class="ap-kpi">${fn(prevCtn)}</div><div class="ap-sub">${mgmtEsc(prevMonth || '-')}</div></div>
+      <div class="ap-cell">${apMetricCell(ctnSold, ctnTarget, D)}</div>
+      <div class="ap-cell"><div class="ap-kpi">${fn(avg3)}</div><div class="ap-sub">${mgmtEsc(prevMonths.join(', '))}</div></div>
+      <div class="ap-cell"><div class="ap-kpi">${fn(min3)}</div><div class="ap-sub">前三个月最低条数</div></div>
+      <div class="ap-cell"><span class="ap-pill ${pill}">${mgmtEsc(status)}</span></div>
+      <div class="ap-cell"><div class="ap-kpi">${fr(comm)}</div></div>
+      <div class="ap-cell"><button type="button" class="ap-chip" data-zlb-customer-agent="${mgmtEsc(agent)}" data-zlb-customer-brand="${mgmtEsc(ZLB_PROGRESS_BRAND)}" data-zlb-customer-view="buyers">顾客</button></div>
+    </div>`;
+  }).join('');
+  const zlbTotalRow = `<div class="ap-row" style="grid-template-columns:90px 96px 120px 96px 96px 120px 96px 96px 86px 96px 72px;">
+    <div class="ap-cell ap-agent">TOTAL</div>
+    <div class="ap-cell"><div class="ap-kpi">${fi(totals.curBuyers)}</div></div>
+    <div class="ap-cell">${apMetricCell(totals.penCount, totals.penTarget, D)}</div>
+    <div class="ap-cell"><div class="ap-kpi">${fi(totals.nonBuyers)} / ${fi(totals.totalDebtors)}</div><div class="ap-sub">${fp(totals.totalDebtors ? totals.nonBuyers / totals.totalDebtors * 100 : 0)}</div></div>
+    <div class="ap-cell"><div class="ap-kpi">${fn(totals.prevCtn)}</div></div>
+    <div class="ap-cell">${apMetricCell(totals.ctnSold, totals.ctnTarget, D)}</div>
+    <div class="ap-cell"><div class="ap-kpi">${fn(totals.avg3)}</div></div>
+    <div class="ap-cell"><div class="ap-kpi">${fn(totals.min3)}</div></div>
+    <div class="ap-cell"><span class="ap-pill ${totals.ctnTarget && totals.ctnSold >= totals.ctnTarget ? 'good' : 'warn'}">总计</span></div>
+    <div class="ap-cell"><div class="ap-kpi">${fr(totals.comm)}</div></div>
+    <div class="ap-cell"></div>
+  </div>`;
+  const summary = `<div class="ap-summary-grid">
+    <div class="ap-summary"><div class="ap-summary-val">${fi(totals.curBuyers)}</div><div class="ap-summary-lbl">本月购买顾客</div></div>
+    <div class="ap-summary"><div class="ap-summary-val">${fi(totals.nonBuyers)} / ${fi(totals.totalDebtors)}</div><div class="ap-summary-lbl">未购买/总户口</div></div>
+    <div class="ap-summary"><div class="ap-summary-val">${fn(totals.prevCtn)}</div><div class="ap-summary-lbl">上月条数 ${mgmtEsc(prevMonth || '')}</div></div>
+    <div class="ap-summary"><div class="ap-summary-val">${fn(totals.ctnSold)}</div><div class="ap-summary-lbl">本月条数</div></div>
+    <div class="ap-summary"><div class="ap-summary-val">${fn(totals.avg3)}</div><div class="ap-summary-lbl">前三个月平均</div></div>
+    <div class="ap-summary"><div class="ap-summary-val">${fn(totals.min3)}</div><div class="ap-summary-lbl">三个月最低条数</div></div>
+  </div>`;
+  return chips + summary + apTable(
+    '90px 96px 120px 96px 96px 120px 96px 96px 86px 96px 72px',
+    ['代理','本月购买顾客','新增渗透/目标','未购买/总户口',`上月条数 ${prevMonth || ''}`,'本月条数','前三个月平均','三个月最低条数','状态','奖金','顾客'],
+    rows + zlbTotalRow
+  );
+}
+
+function renderAgentProgressSkuTrace(D) {
+  const items = D.sku_trace?.items || [];
+  if (!items.length) {
+    return `<div class="ap-empty">SKU Trace data is not in this JSON yet. Save Admin SKU Trace config, then run update_dashboard.bat to regenerate.</div>`;
+  }
+  if (SKU_TRACE_PROGRESS_IDX >= items.length) SKU_TRACE_PROGRESS_IDX = 0;
+  const item = items[SKU_TRACE_PROGRESS_IDX];
+  const chips = `<div class="ap-subtabs" style="margin-bottom:10px;">${items.map((row, idx) =>
+    `<button class="ap-chip ${idx===SKU_TRACE_PROGRESS_IDX?'active':''}" onclick="setProgressSkuTrace(${idx})">${mgmtEsc(row.label || ('SKU '+(idx+1)))}</button>`
+  ).join('')}</div>`;
+  const totals = item.totals || {};
+  const summary = `<div class="ap-summary-grid">
+    <div class="ap-summary"><div class="ap-summary-val">${fi(totals.tranx_ctn || 0)}</div><div class="ap-summary-lbl">Tranx Month CTN</div></div>
+    <div class="ap-summary"><div class="ap-summary-val">${fi(totals.paid_ctn || 0)}</div><div class="ap-summary-lbl">Paid On CTN</div></div>
+    <div class="ap-summary"><div class="ap-summary-val">${fi(totals.target_ctn || 0)}</div><div class="ap-summary-lbl">Target Sales Type CTN</div></div>
+    <div class="ap-summary"><div class="ap-summary-val">${fr(totals.commission || 0)}</div><div class="ap-summary-lbl">Optional commission</div></div>
+  </div>`;
+  const rows = apAgents(D).map(agent => {
+    const row = item.agents?.[agent] || {};
+    return `<div class="ap-row" style="grid-template-columns:90px repeat(4,minmax(120px,1fr));">
+      <div class="ap-cell ap-agent" onclick="openDrill(${JSON.stringify(agent)})">${mgmtEsc(agent)}</div>
+      <div class="ap-cell"><div class="ap-kpi">${fi(row.tranx_ctn || 0)}</div></div>
+      <div class="ap-cell"><div class="ap-kpi">${fi(row.paid_ctn || 0)}</div></div>
+      <div class="ap-cell"><div class="ap-kpi">${fi(row.target_ctn || 0)}</div></div>
+      <div class="ap-cell"><div class="ap-kpi">${fr(row.commission || 0)}</div></div>
+    </div>`;
+  }).join('');
+  return chips + summary + apTable('90px repeat(4,minmax(120px,1fr))', ['Agent','Tranx Month','Paid On','Target CTN','Comm'], rows);
+}
+
+function progressCampaignSummaries(D) {
+  const out = {};
+  apAgents(D).forEach(agent => {
+    const campaigns = D.agents[agent]?.conversion_campaigns || {};
+    Object.entries(campaigns).forEach(([id, row]) => {
+      if (!out[id]) out[id] = { id, name: row.name || id, agents: {}, enrolled: 0, converted: 0, target: 0, ctn: 0 };
+      out[id].agents[agent] = row;
+      out[id].enrolled += Number(row.enrolled_count ?? row.total_enrolled ?? 0);
+      out[id].converted += Number(row.converted_count ?? row.converted_targets ?? 0);
+      out[id].target += Number(row.target_count ?? row.total_enrolled ?? 0);
+      out[id].ctn += Number(row.converted_ctn || 0);
+    });
+  });
+  return Object.values(out).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+}
+
+function renderCampaignDebtorDetails(row) {
+  const converted = row.converted_debtors || [];
+  const pending = row.not_converted_debtors || [];
+  if (!converted.length && !pending.length) return '';
+  const list = (arr) => arr.slice(0, 12).map(d => `${mgmtEsc(d.code || '')} ${mgmtEsc(d.name || '')} (${fn(d.ctn || 0)} CTN)`).join('<br>');
+  return `<details class="ap-detail">
+    <summary>Debtor drilldown · converted ${converted.length} · not converted ${pending.length}</summary>
+    <div class="ap-sub" style="margin-top:6px;"><b>Converted</b><br>${converted.length ? list(converted) : 'None'}</div>
+    <div class="ap-sub" style="margin-top:6px;"><b>Not converted</b><br>${pending.length ? list(pending) : 'None'}</div>
+  </details>`;
+}
+
+function renderAgentProgressCampaigns(D) {
+  const summaries = progressCampaignSummaries(D);
+  if (!summaries.length) return `<div class="ap-empty">No active conversion campaign summary in this month data.</div>`;
+  if (!CAMPAIGN_PROGRESS_FOCUS || !summaries.some(s=>s.id === CAMPAIGN_PROGRESS_FOCUS)) CAMPAIGN_PROGRESS_FOCUS = summaries[0].id;
+  const chips = `<div class="ap-subtabs" style="margin-bottom:10px;">${summaries.map(s =>
+    `<button class="ap-chip ${s.id===CAMPAIGN_PROGRESS_FOCUS?'active':''}" onclick="setProgressCampaignFocus(${JSON.stringify(s.id)})">${mgmtEsc(s.name)}</button>`
+  ).join('')}</div>`;
+  const summary = summaries.find(s=>s.id === CAMPAIGN_PROGRESS_FOCUS) || summaries[0];
+  const pct = apPct(summary.converted, summary.target || summary.enrolled);
+  let html = chips + `<div class="ap-summary-grid">
+    <div class="ap-summary"><div class="ap-summary-val">${fi(summary.enrolled)}</div><div class="ap-summary-lbl">Enrolled debtors</div></div>
+    <div class="ap-summary"><div class="ap-summary-val">${fi(summary.converted)}</div><div class="ap-summary-lbl">Converted debtors</div></div>
+    <div class="ap-summary"><div class="ap-summary-val">${fi(summary.ctn)}</div><div class="ap-summary-lbl">Converted CTN</div></div>
+    <div class="ap-summary"><div class="ap-summary-val">${fp(pct)}</div><div class="ap-summary-lbl">Conversion rate</div></div>
+  </div>`;
+
+  const groupData = D.campaign_group_progress?.[summary.id];
+  if (groupData?.group_rows?.length) {
+    const poolRate = Number(groupData.pk_pool_rate || 0);
+    const groupRows = groupData.group_rows.map(row => `<div class="ap-row" style="grid-template-columns:120px repeat(5,minmax(110px,1fr));">
+      <div class="ap-cell"><b>${mgmtEsc(row.group)}</b></div>
+      <div class="ap-cell">${fi(row.new_accounts)}</div>
+      <div class="ap-cell">${fi(row.converted_ctn)}</div>
+      <div class="ap-cell">${poolRate ? fr(row.pool_value || 0) : '-'}</div>
+      <div class="ap-cell">#${fi(row.rank_accounts || row.rank_new_accounts || 0)}</div>
+      <div class="ap-cell">#${fi(row.rank_ctn || row.rank_converted_ctn || 0)}</div>
+    </div>`).join('');
+    const poolText = poolRate ? ` · Pool RM${poolRate.toFixed(2)}/CTN · Total ${fr(groupData.totals?.pool_value || 0)}` : '';
+    html += `<div class="ap-sub" style="margin-bottom:6px;">Group standings · Penetration winner ${mgmtEsc(groupData.winner_by_accounts || '-')} · CTN winner ${mgmtEsc(groupData.winner_by_ctn || '-')}${poolText}</div>`;
+    html += apTable('120px repeat(5,minmax(110px,1fr))', ['Group','Converted Customers','Converted CTN','Pool RM','Rank Pen','Rank CTN'], groupRows);
+  }
+
+  const agentRows = (groupData?.agent_rows?.length ? groupData.agent_rows : Object.entries(summary.agents).map(([agent,row]) => ({
+    agent,
+    group: row.group || '',
+    new_accounts: row.target_count ?? row.enrolled_count ?? row.total_enrolled ?? 0,
+    converted_count: row.converted_count ?? 0,
+    converted_ctn: row.converted_ctn ?? 0,
+  }))).map(row => `<div class="ap-row" style="grid-template-columns:90px 120px repeat(4,minmax(110px,1fr));">
+    <div class="ap-cell ap-agent" onclick="openDrill(${JSON.stringify(row.agent)})">${mgmtEsc(row.agent)}</div>
+    <div class="ap-cell">${mgmtEsc(row.group || '-')}</div>
+    <div class="ap-cell">${fi(row.new_accounts || 0)}</div>
+    <div class="ap-cell">${fi(row.converted_count || 0)}</div>
+    <div class="ap-cell">${fn(row.converted_ctn || 0)}${renderCampaignDebtorDetails(row)}</div>
+    <div class="ap-cell">${fr(row.pool_value || 0)}</div>
+  </div>`).join('');
+  html += `<div class="ap-sub" style="margin:10px 0 6px;">Agent rows</div>`;
+  html += apTable('90px 120px repeat(4,minmax(110px,1fr))', ['Agent','Group','Targets','Converted','CTN / Drilldown','Pool RM'], agentRows);
+  return html;
+}
 
 function managementDataLoadErrorHtml(error) {
   const isLocalFile = location.protocol === 'file:';
@@ -1510,6 +2261,7 @@ async function loadCampaignSection() {
   const totalClaims = monthRows.reduce((sum, [, rows]) => sum + (rows?.length || 0), 0);
   console.log(`[campProg] Loaded ${CAMPS_CACHE.length} campaigns, ${totalClaims} claims across ${claimMonths.size} month(s)`);
   renderCampaignsMgmt();
+  renderAgentProgressBoard();
 }
 
 // Single Supabase query that returns ALL claims for this month — used by campaign progress.
@@ -1669,7 +2421,53 @@ function renderOverview() {
   const teamT1Target = isHistorical
     ? agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.tiers?.normal_t1?.target||0),0)
     : (team.t1_total_target||0);
-  const t1pct = teamT1Target > 0 ? Math.round(teamNormalCtn/teamT1Target*100) : 0;
+  const teamGaCtn = isHistorical
+    ? agents.reduce((s,a)=>s+(Number(D.agents[a]?.sales_progression?.ga_ctn)||0),0)
+    : Number(team.team_ga_ctn||0);
+  const teamMaCtn = isHistorical
+    ? agents.reduce((s,a)=>s+(Number(D.agents[a]?.sales_progression?.ma_ctn)||0),0)
+    : Number(team.team_ma_ctn||0);
+  const teamGaTarget = isHistorical
+    ? agents.reduce((s,a)=>s+(Number(D.agents[a]?.sales_progression?.tiers?.ga?.target)||0),0)
+    : Number(team.ga_total_target||0);
+  const teamMaTarget = isHistorical
+    ? agents.reduce((s,a)=>s+(Number(D.agents[a]?.sales_progression?.tiers?.ma?.target)||0),0)
+    : Number(team.ma_total_target||0);
+  const teamPaidCtn = Number(team.team_canggih_ctn ?? (teamNormalCtn + teamGaCtn + teamMaCtn));
+  const currentInvoicePaidCtn = Number(team.cur_month_invoiced_paid ?? 0);
+  const previousInvoicePaidCtn = Number(team.prev_month_ctn ?? 0);
+  const teamNewAccounts = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.new_accounts?.actual ?? D.agents[a]?.debtor_cards?.debtors?.filter(d=>d.is_new).length ?? 0)||0),0);
+  const teamNewAccountsTarget = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.new_accounts?.target)||0),0);
+  const teamReactivation = agents.reduce((s,a)=>s+(Number(D.agents[a]?.debtor_cards?.reactivation_count)||0),0);
+  const teamReactivationTarget = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.reactivation?.target)||0),0);
+  const teamNewSku = agents.reduce((s,a)=>s+(Number(D.agents[a]?.debtor_cards?.total_new_sku)||0),0);
+  const teamNewSkuTarget = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.new_sku?.target)||0),0);
+  const teamEvent = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.event?.actual)||0),0);
+  const teamEventTarget = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.event?.target)||0),0);
+  const teamBirthday = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.birthday_campaign?.actual)||0),0);
+  const teamBirthdayTarget = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.birthday_campaign?.target)||0),0);
+  const teamThreeMonthReturns = overviewThreeMonthReturnCount(D);
+  const targetLine = (actual, target) => Number(target) > 0
+    ? `目标 ${fi(target)} · ${fp(Number(actual || 0) / Number(target) * 100)}`
+    : '目标 —';
+  const summaryTargetLine = (actual, target) => Number(target) > 0
+    ? `目标 ${fn(target)} · ${fp(Number(actual || 0) / Number(target) * 100)}`
+    : '目标 —';
+  const summaryColor = (actual, target, isRate=false) => {
+    const pct = Number(target || 0) > 0 ? Number(actual || 0) / Number(target || 0) * 100 : null;
+    if (pct == null) return 'rgba(255,255,255,.88)';
+    return pct >= 100 ? '#5de89a' : pct >= 80 ? '#ffc94d' : '#ff6b6b';
+  };
+  const setSummary = (id, value, detail='', color='rgba(255,255,255,.88)') => {
+    const valueEl = document.getElementById(id);
+    const detailEl = document.getElementById(id + '-sub');
+    if (valueEl) {
+      valueEl.textContent = value;
+      valueEl.style.color = color;
+    }
+    if (detailEl) detailEl.textContent = detail;
+  };
+  const t1pct = teamT1Target > 0 ? teamNormalCtn/teamT1Target*100 : 0;
   const gap   = teamNormalCtn - teamT1Target;
 
   document.getElementById('kpi-pct').textContent=fp(t1pct);
@@ -1680,22 +2478,39 @@ function renderOverview() {
   document.getElementById('kpi-rate').textContent=avgRate+'%';
 
   document.getElementById('ov-pct').textContent=fp(t1pct);
-  document.getElementById('ov-meta').textContent=`${fn(team.team_normal_ctn)} CTN of ${fn(team.t1_total_target)} target`;
+  document.getElementById('ov-meta').textContent=`${fn(teamNormalCtn)} 条 / 目标 ${fn(teamT1Target)}`;
   const gE=document.getElementById('ov-gap');
-  gE.textContent=gap<0?`▼ ${fn(Math.abs(gap))} CTN to target`:`▲ ${fn(gap)} CTN above target`;
+  gE.textContent=gap<0?`▼ 距目标 ${fn(Math.abs(gap))} 条`:`▲ 超目标 ${fn(gap)} 条`;
   gE.style.color=gap>=0?'#5de89a':'#ff6b6b';
-  document.getElementById('ov-ctn').textContent=fi(team.team_canggih_ctn);
+  document.getElementById('ov-ctn').textContent=fi(teamPaidCtn);
+  document.getElementById('ov-ctn-breakdown').textContent=
+    `${fi(teamNormalCtn)} 普通价 + ${fi(teamGaCtn)} GA + ${fi(teamMaCtn)} MA`;
+  document.getElementById('ov-paid-month-breakdown').textContent =
+    (currentInvoicePaidCtn || previousInvoicePaidCtn)
+      ? `${fi(currentInvoicePaidCtn)} 本月单已付款 + ${fi(previousInvoicePaidCtn)} 前月单本月付款`
+      : '发票付款拆分 —';
+  setSummary('ov-team-new', fi(teamNewAccounts), summaryTargetLine(teamNewAccounts, teamNewAccountsTarget), summaryColor(teamNewAccounts, teamNewAccountsTarget));
+  setSummary('ov-team-rate', fp(avgRate), `${fi(patronageActive)} / ${fi(patronageBase)} 户口`, summaryColor(avgRate, 80, true));
+  setSummary('ov-team-reactivation', fi(teamReactivation), summaryTargetLine(teamReactivation, teamReactivationTarget), summaryColor(teamReactivation, teamReactivationTarget));
+  setSummary('ov-team-sku', fi(teamNewSku), summaryTargetLine(teamNewSku, teamNewSkuTarget), summaryColor(teamNewSku, teamNewSkuTarget));
+  setSummary('ov-team-event', fi(teamEvent), summaryTargetLine(teamEvent, teamEventTarget), summaryColor(teamEvent, teamEventTarget));
+  setSummary('ov-team-birthday', fi(teamBirthday), summaryTargetLine(teamBirthday, teamBirthdayTarget), summaryColor(teamBirthday, teamBirthdayTarget));
+  setSummary('ov-team-3m-return', fi(teamThreeMonthReturns), '不含本月新户口', '#5de89a');
   document.getElementById('ov-bar').style.width=Math.min(t1pct,100)+'%';
   document.getElementById('ov-bar').style.background=bc(t1pct);
-  document.getElementById('ov-bar-mid').textContent=`Should be ${wd.theoretical_pct||0}%`;
-  document.getElementById('ov-bar-max').textContent=fn(team.t1_total_target);
+  document.getElementById('ov-bar-mid').textContent=`应达 ${wd.theoretical_pct||0}%`;
+  document.getElementById('ov-bar-max').textContent=fn(teamT1Target);
   document.getElementById('ov-days').textContent=`Day ${wd.elapsed_working_days||'?'} / ${wd.total_working_days||'?'}`;
-  document.getElementById('ov-normal').textContent=fi(team.team_normal_ctn);
-  document.getElementById('ov-ga').textContent=fi(team.team_ga_ctn);
-  document.getElementById('ov-ma').textContent=fi(team.team_ma_ctn);
+  document.getElementById('ov-normal').textContent=fi(teamNormalCtn);
+  document.getElementById('ov-normal-target').textContent=targetLine(teamNormalCtn, teamT1Target);
+  document.getElementById('ov-ga').textContent=fi(teamGaCtn);
+  document.getElementById('ov-ga-target').textContent=targetLine(teamGaCtn, teamGaTarget);
+  document.getElementById('ov-ma').textContent=fi(teamMaCtn);
+  document.getElementById('ov-ma-target').textContent=targetLine(teamMaCtn, teamMaTarget);
 
   renderPendingActions();
   renderCampaignsMgmt();
+  renderAgentProgressBoard();
   renderAnnualProgress();
   renderLeaderboard();
   renderGroupBrands();
@@ -1704,7 +2519,6 @@ function renderOverview() {
   renderBrandVolumeAlert();
   setDropGainActive(_dropGainActive);
   renderActivityMap();
-  renderNewbieProgress();
   renderAgingOverview();
   renderMonthlySummary();
   initGistBanner();
@@ -1814,6 +2628,30 @@ function renderAnnualProgress() {
     </div>
   `;
 }
+function campaignSectionSummary(items = {}) {
+  const summary = {score: 0, max: 0};
+  Object.values(items || {}).forEach(item => {
+    if (!item || item.section !== 'C' || item.excluded) return;
+    summary.score += Number(item.score || 0);
+    summary.max += Number(item.max_score || 0);
+  });
+  summary.pct = summary.max > 0 ? (summary.score / summary.max * 100) : null;
+  return summary;
+}
+
+function currentCampaignProgressSummary(items = {}) {
+  const summary = {actual: 0, target: 0, count: 0};
+  Object.entries(items || {}).forEach(([key, item]) => {
+    if (!key.startsWith('camp_') || !item || item.excluded || item.section !== 'C') return;
+    if (Number(item.max_score || 0) <= 0) return;
+    summary.actual += Number(item.final_actual ?? item.actual ?? 0);
+    summary.target += Number(item.target || 0);
+    summary.count += 1;
+  });
+  summary.pct = summary.target > 0 ? (summary.actual / summary.target * 100) : null;
+  return summary;
+}
+
 async function renderMonthlySummary() {
   const D = CURRENT_DATA || DATA;
   const agents = Object.keys(D.agents||{}).sort();
@@ -1843,18 +2681,24 @@ async function renderMonthlySummary() {
     }
   } catch(e) { console.warn('[monthlySummary] workdays fetch failed:', e.message); }
   const fallbackWdays = D.working_days?.elapsed_working_days || 0;
+  const expectedPace = Math.min(100, Math.max(0, Number(apPace(D) || 0)));
 
-  // col layout: Agent | Normal(act/tgt/%) | MA(act/tgt/%) | 开新户口(act/tgt) | VIP(act/tgt) | 激活户口(act/tgt) | 加SKU(act/tgt) | 光顾率(act/tgt%) | 交易 | 工作日 | 平均交易 | KPI A+B+C
-  const cols = '68px 110px 110px 80px 70px 80px 80px 90px 55px 45px 55px 60px';
+  // col layout: Agent | Sales tiers | KPI metrics | trading pace | current campaign progress | KPI score
+  const cols = '64px 88px 88px 74px 82px 78px 70px 58px 68px 68px 76px 68px 78px 48px 40px 50px 64px';
   const hdrs = [
     {l:'AGENT',         sub:''},
-    {l:'NORMAL',        sub:'Act / Tgt / %'},
-    {l:'MASTER AGENT',  sub:'Act / Tgt / %'},
+    {l:'NORMAL T1',     sub:'Act / Tgt / %'},
+    {l:'NORMAL T2',     sub:'Act / Tgt / %'},
+    {l:'GA',            sub:'Act / Tgt / %'},
+    {l:'MA',            sub:'Act / Tgt / %'},
+    {l:'光顾率',         sub:'Act / Tgt%'},
     {l:'开新户口',       sub:'Act / Tgt'},
     {l:'VIP',           sub:'Act / Tgt'},
     {l:'激活户口',       sub:'Act / Tgt'},
     {l:'加SKU',         sub:'Act / Tgt'},
-    {l:'光顾率',         sub:'Act / Tgt%'},
+    {l:'Birthday Gift', sub:'Act / Tgt'},
+    {l:'EVENT',         sub:'Act / Tgt'},
+    {l:'CAMPAIGN',      sub:'Act / Tgt'},
     {l:'交易次数',       sub:''},
     {l:'工作日',         sub:''},
     {l:'平均交易',       sub:''},
@@ -1862,9 +2706,17 @@ async function renderMonthlySummary() {
   ];
 
   // helper: act/tgt cell with colour on pct
-  const atCell = (act, tgt, isPct=false) => {
+  const progressColor = (act, tgt, paceSensitive=false) => {
     const p    = tgt > 0 ? Math.round(act / tgt * 100) : null;
-    const col  = p === null ? 'var(--ink3)' : p >= 100 ? '#2a7a4b' : p >= 70 ? '#c8860a' : '#c8381a';
+    if (p === null) return 'var(--ink3)';
+    if (paceSensitive && p < expectedPace) return '#c8381a';
+    if (p >= 100) return '#2a7a4b';
+    if (paceSensitive) return '#c8860a';
+    return p >= 70 ? '#c8860a' : '#c8381a';
+  };
+  const atCell = (act, tgt, isPct=false, paceSensitive=false) => {
+    const p    = tgt > 0 ? Math.round(act / tgt * 100) : null;
+    const col  = progressColor(act, tgt, paceSensitive);
     const actStr = isPct ? act+'%' : fi(act);
     const tgtStr = isPct ? tgt+'%' : fi(tgt);
     const pctStr = p !== null ? `<span style="color:${col};font-size:8px;"> ${p}%</span>` : '';
@@ -1878,8 +2730,19 @@ async function renderMonthlySummary() {
   const cell = (val, color='') =>
     `<div style="font-family:var(--mono);font-size:10px;padding:7px 6px;text-align:center;
       border-right:1px solid var(--border);border-bottom:1px solid var(--border);${color}">${val}</div>`;
+  const campaignCell = (campaign) => {
+    const pct = campaign.pct == null ? null : Math.round(campaign.pct);
+    const col = pct == null ? 'var(--ink3)' : pct >= 100 ? '#2a7a4b' : pct >= 70 ? '#c8860a' : '#c8381a';
+    const pctStr = pct == null ? '' : `<span style="color:${col};font-size:8px;"> ${pct}%</span>`;
+    return `<div style="font-family:var(--mono);font-size:10px;padding:5px 6px;text-align:center;
+      border-right:1px solid var(--border);border-bottom:1px solid var(--border);line-height:1.4;">
+      <span style="color:${col};font-weight:600;">${fn(campaign.actual)}</span>
+      <span style="color:var(--ink3);font-size:9px;">/${fn(campaign.target)}</span>
+      ${pctStr}
+    </div>`;
+  };
 
-  let html = `<div style="min-width:800px;">
+  let html = `<div style="min-width:1180px;">
     <div style="display:grid;grid-template-columns:${cols};gap:0;border-bottom:2px solid var(--border);background:var(--card);">
       ${hdrs.map((h,i) => `<div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;
         letter-spacing:.05em;color:var(--ink3);padding:5px 6px;text-align:${i===0?'left':'center'};
@@ -1900,10 +2763,15 @@ async function renderMonthlySummary() {
     const kpiItems = kpi.items || {};
     const bg  = idx%2===0 ? '' : 'background:#faf8f5;';
 
-    const t1tgt  = sp.tiers?.normal_t1?.target || 0;
-    const matgt  = sp.tiers?.ma?.target || 0;
-    const normalPct = sp.tiers?.normal_t1?.pct || 0;
-    const maPct     = sp.tiers?.ma?.pct || 0;
+    const normalT1 = sp.tiers?.normal_t1 || {};
+    const normalT2 = sp.tiers?.normal_t2 || {};
+    const gaTier   = sp.tiers?.ga || {};
+    const maTier   = sp.tiers?.ma || {};
+    const tierActual = (tier, fallback=0) => Number(tier.actual ?? fallback ?? 0);
+    const t1tgt  = Number(normalT1.target || 0);
+    const t2tgt  = Number(normalT2.target || 0);
+    const gatgt  = Number(gaTier.target || 0);
+    const matgt  = Number(maTier.target || 0);
 
     // KPI actuals — use Supabase-overridden values from kpiItems (set by SupabaseKpiSync)
     const newAcc  = kpiItems.new_accounts?.actual ?? dc.debtors?.filter(d=>d.is_new).length ?? 0;
@@ -1918,6 +2786,12 @@ async function renderMonthlySummary() {
     const newSkuAct = dc.total_new_sku || 0;
     const newSkuTgt = kpiItems.new_sku?.target || 0;
 
+    const birthdayAct = kpiItems.birthday_campaign?.actual ?? 0;
+    const birthdayTgt = kpiItems.birthday_campaign?.target || 0;
+
+    const eventAct = kpiItems.event?.actual ?? 0;
+    const eventTgt = kpiItems.event?.target || 0;
+
     const rateAct = dc.activation_rate || 0;
     const rateTgt = kpiItems.activation_rate?.target || 80;
 
@@ -1927,17 +2801,23 @@ async function renderMonthlySummary() {
 
     // KPI score — merge live event/birthday from md_scores
     let kpiScore = kpi.total_abc ?? kpi.grand_total ?? 0;
+    const campaign = currentCampaignProgressSummary(kpiItems);
 
     html += `<div style="display:grid;grid-template-columns:${cols};gap:0;${bg}cursor:pointer;" onclick="openDrill('${agent}')">
       <div style="font-family:var(--mono);font-size:11px;font-weight:600;padding:7px 8px;
         border-right:1px solid var(--border);border-bottom:1px solid var(--border);color:var(--blue);">${agent}</div>
-      ${atCell(sp.normal_ctn||0, t1tgt)}
-      ${atCell(sp.ma_ctn||0, matgt)}
+      ${atCell(tierActual(normalT1, sp.normal_ctn), t1tgt, false, true)}
+      ${atCell(tierActual(normalT2, sp.normal_ctn), t2tgt, false, true)}
+      ${atCell(tierActual(gaTier, sp.ga_ctn), gatgt, false, true)}
+      ${atCell(tierActual(maTier, sp.ma_ctn), matgt, false, true)}
+      ${atCell(rateAct, rateTgt, true, true)}
       ${atCell(newAcc, newAccTgt)}
       ${atCell(vipAct, vipTgt)}
       ${atCell(reactAct, reactTgt)}
       ${atCell(newSkuAct, newSkuTgt)}
-      ${atCell(rateAct, rateTgt, true)}
+      ${atCell(birthdayAct, birthdayTgt)}
+      ${atCell(eventAct, eventTgt)}
+      ${campaignCell(campaign)}
       ${cell(txn)}
       ${cell(wdays)}
       ${cell(avgTxn.toFixed(1))}
@@ -1946,10 +2826,20 @@ async function renderMonthlySummary() {
   });
 
   // TOTAL row
-  const totNormal  = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.normal_ctn||0),0);
-  const totNormTgt = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.tiers?.normal_t1?.target||0),0);
-  const totMA      = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.ma_ctn||0),0);
-  const totMATgt   = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.tiers?.ma?.target||0),0);
+  const tierTotal = (tierKey, fallbackKey) => agents.reduce((s,a) => {
+    const sp = D.agents[a]?.sales_progression || {};
+    const tier = sp.tiers?.[tierKey] || {};
+    return s + Number(tier.actual ?? sp[fallbackKey] ?? 0);
+  }, 0);
+  const tierTargetTotal = (tierKey) => agents.reduce((s,a)=>s+Number(D.agents[a]?.sales_progression?.tiers?.[tierKey]?.target||0),0);
+  const totNormal  = tierTotal('normal_t1', 'normal_ctn');
+  const totNormTgt = tierTargetTotal('normal_t1');
+  const totNormalT2 = tierTotal('normal_t2', 'normal_ctn');
+  const totNormalT2Tgt = tierTargetTotal('normal_t2');
+  const totGA      = tierTotal('ga', 'ga_ctn');
+  const totGATgt   = tierTargetTotal('ga');
+  const totMA      = tierTotal('ma', 'ma_ctn');
+  const totMATgt   = tierTargetTotal('ma');
   // 开新户口 — use Supabase-overridden value (same source as per-agent row)
   const totNew     = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.new_accounts?.actual ?? D.agents[a]?.debtor_cards?.debtors?.filter(d=>d.is_new).length ?? 0)||0),0);
   const totNewTgt  = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.new_accounts?.target)||0),0);
@@ -1962,33 +2852,53 @@ async function renderMonthlySummary() {
   // 加SKU
   const totSku     = agents.reduce((s,a)=>s+(Number(D.agents[a]?.debtor_cards?.total_new_sku)||0),0);
   const totSkuTgt  = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.new_sku?.target)||0),0);
+  // Birthday gift
+  const totBirthday    = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.birthday_campaign?.actual)||0),0);
+  const totBirthdayTgt = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.birthday_campaign?.target)||0),0);
+  // EVENT / PSR
+  const totEvent    = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.event?.actual)||0),0);
+  const totEventTgt = agents.reduce((s,a)=>s+(Number(D.agents[a]?.kpi?.items?.event?.target)||0),0);
   // 光顾率 — team-level: sum active / frozen opening non-personal baseline
   const totActive  = agents.reduce((s,a)=>s+(Number(D.agents[a]?.debtor_cards?.activation_active ?? D.agents[a]?.debtor_cards?.active_count)||0),0);
   const totDebtors = agents.reduce((s,a)=>s+(Number(D.agents[a]?.debtor_cards?.activation_base ?? D.agents[a]?.debtor_cards?.total_debtors)||0),0);
   const totRatePct = totDebtors > 0 ? Math.round(totActive/totDebtors*100) : 0;
-  const totRateCol = totRatePct>=80?'#5de89a':totRatePct>=70?'#ffc94d':'#ff6b6b';
+  const totRateCol = progressColor(totRatePct, 80, true);
   // 交易次数
   const totTxn     = agents.reduce((s,a)=>s+(D.agents[a]?.sales_progression?.txn_count||0),0);
+  const totCampaign = agents.reduce((acc,a) => {
+    const campaign = currentCampaignProgressSummary(D.agents[a]?.kpi?.items || {});
+    acc.actual += campaign.actual;
+    acc.target += campaign.target;
+    return acc;
+  }, {actual: 0, target: 0});
+  totCampaign.pct = totCampaign.target > 0 ? (totCampaign.actual / totCampaign.target * 100) : null;
   // KPI avg
   const totKpi     = agents.reduce((s,a)=>s+(D.agents[a]?.kpi?.total_abc ?? D.agents[a]?.kpi?.grand_total ?? 0),0);
   const avgKpi     = agents.length ? (totKpi/agents.length).toFixed(1) : '—';
 
-  const totCell = (val, tgt=0, col='#fff') => `<div style="font-family:var(--mono);font-size:10px;font-weight:700;
-    padding:7px 6px;text-align:center;border-right:1px solid rgba(255,255,255,.1);color:${col};">
+  const totCell = (val, tgt=0, col='#fff', paceSensitive=false) => `<div style="font-family:var(--mono);font-size:10px;font-weight:700;
+    padding:7px 6px;text-align:center;border-right:1px solid rgba(255,255,255,.1);color:${paceSensitive ? progressColor(val, tgt, true) : col};">
     ${fi(Number(val)||0)}${Number(tgt) > 0 ? `<span style="color:rgba(255,255,255,.3);font-size:9px;">/${fi(Number(tgt)||0)}</span>` : ''}
   </div>`;
 
   html += `<div style="display:grid;grid-template-columns:${cols};gap:0;background:var(--ink);border-top:2px solid var(--border);">
     <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:7px 8px;border-right:1px solid rgba(255,255,255,.1);color:#fff;">TOTAL</div>
-    ${totCell(totNormal, totNormTgt, '#ffc94d')}
-    ${totCell(totMA, totMATgt, '#a78bfa')}
+    ${totCell(totNormal, totNormTgt, '#ffc94d', true)}
+    ${totCell(totNormalT2, totNormalT2Tgt, '#ffc94d', true)}
+    ${totCell(totGA, totGATgt, '#f8b4a0', true)}
+    ${totCell(totMA, totMATgt, '#a78bfa', true)}
+    <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:7px 6px;text-align:center;
+      border-right:1px solid rgba(255,255,255,.1);color:${totRateCol};">${totRatePct}%
+      <div style="font-size:8px;color:rgba(255,255,255,.3);">${totActive}/${totDebtors}</div>
+    </div>
     ${totCell(totNew, totNewTgt)}
     ${totCell(totVip, totVipTgt)}
     ${totCell(totReact, totReactTgt)}
     ${totCell(totSku, totSkuTgt)}
-    <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:7px 6px;text-align:center;
-      border-right:1px solid rgba(255,255,255,.1);color:${totRateCol};">${totRatePct}%
-      <div style="font-size:8px;color:rgba(255,255,255,.3);">${totActive}/${totDebtors}</div>
+    ${totCell(totBirthday, totBirthdayTgt)}
+    ${totCell(totEvent, totEventTgt)}
+    <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:7px 6px;text-align:center;border-right:1px solid rgba(255,255,255,.1);color:#ffcf70;">
+      ${fn(totCampaign.actual)}<span style="color:rgba(255,255,255,.3);font-size:9px;">/${fn(totCampaign.target)}</span>
     </div>
     <div style="font-family:var(--mono);font-size:10px;padding:7px 6px;text-align:center;border-right:1px solid rgba(255,255,255,.1);color:#fff;">${totTxn}</div>
     <div style="border-right:1px solid rgba(255,255,255,.1);"></div>
@@ -2008,18 +2918,23 @@ async function renderMonthlySummary() {
         <span style="font-family:var(--mono);font-size:9px;color:#2a7a4b;font-weight:600;">■ ≥100%</span>
         <span style="font-family:var(--mono);font-size:9px;color:#c8860a;font-weight:600;">■ 70–99%</span>
         <span style="font-family:var(--mono);font-size:9px;color:#c8381a;font-weight:600;">■ &lt;70%</span>
-        <span style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-left:8px;">FORMAT: Actual / Target  Achievement%</span>
+        <span style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-left:8px;">FORMAT: Actual / Target  Achievement% · first 5 compare to workday pace ${expectedPace}%</span>
       </div>
 
       <!-- Column descriptions -->
       ${[
-        ['NORMAL',    'Normal T1 CTN paid this month vs agent target'],
-        ['MASTER AGENT', 'MA-tier CTN (RM/CTN ≥ MA rate) vs MA target'],
+        ['NORMAL T1', 'Normal T1 CTN paid this month vs agent target'],
+        ['NORMAL T2', 'Normal T2 CTN paid this month vs agent target'],
+        ['GA',        'Grey Area CTN paid this month vs GA target'],
+        ['MA',        'MA-tier CTN (RM/CTN ≥ MA rate) vs MA target'],
+        ['光顾率',    'Active debtors ÷ total non-personal debtors vs 80% target'],
         ['开新户口',   'New debtor accounts opened this month vs target'],
         ['VIP',       'Active VIP debtors purchased this month vs target'],
         ['激活户口',   'Debtors reactivated after missing last month vs target'],
         ['加SKU',     'Debtors who bought a new SKU group vs target (17)'],
-        ['光顾率',    'Active debtors ÷ total non-personal debtors vs 80% target'],
+        ['Birthday Gift', 'Birthday gift delivered actual vs eligible target pool'],
+        ['EVENT',     'Admin KPI Manual event/PSR count vs monthly event target'],
+        ['CAMPAIGN',  'Current-month active campaign actual count vs assigned target'],
         ['交易次数',  'Total unique invoices this agent this month'],
         ['工作日',    'Working days elapsed in current month'],
         ['平均交易',  'Avg invoices per working day'],
@@ -2038,35 +2953,72 @@ async function renderMonthlySummary() {
 
 // ── Excel Export ───────────────────────────────────────────────────────────
 function exportMonthlyExcel() {
-  const agents = Object.keys(DATA.agents||{});
-  const month  = DATA.current_month || '';
+  const source = CURRENT_DATA || DATA;
+  const agents = Object.keys(source.agents||{});
+  const month  = source.current_month || '';
 
   // Main summary sheet
   const summaryRows = [
-    ['Agent','Target Normal','Actual Normal','Normal %','Target MA','Actual MA','MA %',
-     '开新户口','VIP','激活户口','加SKU','持续光顾率','交易次数','工作日','平均交易次数','KPI A+B+C Score']
+    ['Agent','Target Normal T1','Actual Normal T1','Normal T1 %',
+     'Target Normal T2','Actual Normal T2','Normal T2 %',
+     'Target GA','Actual GA','GA %',
+     'Target MA','Actual MA','MA %',
+     '持续光顾率',
+     '开新户口','VIP','激活户口','加SKU',
+     'Target Birthday Gift','Actual Birthday Gift','Birthday Gift %',
+     'Target Event','Actual Event','Event %',
+     'Current Campaign Actual','Current Campaign Target','Current Campaign %',
+     '交易次数','工作日','平均交易次数',
+     'Campaign Score','Campaign Max','Campaign %','KPI A+B+C Score']
   ];
 
   agents.forEach(agent => {
-    const sp  = DATA.agents[agent]?.sales_progression || {};
-    const dc  = DATA.agents[agent]?.debtor_cards || {};
-    const kpi = DATA.agents[agent]?.kpi || {};
+    const sp  = source.agents[agent]?.sales_progression || {};
+    const dc  = source.agents[agent]?.debtor_cards || {};
+    const kpi = source.agents[agent]?.kpi || {};
+    const normalT1 = sp.tiers?.normal_t1 || {};
+    const normalT2 = sp.tiers?.normal_t2 || {};
+    const gaTier = sp.tiers?.ga || {};
+    const maTier = sp.tiers?.ma || {};
+    const birthdayItem = kpi.items?.birthday_campaign || {};
+    const eventItem = kpi.items?.event || {};
+    const campaignProgress = currentCampaignProgressSummary(kpi.items || {});
+    const campaign = campaignSectionSummary(kpi.items || {});
+    const tierActual = (tier, fallback=0) => Number(tier.actual ?? fallback ?? 0);
     summaryRows.push([
       agent,
-      sp.tiers?.normal_t1?.target || 0,
-      sp.normal_ctn || 0,
-      (sp.tiers?.normal_t1?.pct || 0).toFixed(1) + '%',
-      sp.tiers?.ma?.target || 0,
-      sp.ma_ctn || 0,
-      (sp.tiers?.ma?.pct || 0).toFixed(1) + '%',
+      normalT1.target || 0,
+      tierActual(normalT1, sp.normal_ctn),
+      (normalT1.pct || 0).toFixed(1) + '%',
+      normalT2.target || 0,
+      tierActual(normalT2, sp.normal_ctn),
+      (normalT2.pct || 0).toFixed(1) + '%',
+      gaTier.target || 0,
+      tierActual(gaTier, sp.ga_ctn),
+      (gaTier.pct || 0).toFixed(1) + '%',
+      maTier.target || 0,
+      tierActual(maTier, sp.ma_ctn),
+      (maTier.pct || 0).toFixed(1) + '%',
+      (dc.activation_rate || 0) + '%',
       dc.debtors?.filter(d=>d.is_new).length || 0,
       dc.debtors?.filter(d=>d.vip).length || 0,
       dc.reactivation_count || 0,
       dc.total_new_sku || 0,
-      (dc.activation_rate || 0) + '%',
+      birthdayItem.target || 0,
+      birthdayItem.actual || 0,
+      birthdayItem.target ? (Number(birthdayItem.actual || 0) / Number(birthdayItem.target || 0) * 100).toFixed(1) + '%' : '',
+      eventItem.target || 0,
+      eventItem.actual || 0,
+      eventItem.target ? (Number(eventItem.actual || 0) / Number(eventItem.target || 0) * 100).toFixed(1) + '%' : '',
+      campaignProgress.actual,
+      campaignProgress.target,
+      campaignProgress.pct == null ? '' : campaignProgress.pct.toFixed(1) + '%',
       sp.txn_count || 0,
       sp.elapsed_working_days || 0,
       sp.avg_txn_per_day || 0,
+      campaign.score.toFixed(2),
+      campaign.max.toFixed(2),
+      campaign.pct == null ? '' : campaign.pct.toFixed(1) + '%',
       (kpi.total_abc ?? kpi.grand_total ?? 0).toFixed(2),
     ]);
   });
@@ -2077,7 +3029,7 @@ function exportMonthlyExcel() {
 
   // Per-agent SKU trend sheets
   agents.forEach(agent => {
-    const sp = DATA.agents[agent]?.sales_progression || {};
+    const sp = source.agents[agent]?.sales_progression || {};
     const months = sp.month_labels || [];
     const trend  = sp.sku_trend || {};
     const active = sp.active_by_month || {};
@@ -3786,12 +4738,25 @@ async function resolveFlag(agent, debtorCode) {
 
 // ── Leaderboard ──
 function setLbMode(mode,btn){lbMode=mode;document.querySelectorAll('.lb-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderLeaderboard();}
+function toggleLeaderboard(){LEADERBOARD_EXPANDED=!LEADERBOARD_EXPANDED;renderLeaderboard();}
 function renderLeaderboard(){
   const DATA = CURRENT_DATA || window.__DATA__;
   const lb=(DATA.team?.leaderboard||[]).slice().sort((a,b)=>
     lbMode==='ctn'?(b.normal_ctn||0)-(a.normal_ctn||0):
     lbMode==='gap'?(a.t1_pct||0)-(b.t1_pct||0):
     (b.t1_pct||0)-(a.t1_pct||0));
+  const mini=document.getElementById('leaderboard-mini');
+  const toggle=document.getElementById('leaderboard-toggle-view');
+  if(mini){
+    mini.textContent=lb.length
+      ? `Top 3: ${lb.slice(0,3).map((e,i)=>`${i+1}. ${e.agent} ${fp(e.t1_pct||0)}`).join(' · ')}`
+      : 'No leaderboard data';
+  }
+  if(toggle) toggle.textContent=LEADERBOARD_EXPANDED?'收起':'展开';
+  if(!LEADERBOARD_EXPANDED){
+    document.getElementById('leaderboard').innerHTML='';
+    return;
+  }
   document.getElementById('leaderboard').innerHTML=lb.map((e,i)=>{
     const p=e.t1_pct||0,w=Math.min(p,100);
     const val=lbMode==='ctn'?fi(e.normal_ctn):fp(p);
@@ -3808,74 +4773,160 @@ function renderGroupBrands(){
   const DATA = CURRENT_DATA || window.__DATA__;
   const gbt=DATA.group_brand_targets||{};
   if(!Object.keys(gbt).length){document.getElementById('group-brands').innerHTML='<div style="padding:14px 16px;font-family:var(--mono);font-size:10px;color:var(--ink3);">No group targets set</div>';return;}
+  const pace = apPace(DATA);
+  const groupBrandPaceColor = pct => pct >= 100 ? 'var(--green)' : pct >= pace ? 'var(--gold)' : 'var(--accent)';
+  const groupBrandPaceBarColor = pct => pct >= 100 ? '#2a7a4b' : pct >= pace ? '#c8860a' : '#c8381a';
   const tT=Object.values(gbt).reduce((s,b)=>s+(b.target_ctn||0),0);
   const tA=Object.values(gbt).reduce((s,b)=>s+(b.actual_ctn||0),0);
-  document.getElementById('grp-total').textContent=`${fi(tA)} / ${fi(tT)} (${tT?(tA/tT*100).toFixed(1):0}%)`;
+  document.getElementById('grp-total').textContent=`${fi(tA)} / ${fi(tT)} (${tT?(tA/tT*100).toFixed(1):0}%) · 应达 ${fp(pace)}`;
   document.getElementById('group-brands').innerHTML=Object.entries(gbt).map(([brand,d])=>{
-    const p=d.pct||0,color=GB[brand]||'#333',gap=d.gap;
+    const p=d.pct||0,color=GB[brand]||'#333';
+    const paceTarget=(d.target_ctn||0) * pace / 100;
+    const paceGap=(d.actual_ctn||0)-paceTarget;
     return`<div class="grp-row">
       <div><div class="grp-name" style="color:${color}">${brand}</div><div class="grp-nums">${fi(d.actual_ctn)} / ${fi(d.target_ctn)} CTN</div></div>
-      <div><div class="grp-bar-wrap"><div class="grp-bar-fill" style="width:${Math.min(p,100)}%;background:${bc(p)}"></div></div></div>
-      <div><div class="grp-pct" style="color:${pc(p)}">${fp(p)}</div><div class="grp-gap" style="color:${gap>=0?'var(--green)':'var(--accent)'}">${gap!=null?(gap>=0?'+':'')+fi(gap)+' CTN':'—'}</div></div>
+      <div><div class="grp-bar-wrap"><div class="grp-bar-fill" style="width:${Math.min(p,100)}%;background:${groupBrandPaceBarColor(p)}"></div></div></div>
+      <div><div class="grp-pct" style="color:${groupBrandPaceColor(p)}">${fp(p)}</div><div class="grp-gap" style="color:${paceGap>=0?'var(--green)':'var(--accent)'}">应达 ${fp(pace)} · ${paceGap>=0?'+':''}${fi(paceGap)} CTN</div></div>
     </div>`;
   }).join('');}
 
 // ── Commission Heatmap ──
 function renderCommHeatmap(){
   const DATA = CURRENT_DATA || window.__DATA__;
+  const el = document.getElementById('comm-heatmap');
+  if (!el) return;
   const agents=Object.keys(DATA.agents||{});
-  const brands=Object.keys(DATA.config?.brand_config||BC);
-  const aw='65px',bw=`${Math.floor(75/brands.length)}%`;
-  const tw='38px';
-  let html=`<div class="heat-table"><div class="heat-grid" style="grid-template-columns:${aw} ${brands.map(()=>bw).join(' ')} ${tw} ${tw}">`;
-  html+=`<div class="h-hdr" style="text-align:left;padding-left:8px;">Agent</div>`;
-  brands.forEach(b=>html+=`<div class="h-hdr">${b.replace('LAM+LWM','L+L')}</div>`);
-  html+=`<div class="h-hdr" style="color:var(--green);">✓</div>`;
-  html+=`<div class="h-hdr" style="color:var(--gold);">½</div>`;
+  const configured=Object.keys(DATA.config?.brand_config||BC);
+  const preferred=['EVO','TR20','BISON','SUKUN','iFACE','LAM+LWM'];
+  const brands=[
+    ...preferred.filter(b=>configured.includes(b)),
+    ...configured.filter(b=>!preferred.includes(b)),
+  ];
+  const AUTO_B=new Set(['iFACE','SUKUN','BISON','TR20']);
+  const totals={};
+  brands.forEach(b=>{
+    totals[b]={both:0,half:0,penHits:0,ctnHits:0,nonBuyers:0,penActual:0,penTarget:0,ctnSold:0,ctnTarget:0};
+  });
+  const exportRows=[];
+  const penHitAgents=new Set();
+  const ctnHitAgents=new Set();
 
-  // Brand totals accumulators
-  const brandHit={}, brandOne={};
-  brands.forEach(b=>{ brandHit[b]=0; brandOne[b]=0; });
+  let html=`<table class="comm-merged-table"><thead><tr>
+    <th style="text-align:left;position:sticky;left:0;z-index:2;">Agent</th>
+    ${brands.map(b=>`<th>${mgmtEsc(b.replace('LAM+LWM','L+L'))}<span class="comm-brand-sub">${AUTO_B.has(b)?'Auto Pen':'Manual Pen'}</span></th>`).join('')}
+    <th style="color:var(--green);">✓ Brands</th>
+    <th style="color:var(--gold);">½ Brands</th>
+  </tr></thead><tbody>`;
 
   agents.forEach(agent=>{
     const bcomm=DATA.agents[agent]?.brand_commission||{};
-    html+=`<div class="h-agent" onclick="openDrill('${agent}')">${agent}</div>`;
     let bothCount=0;
     let halfCount=0;
+    const brandData={};
+    html+=`<tr><td class="comm-agent-cell" onclick="openDrill(${JSON.stringify(agent)})">${mgmtEsc(agent)}</td>`;
     brands.forEach(b=>{
-      const st=bcomm[b]?.status||'none_hit';
+      const bdata=bcomm[b]||{};
+      const pen=bdata.penetration||{};
+      const ctn=bdata.ctn||{};
+      const st=bdata.both_hit || bdata.status==='both_hit' ? 'both_hit' : bdata.status==='one_hit' ? 'one_hit' : 'none_hit';
       const cls=st==='both_hit'?'hc-g':st==='one_hit'?'hc-o':'hc-r';
       const icon=st==='both_hit'?'✓':st==='one_hit'?'½':'✗';
-      if(st==='both_hit'){ brandHit[b]++; bothCount++; }
-      else if(st==='one_hit'){ brandOne[b]++; halfCount++; }
-      html+=`<div class="h-cell ${cls}">${icon}</div>`;
+      const penActual=Number(pen.count ?? bdata.new_penetrations ?? 0);
+      const penTarget=Number(pen.target ?? bdata.penetration_target ?? 0);
+      const nonBuyersRaw=bdata.non_buyers;
+      const nonBuyers=nonBuyersRaw == null ? null : Number(nonBuyersRaw);
+      const nonBuyerText=nonBuyers == null ? '—' : fn(nonBuyers);
+      const ctnSold=Number(ctn.sold ?? bdata.cur_ctn ?? 0);
+      const ctnTarget=Number(ctn.target ?? bdata.ctn_target ?? 0);
+      const penHit=penTarget>0 && (pen.hit===true || (pen.hit == null && penActual>=penTarget));
+      const ctnHit=ctnTarget>0 && (ctn.hit===true || (ctn.hit == null && ctnSold>=ctnTarget));
+      if(st==='both_hit'){ totals[b].both++; bothCount++; }
+      else if(st==='one_hit'){ totals[b].half++; halfCount++; }
+      if(penHit){ totals[b].penHits++; penHitAgents.add(agent); }
+      if(ctnHit){ totals[b].ctnHits++; ctnHitAgents.add(agent); }
+      totals[b].nonBuyers+=Number(nonBuyers)||0;
+      totals[b].penActual+=penActual;
+      totals[b].penTarget+=penTarget;
+      totals[b].ctnSold+=ctnSold;
+      totals[b].ctnTarget+=ctnTarget;
+      brandData[b]={
+        status:st,
+        notBought:nonBuyers ?? '',
+        target:penTarget,
+        thisMonth:penActual,
+        ctnSold,
+        ctnTarget,
+        penHit,
+        ctnHit,
+      };
+      html+=`<td class="comm-status-cell ${cls}" title="${mgmtEsc(b)} · Pen ${fn(penActual)}/${fn(penTarget)} ${penHit?'hit':'miss'} · NB ${nonBuyerText} · CTN ${fn(ctnSold)}/${fn(ctnTarget)} ${ctnHit?'hit':'miss'}">
+        <div class="comm-status-main">${icon}</div>
+        <div class="comm-status-meta">Pen ${fn(penActual)}/${fn(penTarget)}</div>
+        <div class="comm-status-sub">NB ${nonBuyerText} · CTN ${fn(ctnSold)}/${fn(ctnTarget)}</div>
+      </td>`;
     });
-    html+=`<div class="h-cell ${bothCount>0?'hc-g':'hc-r'}" style="font-weight:700;">${bothCount}</div>`;
-    html+=`<div class="h-cell ${halfCount>0?'hc-o':'hc-r'}" style="font-weight:700;">${halfCount}</div>`;
+    html+=`<td class="comm-total-cell ${bothCount>0?'hc-g':'hc-r'}">${bothCount}</td>`;
+    html+=`<td class="comm-total-cell ${halfCount>0?'hc-o':'hc-r'}">${halfCount}</td></tr>`;
+    exportRows.push({agent,brand_data:brandData});
   });
 
-  // Brand totals row
-  html+=`<div class="h-agent" style="font-size:9px;color:var(--green);">Total ✓</div>`;
+  const grandBoth=brands.reduce((s,b)=>s+totals[b].both,0);
+  const grandHalf=brands.reduce((s,b)=>s+totals[b].half,0);
+  const grandPenHits=brands.reduce((s,b)=>s+totals[b].penHits,0);
+  const grandCtnHits=brands.reduce((s,b)=>s+totals[b].ctnHits,0);
+  html+=`<tr><td class="comm-agent-cell" style="color:var(--green);">Total ✓</td>`;
   brands.forEach(b=>{
-    const tot=brandHit[b];
-    const cls=tot===agents.length?'hc-g':tot>0?'hc-g':'hc-r';
-    html+=`<div class="h-cell ${cls}" style="font-weight:700;">${tot}</div>`;
+    const t=totals[b];
+    html+=`<td class="comm-status-cell ${t.both>0?'hc-g':'hc-r'}">
+      <div class="comm-status-main">${t.both}</div>
+      <div class="comm-status-meta">Pen ${fn(t.penActual)}/${fn(t.penTarget)}</div>
+      <div class="comm-status-sub">NB ${fn(t.nonBuyers)} · CTN ${fn(t.ctnSold)}/${fn(t.ctnTarget)}</div>
+    </td>`;
   });
-  const grandBoth=brands.reduce((s,b)=>s+brandHit[b],0);
-  const grandHalf=brands.reduce((s,b)=>s+brandOne[b],0);
-  html+=`<div class="h-cell ${grandBoth>0?'hc-g':'hc-r'}" style="font-weight:700;">${grandBoth}</div>`;
-  html+=`<div class="h-cell hc-r" style="font-weight:700;">—</div>`;
+  html+=`<td class="comm-total-cell ${grandBoth>0?'hc-g':'hc-r'}">${grandBoth}</td><td class="comm-total-cell hc-r">—</td></tr>`;
 
-  html+=`<div class="h-agent" style="font-size:9px;color:var(--gold);">Total ½</div>`;
+  html+=`<tr><td class="comm-agent-cell" style="color:var(--gold);">Total ½</td>`;
   brands.forEach(b=>{
-    const tot=brandOne[b];
-    html+=`<div class="h-cell ${tot>0?'hc-o':'hc-r'}" style="font-weight:700;">${tot}</div>`;
+    const t=totals[b];
+    html+=`<td class="comm-status-cell ${t.half>0?'hc-o':'hc-r'}">
+      <div class="comm-status-main">${t.half}</div>
+      <div class="comm-status-meta">Pen ${fn(t.penActual)}/${fn(t.penTarget)}</div>
+      <div class="comm-status-sub">NB ${fn(t.nonBuyers)} · CTN ${fn(t.ctnSold)}/${fn(t.ctnTarget)}</div>
+    </td>`;
   });
-  html+=`<div class="h-cell hc-r" style="font-weight:700;">—</div>`;
-  html+=`<div class="h-cell ${grandHalf>0?'hc-o':'hc-r'}" style="font-weight:700;">${grandHalf}</div>`;
+  html+=`<td class="comm-total-cell hc-r">—</td><td class="comm-total-cell ${grandHalf>0?'hc-o':'hc-r'}">${grandHalf}</td></tr>`;
 
-  html+=`</div></div>`;
-  document.getElementById('comm-heatmap').innerHTML=html;}
+  html+=`<tr><td class="comm-agent-cell" style="color:var(--blue);">Pen Hit Agents</td>`;
+  brands.forEach(b=>{
+    const t=totals[b];
+    html+=`<td class="comm-status-cell ${t.penHits>0?'hc-g':'hc-r'}">
+      <div class="comm-status-main">${t.penHits}</div>
+      <div class="comm-status-meta">agents hit</div>
+      <div class="comm-status-sub">Pen ${fn(t.penActual)}/${fn(t.penTarget)}</div>
+    </td>`;
+  });
+  html+=`<td class="comm-total-cell ${penHitAgents.size>0?'hc-g':'hc-r'}"><div>${penHitAgents.size}</div><div class="comm-status-sub">agents hit</div></td><td class="comm-total-cell ${grandPenHits>0?'hc-g':'hc-r'}"><div>${grandPenHits}</div><div class="comm-status-sub">brand hits</div></td></tr>`;
+
+  html+=`<tr><td class="comm-agent-cell" style="color:var(--green);">Sales Qty Hit Agents</td>`;
+  brands.forEach(b=>{
+    const t=totals[b];
+    html+=`<td class="comm-status-cell ${t.ctnHits>0?'hc-g':'hc-r'}">
+      <div class="comm-status-main">${t.ctnHits}</div>
+      <div class="comm-status-meta">agents hit</div>
+      <div class="comm-status-sub">CTN ${fn(t.ctnSold)}/${fn(t.ctnTarget)}</div>
+    </td>`;
+  });
+  html+=`<td class="comm-total-cell ${ctnHitAgents.size>0?'hc-g':'hc-r'}"><div>${ctnHitAgents.size}</div><div class="comm-status-sub">agents hit</div></td><td class="comm-total-cell ${grandCtnHits>0?'hc-g':'hc-r'}"><div>${grandCtnHits}</div><div class="comm-status-sub">brand hits</div></td></tr>`;
+
+  html+=`</tbody></table>`;
+  el.innerHTML=html;
+  _lastBrandExport={
+    month:CURRENT_DATA?.current_month || DATA?.current_month || '',
+    brands,
+    rows:exportRows,
+  };
+  window._lastBrandExport = _lastBrandExport;
+}
 
 // ── Brand SKU Penetration Status ──────────────────────────────────────────
 function renderBrandSkuStatus() {
@@ -3961,6 +5012,7 @@ function renderBrandSkuStatus() {
     brands: BRANDS,
     rows: brandRows,
   };
+  window._lastBrandExport = _lastBrandExport;
 }
 
 // ── Brand Volume Alert ─────────────────────────────────────────────────────
@@ -4049,6 +5101,7 @@ const GAINING_DEBTORS_PER_PAGE = 12;
 const DROPPING_DEBTORS_PER_PAGE = 12;
 const MGMT_UNPURCHASED_PAGE_SIZE = 12;
 let mgmtUnpurchasedMode = 'agent'; // 'agent' | 'combined'
+let mgmtUnpurchasedView = 'unpurchased'; // 'unpurchased' | 'buyers'
 let mgmtUnpurchasedBrand = 'IFACE';
 let mgmtUnpurchasedType = 'all';
 let mgmtUnpurchasedAgent = 'all';
@@ -4086,6 +5139,27 @@ const MGMT_UNPURCHASED_BRAND_ITEMS = {
   'TR20':    ['TR20'],
   'LAM+LWM': ['LAM','LWM'],
 };
+
+function mgmtUnpurchasedBrands(D=CURRENT_DATA||DATA) {
+  const configured = progressZlbBrands(D)
+    .map(brand => progressZlbUnpurchasedBrandKey(brand))
+    .filter(Boolean);
+  const source = configured.length ? configured : Object.keys(MGMT_UNPURCHASED_BRAND_ITEMS);
+  return [...new Set(source)]
+    .filter(Boolean)
+    .sort((a, b) => progressZlbBrandSortKey(a) - progressZlbBrandSortKey(b) || String(a).localeCompare(String(b)));
+}
+
+function mgmtUnpurchasedBrandItems(brand) {
+  const D = CURRENT_DATA || DATA;
+  const upper = String(brand || '').trim().toUpperCase();
+  const configKey = Object.keys(D?.config?.brand_config || {}).find(key => String(key).trim().toUpperCase() === upper);
+  const configured = configKey ? (D.config.brand_config[configKey] || []) : [];
+  const fallback = MGMT_UNPURCHASED_BRAND_ITEMS[brand] || MGMT_UNPURCHASED_BRAND_ITEMS[upper] || [];
+  return new Set((configured.length ? configured : fallback)
+    .map(item => String(item || '').trim().toUpperCase())
+    .filter(Boolean));
+}
 
 function movementChipHtml(label, active, onclick, color='var(--ink)') {
   const style = active
@@ -4150,19 +5224,29 @@ function mgmtMonthIndex(label) {
 }
 
 function mgmtBrandPurchaseStats(d, brand) {
-  const items = MGMT_UNPURCHASED_BRAND_ITEMS[brand] || [];
+  const items = mgmtUnpurchasedBrandItems(brand);
   const mb = d.month_breakdown || {};
-  const curIdx = mgmtMonthIndex((CURRENT_DATA || DATA)?.current_month || '');
+  const currentMonth = (CURRENT_DATA || DATA)?.current_month || '';
+  const prevMonths = new Set(progressZlbPrevMonthLabels(CURRENT_DATA || DATA, 3));
+  const curIdx = mgmtMonthIndex(currentMonth);
   let total = 0;
+  let currentMonthCtn = 0;
+  let prevLookbackCtn = 0;
   let lastMonth = '';
   let lastIdx = null;
   Object.entries(mb).forEach(([month, rows]) => {
     (rows || []).forEach(r => {
-      if (!items.includes(r.item)) return;
+      const item = String(r.item || '').trim().toUpperCase();
+      if (!items.has(item)) return;
       const ctn = Number(r.ctn || 0);
       if (ctn <= 0) return;
       total += ctn;
+      if (month === currentMonth) currentMonthCtn += ctn;
       const idx = mgmtMonthIndex(month);
+      const inPrevLookback = prevMonths.size
+        ? prevMonths.has(month)
+        : (curIdx != null && idx != null && idx < curIdx && idx >= curIdx - 3);
+      if (inPrevLookback) prevLookbackCtn += ctn;
       if (idx != null && (lastIdx == null || idx > lastIdx)) {
         lastIdx = idx;
         lastMonth = month;
@@ -4171,7 +5255,7 @@ function mgmtBrandPurchaseStats(d, brand) {
   });
   const monthsKnown = Math.max(4, Object.keys(mb).length || 4);
   const monthsSince = (curIdx != null && lastIdx != null) ? Math.max(0, curIdx - lastIdx) : `${monthsKnown}+`;
-  return { total, lastMonth, monthsSince };
+  return { total, currentMonthCtn, prevLookbackCtn, lastMonth, monthsSince };
 }
 
 function mgmtGetAllUnpurchasedRows() {
@@ -4189,7 +5273,7 @@ function mgmtGetAllUnpurchasedRows() {
           !String(d.phone || '').toLowerCase().includes(search)) return;
       if (mgmtUnpurchasedAgent !== 'all' && agent !== mgmtUnpurchasedAgent) return;
       const brandStats = {};
-      Object.keys(MGMT_UNPURCHASED_BRAND_ITEMS).forEach(brand => {
+      mgmtUnpurchasedBrands(D).forEach(brand => {
         brandStats[brand] = mgmtBrandPurchaseStats(d, brand);
       });
       rows.push({ agent, type, debtor: d, brandStats });
@@ -4200,12 +5284,16 @@ function mgmtGetAllUnpurchasedRows() {
 
 function mgmtCurrentUnpurchasedRows() {
   const base = mgmtGetAllUnpurchasedRows();
+  const brandMatchesView = (stats) => {
+    if (mgmtUnpurchasedView === 'buyers') return Number(stats?.currentMonthCtn || 0) > 0;
+    return Number(stats?.prevLookbackCtn || 0) === 0;
+  };
   const brandCounts = {};
-  Object.keys(MGMT_UNPURCHASED_BRAND_ITEMS).forEach(brand => {
-    brandCounts[brand] = base.filter(r => r.brandStats[brand]?.total === 0).length;
+  mgmtUnpurchasedBrands(CURRENT_DATA || DATA).forEach(brand => {
+    brandCounts[brand] = base.filter(r => brandMatchesView(r.brandStats[brand])).length;
   });
 
-  const selectedBrandRows = base.filter(r => r.brandStats[mgmtUnpurchasedBrand]?.total === 0);
+  const selectedBrandRows = base.filter(r => brandMatchesView(r.brandStats[mgmtUnpurchasedBrand]));
   const typeCounts = {};
   selectedBrandRows.forEach(r => {
     typeCounts[r.type] = (typeCounts[r.type] || 0) + 1;
@@ -4220,6 +5308,8 @@ function mgmtCurrentUnpurchasedRows() {
 function mgmtUnpurchasedCard(r, index, showAgent) {
   const d = r.debtor;
   const stat = r.brandStats[mgmtUnpurchasedBrand] || {};
+  const isBuyers = mgmtUnpurchasedView === 'buyers';
+  const boughtThisMonth = Number(stat.currentMonthCtn || 0) > 0;
   return `<div style="padding:10px 12px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:${showAgent?'64px ':''}1fr 130px;gap:10px;align-items:center;">
     ${showAgent ? `<div style="font-family:var(--display);font-size:13px;color:var(--accent);letter-spacing:.04em;">${mgmtEsc(r.agent)}</div>` : ''}
     <div style="min-width:0;">
@@ -4227,8 +5317,8 @@ function mgmtUnpurchasedCard(r, index, showAgent) {
       <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">${mgmtEsc(d.debtor_code)} · ${mgmtEsc(r.type)}${d.phone ? ' · ' + mgmtEsc(d.phone) : ''}</div>
     </div>
     <div style="text-align:right;font-family:var(--mono);font-size:9px;color:var(--ink3);">
-      <div style="color:var(--accent);font-size:10px;">未购买 ${mgmtEsc(mgmtUnpurchasedBrand)}</div>
-      <div>last: ${mgmtEsc(stat.lastMonth || 'none in lookback')}</div>
+      <div style="color:${isBuyers || boughtThisMonth ? 'var(--green)' : 'var(--accent)'};font-size:10px;">${isBuyers ? '本月购买' : '前三个月未购买'} ${mgmtEsc(progressZlbBrandLabel(mgmtUnpurchasedBrand))}</div>
+      <div>${isBuyers || boughtThisMonth ? `本月 ${fn(stat.currentMonthCtn || 0)} CTN` : `last: ${mgmtEsc(stat.lastMonth || 'none in lookback')}`}</div>
     </div>
   </div>`;
 }
@@ -4241,12 +5331,19 @@ function renderMgmtUnpurchasedOverview() {
 
   const D = CURRENT_DATA || DATA;
   const agents = Object.keys(D?.agents || {}).sort();
+  const brands = mgmtUnpurchasedBrands(D);
+  if (!brands.includes(mgmtUnpurchasedBrand)) mgmtUnpurchasedBrand = brands[0] || 'IFACE';
   const { rows, brandCounts, typeCounts, selectedBrandRows } = mgmtCurrentUnpurchasedRows();
   const activeAgents = new Set(rows.map(r => r.agent));
-  const brandButtons = Object.keys(MGMT_UNPURCHASED_BRAND_ITEMS).map(brand => {
+  const isBuyers = mgmtUnpurchasedView === 'buyers';
+  const brandButtons = brands.map(brand => {
     const safe = brand.replace(/'/g, "\\'");
-    return `<button class="filter-chip ${brand === mgmtUnpurchasedBrand ? 'active' : ''}" onclick="setMgmtUnpurchasedBrand('${safe}')">${mgmtEsc(brand)} (${brandCounts[brand] || 0})</button>`;
+    return `<button class="filter-chip ${brand === mgmtUnpurchasedBrand ? 'active' : ''}" onclick="setMgmtUnpurchasedBrand('${safe}')">${mgmtEsc(progressZlbBrandLabel(brand))} (${brandCounts[brand] || 0})</button>`;
   }).join('');
+  const viewButtons = [
+    `<button class="filter-chip ${!isBuyers ? 'active' : ''}" onclick="setMgmtUnpurchasedView('unpurchased')">未购买</button>`,
+    `<button class="filter-chip ${isBuyers ? 'active' : ''}" onclick="setMgmtUnpurchasedView('buyers')">本月购买</button>`,
+  ].join('');
   const typeButtons = [
     `<button class="filter-chip ${mgmtUnpurchasedType === 'all' ? 'active' : ''}" onclick="setMgmtUnpurchasedType('all')">ALL (${selectedBrandRows.length})</button>`,
     ...Object.entries(typeCounts)
@@ -4305,6 +5402,7 @@ function renderMgmtUnpurchasedOverview() {
   _lastMgmtUnpurchasedExport = {
     month: D?.current_month || '',
     brand: mgmtUnpurchasedBrand,
+    view: mgmtUnpurchasedView,
     mode: mgmtUnpurchasedMode,
     rows,
   };
@@ -4312,9 +5410,10 @@ function renderMgmtUnpurchasedOverview() {
   el.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
       <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);background:rgba(255,255,255,.04);border-left:2px solid var(--accent);padding:7px 10px;border-radius:6px;">
-        ${rows.length} 个客户从未购买 ${mgmtEsc(mgmtUnpurchasedBrand)} · 近4个月 · 不含Personal · across ${activeAgents.size} agents
+        ${rows.length} 个客户${isBuyers ? '本月购买' : '前三个月未购买'} ${mgmtEsc(progressZlbBrandLabel(mgmtUnpurchasedBrand))} · ${isBuyers ? '本月' : 'ZLB penetration pool'} · 不含Personal · across ${activeAgents.size} agents
       </div>
       <div style="display:flex;gap:6px;">
+        ${viewButtons}
         <button class="filter-chip ${mgmtUnpurchasedMode === 'agent' ? 'active' : ''}" onclick="setMgmtUnpurchasedMode('agent')">👥 By Agent</button>
         <button class="filter-chip ${mgmtUnpurchasedMode === 'combined' ? 'active' : ''}" onclick="setMgmtUnpurchasedMode('combined')">📋 All Combined</button>
       </div>
@@ -4334,8 +5433,16 @@ function setMgmtUnpurchasedMode(mode) {
   renderMgmtUnpurchasedOverview();
 }
 
+function setMgmtUnpurchasedView(view) {
+  mgmtUnpurchasedView = view === 'buyers' ? 'buyers' : 'unpurchased';
+  mgmtUnpurchasedType = 'all';
+  mgmtUnpurchasedCombinedPage = 1;
+  mgmtUnpurchasedAgentPages = {};
+  renderMgmtUnpurchasedOverview();
+}
+
 function setMgmtUnpurchasedBrand(brand) {
-  mgmtUnpurchasedBrand = brand;
+  mgmtUnpurchasedBrand = progressZlbUnpurchasedBrandKey(brand);
   mgmtUnpurchasedType = 'all';
   mgmtUnpurchasedCombinedPage = 1;
   mgmtUnpurchasedAgentPages = {};
@@ -4926,45 +6033,6 @@ function renderDroppingDebtors(resetPage=true) {
   list.innerHTML += pager;
 }
 
-// ── Newbie Progress ──
-function renderNewbieProgress(){
-  const DATA = CURRENT_DATA || window.__DATA__;
-  const agents=Object.keys(DATA.agents||{});
-  const newbies=agents.filter(a=>DATA.agents[a]?.newbie_scheme?.is_newbie);
-  if(!newbies.length){document.getElementById('newbie-section').style.display='none';return;}
-  document.getElementById('newbie-section').style.display='block';
-  document.getElementById('newbie-cards').innerHTML=newbies.map(agent=>{
-    const nb=DATA.agents[agent].newbie_scheme;
-    const ctn=nb.normal_ctn||0;
-    const tiers=[...( nb.ctn_tiers||[])].sort((a,b)=>a.threshold-b.threshold);
-    const tiersHtml=tiers.map((t,i)=>{
-      const hit=ctn>=t.threshold;
-      const isCurr=!hit&&(i===0||ctn>=(tiers[i-1]?.threshold||0));
-      return`<div class="nb-tier ${hit?'hit':isCurr?'curr':''}">
-        <div class="nb-tier-lbl">T${i+1}</div>
-        <div class="nb-tier-val" style="color:${hit?'var(--green)':'var(--ink)'}">${fi(t.threshold)}</div>
-        <div class="nb-tier-rew">${hit?'✓ ':''}RM${fi(t.reward)}</div>
-        ${!hit?`<div style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin-top:2px;">${t.threshold?(ctn/t.threshold*100).toFixed(0):0}%</div>`:''}
-      </div>`;
-    }).join('');
-    return`<div class="nb-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div class="nb-agent">${agent}</div>
-        <div style="text-align:right;">
-          <div style="font-family:var(--display);font-size:22px;color:var(--purple)">${fi(ctn)}</div>
-          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3)">Normal CTN</div>
-          ${nb.total_incentive>0?`<div style="font-family:var(--mono);font-size:10px;color:var(--green);margin-top:2px">RM${fi(nb.total_incentive)} earned</div>`:''}
-        </div>
-      </div>
-      <div class="nb-tiers">${tiersHtml}</div>
-      <div class="nb-acc">
-        <div><div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;color:var(--ink3);letter-spacing:.07em">New Accounts</div>
-        <div style="font-family:var(--display);font-size:20px">${nb.new_accounts||0}</div></div>
-        ${nb.acc_tier_hit?`<div style="font-family:var(--mono);font-size:10px;color:var(--green)">✓ Bonus RM${fi(nb.acc_reward)}</div>`:`<div style="font-family:var(--mono);font-size:9px;color:var(--ink3)">No bonus yet</div>`}
-      </div>
-    </div>`;
-  }).join('');}
-
 // ── Aging Overview ──
 function renderAgingOverview(){
   const DATA = CURRENT_DATA || window.__DATA__;
@@ -4998,7 +6066,25 @@ function renderAgingOverview(){
   document.getElementById('aging-overview').innerHTML=html;}
 
 // ── Drill-down ──
+let MGMT_OVERVIEW_SCROLL_Y = 0;
+
+function rememberOverviewScroll() {
+  const overview = document.getElementById('overview-view');
+  if (overview?.classList.contains('active')) {
+    MGMT_OVERVIEW_SCROLL_Y = window.scrollY || document.documentElement.scrollTop || 0;
+  }
+}
+
+function restoreOverviewScroll() {
+  const y = Math.max(0, Number(MGMT_OVERVIEW_SCROLL_Y) || 0);
+  requestAnimationFrame(() => {
+    window.scrollTo({top: y, left: 0, behavior: 'auto'});
+    requestAnimationFrame(() => window.scrollTo({top: y, left: 0, behavior: 'auto'}));
+  });
+}
+
 function openDrill(agent){
+  rememberOverviewScroll();
   const lb=DATA.team?.leaderboard||[];
   const entry=lb.find(e=>e.agent===agent)||{};
   const aData=DATA.agents[agent]||{};
@@ -5088,7 +6174,7 @@ function openDrill(agent){
 function closeDrill(){
   document.getElementById('drill-view').classList.remove('active');
   document.getElementById('overview-view').classList.add('active');
-  window.scrollTo(0,0);
+  restoreOverviewScroll();
 }
 
 // ── Analytics ──────────────────────────────────────────────────────────────

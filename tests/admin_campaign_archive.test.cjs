@@ -60,6 +60,16 @@ assert.strictEqual(JSON.stringify(context.campaignArchiveMonthRange('May 26')), 
 assert.strictEqual(context.campaignOverlapsWorkingMonth(campaigns[1], 'May 26'), true);
 assert.strictEqual(context.campaignOverlapsWorkingMonth(campaigns[2], 'May 26'), false);
 assert.strictEqual(context.campaignOverlapsWorkingMonth(campaigns[3], 'May 26'), true);
+assert.strictEqual(context.campaignExpiredBeforeWorkingMonth(campaigns[0], 'Jun 26'), true);
+assert.strictEqual(context.campaignOperationalInWorkingMonth(campaigns[0], 'Jun 26'), false);
+assert.strictEqual(context.campaignOperationalInWorkingMonth(campaigns[0], 'May 26'), true);
+assert.strictEqual(context.campaignOperationalInWorkingMonth({
+  id: 'open-active',
+  name: 'Open Active',
+  active: true,
+  created_at: '2026-05-01T00:00:00Z',
+  debtors: [],
+}, 'Jun 26'), true);
 
 const monthFiltered = context.filterClosedCampaignsForArchive(campaigns, 'May 26', 'month', '');
 assert.deepStrictEqual(monthFiltered.map(c => c.id), ['open', 'may']);
@@ -78,5 +88,7 @@ assert(archiveHtml.includes('This month'), 'archive drawer should include month 
 assert(archiveHtml.includes('data-archive-deliveries-count'), 'closed card summary should include delivered count placeholder');
 assert(archiveHtml.includes('Danger'), 'archive drawer should keep delete in a danger section');
 assert(archiveHtml.includes('Delete forever'), 'permanent delete should be available only inside danger details');
+assert(html.includes('function campaignExpiredBeforeWorkingMonth'), 'Admin should detect active campaigns that expired before the Working Month');
+assert(html.includes('renderExpiredActiveCampaignsPanel'), 'Admin should separate expired active campaigns from the Working Month active list');
 
 console.log('admin_campaign_archive.test.cjs passed');

@@ -54,8 +54,8 @@ if %errorlevel% neq 0 (
 echo Done.
 echo.
 
-REM -- Step 0b: Sync latest MD Sales Report source -----------
-echo [0b/5] Syncing MD Sales Report source...
+REM -- Step 0b: Sync latest source workbooks ----------------
+echo [0b/5] Syncing source workbooks...
 set DESKTOP_SALES_FILE=%USERPROFILE%\Desktop\md-dashboard\MD Sales Report.xlsx
 set LIVE_SALES_FILE=%CD%\MD Sales Report.xlsx
 if exist "%DESKTOP_SALES_FILE%" (
@@ -66,6 +66,19 @@ if exist "%DESKTOP_SALES_FILE%" (
     )
 ) else (
     echo WARNING: Desktop MD Sales Report not found: %DESKTOP_SALES_FILE%
+    echo          Continuing with live folder source.
+)
+
+set DESKTOP_DEBTOR_FILE=%USERPROFILE%\Desktop\md-dashboard\Debtor Maintenance.xlsx
+set LIVE_DEBTOR_FILE=%CD%\Debtor Maintenance.xlsx
+if exist "%DESKTOP_DEBTOR_FILE%" (
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "$src='%DESKTOP_DEBTOR_FILE%'; $dest='%LIVE_DEBTOR_FILE%'; $s=Get-Item -LiteralPath $src; $d=Get-Item -LiteralPath $dest -ErrorAction SilentlyContinue; if (!$d -or $s.LastWriteTime -gt $d.LastWriteTime -or $s.Length -ne $d.Length) { Copy-Item -LiteralPath $src -Destination $dest -Force; Write-Host ('Copied desktop Debtor Maintenance: ' + $s.LastWriteTime.ToString('yyyy-MM-dd HH:mm') + ' (' + $s.Length + ' bytes)') } else { Write-Host ('Live Debtor Maintenance already current: ' + $d.LastWriteTime.ToString('yyyy-MM-dd HH:mm') + ' (' + $d.Length + ' bytes)') }"
+    if errorlevel 1 (
+        echo ERROR: Could not sync desktop Debtor Maintenance.
+        pause & exit /b 1
+    )
+) else (
+    echo WARNING: Desktop Debtor Maintenance not found: %DESKTOP_DEBTOR_FILE%
     echo          Continuing with live folder source.
 )
 echo Done.
@@ -127,6 +140,7 @@ echo.
 REM -- Step 5: Push to GitHub -------------------------------
 echo [5/5] Pushing to GitHub...
 git add dashboard_data.json debtor_analysis_data.json history.json targets.json
+git add process_data.py targets_loader.py
 git add sales_dashboard.html management.html admin.html admin_context.js
 git add accounts.html campaign_audit.html stock.html stock_calendar.html debtor_analysis.html debtor_map.html index.html
 git add data_*.json months_index.json 2>nul
