@@ -869,14 +869,28 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
               <input type="text" id="brand-pen-brand" value="IFACE" style="text-transform:uppercase;">
             </div>
           </div>
-          <div class="input-row" style="margin-bottom:8px;">
-            <div class="field-wrap">
-              <div class="field-lbl">Match Values</div>
-              <input type="text" id="brand-pen-values" value="IFACE, IFACE B, IFACE M, IFACE R, IFACE DB" style="text-transform:uppercase;">
+          <input type="hidden" id="brand-pen-values" value="IFACE, IFACE B, IFACE M, IFACE R, IFACE DB">
+          <input type="hidden" id="brand-pen-exclude-types" value="Personal, End User">
+          <div style="border:1px solid rgba(15,118,110,.18);background:rgba(255,255,255,.45);border-radius:10px;padding:10px;margin-bottom:10px;">
+            <div class="input-row" style="margin-bottom:8px;">
+              <div class="field-wrap">
+                <div class="field-lbl">Add Match Value</div>
+                <select id="brand-pen-match-select" onchange="addBrandPenetrationMatchValue(this.value);this.value='';" style="font-family:var(--mono);font-size:11px;">
+                  <option value="">Select item group / code...</option>
+                </select>
+                <div id="brand-pen-match-chips" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;"></div>
+              </div>
+              <div class="field-wrap">
+                <div class="field-lbl">Exclude Debtor Types</div>
+                <div id="brand-pen-type-options" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;min-height:34px;"></div>
+              </div>
             </div>
             <div class="field-wrap">
-              <div class="field-lbl">Exclude Types</div>
-              <input type="text" id="brand-pen-exclude-types" value="Personal, End User">
+              <div class="field-lbl">Lookback Months</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
+                <button type="button" onclick="setBrandPenetrationLookbackLast3()" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 9px;font-family:var(--mono);font-size:9px;cursor:pointer;">Last 3 months</button>
+              </div>
+              <div id="brand-pen-lookback-options" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;min-height:34px;"></div>
             </div>
           </div>
           <div class="input-row" style="margin-bottom:8px;">
@@ -901,6 +915,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
             <button type="button" onclick="generateBrandPenetrationCandidates()" style="background:var(--bg);border:1px solid var(--green);color:var(--green);font-family:var(--mono);font-size:10px;padding:7px 10px;border-radius:8px;cursor:pointer;">Generate eligible debtors</button>
+            <button type="button" onclick="exportBrandPenetrationCandidatesExcel()" style="background:var(--bg);border:1px solid var(--blue);color:var(--blue);font-family:var(--mono);font-size:10px;padding:7px 10px;border-radius:8px;cursor:pointer;">Export eligible Excel</button>
           </div>
           <div id="brand-penetration-group-map-editor"></div>
         </div>
@@ -2145,6 +2160,7 @@ async function initAdmin() {
   // Load campaigns (async — await so dropdown populates correctly)
   await loadCampaignsData();
   toggleBrandFields(document.getElementById('new-camp-type')?.value || 'free_sample');
+  renderBrandPenetrationOptionSelectors();
   // Set default campaign deadline to the end of the working month.
   const monthStart = window.MDAdminContext ? MDAdminContext.monthToIsoDate(getAdminWorkingMonth()) : _adminCurrentMonthDate();
   const now = new Date(monthStart + 'T00:00:00');
@@ -3560,6 +3576,13 @@ function kpiAdminEscape(value) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function kpiAdminJsLiteral(value) {
+  return JSON.stringify(String(value ?? ''))
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026');
 }
 
 function getGeneratedKpiCampaignsForMonth(monthLabel) {
@@ -6705,6 +6728,180 @@ function adminWorkingMonthEndIso(monthLabel) {
   return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
 }
 
+function brandPenetrationUnique(list) {
+  return [...new Set((list || []).map(v => String(v || '').trim()).filter(Boolean))];
+}
+
+function brandPenetrationMonthAnchor(monthLabel) {
+  const raw = String(monthLabel || '').trim();
+  const m = raw.match(/^([A-Za-z]{3})\s*-?\s*(\d{2})$/);
+  if (!m) return null;
+  const idx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(m[1].slice(0,3).replace(/^./, c => c.toUpperCase()));
+  if (idx < 0) return null;
+  return new Date(2000 + Number(m[2]), idx, 1).getTime();
+}
+
+function sortBrandPenetrationMonths(months) {
+  return brandPenetrationUnique(months).sort((a, b) => {
+    const ta = brandPenetrationMonthAnchor(a);
+    const tb = brandPenetrationMonthAnchor(b);
+    if (ta !== null && tb !== null) return tb - ta;
+    if (ta !== null) return -1;
+    if (tb !== null) return 1;
+    return String(a).localeCompare(String(b));
+  });
+}
+
+function getBrandPenetrationFilterOptions() {
+  const generated = DASH_DATA?.brand_penetration_filter_options || {};
+  const presetValues = Object.values(DASH_DATA?.brand_penetration_presets || {})
+    .flatMap(p => p.match_values || p.qualifying_values || []);
+  const builtinValues = Object.values(BRAND_PENETRATION_BUILTIN_PRESETS)
+    .flatMap(p => [p.label, ...(p.match_values || [])]);
+  const builtinGroupValues = Object.values(BRAND_PENETRATION_BUILTIN_PRESETS)
+    .map(p => p.label)
+    .filter(Boolean);
+  const itemGroupValues = brandPenetrationUnique([...(generated.item_group_values || []), ...builtinGroupValues]).sort();
+  const itemCodeValues = brandPenetrationUnique(generated.item_code_values || []).sort();
+  const fallbackMonths = [
+    (typeof getAdminWorkingMonth === 'function' && getAdminWorkingMonth()) || DASH_DATA?.current_month || 'Jun 26',
+    ...adminPreviousMonthLabels((typeof getAdminWorkingMonth === 'function' && getAdminWorkingMonth()) || DASH_DATA?.current_month || 'Jun 26', 6)
+  ];
+  return {
+    item_group_values: itemGroupValues,
+    item_code_values: itemCodeValues,
+    match_values: brandPenetrationUnique([...(generated.match_values || []), ...itemGroupValues, ...itemCodeValues, ...presetValues, ...builtinValues]).sort(),
+    debtor_types: brandPenetrationUnique(generated.debtor_types || ['SH-Shop', 'SL-Stall', 'P-Personal', 'End User']).sort((a,b) => a.localeCompare(b)),
+    months: sortBrandPenetrationMonths([...(generated.months || []), ...fallbackMonths]),
+    default_exclude_types: brandPenetrationUnique(generated.default_exclude_types || ['Personal', 'End User'])
+  };
+}
+
+function brandPenetrationOptionGroup(label, values, selectedSet) {
+  const clean = brandPenetrationUnique(values)
+    .map(v => String(v || '').trim().toUpperCase())
+    .filter(Boolean)
+    .sort();
+  if (!clean.length) return '';
+  return `<optgroup label="${kpiAdminEscape(label)}">` + clean
+    .map(v => `<option value="${kpiAdminEscape(v)}" ${selectedSet.has(v) ? 'disabled' : ''}>${kpiAdminEscape(v)}</option>`)
+    .join('') + '</optgroup>';
+}
+
+function brandPenetrationSelectedValues(fieldId) {
+  return _campCsv(document.getElementById(fieldId)?.value || '').map(v => String(v || '').trim()).filter(Boolean);
+}
+
+function setBrandPenetrationCsvField(fieldId, values) {
+  const el = document.getElementById(fieldId);
+  if (!el) return;
+  const seen = new Set();
+  const clean = [];
+  (values || []).forEach(value => {
+    const raw = String(value || '').trim();
+    const key = raw.toUpperCase();
+    if (raw && !seen.has(key)) {
+      seen.add(key);
+      clean.push(raw);
+    }
+  });
+  el.value = clean.join(', ');
+}
+
+function addBrandPenetrationMatchValue(value) {
+  const raw = String(value || '').trim().toUpperCase();
+  if (!raw) return;
+  setBrandPenetrationCsvField('brand-pen-values', [...brandPenetrationSelectedValues('brand-pen-values'), raw]);
+  syncBrandPenetrationSelectorFields();
+}
+
+function removeBrandPenetrationMatchValue(value) {
+  const key = String(value || '').trim().toUpperCase();
+  setBrandPenetrationCsvField('brand-pen-values', brandPenetrationSelectedValues('brand-pen-values').filter(v => v.toUpperCase() !== key));
+  syncBrandPenetrationSelectorFields();
+}
+
+function toggleBrandPenetrationExcludeType(value, checked) {
+  const raw = String(value || '').trim();
+  const key = raw.toLowerCase().replace(/-/g, ' ');
+  let selected = brandPenetrationSelectedValues('brand-pen-exclude-types');
+  selected = selected.filter(v => {
+    const token = String(v || '').trim();
+    const tokenKey = token.toLowerCase().replace(/-/g, ' ');
+    return tokenKey !== key && !key.includes(tokenKey) && !tokenKey.includes(key);
+  });
+  if (checked) selected.push(raw);
+  setBrandPenetrationCsvField('brand-pen-exclude-types', selected);
+  syncBrandPenetrationSelectorFields();
+}
+
+function toggleBrandPenetrationLookbackMonth(value, checked) {
+  const raw = String(value || '').trim();
+  let selected = brandPenetrationSelectedValues('new-camp-lookback-months').filter(v => v !== raw);
+  if (checked) selected.push(raw);
+  setBrandPenetrationCsvField('new-camp-lookback-months', selected);
+  syncBrandPenetrationSelectorFields();
+}
+
+function setBrandPenetrationLookbackLast3() {
+  const month = (typeof getAdminWorkingMonth === 'function' && getAdminWorkingMonth()) || DASH_DATA?.current_month || 'Jun 26';
+  setBrandPenetrationCsvField('new-camp-lookback-months', adminPreviousMonthLabels(month, 3));
+  syncBrandPenetrationSelectorFields();
+}
+
+function syncBrandPenetrationSelectorFields() {
+  const matches = brandPenetrationSelectedValues('brand-pen-values');
+  if (matches.length) setNewCampaignField('new-camp-qualifying-item', matches[0]);
+  renderBrandPenetrationOptionSelectors();
+}
+
+function renderBrandPenetrationOptionSelectors() {
+  const options = getBrandPenetrationFilterOptions();
+  const matchSelect = document.getElementById('brand-pen-match-select');
+  const matchChips = document.getElementById('brand-pen-match-chips');
+  const typeWrap = document.getElementById('brand-pen-type-options');
+  const monthWrap = document.getElementById('brand-pen-lookback-options');
+  const selectedMatches = brandPenetrationSelectedValues('brand-pen-values').map(v => v.toUpperCase());
+  const excluded = brandPenetrationSelectedValues('brand-pen-exclude-types');
+  const selectedMonths = new Set(brandPenetrationSelectedValues('new-camp-lookback-months'));
+
+  if (matchSelect) {
+    const selectedSet = new Set(selectedMatches);
+    const groupSet = new Set((options.item_group_values || []).map(v => String(v || '').toUpperCase()));
+    const codeSet = new Set((options.item_code_values || []).map(v => String(v || '').toUpperCase()));
+    const otherValues = (options.match_values || []).filter(v => {
+      const key = String(v || '').toUpperCase();
+      return key && !groupSet.has(key) && !codeSet.has(key);
+    });
+    matchSelect.innerHTML = '<option value="">Select item group / code...</option>'
+      + brandPenetrationOptionGroup('Canggih Item Groups', options.item_group_values || [], selectedSet)
+      + brandPenetrationOptionGroup('Item Codes', options.item_code_values || [], selectedSet)
+      + brandPenetrationOptionGroup('Other / Presets', otherValues, selectedSet);
+  }
+  if (matchChips) {
+    matchChips.innerHTML = selectedMatches.length
+      ? selectedMatches.map(v => `<button type="button" onclick="removeBrandPenetrationMatchValue('${kpiAdminEscape(v)}')" style="border:1px solid rgba(15,118,110,.3);background:#fff;color:var(--green);border-radius:999px;padding:4px 8px;font-family:var(--mono);font-size:9px;cursor:pointer;">${kpiAdminEscape(v)} ×</button>`).join('')
+      : '<span style="font-family:var(--mono);font-size:9px;color:var(--ink3);">No match values selected.</span>';
+  }
+  if (typeWrap) {
+    typeWrap.innerHTML = options.debtor_types.map(type => {
+      const typeKey = String(type || '').toLowerCase().replace(/-/g, ' ');
+      const checked = excluded.some(v => {
+        const token = String(v || '').toLowerCase().replace(/-/g, ' ');
+        return token && (typeKey === token || typeKey.includes(token) || token.includes(typeKey));
+      });
+      return `<label style="display:flex;align-items:center;gap:4px;border:1px solid var(--border);background:#fff;border-radius:999px;padding:4px 8px;font-family:var(--mono);font-size:9px;cursor:pointer;">
+        <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleBrandPenetrationExcludeType('${kpiAdminEscape(type)}', this.checked)"> ${kpiAdminEscape(type)}
+      </label>`;
+    }).join('');
+  }
+  if (monthWrap) {
+    monthWrap.innerHTML = options.months.map(month => `<label style="display:flex;align-items:center;gap:4px;border:1px solid var(--border);background:#fff;border-radius:999px;padding:4px 8px;font-family:var(--mono);font-size:9px;cursor:pointer;">
+      <input type="checkbox" ${selectedMonths.has(month) ? 'checked' : ''} onchange="toggleBrandPenetrationLookbackMonth('${kpiAdminEscape(month)}', this.checked)"> ${kpiAdminEscape(month)}
+    </label>`).join('');
+  }
+}
+
 function ensureBrandPenetrationConversionMode() {
   setNewCampaignField('new-camp-type', 'conversion_simple');
   setNewCampaignField('new-camp-mechanism-type', 'conversion');
@@ -6732,8 +6929,9 @@ function applyBrandPenetrationPreset(preset = 'IFACE') {
   ensureBrandPenetrationConversionMode();
   if (key === 'CUSTOM') {
     renderBrandPenetrationGroupMapEditor();
+    renderBrandPenetrationOptionSelectors();
     const preview = document.getElementById('camp-file-preview');
-    if (preview) preview.innerHTML = '<span style="color:var(--ink3);">Custom preset selected. Fill Brand / Match Values, then generate after dashboard data has that brand.</span>';
+    if (preview) preview.innerHTML = '<span style="color:var(--ink3);">Custom preset selected. Fill Brand / Campaign Label, choose match values below, then generate after dashboard data has that brand.</span>';
     return;
   }
 
@@ -6767,6 +6965,7 @@ function applyBrandPenetrationPreset(preset = 'IFACE') {
   });
   ensureBrandPenetrationConversionMode();
   renderBrandPenetrationGroupMapEditor();
+  renderBrandPenetrationOptionSelectors();
   const preview = document.getElementById('camp-file-preview');
   if (preview) preview.innerHTML = `<span style="color:var(--green);">${kpiAdminEscape(cfg.label)} preset loaded. Generate eligible debtors or upload the final confirmed list.</span>`;
 }
@@ -6831,6 +7030,259 @@ function generateBrandPenetrationCandidates() {
     };
   });
   if (preview) preview.innerHTML = `✓ ${kpiAdminEscape(brand)} candidates generated: ` + buildBrandPenetrationCandidatePreview(_campFileDebtors);
+}
+
+function renderBrandPenetrationOptionSelectors() {
+  const options = getBrandPenetrationFilterOptions();
+  const matchSelect = document.getElementById('brand-pen-match-select');
+  const matchChips = document.getElementById('brand-pen-match-chips');
+  const typeWrap = document.getElementById('brand-pen-type-options');
+  const monthWrap = document.getElementById('brand-pen-lookback-options');
+  const selectedMatches = brandPenetrationSelectedValues('brand-pen-values').map(v => v.toUpperCase());
+  const excluded = brandPenetrationSelectedValues('brand-pen-exclude-types');
+  const selectedMonths = new Set(brandPenetrationSelectedValues('new-camp-lookback-months'));
+
+  if (matchSelect) {
+    const selectedSet = new Set(selectedMatches);
+    const groupSet = new Set((options.item_group_values || []).map(v => String(v || '').toUpperCase()));
+    const codeSet = new Set((options.item_code_values || []).map(v => String(v || '').toUpperCase()));
+    const otherValues = (options.match_values || []).filter(v => {
+      const key = String(v || '').toUpperCase();
+      return key && !groupSet.has(key) && !codeSet.has(key);
+    });
+    matchSelect.innerHTML = '<option value="">Select item group / code...</option>'
+      + brandPenetrationOptionGroup('Canggih Item Groups', options.item_group_values || [], selectedSet)
+      + brandPenetrationOptionGroup('Item Codes', options.item_code_values || [], selectedSet)
+      + brandPenetrationOptionGroup('Other / Presets', otherValues, selectedSet);
+  }
+  if (matchChips) {
+    matchChips.innerHTML = selectedMatches.length
+      ? selectedMatches.map(v => `<button type="button" onclick="removeBrandPenetrationMatchValue(${kpiAdminJsLiteral(v)})" style="border:1px solid rgba(15,118,110,.3);background:#fff;color:var(--green);border-radius:999px;padding:4px 8px;font-family:var(--mono);font-size:9px;cursor:pointer;">${kpiAdminEscape(v)} x</button>`).join('')
+      : '<span style="font-family:var(--mono);font-size:9px;color:var(--ink3);">No match values selected.</span>';
+  }
+  if (typeWrap) {
+    typeWrap.innerHTML = options.debtor_types.map(type => {
+      const typeKey = String(type || '').toLowerCase().replace(/-/g, ' ');
+      const checked = excluded.some(v => {
+        const token = String(v || '').toLowerCase().replace(/-/g, ' ');
+        return token && (typeKey === token || typeKey.includes(token) || token.includes(typeKey));
+      });
+      return `<label style="display:flex;align-items:center;gap:4px;border:1px solid var(--border);background:#fff;border-radius:999px;padding:4px 8px;font-family:var(--mono);font-size:9px;cursor:pointer;">
+        <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleBrandPenetrationExcludeType(${kpiAdminJsLiteral(type)}, this.checked)"> ${kpiAdminEscape(type)}
+      </label>`;
+    }).join('');
+  }
+  if (monthWrap) {
+    monthWrap.innerHTML = options.months.map(month => `<label style="display:flex;align-items:center;gap:4px;border:1px solid var(--border);background:#fff;border-radius:999px;padding:4px 8px;font-family:var(--mono);font-size:9px;cursor:pointer;">
+      <input type="checkbox" ${selectedMonths.has(month) ? 'checked' : ''} onchange="toggleBrandPenetrationLookbackMonth(${kpiAdminJsLiteral(month)}, this.checked)"> ${kpiAdminEscape(month)}
+    </label>`).join('');
+  }
+}
+
+function brandPenetrationNormKey(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
+function brandPenetrationTypeExcluded(type, excluded) {
+  const typeKey = String(type || '').toLowerCase().replace(/-/g, ' ');
+  return (excluded || []).some(token => {
+    const key = String(token || '').toLowerCase().replace(/-/g, ' ');
+    return key && (typeKey === key || typeKey.includes(key) || key.includes(typeKey));
+  });
+}
+
+function brandPenetrationReasonLabel(brand, lookbackCount, hasPriorPurchase, isNewAccount) {
+  if (isNewAccount) return 'New account';
+  if (!hasPriorPurchase) return `Never bought ${brand}`;
+  const count = lookbackCount || 3;
+  return `${count}-month no ${brand}`;
+}
+
+function buildBrandPenetrationCandidatesFromSource() {
+  const source = DASH_DATA?.brand_penetration_source;
+  if (!source || !Array.isArray(source.debtors) || !Array.isArray(source.purchases)) return null;
+  const brand = brandPenetrationNormKey(document.getElementById('brand-pen-brand')?.value || 'IFACE') || 'BRAND';
+  const month = (typeof getAdminWorkingMonth === 'function' && getAdminWorkingMonth()) || DASH_DATA?.current_month || 'Jun 26';
+  const matchValues = brandPenetrationSelectedValues('brand-pen-values').map(brandPenetrationNormKey).filter(Boolean);
+  const matchSet = new Set(matchValues);
+  if (!matchSet.size) return [];
+  const excludedTypes = brandPenetrationSelectedValues('brand-pen-exclude-types');
+  const selectedLookbackMonths = brandPenetrationSelectedValues('new-camp-lookback-months');
+  const lookbackMonths = selectedLookbackMonths.length ? selectedLookbackMonths : adminPreviousMonthLabels(month, 3);
+  const lookbackSet = new Set(lookbackMonths);
+  const groupMap = readBrandPenetrationAgentGroupMap();
+  const defaultGroup = brandPenetrationDefaultGroup();
+  const purchasesByDebtor = new Map();
+
+  source.purchases.forEach(row => {
+    const group = brandPenetrationNormKey(row.item_group);
+    const code = brandPenetrationNormKey(row.item_code);
+    if (!matchSet.has(group) && !matchSet.has(code)) return;
+    const debtorCode = brandPenetrationNormKey(row.debtor_code);
+    const paidMonth = String(row.month || '').trim();
+    if (!debtorCode || !paidMonth) return;
+    if (!purchasesByDebtor.has(debtorCode)) purchasesByDebtor.set(debtorCode, new Set());
+    purchasesByDebtor.get(debtorCode).add(paidMonth);
+  });
+
+  const focItem = document.getElementById('new-camp-foc-item')?.value?.trim().toUpperCase() || '';
+  const focQty = parseFloat(document.getElementById('new-camp-foc-qty')?.value) || 0;
+  const focUnit = normalizeFocUnit(document.getElementById('new-camp-foc-unit')?.value || '');
+  const focNote = document.getElementById('new-camp-foc-note')?.value?.trim() || '';
+
+  const rows = [];
+  source.debtors.forEach(debtor => {
+    const debtorCode = brandPenetrationNormKey(debtor.debtor_code);
+    if (!debtorCode || debtor.dm_active === false) return;
+    if (brandPenetrationTypeExcluded(debtor.debtor_type, excludedTypes)) return;
+    const paidMonths = purchasesByDebtor.get(debtorCode) || new Set();
+    const priorMonths = [...paidMonths].filter(m => m !== month);
+    const hasLookbackHit = lookbackMonths.length
+      ? lookbackMonths.some(m => paidMonths.has(m))
+      : false;
+    const isNewAccount = String(debtor.open_month || '').trim() === month;
+    const hasPriorPurchase = priorMonths.length > 0;
+    if (!isNewAccount && hasPriorPurchase && hasLookbackHit) return;
+    const agent = brandPenetrationNormKey(debtor.agent);
+    const group = String(groupMap[agent] || defaultGroup || '').trim().toUpperCase();
+    const reason = brandPenetrationReasonLabel(brand, lookbackSet.size, hasPriorPurchase, isNewAccount);
+    const row = {
+      code: debtorCode,
+      debtor_code: debtorCode,
+      name: debtor.debtor_name || debtorCode,
+      debtor_name: debtor.debtor_name || debtorCode,
+      agent,
+      debtor_type: debtor.debtor_type || '',
+      cat: '',
+      cat_group: group,
+      group,
+      eligibility_reason: reason,
+      promo_logic: reason,
+      campaign_family: 'brand_penetration',
+      campaign_month: month,
+      brand,
+      qualifying_values: matchValues,
+      foc_item: focItem,
+      foc_qty: focQty,
+      foc_unit: focUnit,
+      foc_note: focNote,
+      notes: reason
+    };
+    row.foc_package = formatFocPackage(row);
+    rows.push(row);
+  });
+
+  const reasonRank = { 'New account': 0, [`Never bought ${brand}`]: 1, [`${lookbackSet.size || 3}-month no ${brand}`]: 2 };
+  return rows.sort((a, b) =>
+    String(a.agent).localeCompare(String(b.agent)) ||
+    (reasonRank[a.eligibility_reason] ?? 99) - (reasonRank[b.eligibility_reason] ?? 99) ||
+    String(a.debtor_code).localeCompare(String(b.debtor_code))
+  );
+}
+
+function generateBrandPenetrationCandidates() {
+  prepareBrandPenetrationCampaignForm();
+  const brand = brandPenetrationNormKey(document.getElementById('brand-pen-brand')?.value || 'IFACE') || 'IFACE';
+  const month = (typeof getAdminWorkingMonth === 'function' && getAdminWorkingMonth()) || DASH_DATA?.current_month || 'Jun 26';
+  const preview = document.getElementById('camp-file-preview');
+  const sourceRows = buildBrandPenetrationCandidatesFromSource();
+  const genericByMonth = DASH_DATA?.brand_penetration_candidates_by_month || {};
+  const genericCurrent = DASH_DATA?.brand_penetration_candidates || {};
+  const byMonth = genericByMonth[brand] || (brand === 'IFACE' ? DASH_DATA?.iface_campaign_candidates_by_month : {}) || {};
+  const fallbackRows = Array.isArray(byMonth[month])
+    ? byMonth[month]
+    : (Array.isArray(genericCurrent[brand]) ? genericCurrent[brand] : (brand === 'IFACE' && Array.isArray(DASH_DATA?.iface_campaign_candidates) ? DASH_DATA.iface_campaign_candidates : []));
+  const candidates = Array.isArray(sourceRows) ? sourceRows : fallbackRows;
+  if (!candidates.length) {
+    _campFileDebtors = [];
+    if (preview) preview.innerHTML = `<span style="color:var(--accent);">No generated ${kpiAdminEscape(brand)} candidates found for ${kpiAdminEscape(month)}. Adjust match values/debtor types/lookback months, run update_dashboard.bat after report data is ready, or upload the confirmed debtor list.</span>`;
+    return [];
+  }
+  _campFileDebtors = candidates.map(row => {
+    const agent = brandPenetrationNormKey(row.agent);
+    const group = String(row.cat_group || row.group || '').trim().toUpperCase();
+    const reason = row.eligibility_reason || row.promo_logic || row.notes || '';
+    return {
+      code: row.debtor_code || row.code || '',
+      debtor_code: row.debtor_code || row.code || '',
+      name: row.debtor_name || row.name || '',
+      debtor_name: row.debtor_name || row.name || '',
+      agent,
+      debtor_type: row.debtor_type || '',
+      cat: row.cat || '',
+      cat_group: group,
+      group,
+      eligibility_reason: reason,
+      promo_logic: reason,
+      campaign_family: row.campaign_family || 'brand_penetration',
+      brand: row.brand || brand,
+      qualifying_values: row.qualifying_values || brandPenetrationSelectedValues('brand-pen-values'),
+      campaign_month: row.campaign_month || month,
+      foc_item: row.foc_item || document.getElementById('new-camp-foc-item')?.value?.trim().toUpperCase() || '',
+      foc_qty: row.foc_qty || parseFloat(document.getElementById('new-camp-foc-qty')?.value) || 0,
+      foc_unit: row.foc_unit || normalizeFocUnit(document.getElementById('new-camp-foc-unit')?.value || ''),
+      foc_note: row.foc_note || document.getElementById('new-camp-foc-note')?.value?.trim() || '',
+      foc_package: row.foc_package || formatFocPackage(row),
+      notes: reason
+    };
+  });
+  if (preview) preview.innerHTML = `Generated ${kpiAdminEscape(brand)} candidates: ` + buildBrandPenetrationCandidatePreview(_campFileDebtors);
+  return _campFileDebtors;
+}
+
+function brandPenetrationCsvCell(value) {
+  return `"${String(value ?? '').replace(/"/g, '""')}"`;
+}
+
+function exportBrandPenetrationCandidatesExcel() {
+  const rows = _campFileDebtors.length ? _campFileDebtors : generateBrandPenetrationCandidates();
+  if (!rows || !rows.length) {
+    alert('No eligible debtor list to export yet. Generate eligible debtors first.');
+    return;
+  }
+  const brand = brandPenetrationNormKey(document.getElementById('brand-pen-brand')?.value || 'BRAND') || 'BRAND';
+  const month = (typeof getAdminWorkingMonth === 'function' && getAdminWorkingMonth()) || DASH_DATA?.current_month || '';
+  const safeName = `${brand}_${String(month || '').replace(/\s+/g, '')}_eligible_debtors`.replace(/[^A-Za-z0-9_-]+/g, '_');
+  const detailRows = rows.map(row => ({
+    debtor_code: row.debtor_code || row.code || '',
+    debtor_name: row.debtor_name || row.name || '',
+    agent: row.agent || '',
+    debtor_type: row.debtor_type || '',
+    group: row.cat_group || row.group || '',
+    eligibility_reason: row.eligibility_reason || row.promo_logic || row.notes || '',
+    foc_item: row.foc_item || '',
+    foc_qty: row.foc_qty || '',
+    foc_unit: row.foc_unit || '',
+    foc_package: row.foc_package || formatFocPackage(row),
+    notes: row.foc_note || row.notes || ''
+  }));
+  if (window.XLSX?.utils) {
+    const wb = XLSX.utils.book_new();
+    const summary = [
+      ['Brand', brand],
+      ['Month', month],
+      ['Match Values', brandPenetrationSelectedValues('brand-pen-values').join(', ')],
+      ['Excluded Debtor Types', brandPenetrationSelectedValues('brand-pen-exclude-types').join(', ')],
+      ['Lookback Months', brandPenetrationSelectedValues('new-camp-lookback-months').join(', ')],
+      ['Eligible Debtors', rows.length],
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), 'Summary');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailRows), 'Eligible Debtors');
+    XLSX.writeFile(wb, `${safeName}.xlsx`);
+    return;
+  }
+  const headers = Object.keys(detailRows[0] || {});
+  const csv = [headers, ...detailRows.map(row => headers.map(h => row[h]))]
+    .map(row => row.map(brandPenetrationCsvCell).join(','))
+    .join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${safeName}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
 function generateIfaceCampaignCandidates() {

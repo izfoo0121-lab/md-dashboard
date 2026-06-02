@@ -612,6 +612,148 @@ def build_brand_penetration_candidate_sets(
     return current, by_month, preset_meta
 
 
+def build_brand_penetration_filter_options(debtor_info, df, month_labels=None, brand_config=None):
+    """Build Admin dropdown choices for reusable brand penetration campaigns."""
+    match_values = set()
+    item_group_values = set()
+    item_code_values = set()
+    for brand, values in _brand_penetration_config(brand_config).items():
+        match_values.add(brand)
+        match_values.update(values or [])
+
+    if df is not None and not df.empty:
+        if "item_group" in df.columns:
+            for value in df["item_group"].dropna().astype(str).tolist():
+                clean = str(value or "").strip().upper()
+                if clean:
+                    item_group_values.add(clean)
+                    match_values.add(clean)
+        if "item_code" in df.columns:
+            for value in df["item_code"].dropna().astype(str).tolist():
+                clean = str(value or "").strip().upper()
+                if clean:
+                    item_code_values.add(clean)
+                    match_values.add(clean)
+
+    debtor_types = set()
+    for info in (debtor_info or {}).values():
+        dtype = str(info.get("type") or "").strip()
+        if dtype:
+            debtor_types.add(dtype)
+
+    months = []
+    for month in month_labels or []:
+        label = _normal_month_label(month)
+        if label and label not in months:
+            months.append(label)
+
+    if df is not None and not df.empty:
+        month_seen = set(months)
+        for col in ("paid_on", "tranx_mth_full"):
+            if col not in df.columns:
+                continue
+            for value in df[col].dropna().astype(str).tolist():
+                label = _normal_month_label(value)
+                if label and label not in month_seen:
+                    months.append(label)
+                    month_seen.add(label)
+
+    def month_sort_key(label):
+        anchor = _month_anchor(label)
+        if anchor:
+            return (0, -anchor.toordinal(), str(label))
+        return (1, 0, str(label).lower())
+
+    months = sorted(months, key=month_sort_key)
+
+    return {
+        "match_values": sorted(match_values),
+        "item_group_values": sorted(item_group_values),
+        "item_code_values": sorted(item_code_values),
+        "debtor_types": sorted(debtor_types, key=lambda x: x.lower()),
+        "months": months,
+        "default_exclude_types": ["Personal", "End User"],
+    }
+
+
+def _normal_month_label(value):
+    raw = str(value or "").strip()
+    if not raw or raw.lower() in {"nan", "nat"}:
+        return ""
+    m = re.match(r"^([A-Za-z]{3})\s*-?\s*(\d{2})$", raw)
+    if m:
+        return f"{m.group(1).title()} {m.group(2)}"
+    try:
+        parsed = pd.to_datetime(raw, errors="coerce")
+    except Exception:
+        parsed = pd.NaT
+    if pd.notna(parsed):
+        return parsed.strftime("%b %y")
+    return raw
+
+
+def build_brand_penetration_source_data(debtor_info, df, agents):
+    """Build compact report/debtor rows so Admin can recompute custom candidates.
+
+    Browser-side recompute is intentionally fed with only the columns needed for
+    eligibility decisions: active debtor metadata plus paid item group/code month
+    history. It keeps the Admin helper generic without asking the browser to
+    parse the original sales workbook.
+    """
+    active_agents = {str(a or "").strip().upper() for a in (agents or []) if str(a or "").strip()}
+    debtors = []
+    for code_raw, info in sorted((debtor_info or {}).items(), key=lambda kv: _norm_code(kv[0])):
+        code = _norm_code(code_raw)
+        if not code:
+            continue
+        agent = str(info.get("agent") or "").strip().upper()
+        if active_agents and agent not in active_agents:
+            continue
+        open_month = _normal_month_label(info.get("open_date"))
+        debtors.append({
+            "debtor_code": code,
+            "debtor_name": info.get("name") or code,
+            "agent": agent,
+            "debtor_type": info.get("type") or "",
+            "dm_active": bool(info.get("dm_active", True)),
+            "open_month": open_month,
+        })
+
+    history = df.copy() if df is not None else pd.DataFrame()
+    if history.empty:
+        history = pd.DataFrame(columns=["debtor_code", "item_group", "item_code", "paid_on", "tranx_mth_full", "qty_ctn"])
+    for col in ("debtor_code", "item_group", "item_code", "paid_on", "tranx_mth_full"):
+        if col not in history.columns:
+            history[col] = ""
+    if "qty_ctn" not in history.columns:
+        history["qty_ctn"] = 0
+
+    history["qty_ctn"] = pd.to_numeric(history["qty_ctn"], errors="coerce").fillna(0)
+    seen = set()
+    purchases = []
+    for row in history[history["qty_ctn"] > 0].itertuples(index=False):
+        data = row._asdict()
+        code = _norm_code(data.get("debtor_code"))
+        item_group = _norm_code(data.get("item_group"))
+        item_code = _norm_code(data.get("item_code"))
+        month = _normal_month_label(data.get("paid_on")) or _normal_month_label(data.get("tranx_mth_full"))
+        if not code or not month or (not item_group and not item_code):
+            continue
+        key = (code, item_group, item_code, month)
+        if key in seen:
+            continue
+        seen.add(key)
+        purchases.append({
+            "debtor_code": code,
+            "item_group": item_group,
+            "item_code": item_code,
+            "month": month,
+        })
+
+    purchases.sort(key=lambda r: (r["debtor_code"], r["month"], r["item_group"], r["item_code"]))
+    return {"debtors": debtors, "purchases": purchases}
+
+
 def _debtor_type_is_campaign_excluded(value, keywords=None):
     raw = str(value or "").strip().lower()
     raw_alt = raw.replace("-", " ")
@@ -4518,6 +4660,17 @@ def main():
         brand_config=brand_config,
         agent_group_map=iface_agent_group_map,
     )
+    brand_penetration_filter_options = build_brand_penetration_filter_options(
+        debtor_info=debtor_info_shared,
+        df=df,
+        month_labels=brand_candidate_months + prev_months,
+        brand_config=brand_config,
+    )
+    brand_penetration_source = build_brand_penetration_source_data(
+        debtor_info=debtor_info_shared,
+        df=df,
+        agents=agents,
+    )
     iface_campaign_candidates_by_month = brand_penetration_candidates_by_month.get("IFACE", {})
     iface_campaign_candidates = iface_campaign_candidates_by_month.get(cur_month, [])
     _PERSONAL_TYPES = {"P-Personal","P-PERSONAL","personal","Personal","PERSONAL"}
@@ -4757,6 +4910,8 @@ def main():
         "brand_penetration_candidates": brand_penetration_candidates,
         "brand_penetration_candidates_by_month": brand_penetration_candidates_by_month,
         "brand_penetration_presets": brand_penetration_presets,
+        "brand_penetration_filter_options": brand_penetration_filter_options,
+        "brand_penetration_source": brand_penetration_source,
         "campaign_group_progress": campaign_group_progress,
         "agents":         {},
         "team":           team,

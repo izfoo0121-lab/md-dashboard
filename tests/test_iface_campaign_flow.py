@@ -57,6 +57,60 @@ class IfaceCampaignFlowTests(unittest.TestCase):
             {"300-SUKUN-LAPSED", "300-BISON-NEW"},
         )
 
+    def test_brand_penetration_filter_options_include_matches_types_and_months(self):
+        debtor_info = {
+            "300-A": {"name": "A", "agent": "BEN", "type": "SH-Shop", "dm_active": True},
+            "300-B": {"name": "B", "agent": "CJ", "type": "P-Personal", "dm_active": True},
+            "300-C": {"name": "C", "agent": "KF", "type": "End User", "dm_active": False},
+        }
+        df = pd.DataFrame([
+            {"item_group": "IFACE", "item_code": "IFACE R", "paid_on": "May 26", "tranx_mth_full": "May 26"},
+            {"item_group": "SUKUN", "item_code": "SKNR", "paid_on": "Apr 26", "tranx_mth_full": "Apr 26"},
+            {"item_group": "EVO", "item_code": "DPM EVO", "paid_on": "Mar 26", "tranx_mth_full": "Mar 26"},
+            {"item_group": "BISON", "item_code": "BISON-R", "paid_on": "NoComm", "tranx_mth_full": "NoComm"},
+            {"item_group": "TR20", "item_code": "TR20", "paid_on": "Oct 25", "tranx_mth_full": "Oct 25"},
+        ])
+
+        options = process_data.build_brand_penetration_filter_options(
+            debtor_info=debtor_info,
+            df=df,
+            month_labels=["May 26", "Jun 26", "Feb 26"],
+        )
+
+        self.assertIn("IFACE", options["match_values"])
+        self.assertIn("IFACE R", options["match_values"])
+        self.assertIn("SKNR", options["match_values"])
+        self.assertEqual(options["item_group_values"], ["BISON", "EVO", "IFACE", "SUKUN", "TR20"])
+        self.assertIn("DPM EVO", options["item_code_values"])
+        self.assertIn("SH-Shop", options["debtor_types"])
+        self.assertIn("P-Personal", options["debtor_types"])
+        self.assertIn("End User", options["debtor_types"])
+        self.assertEqual(options["months"], ["Jun 26", "May 26", "Apr 26", "Mar 26", "Feb 26", "Oct 25", "NoComm"])
+        self.assertEqual(options["default_exclude_types"], ["Personal", "End User"])
+
+    def test_brand_penetration_source_supports_browser_recompute(self):
+        debtor_info = {
+            "300-A": {"name": "A Shop", "agent": "BEN", "type": "SH-Shop", "open_date": "2026-06-03", "dm_active": True},
+            "300-B": {"name": "B Shop", "agent": "CJ", "type": "P-Personal", "open_date": "2024-01-10", "dm_active": True},
+        }
+        df = pd.DataFrame([
+            {"debtor_code": "300-A", "item_group": "IFACE", "item_code": "IFACE R", "paid_on": "Feb 26", "tranx_mth_full": "Feb 26", "qty_ctn": 2},
+            {"debtor_code": "300-B", "item_group": "SUKUN", "item_code": "SKNR", "paid_on": "May 26", "tranx_mth_full": "May 26", "qty_ctn": 1},
+        ])
+
+        source = process_data.build_brand_penetration_source_data(
+            debtor_info=debtor_info,
+            df=df,
+            agents=["BEN", "CJ"],
+        )
+
+        self.assertEqual(len(source["debtors"]), 2)
+        self.assertEqual(source["debtors"][0]["open_month"], "Jun 26")
+        self.assertIn(
+            {"debtor_code": "300-A", "item_group": "IFACE", "item_code": "IFACE R", "month": "Feb 26"},
+            source["purchases"],
+        )
+
     def test_generic_brand_penetration_candidates_support_iface_without_fixed_groups(self):
         debtor_info = {
             "300-NEW": {
