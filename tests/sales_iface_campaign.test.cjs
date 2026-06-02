@@ -39,6 +39,9 @@ const context = {};
 vm.createContext(context);
 vm.runInContext(extractFunction('getDebtorType'), context);
 vm.runInContext(extractFunction('isPersonalDebtor'), context);
+vm.runInContext(extractFunction('canggihCtn'), context);
+vm.runInContext(extractFunction('eightcomCtn'), context);
+vm.runInContext(extractFunction('isNoCcomBuyer'), context);
 vm.runInContext(extractFunction('futureDebtorSummaryStats'), context);
 vm.runInContext(extractFunction('futureDebtorPlanningCopy'), context);
 vm.runInContext(extractFunction('chooseInitialMonthLabel'), context);
@@ -47,6 +50,8 @@ const futureCopy = context.futureDebtorPlanningCopy({
   debtor_code: '300-C516',
   is_pending_activation: true,
   ctn_cur: 9,
+  canggih_ctn_cur: 0,
+  eightcom_ctn_cur: 6,
   rm_cur: 100,
   invoice_count_cur: 1,
   new_sku_count: 1,
@@ -54,9 +59,13 @@ const futureCopy = context.futureDebtorPlanningCopy({
   campaigns: [{ id: 'jun-camp', converted: true, current_ctn: 5, current_rm: 50 }]
 });
 
+assert.strictEqual(context.isNoCcomBuyer({ canggih_ctn_cur: 0, eightcom_ctn_cur: 6 }), true, 'Loaded-month CCOM 未拿 should mean 8COM CTN exists and CCOM CTN is zero');
 assert.strictEqual(futureCopy.new_sku_count, 0, 'Future planning debtor copy should not leak prior-month new SKU count');
 assert.strictEqual(Object.keys(futureCopy.new_sku_status || {}).length, 0, 'Future planning debtor copy should not show prior-month new SKU badges');
 assert.strictEqual(futureCopy.ctn_cur, 0, 'Future planning debtor copy should zero selected-month CTN');
+assert.strictEqual(futureCopy.canggih_ctn_cur, 0, 'Future planning debtor copy should zero selected-month CCOM CTN');
+assert.strictEqual(futureCopy.eightcom_ctn_cur, 0, 'Future planning debtor copy should zero selected-month 8COM CTN');
+assert.strictEqual(context.isNoCcomBuyer(futureCopy), false, 'Future planning debtor copy should not appear in CCOM 未拿 before current-month sales data exists');
 assert.strictEqual(futureCopy.is_pending_activation, false, 'Future planning debtor copy should not carry prior-month pending activation flags');
 assert.strictEqual(futureCopy.campaigns[0].converted, false, 'Future planning campaign copy should reset conversion state');
 
