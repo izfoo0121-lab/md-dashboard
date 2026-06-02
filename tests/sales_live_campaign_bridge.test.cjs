@@ -26,6 +26,10 @@ function extractFunction(name) {
 assert(html.includes('fetchLiveCampaignDataForSales'), 'Sales Dashboard should fetch live Supabase campaigns');
 assert(html.includes('campaign_debtors?select=*'), 'Sales Dashboard should read live campaign debtor enrollment rows');
 assert(html.includes('SalesLiveCampaignSync.apply(DATA)'), 'Sales Dashboard should apply live campaigns before rendering');
+assert(html.includes('Campaign claim requests are allowed'), 'Future-view banner should clarify that campaign claims are allowed');
+assert(extractFunction('saveCampClaim').includes('allowCampaignClaim'), 'Campaign claim save should be allowed in future planning view');
+assert(extractFunction('removeCampClaim').includes('allowCampaignClaim'), 'Campaign claim removal should be allowed in future planning view');
+assert(extractFunction('toggleCampClaim').includes('allowCampaignClaim'), 'Campaign claim modal should open in future planning view');
 
 const context = {
   DATA: { current_month: 'Jun 26' },
@@ -34,6 +38,7 @@ const context = {
 vm.createContext(context);
 vm.runInContext([
   'var DATA = globalThis.DATA;',
+  extractFunction('blockFutureViewAction'),
   extractFunction('isCampaignActiveInMonth'),
   extractFunction('salesCampaignGroupBy'),
   extractFunction('salesParseCampaignNotes'),
@@ -47,6 +52,16 @@ vm.runInContext([
   extractFunction('campaignVisibleForSelectedMonth'),
   extractFunction('visibleDebtorCampaigns'),
 ].join('\n'), context);
+
+context.DATA.is_future_view = true;
+let blockedAlert = '';
+context.alert = msg => { blockedAlert = msg; };
+assert.strictEqual(context.blockFutureViewAction(), true, 'Future view should still block sales-only actions');
+assert(blockedAlert.includes('actions disabled'), 'Default future-view block should explain sales-only lock');
+blockedAlert = '';
+assert.strictEqual(context.blockFutureViewAction({ allowCampaignClaim: true }), false, 'Future view should allow campaign claim actions');
+assert.strictEqual(blockedAlert, '', 'Allowed campaign claims should not show the future-view block alert');
+context.DATA.is_future_view = false;
 
 const liveCampaign = context.salesCampaignFromDb(
   {

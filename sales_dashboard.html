@@ -400,7 +400,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 <body>
 
 <div id="future-view-banner" style="display:none;padding:12px 16px;background:rgba(240,192,64,.15);border-bottom:2px solid var(--accent);font-family:var(--mono);font-size:12px;color:var(--accent);text-align:center;">
-  📅 Future view — <span id="future-view-month"></span> data not yet available. Forward-looking items only (campaigns, birthdays). Actions disabled.
+  📅 Future view — <span id="future-view-month"></span> data not yet available. Forward-looking items only (campaigns, birthdays). Campaign claim requests are allowed; sales-only actions disabled.
 </div>
 
 <!-- ── Header ── -->
@@ -1501,8 +1501,11 @@ function updateFutureViewBanner() {
   }
 }
 
-function blockFutureViewAction() {
+function blockFutureViewAction(options) {
+  options = options || {};
+  const allowCampaignClaim = options === 'campaign_claim' || options.allowCampaignClaim === true;
   if (DATA?.is_future_view) {
+    if (allowCampaignClaim) return false;
     alert('Read-only future view — actions disabled until ' + (DATA.current_month||'this month') + ' data is loaded.');
     return true;
   }
@@ -6261,7 +6264,7 @@ function getCampClaims(agent, campId, debtorCode) {
   try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; }
 }
 function saveCampClaim(agent, campId, debtorCode, claimData) {
-  if (blockFutureViewAction()) return;
+  if (blockFutureViewAction({ allowCampaignClaim: true })) return;
   const key = getCampClaimKey(agent, campId, debtorCode);
   localStorage.setItem(key, JSON.stringify(claimData));
   // Also sync to Gist if configured
@@ -6270,7 +6273,7 @@ function saveCampClaim(agent, campId, debtorCode, claimData) {
   }
 }
 function removeCampClaim(agent, campId, debtorCode) {
-  if (blockFutureViewAction()) return;
+  if (blockFutureViewAction({ allowCampaignClaim: true })) return;
   const key = getCampClaimKey(agent, campId, debtorCode);
   localStorage.removeItem(key);
   // Also remove from Gist if configured
@@ -6553,7 +6556,7 @@ function undoCampClaimFromToast(debtorCode, campId, btn) {
 // Claim request workflow: this replaces the older "mark claimed" behavior.
 // Claims are reward-processing requests only; KPI actuals are calculated separately.
 function toggleCampClaim(event, debtorCode, campId, debtorName, promoText, campType) {
-  if (blockFutureViewAction()) return;
+  if (blockFutureViewAction({ allowCampaignClaim: true })) return;
   if (event && event.stopPropagation) event.stopPropagation();
 
   const existing = getCampClaims(currentAgent, campId, debtorCode);
