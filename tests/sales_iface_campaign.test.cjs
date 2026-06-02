@@ -37,11 +37,15 @@ assert(!html.includes('IFACE group standings in Sales'), 'Sales Dashboard should
 
 const context = {};
 vm.createContext(context);
+vm.runInContext(extractFunction('getDebtorType'), context);
+vm.runInContext(extractFunction('isPersonalDebtor'), context);
+vm.runInContext(extractFunction('futureDebtorSummaryStats'), context);
 vm.runInContext(extractFunction('futureDebtorPlanningCopy'), context);
 vm.runInContext(extractFunction('chooseInitialMonthLabel'), context);
 
 const futureCopy = context.futureDebtorPlanningCopy({
   debtor_code: '300-C516',
+  is_pending_activation: true,
   ctn_cur: 9,
   rm_cur: 100,
   invoice_count_cur: 1,
@@ -53,7 +57,26 @@ const futureCopy = context.futureDebtorPlanningCopy({
 assert.strictEqual(futureCopy.new_sku_count, 0, 'Future planning debtor copy should not leak prior-month new SKU count');
 assert.strictEqual(Object.keys(futureCopy.new_sku_status || {}).length, 0, 'Future planning debtor copy should not show prior-month new SKU badges');
 assert.strictEqual(futureCopy.ctn_cur, 0, 'Future planning debtor copy should zero selected-month CTN');
+assert.strictEqual(futureCopy.is_pending_activation, false, 'Future planning debtor copy should not carry prior-month pending activation flags');
 assert.strictEqual(futureCopy.campaigns[0].converted, false, 'Future planning campaign copy should reset conversion state');
+
+const futureSummary = context.futureDebtorSummaryStats(
+  {},
+  [
+    { debtor_type: 'SH-Shop' },
+    { debtor_type: 'P-Personal' },
+    { debtor_type: 'FL-Freelancer' }
+  ]
+);
+assert.strictEqual(futureSummary.total, 2, 'Future summary should count non-Personal debtors when generated activation base is unavailable');
+assert.strictEqual(futureSummary.inactive, 0, 'Future summary should not show stale pending activation totals');
+
+const futureSummaryWithBase = context.futureDebtorSummaryStats(
+  { total_debtors: 159, activation_base_live: 159, pending_activation: 60 },
+  new Array(265).fill(0).map(() => ({ debtor_type: 'SH-Shop' }))
+);
+assert.strictEqual(futureSummaryWithBase.total, 159, 'Future summary should prefer generated non-Personal account base over raw planning list length');
+assert.strictEqual(futureSummaryWithBase.inactive, 0, 'Future summary should hide generated prior-month pending activation in future planning view');
 
 assert.strictEqual(
   context.chooseInitialMonthLabel(['Apr 26', 'May 26'], 'Jun 26', ''),

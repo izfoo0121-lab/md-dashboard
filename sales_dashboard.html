@@ -1530,6 +1530,26 @@ function futureViewEmptyHtml(label) {
   </div>`;
 }
 
+function futureDebtorSummaryStats(agData = {}, debtors = []) {
+  const generatedBase = Number(agData.activation_base_live ?? agData.total_debtors ?? agData.activation_base);
+  const total = Number.isFinite(generatedBase)
+    ? generatedBase
+    : (debtors || []).filter(d => !isPersonalDebtor(d)).length;
+  return {
+    total,
+    active: 0,
+    inactive: 0,
+    reactiv: 0,
+    rate: 0,
+    npTotalLive: total,
+    npTotalFrozen: total,
+    isFrozen: false,
+    isBaselinePending: false,
+    openedThisMonth: 0,
+    npActive: 0
+  };
+}
+
 function futureDebtorPlanningCopy(debtor = {}) {
   const campaigns = Array.isArray(debtor.campaigns)
     ? debtor.campaigns.map(c => ({ ...c, converted: false, current_ctn: 0, current_rm: 0, status: c.status || 'pending' }))
@@ -1537,6 +1557,7 @@ function futureDebtorPlanningCopy(debtor = {}) {
   return {
     ...debtor,
     status: 'pending',
+    is_pending_activation: false,
     ctn_cur: 0,
     rm_cur: 0,
     invoice_count_cur: 0,
@@ -4287,19 +4308,20 @@ function renderDebtors() {
   const birthdayCodeSet = birthdayCodeSetForCurrentAgent();
 
   // Summary strip — activation rate (excl. Personal) + 待激活
-  const total   = DATA.is_future_view ? debtors.length : (agData.total_debtors || 0);
-  const active  = DATA.is_future_view ? 0 : (agData.active_count || 0);
+  const futureStats = DATA.is_future_view ? futureDebtorSummaryStats(agData, debtors) : null;
+  const total   = futureStats ? futureStats.total : (agData.total_debtors || 0);
+  const active  = futureStats ? futureStats.active : (agData.active_count || 0);
   const pending = DATA.is_future_view ? debtors.length : (agData.pending_count || 0);
-  const inactive = DATA.is_future_view ? (agData.pending_activation ?? agData.inactive_count ?? 0) : (agData.pending_activation ?? agData.inactive_count ?? 0);
-  const reactiv = DATA.is_future_view ? 0 : (agData.reactivation_count || 0);  // KPI: reactivated this month
-  const rate    = DATA.is_future_view ? 0 : (agData.activation_rate ?? 0);
-  const npTotalLive   = DATA.is_future_view ? total : (agData.activation_base_live ?? total);
-  const npTotalFrozen = DATA.is_future_view ? total : (agData.activation_base ?? npTotalLive);
-  const isFrozen      = DATA.is_future_view ? false : agData.activation_base_frozen === true;
-  const isBaselinePending = DATA.is_future_view ? false : agData.activation_base_frozen === false;
+  const inactive = futureStats ? futureStats.inactive : (agData.pending_activation ?? agData.inactive_count ?? 0);
+  const reactiv = futureStats ? futureStats.reactiv : (agData.reactivation_count || 0);  // KPI: reactivated this month
+  const rate    = futureStats ? futureStats.rate : (agData.activation_rate ?? 0);
+  const npTotalLive   = futureStats ? futureStats.npTotalLive : (agData.activation_base_live ?? total);
+  const npTotalFrozen = futureStats ? futureStats.npTotalFrozen : (agData.activation_base ?? npTotalLive);
+  const isFrozen      = futureStats ? futureStats.isFrozen : agData.activation_base_frozen === true;
+  const isBaselinePending = futureStats ? futureStats.isBaselinePending : agData.activation_base_frozen === false;
   const snapDate      = agData.activation_snapshot_date || null;
-  const openedThisMonth = DATA.is_future_view ? 0 : (agData.opened_this_month ?? 0);
-  const npActive      = DATA.is_future_view ? 0 : (agData.activation_active ?? active);
+  const openedThisMonth = futureStats ? futureStats.openedThisMonth : (agData.opened_this_month ?? 0);
+  const npActive      = futureStats ? futureStats.npActive : (agData.activation_active ?? active);
 
   const sumTotalEl = document.getElementById('sum-total');
   sumTotalEl.textContent = npTotalLive;
