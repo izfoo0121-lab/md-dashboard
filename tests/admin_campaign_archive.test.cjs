@@ -70,6 +70,14 @@ assert.strictEqual(context.campaignOperationalInWorkingMonth({
   created_at: '2026-05-01T00:00:00Z',
   debtors: [],
 }, 'Jun 26'), true);
+assert.strictEqual(context.campaignOperationalInWorkingMonth({
+  id: 'camp_sukun_jun26',
+  name: 'SUKUN FOC JUN26',
+  active: true,
+  start_date: '2026-06-02',
+  deadline: '2026-06-30',
+  debtors: [{ code: '300-BY250' }],
+}, 'Jun 26'), true);
 
 const monthFiltered = context.filterClosedCampaignsForArchive(campaigns, 'May 26', 'month', '');
 assert.deepStrictEqual(monthFiltered.map(c => c.id), ['open', 'may']);

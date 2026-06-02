@@ -48,6 +48,7 @@ const debtor = {
   campaigns: [
     { id: 'may-expired', type: 'free_sample', created_at: '2026-05-01', deadline: '2026-05-31' },
     { id: 'jun-active', type: 'free_sample', created_at: '2026-05-01', deadline: '2026-06-30' },
+    { id: 'jun-closed', type: 'free_sample', active: false, created_at: '2026-06-01', deadline: '2026-06-30' },
     { id: 'jun-lookback-conversion', type: 'conversion_simple', created_at: '2026-05-01', deadline: '2026-06-30', lookback_ctn: 5 },
   ],
 };

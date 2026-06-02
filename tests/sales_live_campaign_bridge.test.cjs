@@ -46,6 +46,7 @@ vm.runInContext([
   extractFunction('salesCampaignFromDb'),
   extractFunction('salesDebtorRecordToCard'),
   extractFunction('salesCampaignEntryFromDebtor'),
+  extractFunction('mergeSalesCampaignEntry'),
   extractFunction('mergeLiveCampaignsIntoSalesData'),
   extractFunction('isConversionCampaign'),
   extractFunction('isVisibleDebtorCampaign'),
@@ -116,6 +117,52 @@ assert.strictEqual(benDebtors[0].status, 'pending');
 assert.strictEqual(benDebtors[0].campaigns.length, 1);
 assert.strictEqual(benDebtors[0].campaigns[0].foc_item, 'SKNR');
 assert.strictEqual(benDebtors[0].campaigns[0].foc_item_2, 'SKNW');
+
+const staleGenerated = {
+  current_month: 'Jun 26',
+  agents: {
+    JAMES: {
+      debtor_cards: {
+        debtors: [
+          {
+            debtor_code: '300-J025',
+            company_name: 'PANTAI LANJUT KAK JAK',
+            status: 'pending',
+            campaigns: [
+              { id: 'camp_sukun_sample_jun26', name: 'SUKUN SAMPLE JUN26', type: 'free_sample', deadline: '2026-06-30' },
+              { id: 'camp_1780407172845', name: 'SUKUN FOC JUN26', type: 'free_sample', deadline: '2026-06-30' },
+            ],
+          },
+        ],
+      },
+    },
+  },
+};
+const liveWithClosed = {
+  campaigns: [
+    {
+      id: 'camp_sukun_sample_jun26',
+      name: 'SUKUN SAMPLE JUN26',
+      type: 'free_sample',
+      active: false,
+      deadline: '2026-06-30',
+      debtors: [{ debtor_code: '300-J025', debtor_name: 'PANTAI LANJUT KAK JAK', agent: 'JAMES' }],
+    },
+    {
+      ...liveCampaign,
+      id: 'camp_1780407172845',
+      name: 'SUKUN FOC JUN26',
+      active: true,
+      debtors: [{ debtor_code: '300-J025', debtor_name: 'PANTAI LANJUT KAK JAK', agent: 'JAMES', foc_item: 'SKNR', foc_qty: 2, foc_unit: 'packs' }],
+    },
+  ],
+};
+context.mergeLiveCampaignsIntoSalesData(staleGenerated, liveWithClosed);
+assert.strictEqual(
+  staleGenerated.agents.JAMES.debtor_cards.debtors[0].campaigns.map(c => c.name).join(','),
+  'SUKUN FOC JUN26',
+  'Closed Supabase campaigns should be stripped from stale generated Sales debtor cards'
+);
 
 context.DATA = data;
 vm.runInContext('DATA = globalThis.DATA;', context);

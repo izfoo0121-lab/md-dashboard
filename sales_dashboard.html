@@ -766,6 +766,18 @@ function mergeSalesCampaignEntry(existing, liveEntry) {
 function mergeLiveCampaignsIntoSalesData(data, live) {
   if (!data || !data.agents) return 0;
   const month = data.current_month || '';
+  const closedLiveIds = new Set((live?.campaigns || []).filter(c => c?.id && c.active === false).map(c => c.id));
+  if (closedLiveIds.size) {
+    data.campaigns = (data.campaigns || []).filter(c => !closedLiveIds.has(c?.id));
+    Object.values(data.agents || {}).forEach(agentData => {
+      const debtors = agentData?.debtor_cards?.debtors || [];
+      debtors.forEach(debtor => {
+        if (Array.isArray(debtor.campaigns)) {
+          debtor.campaigns = debtor.campaigns.filter(c => !closedLiveIds.has(c?.id));
+        }
+      });
+    });
+  }
   const activeCamps = (live?.campaigns || [])
     .filter(c => c?.id && c.active !== false)
     .filter(c => !month || isCampaignActiveInMonth(c, month));
@@ -5793,7 +5805,10 @@ function campaignVisibleForSelectedMonth(c) {
 }
 
 function visibleDebtorCampaigns(debtor) {
-  return (debtor?.campaigns || []).filter(campaignVisibleForSelectedMonth).filter(isVisibleDebtorCampaign);
+  return (debtor?.campaigns || [])
+    .filter(c => c?.active !== false)
+    .filter(campaignVisibleForSelectedMonth)
+    .filter(isVisibleDebtorCampaign);
 }
 
 // ── Campaign Visit Status Storage ──────────────────────────────────────────
