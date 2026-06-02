@@ -436,6 +436,194 @@ async function fetchAllFlagsForMonth(month) {
   return all;
 }
 
+async function fetchSupabasePaged(path, label, maxRows) {
+  const all = [];
+  const pageSize = 1000;
+  const limit = maxRows || 50000;
+  for (let offset = 0; offset < limit; offset += pageSize) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Range-Unit': 'items',
+        'Range': `${offset}-${offset + pageSize - 1}`,
+        'Prefer': 'count=none'
+      }
+    });
+    if (!r.ok) throw new Error(`${label || path} ${r.status}`);
+    const batch = await r.json();
+    if (!Array.isArray(batch) || !batch.length) break;
+    all.push(...batch);
+    if (batch.length < pageSize) break;
+  }
+  return all;
+}
+
+function auditGroupBy(rows, key) {
+  return (rows || []).reduce((acc, row) => {
+    const groupKey = row?.[key];
+    if (!groupKey) return acc;
+    (acc[groupKey] ||= []).push(row);
+    return acc;
+  }, {});
+}
+
+function auditParseCampaignNotes(notes) {
+  if (!notes) return {};
+  if (typeof notes === 'object' && !Array.isArray(notes)) return notes;
+  try {
+    const parsed = JSON.parse(notes);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : { notes };
+  } catch (_) {
+    return { notes };
+  }
+}
+
+function auditCampaignRuleFromDb(row) {
+  return {
+    promo: row.promo_detail || '',
+    promo_detail: row.promo_detail || '',
+    min_ctn: row.min_order_ctn ?? '',
+    min_order_ctn: row.min_order_ctn ?? null,
+    foc_item: row.foc_item || '',
+    foc_qty: row.foc_qty ?? '',
+    foc_unit: row.foc_unit || '',
+    foc_type: row.foc_type || '',
+    cap: row.cap ?? null,
+    target_pct: row.target_pct ?? null,
+    target_label: row.target_label || '',
+    notes: row.notes || ''
+  };
+}
+
+function auditCampaignFromDb(row, rulesByCampaign, debtorsByCampaign) {
+  const brands = Array.isArray(row.brands) ? row.brands : (row.brands ? [row.brands] : []);
+  const catRules = {};
+  (rulesByCampaign[row.id] || []).forEach(rule => {
+    if (rule.cat_group) catRules[rule.cat_group] = auditCampaignRuleFromDb(rule);
+  });
+  const debtors = (debtorsByCampaign[row.id] || []).map(d => ({
+    code: d.debtor_code || '',
+    debtor_code: d.debtor_code || '',
+    name: d.debtor_name || '',
+    debtor_name: d.debtor_name || '',
+    company_name: d.debtor_name || d.debtor_code || '',
+    agent: String(d.agent || '').toUpperCase(),
+    cat: d.cat || '',
+    cat_group: d.cat_group || '',
+    debtor_type: d.debtor_type || '',
+    foc_item: d.foc_item || '',
+    foc_qty: d.foc_qty ?? '',
+    foc_unit: d.foc_unit || '',
+    foc_type: d.foc_type || '',
+    rebate: d.rebate ?? null,
+    foc_item2: d.foc_item_2 || '',
+    foc_qty2: d.foc_qty_2 ?? '',
+    foc_item_2: d.foc_item_2 || '',
+    foc_qty_2: d.foc_qty_2 ?? '',
+    foc_unit_2: d.foc_unit_2 || '',
+    avg_ctn: d.avg_ctn ?? null,
+    promo_logic: d.promo_logic || '',
+    eligibility_reason: d.notes || d.promo_logic || '',
+    approval: !!d.approval,
+    approval_note: d.approval_note || '',
+    notes: d.notes || ''
+  }));
+  return {
+    id: row.id,
+    name: row.name || '',
+    type: row.type || 'other',
+    brand: brands.length === 1 ? brands[0] : '',
+    brands,
+    description: row.description || '',
+    notes: auditParseCampaignNotes(row.notes),
+    promo_detail: row.promo_detail || '',
+    min_order_ctn: row.min_order_ctn ?? null,
+    cat_rules: catRules,
+    default_foc_item: row.default_foc_item || '',
+    default_foc_qty: row.default_foc_qty ?? '',
+    default_foc_unit: row.default_foc_unit || '',
+    default_foc_type: row.default_foc_type || '',
+    default_foc_item_2: row.default_foc_item_2 || '',
+    default_foc_qty_2: row.default_foc_qty_2 ?? '',
+    default_foc_unit_2: row.default_foc_unit_2 || '',
+    foc_note: row.foc_note || '',
+    festive_occasion: row.festive_occasion || '',
+    conditions: Array.isArray(row.conditions) ? row.conditions : [],
+    no_cap: !!row.no_cap,
+    active: row.active !== false,
+    start_date: row.start_date || null,
+    deadline: row.deadline || '',
+    kpi_numerators: Array.isArray(row.kpi_numerators) && row.kpi_numerators.length ? row.kpi_numerators : ['count'],
+    created_at: row.created_at || '',
+    updated_at: row.updated_at || '',
+    debtors
+  };
+}
+
+function auditMergeCampaignData(generated, live) {
+  const merged = { ...(generated || {}), campaigns: [] };
+  const seen = new Set();
+  (live?.campaigns || []).forEach(camp => {
+    if (!camp?.id || seen.has(camp.id)) return;
+    merged.campaigns.push(camp);
+    seen.add(camp.id);
+  });
+  (generated?.campaigns || []).forEach(camp => {
+    if (!camp?.id || seen.has(camp.id)) return;
+    merged.campaigns.push(camp);
+    seen.add(camp.id);
+  });
+  return merged;
+}
+
+async function fetchLiveCampaignData() {
+  const [campaignRows, ruleRows, debtorRows] = await Promise.all([
+    fetchSupabasePaged('campaigns?select=*&order=created_at.desc', 'campaigns'),
+    fetchSupabasePaged('campaign_cat_rules?select=*', 'campaign rules'),
+    fetchSupabasePaged('campaign_debtors?select=*&order=debtor_code.asc', 'campaign debtors')
+  ]);
+  const rulesByCampaign = auditGroupBy(ruleRows, 'campaign_id');
+  const debtorsByCampaign = auditGroupBy(debtorRows, 'campaign_id');
+  return {
+    campaigns: (campaignRows || []).map(row => auditCampaignFromDb(row, rulesByCampaign, debtorsByCampaign))
+  };
+}
+
+function auditDebtorRecordToCard(record) {
+  if (!record) return null;
+  const code = String(record.debtor_code || record.code || '').toUpperCase();
+  if (!code) return null;
+  return {
+    debtor_code: code,
+    company_name: record.company_name || record.debtor_name || record.name || code,
+    debtor_type: record.debtor_type || '',
+    agent: String(record.agent || '').toUpperCase(),
+    campaigns: []
+  };
+}
+
+function auditCampaignEntryFromDebtor(camp, record) {
+  return {
+    id: camp?.id || record?.campaign_id || '',
+    name: camp?.name || '',
+    type: camp?.type || 'other',
+    cat: record?.cat || '',
+    cat_group: record?.cat_group || '',
+    foc_item: record?.foc_item || camp?.default_foc_item || '',
+    foc_qty: record?.foc_qty ?? camp?.default_foc_qty ?? '',
+    foc_unit: record?.foc_unit || camp?.default_foc_unit || '',
+    foc_item_2: record?.foc_item_2 || record?.foc_item2 || camp?.default_foc_item_2 || '',
+    foc_qty_2: record?.foc_qty_2 ?? record?.foc_qty2 ?? camp?.default_foc_qty_2 ?? '',
+    foc_unit_2: record?.foc_unit_2 || camp?.default_foc_unit_2 || '',
+    eligibility_reason: record?.eligibility_reason || record?.notes || record?.promo_logic || '',
+    notes: record?.notes || '',
+    lookback_ctn: record?.lookback_ctn ?? 0,
+    current_ctn: record?.current_ctn ?? 0,
+    converted: !!record?.converted
+  };
+}
+
 // Populate CLAIMS_CACHE and AUDIT_CACHE from Supabase rows
 function indexSupabaseRows(rows) {
   CLAIMS_CACHE = {};
@@ -572,10 +760,20 @@ async function loadAuditData() {
       DASH_DATA = null;
     }
   }
+  let generatedCampaignData = null;
   try {
     const r2 = await fetch(`campaigns.json?v=${Date.now()}`);
-    CAMP_DATA = await r2.json();
-  } catch(e) { CAMP_DATA = null; }
+    generatedCampaignData = await r2.json();
+  } catch(e) { generatedCampaignData = null; }
+
+  try {
+    const liveCampaignData = await fetchLiveCampaignData();
+    CAMP_DATA = auditMergeCampaignData(generatedCampaignData, liveCampaignData);
+    console.log(`[audit] Loaded ${liveCampaignData.campaigns.length} live Supabase campaigns`);
+  } catch(e) {
+    console.warn('[audit] Failed to load live Supabase campaigns; using generated fallback', e);
+    CAMP_DATA = generatedCampaignData;
+  }
 
   // If the previously-selected campaign tab is no longer valid for this
   // month, reset to ALL so the UI shows something rather than nothing.
@@ -787,6 +985,18 @@ function renderAudit() {
       debtorByAgentCode[`${a}|${(d.debtor_code||'').toUpperCase()}`] = d;
     });
   });
+  const liveCampaignDebtorByKey = {};
+  allCamps.forEach(camp => {
+    (camp.debtors || []).forEach(record => {
+      const card = auditDebtorRecordToCard(record);
+      if (!card) return;
+      const agent = String(record.agent || card.agent || '').toUpperCase();
+      const code = card.debtor_code;
+      if (!agent || !code) return;
+      liveCampaignDebtorByKey[`${agent}|${camp.id}|${code}`] = record;
+      if (!debtorByAgentCode[`${agent}|${code}`]) debtorByAgentCode[`${agent}|${code}`] = card;
+    });
+  });
 
   // Build records from CLAIMS_CACHE (Supabase)
   const records = [];
@@ -801,13 +1011,14 @@ function renderAudit() {
       || (campId === 'birthday_gift_auto'
         ? { id:campId, name:'Birthday Gift', type:'birthday_gift' }
         : { id:campId, name:campId, type:'other' });
-    const debtor = debtorByAgentCode[`${agent}|${debtorCode}`] || {
+    const liveRecord = liveCampaignDebtorByKey[`${agent}|${campId}|${debtorCode}`];
+    const debtor = debtorByAgentCode[`${agent}|${debtorCode}`] || auditDebtorRecordToCard(liveRecord) || {
       debtor_code: debtorCode,
       company_name: debtorCode,
       campaigns: []
     };
     // campEntry is the one entry in debtor.campaigns that matches this campId (for CAT info)
-    const campEntry = (debtor.campaigns||[]).find(c => c.id === campId) || {};
+    const campEntry = (debtor.campaigns||[]).find(c => c.id === campId) || auditCampaignEntryFromDebtor(camp, liveRecord) || {};
 
     const audit = getAudit(month, agent, campId, debtorCode);
     records.push({ camp, agent, debtor, campEntry, claim, audit });
@@ -820,21 +1031,39 @@ function renderAudit() {
     : [allCamps.find(c => c.id === activeCampId) || { id:activeCampId, name:activeCampId, type:'other' }];
 
   entitlementCamps.forEach(selectedCamp => {
-    Object.entries(debtorByAgentCode).forEach(([lookupKey, debtor]) => {
-      const [agent, debtorCode] = lookupKey.split('|');
+    const addEntitlement = (agentRaw, debtorCodeRaw, debtorRaw, campEntryRaw) => {
+      const agent = String(agentRaw || '').toUpperCase();
+      const debtorCode = String(debtorCodeRaw || '').toUpperCase();
+      if (!agent || !debtorCode) return;
       if (agentSel !== 'ALL' && agent !== agentSel) return;
-      const campEntry = (debtor.campaigns || []).find(c => c.id === selectedCamp.id);
-      if (!campEntry) return;
       const recordKey = `${agent}|${selectedCamp.id}|${debtorCode}`;
       if (seen.has(recordKey)) return;
+      const debtor = debtorRaw || { debtor_code: debtorCode, company_name: debtorCode, campaigns: [] };
       records.push({
         camp: selectedCamp,
         agent,
         debtor,
-        campEntry,
+        campEntry: campEntryRaw || {},
         claim: null,
         audit: null
       });
+      seen.add(recordKey);
+    };
+
+    (selectedCamp.debtors || []).forEach(record => {
+      const card = auditDebtorRecordToCard(record);
+      if (!card) return;
+      const agent = String(record.agent || card.agent || '').toUpperCase();
+      const code = card.debtor_code;
+      const generatedCard = debtorByAgentCode[`${agent}|${code}`];
+      addEntitlement(agent, code, generatedCard || card, auditCampaignEntryFromDebtor(selectedCamp, record));
+    });
+
+    Object.entries(debtorByAgentCode).forEach(([lookupKey, debtor]) => {
+      const [agent, debtorCode] = lookupKey.split('|');
+      const campEntry = (debtor.campaigns || []).find(c => c.id === selectedCamp.id);
+      if (!campEntry) return;
+      addEntitlement(agent, debtorCode, debtor, campEntry);
     });
   });
 
@@ -1834,7 +2063,18 @@ function loadBulkDebtors() {
   if (!el || !agent || !campId) return;
 
   const debtors = DASH_DATA?.agents?.[agent]?.debtor_cards?.debtors || [];
-  const campDebtors = debtors.filter(d => (d.campaigns||[]).some(c=>c.id===campId));
+  const camp = (CAMP_DATA?.campaigns || []).find(c => c.id === campId);
+  const byCode = {};
+  debtors
+    .filter(d => (d.campaigns||[]).some(c=>c.id===campId))
+    .forEach(d => { byCode[String(d.debtor_code || '').toUpperCase()] = d; });
+  (camp?.debtors || []).forEach(record => {
+    if (String(record.agent || '').toUpperCase() !== agent) return;
+    const card = auditDebtorRecordToCard(record);
+    if (!card) return;
+    byCode[card.debtor_code] = byCode[card.debtor_code] || card;
+  });
+  const campDebtors = Object.values(byCode);
 
   if (!campDebtors.length) {
     el.innerHTML = `<div style="font-family:var(--mono);font-size:10px;color:var(--muted);padding:10px 0;">No debtors found for this agent/campaign</div>`;
