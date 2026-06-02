@@ -1,0 +1,72 @@
+<h2>One Campaign With Multiple Mechanisms</h2>
+<p class="subtitle">Recommended structure: the campaign is the parent; each mechanism is a separate score/action rule under it.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Admin Campaign Setup - Multi Mechanism</div>
+  <div class="mockup-body">
+    <div class="label">Campaign Header</div>
+    <div class="mock-input">IFACE JUNE CAMPAIGN 2026 - Jun 26 - 1/6 to 30/6</div>
+
+    <div class="label">Mechanisms inside this campaign</div>
+    <div class="options" data-multiselect>
+      <div class="option selected" data-choice="mechanism-1" onclick="toggleSelect(this)">
+        <div class="letter">1</div>
+        <div class="content">
+          <h3>Penetration / Win-back</h3>
+          <p>Eligible debtors: new accounts + no IFACE purchase in Mar-May. Converted when they buy IFACE in Jun.</p>
+          <p><strong>Shows to agent:</strong> target debtor list, reason, converted/not converted.</p>
+        </div>
+      </div>
+
+      <div class="option selected" data-choice="mechanism-2" onclick="toggleSelect(this)">
+        <div class="letter">2</div>
+        <div class="content">
+          <h3>FOC Delivery</h3>
+          <p>When debtor qualifies, agent claims/delivers SUKUN x 4 packs. Note: IFACE PEN.</p>
+          <p><strong>Shows to agent:</strong> exact FOC package + claim/delivered button.</p>
+        </div>
+      </div>
+
+      <div class="option" data-choice="mechanism-3" onclick="toggleSelect(this)">
+        <div class="letter">3</div>
+        <div class="content">
+          <h3>PK / Commission Pool</h3>
+          <p>Use IFACE paid CTN from qualified debtors. RM3.50/CTN goes into pool, group ranking shown in Management.</p>
+          <p><strong>Shows to agent:</strong> personal progress only. Management sees group standings.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="placeholder">
+      Summary shown before saving:
+      This campaign has 3 mechanisms: debtor eligibility, FOC delivery, and PK pool. Sales Dashboard shows action work; Management shows standings.
+    </div>
+  </div>
+</div>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Sales Dashboard Result</div>
+    <div class="mockup-body">
+      <div class="placeholder">IFACE Mission Card</div>
+      <div class="mock-input">Eligible: 42 debtors</div>
+      <div class="mock-input">Converted: 7 customers / 88 CTN</div>
+      <div class="mock-input">FOC: SUKUN x 4 packs - Note IFACE PEN</div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">Management Result</div>
+    <div class="mockup-body">
+      <div class="placeholder">IFACE Group PK</div>
+      <div class="mock-input">MIRACLE - 27 converted / 430 CTN / RM1,505 pool</div>
+      <div class="mock-input">MVP - 21 converted / 380 CTN / RM1,330 pool</div>
+      <div class="mock-input">Winner by penetration + winner by CTN</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Design Direction</h3>
+  <p>Use one campaign with repeatable <strong>Mechanism Cards</strong>. This avoids creating three separate campaigns for IFACE, but keeps each rule understandable and separately visible.</p>
+</div>

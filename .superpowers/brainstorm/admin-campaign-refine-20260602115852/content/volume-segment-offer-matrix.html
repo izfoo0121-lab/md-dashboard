@@ -1,0 +1,72 @@
+<h2>BISON-Style Campaign: Previous Volume -> Category -> Different Offer</h2>
+<p class="subtitle">This is not just conversion. It is a segmented offer matrix.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Mechanism Type: Volume Segment Offer Matrix</div>
+  <div class="mockup-body">
+    <div class="label">1. What history should decide debtor category?</div>
+    <div class="mock-input">Product: BISON - Basis: previous purchase volume - Months: Mar 26, Apr 26, May 26</div>
+
+    <div class="label">2. Segment debtors by previous CTN</div>
+    <div class="options" data-multiselect>
+      <div class="option selected" data-choice="seg-a" onclick="toggleSelect(this)">
+        <div class="letter">A</div>
+        <div class="content">
+          <h3>Category A - No / Low BISON buyer</h3>
+          <p>Previous BISON: 0-2 CTN. Offer: starter FOC / easier entry deal.</p>
+        </div>
+      </div>
+      <div class="option selected" data-choice="seg-b" onclick="toggleSelect(this)">
+        <div class="letter">B</div>
+        <div class="content">
+          <h3>Category B - Medium BISON buyer</h3>
+          <p>Previous BISON: 3-8 CTN. Offer: standard promo / moderate target.</p>
+        </div>
+      </div>
+      <div class="option selected" data-choice="seg-c" onclick="toggleSelect(this)">
+        <div class="letter">C</div>
+        <div class="content">
+          <h3>Category C - High BISON buyer</h3>
+          <p>Previous BISON: 9+ CTN. Offer: higher target / bigger reward.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="label">3. Offer matrix</div>
+    <div class="placeholder">
+      A: Buy 3 CTN -> FOC X<br>
+      B: Buy 6 CTN -> FOC Y<br>
+      C: Buy 10 CTN -> FOC Z
+    </div>
+
+    <div class="label">4. Current month tracking</div>
+    <div class="mock-input">Track current BISON CTN vs the target assigned by each debtor category.</div>
+  </div>
+</div>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Sales Dashboard</div>
+    <div class="mockup-body">
+      <div class="mock-input">300-BY001 - Category A</div>
+      <div class="mock-input">Previous BISON: 1 CTN</div>
+      <div class="mock-input">This month: 0 / 3 CTN</div>
+      <div class="mock-input">Offer: Buy 3 CTN -> FOC X</div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">Management</div>
+    <div class="mockup-body">
+      <div class="mock-input">Category A: 42 debtors / 9 hit</div>
+      <div class="mock-input">Category B: 18 debtors / 7 hit</div>
+      <div class="mock-input">Category C: 6 debtors / 3 hit</div>
+      <div class="placeholder">Can export category debtor list and result.</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>How this fits Admin</h3>
+  <p>Campaign has one parent record. Under it, add a mechanism card called <strong>Volume Segment Offer Matrix</strong>. It generates or imports debtor categories, stores the offer per category, and lets Sales Dashboard show the exact offer for each debtor.</p>
+</div>

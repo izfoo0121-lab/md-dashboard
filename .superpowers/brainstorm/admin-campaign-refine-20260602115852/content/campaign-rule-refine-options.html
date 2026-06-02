@@ -1,0 +1,83 @@
+<h2>Refine Admin Campaign Mechanism Builder</h2>
+<p class="subtitle">Goal: make campaign setup feel like choosing a business rule, not filling system fields.</p>
+
+<div class="cards">
+  <div class="card" data-choice="guided-goal" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">Recommended: Guided Campaign Goal</div>
+        <div class="mockup-body">
+          <div class="label">1. Campaign Goal</div>
+          <div class="options">
+            <div class="option selected" style="margin-bottom:8px;">
+              <div class="letter">A</div>
+              <div class="content">
+                <h3>Brand Penetration / Win-back</h3>
+                <p>No purchase in lookback months, then purchase this month.</p>
+              </div>
+            </div>
+            <div class="option" style="margin-bottom:8px;">
+              <div class="letter">B</div>
+              <div class="content">
+                <h3>This Month Purchase</h3>
+                <p>Any debtor who buys the item this month counts.</p>
+              </div>
+            </div>
+          </div>
+          <div class="label">2. Product To Track</div>
+          <div class="mock-input">IFACE - item group / selected item codes</div>
+          <div class="label">3. Lookback Window</div>
+          <div class="mock-input">Mar 26, Apr 26, May 26</div>
+          <div class="placeholder">Plain summary: Must NOT buy IFACE in Mar-May, then buy IFACE in Jun.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Option A - Guided Goal Cards</h3>
+      <p>Best for avoiding mistakes. It keeps technical values hidden, shows a readable rule summary, and still saves the same Supabase notes.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="rename-only" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">Simple Rename</div>
+        <div class="mockup-body">
+          <div class="label">Conversion Type</div>
+          <div class="mock-input">Win-back: no lookback purchase, then current purchase</div>
+          <div class="label">Product Match</div>
+          <div class="mock-input">Item Group: IFACE</div>
+          <div class="label">Lookback Months</div>
+          <div class="mock-input">Mar, Apr, May</div>
+          <div class="placeholder">Same layout, clearer labels/tooltips only.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Option B - Rename Current Fields</h3>
+      <p>Fastest and least risky, but still feels like a form. Good if you want small cleanup only.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="wizard" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">Wizard Setup</div>
+        <div class="mockup-body">
+          <div class="mock-nav">Goal -> Product -> Eligible Debtors -> FOC / Reward -> Review</div>
+          <div class="placeholder">Step-by-step creation with preview at each step.</div>
+          <button class="mock-button">Next: Choose Product</button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Option C - Full Wizard</h3>
+      <p>Cleanest for future growth, but bigger change and slower to implement. Better after the current campaign flow stabilizes.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>My recommendation</h3>
+  <p>Use Option A: guided goal cards. It gives you clearer setup for IFACE/TR-style campaigns without rebuilding Admin as a full wizard.</p>
+</div>

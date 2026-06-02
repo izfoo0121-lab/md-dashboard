@@ -1,0 +1,72 @@
+<h2>Separate Campaign Type From Mechanism</h2>
+<p class="subtitle">Current dropdown mixes occasion, promotion style, scoring rule, and delivery workflow. Splitting them makes future campaigns easier.</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Campaign Type - what kind of activity is this?</div>
+    <div class="mockup-body">
+      <div class="options" data-multiselect>
+        <div class="option selected" data-choice="festive" onclick="toggleSelect(this)">
+          <div class="letter">🎊</div>
+          <div class="content">
+            <h3>Festive / Seasonal Gift</h3>
+            <p>Raya, CNY, Deepavali, Christmas. Usually gift/delivery focused.</p>
+          </div>
+        </div>
+        <div class="option selected" data-choice="sample" onclick="toggleSelect(this)">
+          <div class="letter">🎁</div>
+          <div class="content">
+            <h3>Free Sample / FOC</h3>
+            <p>Debtor list with exact package, or category-based sample plan.</p>
+          </div>
+        </div>
+        <div class="option selected" data-choice="brand" onclick="toggleSelect(this)">
+          <div class="letter">📣</div>
+          <div class="content">
+            <h3>Brand Promotion / Offer</h3>
+            <p>Push brand sales, penetration, or segmented offers.</p>
+          </div>
+        </div>
+        <div class="option selected" data-choice="pk" onclick="toggleSelect(this)">
+          <div class="letter">🏆</div>
+          <div class="content">
+            <h3>PK / Competition</h3>
+            <p>Agent or group ranking, pool, winners.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">Mechanism - how does it work?</div>
+    <div class="mockup-body">
+      <div class="mock-input">Gift Entitlement / Delivery</div>
+      <div class="mock-input">Manual Debtor List + Exact Package</div>
+      <div class="mock-input">Current Month Purchase</div>
+      <div class="mock-input">No Lookback Purchase -> Current Purchase</div>
+      <div class="mock-input">Volume Segment Offer Matrix</div>
+      <div class="mock-input">Tiered Conversion</div>
+      <div class="mock-input">PK / Pool Ranking</div>
+      <div class="mock-input">Repeat Order Follow-up</div>
+    </div>
+  </div>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">Example: Festive Gift Campaign</div>
+  <div class="mockup-body">
+    <div class="label">Campaign Type</div>
+    <div class="mock-input">Festive / Seasonal Gift - Raya</div>
+    <div class="label">Mechanisms</div>
+    <div class="mock-input">1. Gift Entitlement: eligible debtor list</div>
+    <div class="mock-input">2. Delivery Tracking: claim / delivered / verified</div>
+    <div class="mock-input">3. Optional Purchase Condition: only if bought selected item this month</div>
+    <div class="placeholder">Sales Dashboard shows gift package and delivery action. Management sees delivery progress and audit.</div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Recommended Admin Flow</h3>
+  <p>Step 1 choose Campaign Type for label/defaults. Step 2 add one or more Mechanism Cards. This supports festive gifts, BISON segmented offers, IFACE conversion, and TR-style PK without hardcoding everything into one dropdown.</p>
+</div>
