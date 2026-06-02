@@ -169,3 +169,11 @@ For each example:
 - Generated Sales Dashboard should not break.
 - Generated Management view should not break.
 
+## Implementation Record
+
+First pass implemented in `admin.html`:
+
+- Campaign Type is visually separated from mechanism selection.
+- Mechanism Cards explain Manual List, Gift / FOC Delivery, Brand Penetration / Win-back, Volume Segment Offer, and PK / Commission Pool concepts.
+- Existing Supabase campaign notes remain the storage format.
+- Validation blocks missing match values, lookback months, volume tiers, and gift package/list requirements before save.

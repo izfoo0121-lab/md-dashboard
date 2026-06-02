@@ -924,8 +924,8 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
           <input type="text" id="new-camp-name" placeholder="e.g. March SUKUN Push">
         </div>
         <div class="input-group">
-          <div class="input-label">Type</div>
-          <select id="new-camp-type" onchange="toggleBrandFields(this.value);applyKpiNumeratorDefaults('new-camp', this.value)"
+          <div class="input-label">Campaign Type</div>
+          <select id="new-camp-type" onchange="toggleBrandFields(this.value);applyKpiNumeratorDefaults('new-camp', this.value);toggleCampaignMechanismSections('new-camp', this.value)"
             style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 12px;border-radius:8px;">
             <option value="free_sample">🎁 Free Sample</option>
             <option value="birthday_gift">🎂 Birthday Gift</option>
@@ -1018,16 +1018,19 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
 
         <!-- Conversion-tiered fields — shown for conversion_tiered type -->
         <div id="conversion-tiered-fields">
-          <div class="sec-divider" style="margin-top:14px;">Campaign Mechanism Builder</div>
+          <div class="sec-divider" style="margin-top:14px;">Mechanism Cards</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);line-height:1.6;margin-bottom:10px;">
+            Campaign Type is the business label. Mechanism Cards decide who is eligible, what agents see, and how Management scores the result.
+          </div>
 
           <div class="input-row">
             <div class="field-wrap">
-              <div class="field-lbl">Mechanism Type</div>
+              <div class="field-lbl">Main Mechanism</div>
               <select id="new-camp-mechanism-type" onchange="toggleCampaignMechanismSections('new-camp', document.getElementById('new-camp-type')?.value || '')">
-                <option value="manual_claim">Manual claim / entitlement</option>
-                <option value="conversion">Conversion</option>
-                <option value="volume_reward">Volume reward / FOC tier</option>
-                <option value="delivery_gift">Delivered gift / list upload</option>
+                <option value="manual_claim">Manual list / exact package</option>
+                <option value="delivery_gift">Gift / FOC Delivery</option>
+                <option value="conversion">Brand Penetration / Win-back</option>
+                <option value="volume_reward">Volume Segment Offer</option>
               </select>
             </div>
             <div class="field-wrap" id="new-camp-conversion-rule-wrap">
@@ -1036,6 +1039,27 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
                 <option value="no_lookback_then_current">No lookback purchase, then current purchase</option>
                 <option value="current_month_only">Current month purchase only</option>
               </select>
+            </div>
+          </div>
+
+          <div id="new-camp-mechanism-help" style="font-family:var(--mono);font-size:11px;line-height:1.6;color:var(--ink);background:#f8fbfb;border:1px solid rgba(15,118,110,.22);border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+            Use when Admin already has the approved debtor list.
+          </div>
+          <div id="new-camp-mechanism-preview" style="font-family:var(--mono);font-size:10px;line-height:1.6;color:var(--ink3);background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:9px 12px;margin-bottom:10px;">
+            Sales shows selected debtors and exact package notes.
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-bottom:12px;">
+            <div id="new-camp-gift-addon" style="border:1px solid rgba(214,138,0,.25);background:#fffaf0;border-radius:10px;padding:10px 12px;">
+              <div style="font-family:var(--display);font-size:14px;letter-spacing:.04em;">Gift / FOC Delivery</div>
+              <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);line-height:1.5;margin-top:4px;">
+                Use campaign default package or debtor-level package from upload. Agents still claim/deliver from Sales Dashboard.
+              </div>
+            </div>
+            <div id="new-camp-pk-addon" style="border:1px solid rgba(37,99,235,.22);background:#f6f9ff;border-radius:10px;padding:10px 12px;">
+              <div style="font-family:var(--display);font-size:14px;letter-spacing:.04em;">PK / Commission Pool</div>
+              <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);line-height:1.5;margin-top:4px;">
+                Optional group/agent ranking. Store group labels in debtor metadata; Management shows standings after regeneration.
+              </div>
             </div>
           </div>
 
@@ -3826,6 +3850,48 @@ function campaignMechanismTypeFor(camp, notes = {}) {
   return 'manual_claim';
 }
 
+function campaignMechanismDisplayMeta(mechanism, type) {
+  const meta = {
+    manual_claim: {
+      title: 'Manual list / exact package',
+      help: 'Use when Admin already has the approved debtor list.',
+      preview: 'Sales shows selected debtors and exact package notes.'
+    },
+    delivery_gift: {
+      title: 'Gift / FOC Delivery',
+      help: 'Use for festive gift, birthday, or free sample delivery tracking.',
+      preview: 'Agents claim or mark delivered without changing the package instruction.'
+    },
+    conversion: {
+      title: 'Brand Penetration / Win-back',
+      help: 'Use for current-month purchase or no-lookback-then-current campaigns.',
+      preview: 'Sales shows eligibility reason; Management compares conversion and CTN.'
+    },
+    volume_reward: {
+      title: 'Volume Segment Offer',
+      help: 'Use for BISON-style previous-volume categories with different offers.',
+      preview: 'Admin defines volume basis and reward tiers; generated data tracks the result.'
+    }
+  };
+  const chosen = meta[mechanism] || meta.manual_claim;
+  if (type === 'festive_gift' && mechanism === 'manual_claim') {
+    return {
+      ...chosen,
+      help: 'Festive campaign with a confirmed debtor list and exact gift package.'
+    };
+  }
+  return chosen;
+}
+
+function updateCampaignMechanismCopy(scope, type = '') {
+  const mechanism = document.getElementById(_campScopeId(scope, 'mechanism-type'))?.value || 'manual_claim';
+  const meta = campaignMechanismDisplayMeta(mechanism, type);
+  const help = document.getElementById(_campScopeId(scope, 'mechanism-help'));
+  const preview = document.getElementById(_campScopeId(scope, 'mechanism-preview'));
+  if (help) help.textContent = meta.help;
+  if (preview) preview.textContent = meta.preview;
+}
+
 function readCampaignMechanism(scope, type) {
   const get = field => document.getElementById(_campScopeId(scope, field));
   const mechanismType = get('mechanism-type')?.value || ((type || '').startsWith('conversion_') ? 'conversion' : 'manual_claim');
@@ -3906,6 +3972,7 @@ function toggleCampaignMechanismSections(scope, type = '') {
   show('reward-wrap', isVolume);
   show('tier-row', isTiered);
   show('tier-note', isTiered);
+  updateCampaignMechanismCopy(scope, type);
 }
 
 function renderCampaignMechanismFields(scope, camp = {}) {
@@ -3917,17 +3984,19 @@ function renderCampaignMechanismFields(scope, camp = {}) {
   return `<div style="border:1px solid var(--border);border-radius:10px;padding:10px;margin:10px 0;background:var(--bg);">
     <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Mechanism settings</div>
     <div class="input-row">
-      <div class="field-wrap"><div class="field-lbl">Mechanism Type</div><select id="${_campScopeId(scope,'mechanism-type')}" onchange="toggleCampaignMechanismSections('${scope}','${camp.type || ''}')">
-        <option value="manual_claim" ${mechanismType==='manual_claim'?'selected':''}>Manual claim / entitlement</option>
-        <option value="conversion" ${mechanismType==='conversion'?'selected':''}>Conversion</option>
-        <option value="volume_reward" ${mechanismType==='volume_reward'?'selected':''}>Volume reward / FOC tier</option>
-        <option value="delivery_gift" ${mechanismType==='delivery_gift'?'selected':''}>Delivered gift / list upload</option>
+      <div class="field-wrap"><div class="field-lbl">Main Mechanism</div><select id="${_campScopeId(scope,'mechanism-type')}" onchange="toggleCampaignMechanismSections('${scope}','${camp.type || ''}')">
+        <option value="manual_claim" ${mechanismType==='manual_claim'?'selected':''}>Manual list / exact package</option>
+        <option value="delivery_gift" ${mechanismType==='delivery_gift'?'selected':''}>Gift / FOC Delivery</option>
+        <option value="conversion" ${mechanismType==='conversion'?'selected':''}>Brand Penetration / Win-back</option>
+        <option value="volume_reward" ${mechanismType==='volume_reward'?'selected':''}>Volume Segment Offer</option>
       </select></div>
       <div class="field-wrap" id="${_campScopeId(scope,'conversion-rule-wrap')}"><div class="field-lbl">Conversion Rule</div><select id="${_campScopeId(scope,'conversion-rule')}">
         <option value="no_lookback_then_current" ${(notes.conversion_rule||'no_lookback_then_current')==='no_lookback_then_current'?'selected':''}>No lookback purchase, then current purchase</option>
         <option value="current_month_only" ${notes.conversion_rule==='current_month_only'?'selected':''}>Current month purchase only</option>
       </select></div>
     </div>
+    <div id="${_campScopeId(scope,'mechanism-help')}" style="font-family:var(--mono);font-size:11px;line-height:1.6;color:var(--ink);background:#f8fbfb;border:1px solid rgba(15,118,110,.22);border-radius:10px;padding:10px 12px;margin-bottom:8px;">${campaignMechanismDisplayMeta(mechanismType, camp.type || '').help}</div>
+    <div id="${_campScopeId(scope,'mechanism-preview')}" style="font-family:var(--mono);font-size:10px;line-height:1.6;color:var(--ink3);background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:9px 12px;margin-bottom:10px;">${campaignMechanismDisplayMeta(mechanismType, camp.type || '').preview}</div>
     <div class="input-row" id="${_campScopeId(scope,'match-row')}">
       <div class="field-wrap"><div class="field-lbl">Match By</div><select id="${_campScopeId(scope,'qualifying-match')}">
         <option value="item_group" ${(notes.qualifying_match||'item_group')==='item_group'?'selected':''}>Item Group</option>
@@ -7308,6 +7377,36 @@ function prepareCampaignDebtorForSave(d, opts) {
   };
 }
 
+function validateCampaignMechanismBeforeSave(scope, type) {
+  const get = field => document.getElementById(_campScopeId(scope, field));
+  const mechanism = get('mechanism-type')?.value || 'manual_claim';
+  const errors = [];
+  const matchValues = _campCsv(get('qualifying-item')?.value || '');
+  const lookbackMonths = _campCsv(get('lookback-months')?.value || '');
+  const conversionRule = get('conversion-rule')?.value || 'no_lookback_then_current';
+  const hasDefaultGift = !!String(document.getElementById('new-camp-foc-item')?.value || '').trim();
+  const hasUploadedRows = Array.isArray(_campFileDebtors) && _campFileDebtors.length > 0;
+
+  if (mechanism === 'conversion') {
+    if (!matchValues.length) errors.push('Brand Penetration / Win-back needs at least one match value.');
+    if (conversionRule === 'no_lookback_then_current' && !lookbackMonths.length) {
+      errors.push('No-lookback conversion needs at least one lookback month.');
+    }
+  }
+  if (mechanism === 'volume_reward') {
+    if (!matchValues.length) errors.push('Volume Segment Offer needs the item group/code to measure.');
+    if (!String(get('reward-tiers')?.value || '').trim()) {
+      errors.push('Volume Segment Offer needs at least one reward/category tier.');
+    }
+  }
+  if (mechanism === 'delivery_gift' && !hasDefaultGift && !hasUploadedRows) {
+    errors.push('Gift / FOC Delivery needs a default package or an uploaded debtor list with debtor-level package.');
+  }
+
+  if (errors.length) alert(errors.join('\n'));
+  return !errors.length;
+}
+
 async function createCampaign() {
   const name     = document.getElementById('new-camp-name').value.trim();
   const type     = document.getElementById('new-camp-type').value;
@@ -7318,6 +7417,7 @@ async function createCampaign() {
   if (!deadline) { alert('Please set deadline'); return; }
   if (!_campFileDebtors.length) { alert('Please upload debtor list'); return; }
   if (!kpiNumerators.length) { alert('Please select at least one KPI numerator.'); return; }
+  if (!validateCampaignMechanismBeforeSave('new-camp', type)) return;
 
   const brands   = type==='promotion'
     ? Array.from(document.querySelectorAll('#brand-checkboxes input:checked')).map(c=>c.value) : [];
