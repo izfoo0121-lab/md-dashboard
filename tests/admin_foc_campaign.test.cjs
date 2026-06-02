@@ -112,6 +112,30 @@ assert.strictEqual(
   'Supabase payload should leave promo_logic null for plain FOC upload notes'
 );
 
+const preparedGeneratedCandidate = context.prepareCampaignDebtorForSave({
+  code: '300-BR087',
+  name: 'CARIL SHARI',
+  agent: 'ben',
+  debtor_type: 'FL-Freelancer',
+  eligibility_reason: 'New account',
+  promo_logic: 'New account',
+  foc_item: 'SUKUN',
+  foc_qty: 4,
+  foc_unit: 'packs',
+}, { groupMap: {}, defaultGroup: '' });
+
+assert.strictEqual(preparedGeneratedCandidate.eligibility_reason, 'New account', 'Generated candidate should keep eligibility reason for display');
+assert.strictEqual(
+  context._campDebtorToDb('camp_test', preparedGeneratedCandidate).promo_logic,
+  null,
+  'Supabase payload should not put human eligibility labels into constrained promo_logic'
+);
+assert.strictEqual(
+  context._campDebtorToDb('camp_test', preparedGeneratedCandidate).notes,
+  'New account',
+  'Supabase payload should preserve generated eligibility reason in notes'
+);
+
 (async () => {
   const calls = [];
   context._adminSupabaseFetch = async (table, opts) => {

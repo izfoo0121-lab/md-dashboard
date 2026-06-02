@@ -6198,6 +6198,7 @@ function _campRuleToDb(campaignId, catGroup, rule) {
 function _campDebtorToDb(campaignId, debtor) {
   const cat = debtor.cat || '';
   const catGroup = debtor.cat_group || (cat ? String(cat).trim().charAt(0).toUpperCase() : null);
+  const debtorNotes = debtor.notes || debtor.eligibility_reason || debtor.promo_logic || null;
   return {
     campaign_id: campaignId,
     debtor_code: debtor.code || debtor.debtor_code || '',
@@ -6215,10 +6216,10 @@ function _campDebtorToDb(campaignId, debtor) {
     foc_qty_2: _campNumOrNull(debtor.foc_qty_2 || debtor.foc_qty2),
     foc_unit_2: _campTextOrNull(normalizeFocUnit(debtor.foc_unit_2 || debtor.foc_unit2)),
     avg_ctn: _campNumOrNull(debtor.avg_ctn),
-    promo_logic: _campTextOrNull(debtor.promo_logic || debtor.eligibility_reason),
+    promo_logic: null,
     approval: !!debtor.approval,
     approval_note: debtor.approval_note || null,
-    notes: debtor.notes || debtor.eligibility_reason || null
+    notes: debtorNotes
   };
 }
 
