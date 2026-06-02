@@ -1166,6 +1166,12 @@ function latestAvailableMonth(months, fallback) {
   return sorted[sorted.length - 1] || fallback || getRealWorldMonthLabel();
 }
 
+function chooseInitialMonthLabel(months, realMonth, explicitMonth) {
+  if (explicitMonth) return explicitMonth;
+  if (realMonth) return realMonth;
+  return latestAvailableMonth(months, '');
+}
+
 // Mirrors process_data.py's _campaign_active_in_month for frontend filtering
 // when in future view.
 function isCampaignActiveInMonth(camp, monthStr) {
@@ -1228,6 +1234,8 @@ function futureDebtorPlanningCopy(debtor = {}) {
     ctn_cur: 0,
     rm_cur: 0,
     invoice_count_cur: 0,
+    new_sku_count: 0,
+    new_sku_status: {},
     volume_drop_pct: null,
     is_future_planning: true,
     campaigns
@@ -1429,12 +1437,12 @@ async function loadMonthIndex(preloadedMonths) {
   try {
     const months = Array.isArray(preloadedMonths) ? preloadedMonths.slice() : await fetchAvailableMonthLabels();
     MONTHS_WITH_DATA = (months || []).map(m => monthSlug(m));
-    if (!months || months.length < 2) return; // only show if >1 month
 
     // After loading months from index, append real-world current month
     // if not already present, to enable future view.
     const realCurrent = getRealWorldMonthLabel();
     if (!months.includes(realCurrent)) months.push(realCurrent);
+    if (!months || months.length < 2) return; // only show if >1 month
 
     const sel = document.getElementById('month-selector-agent');
     if (!sel) return;
@@ -1571,10 +1579,8 @@ async function loadData() {
   try {
     const months = await fetchAvailableMonthLabels();
     const realMonth = getRealWorldMonthLabel();
-    const realSlug = monthSlug(realMonth);
     const explicitMonth = explicitUrlMonthLabel();
-    const latestMonth = latestAvailableMonth(months, realMonth);
-    const preferredMonth = explicitMonth || (months.some(m => monthSlug(m) === realSlug) ? realMonth : latestMonth);
+    const preferredMonth = chooseInitialMonthLabel(months, realMonth, explicitMonth);
     const preferredSlug = monthSlug(preferredMonth);
     const hasPreferredMonthData = months.some(m => monthSlug(m) === preferredSlug);
     const initialUrl = hasPreferredMonthData
@@ -1585,7 +1591,7 @@ async function loadData() {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     DATA = await r.json();
     const loadedSlug = monthSlug(DATA?.current_month || '');
-    const shouldShowFutureMonth = months.length > 0 && !hasPreferredMonthData && preferredSlug && preferredSlug !== loadedSlug;
+    const shouldShowFutureMonth = !hasPreferredMonthData && preferredSlug && preferredSlug !== loadedSlug;
     CURRENT_MONTH_SLUG = hasPreferredMonthData ? preferredSlug : (shouldShowFutureMonth ? preferredSlug : loadedSlug);
     if (shouldShowFutureMonth) {
       DATA.current_month = preferredMonth;
@@ -4026,7 +4032,7 @@ function renderDebtors() {
   }
   const rateBox = rateEl.closest('.summary-box');
   if (rateBox) rateBox.title = `${npActive} / ${npTotalFrozen} (${baseLabel}, excl. Personal)`;
-  document.getElementById('sum-newsku') && (document.getElementById('sum-newsku').textContent = agData.total_new_sku ?? '—');
+  document.getElementById('sum-newsku') && (document.getElementById('sum-newsku').textContent = DATA.is_future_view ? 0 : (agData.total_new_sku ?? '—'));
   // Flag count
   const flagCount = getAgentFlagCount(currentAgent);
   document.getElementById('sum-flags').textContent = flagCount;
@@ -4988,6 +4994,10 @@ function toggleOutstanding(debtorCode) {
 function renderGroupBrandTargets() {
   const el = document.getElementById('group-content');
   if (!DATA) return;
+  if (DATA.is_future_view) {
+    if (el) el.innerHTML = futureViewEmptyHtml('Group targets');
+    return;
+  }
 
   const gbt  = DATA.group_brand_targets || {};
   const wd   = DATA.working_days || {};
