@@ -543,6 +543,294 @@ async function fetchSupabaseJson(path) {
   return await r.json();
 }
 
+async function fetchSupabasePagedForSales(path, label, maxRows) {
+  const all = [];
+  const pageSize = 1000;
+  const limit = maxRows || 50000;
+  for (let offset = 0; offset < limit; offset += pageSize) {
+    const r = await fetch(`${AGENT_ACCESS_SUPABASE_URL}/rest/v1/${path}`, {
+      headers: {
+        'apikey': AGENT_ACCESS_SUPABASE_KEY,
+        'Authorization': `Bearer ${AGENT_ACCESS_SUPABASE_KEY}`,
+        'Range-Unit': 'items',
+        'Range': `${offset}-${offset + pageSize - 1}`,
+        'Prefer': 'count=none'
+      }
+    });
+    if (!r.ok) throw new Error(`${label || path} ${r.status}: ${await r.text()}`);
+    const batch = await r.json();
+    if (!Array.isArray(batch) || !batch.length) break;
+    all.push(...batch);
+    if (batch.length < pageSize) break;
+  }
+  return all;
+}
+
+function salesCampaignGroupBy(rows, key) {
+  return (rows || []).reduce((acc, row) => {
+    const groupKey = row?.[key];
+    if (!groupKey) return acc;
+    (acc[groupKey] ||= []).push(row);
+    return acc;
+  }, {});
+}
+
+function salesParseCampaignNotes(notes) {
+  if (!notes) return {};
+  if (typeof notes === 'object' && !Array.isArray(notes)) return notes;
+  try {
+    const parsed = JSON.parse(notes);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : { notes };
+  } catch (_) {
+    return { notes };
+  }
+}
+
+function salesCampaignRuleFromDb(row) {
+  return {
+    promo: row.promo_detail || '',
+    promo_detail: row.promo_detail || '',
+    min_ctn: row.min_order_ctn ?? '',
+    min_order_ctn: row.min_order_ctn ?? null,
+    foc_item: row.foc_item || '',
+    foc_qty: row.foc_qty ?? '',
+    foc_unit: row.foc_unit || '',
+    foc_type: row.foc_type || '',
+    cap: row.cap ?? null,
+    target_pct: row.target_pct ?? null,
+    target_label: row.target_label || '',
+    notes: row.notes || ''
+  };
+}
+
+function salesCampaignFromDb(row, rulesByCampaign, debtorsByCampaign) {
+  const brands = Array.isArray(row.brands) ? row.brands : (row.brands ? [row.brands] : []);
+  const catRules = {};
+  (rulesByCampaign[row.id] || []).forEach(rule => {
+    if (rule.cat_group) catRules[rule.cat_group] = salesCampaignRuleFromDb(rule);
+  });
+  const debtors = (debtorsByCampaign[row.id] || []).map(d => ({
+    code: d.debtor_code || '',
+    debtor_code: d.debtor_code || '',
+    name: d.debtor_name || '',
+    debtor_name: d.debtor_name || '',
+    company_name: d.debtor_name || d.debtor_code || '',
+    agent: String(d.agent || '').toUpperCase(),
+    cat: d.cat || '',
+    cat_group: d.cat_group || '',
+    debtor_type: d.debtor_type || '',
+    foc_item: d.foc_item || '',
+    foc_qty: d.foc_qty ?? '',
+    foc_unit: d.foc_unit || '',
+    foc_type: d.foc_type || '',
+    rebate: d.rebate ?? null,
+    foc_item2: d.foc_item_2 || '',
+    foc_qty2: d.foc_qty_2 ?? '',
+    foc_item_2: d.foc_item_2 || '',
+    foc_qty_2: d.foc_qty_2 ?? '',
+    foc_unit_2: d.foc_unit_2 || '',
+    avg_ctn: d.avg_ctn ?? null,
+    promo_logic: d.promo_logic || '',
+    eligibility_reason: d.eligibility_reason || d.notes || d.promo_logic || '',
+    approval: !!d.approval,
+    approval_note: d.approval_note || '',
+    notes: d.notes || '',
+    lookback_ctn: d.lookback_ctn ?? 0,
+    current_ctn: d.current_ctn ?? d.current_paid_ctn ?? 0,
+    current_paid_ctn: d.current_paid_ctn ?? d.current_ctn ?? 0,
+    current_invoice_ctn: d.current_invoice_ctn ?? d.current_ctn ?? 0,
+    current_unpaid_ctn: d.current_unpaid_ctn ?? 0,
+    converted: !!d.converted
+  }));
+  return {
+    id: row.id,
+    name: row.name || '',
+    type: row.type || 'other',
+    brand: brands.length === 1 ? brands[0] : '',
+    brands,
+    description: row.description || '',
+    notes: salesParseCampaignNotes(row.notes),
+    promo_detail: row.promo_detail || '',
+    min_order_ctn: row.min_order_ctn ?? null,
+    cat_rules: catRules,
+    default_foc_item: row.default_foc_item || '',
+    default_foc_qty: row.default_foc_qty ?? '',
+    default_foc_unit: row.default_foc_unit || '',
+    default_foc_type: row.default_foc_type || '',
+    default_foc_item_2: row.default_foc_item_2 || '',
+    default_foc_qty_2: row.default_foc_qty_2 ?? '',
+    default_foc_unit_2: row.default_foc_unit_2 || '',
+    foc_note: row.foc_note || '',
+    festive_occasion: row.festive_occasion || '',
+    conditions: Array.isArray(row.conditions) ? row.conditions : [],
+    no_cap: !!row.no_cap,
+    active: row.active !== false,
+    start_date: row.start_date || null,
+    deadline: row.deadline || '',
+    kpi_numerators: Array.isArray(row.kpi_numerators) && row.kpi_numerators.length ? row.kpi_numerators : ['count'],
+    created_at: row.created_at || '',
+    updated_at: row.updated_at || '',
+    debtors
+  };
+}
+
+function salesDebtorRecordToCard(record) {
+  if (!record) return null;
+  const code = String(record.debtor_code || record.code || '').trim().toUpperCase();
+  if (!code) return null;
+  return {
+    debtor_code: code,
+    company_name: record.company_name || record.debtor_name || record.name || code,
+    debtor_type: record.debtor_type || '',
+    agent: String(record.agent || '').toUpperCase(),
+    phone: record.phone || record.mobile || record.contact || '',
+    address: record.address || '',
+    status: 'pending',
+    source: 'live_campaign',
+    is_live_campaign_only: true,
+    ctn_cur: 0,
+    rm_cur: 0,
+    invoice_count_cur: 0,
+    ctn_prev1: 0,
+    ctn_prev2: 0,
+    ctn_prev3: 0,
+    campaigns: []
+  };
+}
+
+function salesCampaignEntryFromDebtor(camp, record) {
+  const liveCurrent = Number(record?.current_ctn ?? record?.current_paid_ctn ?? 0) || 0;
+  const liveInvoice = Number(record?.current_invoice_ctn ?? record?.current_ctn ?? liveCurrent) || 0;
+  const liveUnpaid = Number(record?.current_unpaid_ctn ?? Math.max(0, liveInvoice - liveCurrent)) || 0;
+  const converted = !!record?.converted || liveCurrent > 0;
+  return {
+    id: camp?.id || record?.campaign_id || '',
+    name: camp?.name || '',
+    type: camp?.type || 'other',
+    brand: camp?.brand || '',
+    brands: Array.isArray(camp?.brands) ? camp.brands : [],
+    description: camp?.description || '',
+    notes: camp?.notes || {},
+    promo_detail: record?.promo_detail || camp?.promo_detail || '',
+    min_order_ctn: camp?.min_order_ctn ?? null,
+    cat_rules: camp?.cat_rules || {},
+    cat: record?.cat || '',
+    cat_group: record?.cat_group || '',
+    default_foc_item: camp?.default_foc_item || '',
+    default_foc_qty: camp?.default_foc_qty ?? '',
+    default_foc_unit: camp?.default_foc_unit || '',
+    default_foc_item_2: camp?.default_foc_item_2 || '',
+    default_foc_qty_2: camp?.default_foc_qty_2 ?? '',
+    default_foc_unit_2: camp?.default_foc_unit_2 || '',
+    foc_item: record?.foc_item || camp?.default_foc_item || '',
+    foc_qty: record?.foc_qty ?? camp?.default_foc_qty ?? '',
+    foc_unit: record?.foc_unit || camp?.default_foc_unit || '',
+    foc_item_2: record?.foc_item_2 || record?.foc_item2 || camp?.default_foc_item_2 || '',
+    foc_qty_2: record?.foc_qty_2 ?? record?.foc_qty2 ?? camp?.default_foc_qty_2 ?? '',
+    foc_unit_2: record?.foc_unit_2 || record?.foc_unit2 || camp?.default_foc_unit_2 || '',
+    foc_note: record?.foc_note || camp?.foc_note || '',
+    eligibility_reason: record?.eligibility_reason || record?.notes || record?.promo_logic || '',
+    promo_logic: record?.promo_logic || record?.notes || '',
+    active: camp?.active !== false,
+    start_date: camp?.start_date || null,
+    created_at: camp?.created_at || '',
+    deadline: camp?.deadline || '',
+    kpi_numerators: camp?.kpi_numerators || ['count'],
+    lookback_ctn: Number(record?.lookback_ctn ?? 0) || 0,
+    current_ctn: liveCurrent,
+    current_paid_ctn: liveCurrent,
+    current_invoice_ctn: liveInvoice,
+    current_unpaid_ctn: liveUnpaid,
+    current_rm: Number(record?.current_rm ?? 0) || 0,
+    converted,
+    status: converted ? 'converted' : (liveUnpaid > 0 ? 'awaiting_payment' : 'pending'),
+    source: 'live_supabase'
+  };
+}
+
+function mergeSalesCampaignEntry(existing, liveEntry) {
+  if (!existing) return liveEntry;
+  const merged = { ...existing, ...liveEntry };
+  ['lookback_ctn','current_ctn','current_paid_ctn','current_invoice_ctn','current_unpaid_ctn','current_rm','converted','status'].forEach(key => {
+    if (existing[key] !== undefined && existing[key] !== null && existing[key] !== '') merged[key] = existing[key];
+  });
+  ['foc_item','foc_qty','foc_unit','foc_item_2','foc_qty_2','foc_unit_2','foc_note','eligibility_reason','promo_logic'].forEach(key => {
+    if ((existing[key] === undefined || existing[key] === null || existing[key] === '') && liveEntry[key] !== undefined) {
+      merged[key] = liveEntry[key];
+    }
+  });
+  merged.notes = { ...(liveEntry.notes || {}), ...(existing.notes || {}) };
+  return merged;
+}
+
+function mergeLiveCampaignsIntoSalesData(data, live) {
+  if (!data || !data.agents) return 0;
+  const month = data.current_month || '';
+  const activeCamps = (live?.campaigns || [])
+    .filter(c => c?.id && c.active !== false)
+    .filter(c => !month || isCampaignActiveInMonth(c, month));
+  if (!activeCamps.length) return 0;
+
+  data.campaigns = [
+    ...activeCamps,
+    ...(data.campaigns || []).filter(c => c?.id && !activeCamps.some(liveCamp => liveCamp.id === c.id))
+  ];
+
+  let applied = 0;
+  activeCamps.forEach(camp => {
+    (camp.debtors || []).forEach(record => {
+      const placeholder = salesDebtorRecordToCard(record);
+      if (!placeholder) return;
+      const agent = String(record.agent || placeholder.agent || '').trim().toUpperCase();
+      if (!agent) return;
+      data.agents[agent] ||= {};
+      data.agents[agent].debtor_cards ||= {};
+      data.agents[agent].debtor_cards.debtors ||= [];
+      const debtors = data.agents[agent].debtor_cards.debtors;
+      let debtor = debtors.find(d => String(d.debtor_code || '').toUpperCase() === placeholder.debtor_code);
+      if (!debtor) {
+        debtor = placeholder;
+        debtors.push(debtor);
+      }
+      debtor.campaigns = Array.isArray(debtor.campaigns) ? debtor.campaigns : [];
+      const liveEntry = salesCampaignEntryFromDebtor(camp, record);
+      const idx = debtor.campaigns.findIndex(c => c.id === liveEntry.id);
+      if (idx >= 0) debtor.campaigns[idx] = mergeSalesCampaignEntry(debtor.campaigns[idx], liveEntry);
+      else debtor.campaigns.push(liveEntry);
+      applied += 1;
+    });
+  });
+  return applied;
+}
+
+async function fetchLiveCampaignDataForSales() {
+  const [campaignRows, ruleRows, debtorRows] = await Promise.all([
+    fetchSupabasePagedForSales('campaigns?select=*&order=created_at.desc', 'campaigns'),
+    fetchSupabasePagedForSales('campaign_cat_rules?select=*', 'campaign rules'),
+    fetchSupabasePagedForSales('campaign_debtors?select=*&order=debtor_code.asc', 'campaign debtors')
+  ]);
+  const rulesByCampaign = salesCampaignGroupBy(ruleRows, 'campaign_id');
+  const debtorsByCampaign = salesCampaignGroupBy(debtorRows, 'campaign_id');
+  return {
+    campaigns: (campaignRows || []).map(row => salesCampaignFromDb(row, rulesByCampaign, debtorsByCampaign))
+  };
+}
+
+const SalesLiveCampaignSync = (() => {
+  async function apply(data) {
+    try {
+      const live = await fetchLiveCampaignDataForSales();
+      const applied = mergeLiveCampaignsIntoSalesData(data, live);
+      if (applied) console.log(`[SalesLiveCampaignSync] Attached ${applied} live campaign debtor rows`);
+      return applied;
+    } catch (e) {
+      console.warn('[SalesLiveCampaignSync] live campaign fetch failed; keeping generated JSON only:', e.message || e);
+      return 0;
+    }
+  }
+  return { apply };
+})();
+
 async function isAgentAccessAllowedForMonth(agent, month = currentAccessMonth()) {
   if (!agent || agent === 'GT138888') return true;
   try {
@@ -764,6 +1052,9 @@ async function manualSync() {
     // Re-fetch kpi_manual overrides
     if (typeof SupabaseKpiSync !== 'undefined' && DATA) {
       await SupabaseKpiSync.apply(DATA);
+    }
+    if (typeof SalesLiveCampaignSync !== 'undefined' && DATA) {
+      await SalesLiveCampaignSync.apply(DATA);
     }
     // Re-sync Gist
     if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
@@ -1476,6 +1767,7 @@ async function switchMonth(slug) {
     CURRENT_MONTH_SLUG = requestedSlug;
     await SupabaseKpiSync.apply(DATA);
     await ensureBirthdayOverridesForMonth(DATA.current_month || '');
+    await SalesLiveCampaignSync.apply(DATA);
     if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
       await GistSync.syncToLocal(DATA.current_month || '');
     }
@@ -1519,6 +1811,7 @@ async function switchMonth(slug) {
     await enrichMonthBreakdownsFromAnalysis();
     await SupabaseKpiSync.apply(DATA);
     await ensureBirthdayOverridesForMonth(DATA.current_month || '');
+    await SalesLiveCampaignSync.apply(DATA);
     if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
       await GistSync.syncToLocal(DATA.current_month || '');
     }
@@ -1604,6 +1897,7 @@ async function loadData() {
     // Fetch kpi_manual overrides from Supabase BEFORE init() so first render shows correct values
     await SupabaseKpiSync.apply(DATA);
     await ensureBirthdayOverridesForMonth(DATA.current_month || '');
+    await SalesLiveCampaignSync.apply(DATA);
     if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
       await GistSync.syncToLocal(DATA.current_month || '');
     }
