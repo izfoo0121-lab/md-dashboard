@@ -37,6 +37,11 @@ assert(html.includes('function downloadFocCampaignTemplate'), 'Admin should prov
 assert(html.includes('downloadFocCampaignTemplate()'), 'Admin upload UI should expose the FOC template action');
 assert(html.includes('campaignSalesDashboardHref'), 'Admin campaign cards should build a Sales Dashboard deep link');
 assert(html.includes('view=camps'), 'Admin campaign link should open Sales Dashboard campaigns view');
+assert(html.includes('function previewCampEditFile'), 'Admin edit panel should support debtor-list upload preview');
+assert(html.includes('function saveCampListingEdit'), 'Admin edit panel should save debtor-list changes');
+assert(html.includes('camp-edit-list-mode-'), 'Admin edit panel should expose listing update mode');
+assert(html.includes('Add / update only'), 'Admin edit panel should support safe add/update mode');
+assert(html.includes('Replace full listing'), 'Admin edit panel should support full listing replacement');
 
 assert(/foc_unit_2/.test(html), 'Admin preview should preserve second package unit');
 assert(/packs/.test(html), 'Admin unit normalization should display pack variants consistently as packs');
@@ -51,6 +56,20 @@ vm.runInContext([
   extractFunction('_campTextOrNull'),
   extractFunction('inferSukunListingFocUnit'),
   extractFunction('buildSukunListingFocPackage'),
+  `function formatFocPackage(row = {}) {
+    const item1 = String(row.foc_item || '').trim().toUpperCase();
+    const qty1 = parseFloat(row.foc_qty || 0) || 0;
+    const unit1 = normalizeFocUnit(row.foc_unit || '');
+    const item2 = String(row.foc_item_2 || row.foc_item2 || '').trim().toUpperCase();
+    const qty2 = parseFloat(row.foc_qty_2 || row.foc_qty2 || 0) || 0;
+    const unit2 = normalizeFocUnit(row.foc_unit_2 || row.foc_unit2 || unit1);
+    const line = (item, qty, unit) => item ? item + (qty ? ' x ' + qty : '') + (unit ? ' ' + unit : '') : '';
+    return [line(item1, qty1, unit1), line(item2, qty2, unit2)].filter(Boolean).join(' + ');
+  }`,
+  extractFunction('campaignDebtorCode'),
+  extractFunction('campaignPackageSignature'),
+  extractFunction('mergeCampaignDebtorListings'),
+  extractFunction('campaignListingPreviewStats'),
   extractFunction('prepareCampaignDebtorForSave'),
   extractFunction('_campDebtorToDb'),
   `async ${extractFunction('_campPostRows')}`,
@@ -134,6 +153,45 @@ assert.strictEqual(
   context._campDebtorToDb('camp_test', preparedGeneratedCandidate).notes,
   'New account',
   'Supabase payload should preserve generated eligibility reason in notes'
+);
+
+const existingListing = [
+  { code: '300-A001', name: 'Original A', agent: 'BEN', foc_item: 'SKNR', foc_qty: 2, foc_unit: 'packs' },
+  { code: '300-B002', name: 'Keep B', agent: 'CJ', foc_item: 'SKNW', foc_qty: 2, foc_unit: 'packs' },
+];
+const uploadedListing = [
+  { code: '300-A001', name: 'Updated A', agent: 'BEN', foc_item: 'SKNR', foc_qty: 2, foc_unit: 'ctn' },
+  { code: '300-C003', name: 'New C', agent: 'KF', foc_item: 'SKNR', foc_qty: 1, foc_unit: 'packs' },
+];
+
+const mergeStats = context.campaignListingPreviewStats(existingListing, uploadedListing, 'merge');
+assert.deepStrictEqual(
+  plain(mergeStats),
+  { current: 2, uploaded: 2, add: 1, update: 1, remove: 0, packageChanged: 1 },
+  'Merge preview should count add/update/package changes without removals'
+);
+
+const mergedListing = context.mergeCampaignDebtorListings(existingListing, uploadedListing, 'merge');
+assert.strictEqual(mergedListing.length, 3, 'Merge mode should keep old rows and add new rows');
+assert.strictEqual(
+  mergedListing.find(row => row.code === '300-A001').foc_unit,
+  'ctn',
+  'Merge mode should update matching debtor package instructions'
+);
+assert(mergedListing.some(row => row.code === '300-B002'), 'Merge mode should keep debtors missing from upload');
+
+const replaceStats = context.campaignListingPreviewStats(existingListing, uploadedListing, 'replace');
+assert.deepStrictEqual(
+  plain(replaceStats),
+  { current: 2, uploaded: 2, add: 1, update: 1, remove: 1, packageChanged: 1 },
+  'Replace preview should count removed rows'
+);
+
+const replacedListing = context.mergeCampaignDebtorListings(existingListing, uploadedListing, 'replace');
+assert.deepStrictEqual(
+  plain(replacedListing.map(row => row.code).sort()),
+  ['300-A001', '300-C003'],
+  'Replace mode should use uploaded rows as the final listing'
 );
 
 (async () => {

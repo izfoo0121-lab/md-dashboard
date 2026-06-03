@@ -6006,6 +6006,7 @@ async function bdayExcludeDebtor(code) {
 // ── Campaign Management ────────────────────────────────────────────────────
 let CAMPAIGNS_DATA = { campaigns: [] };
 let _campFileDebtors = [];
+let _campEditFileDebtors = {};
 let CAMPAIGN_ARCHIVE_MODE = 'month';
 let CAMPAIGN_ARCHIVE_SEARCH = '';
 const CAMPAIGN_TYPE_LABELS = {
@@ -6552,6 +6553,48 @@ async function _campPostRows(table, rows, chunkSize = 500) {
   }
 }
 
+async function _campDeleteCampaignDebtorRows(campaignId, debtorCodes = null) {
+  if (!campaignId) return;
+  const codes = Array.isArray(debtorCodes)
+    ? [...new Set(debtorCodes.map(code => String(code || '').trim().toUpperCase()).filter(Boolean))]
+    : [];
+  if (!codes.length) {
+    await _adminSupabaseFetch(`campaign_debtors?campaign_id=eq.${encodeURIComponent(campaignId)}`, {
+      method: 'DELETE',
+      headers: { 'Prefer': 'return=minimal' }
+    });
+    return;
+  }
+  const chunkSize = 80;
+  for (let i = 0; i < codes.length; i += chunkSize) {
+    const chunk = codes.slice(i, i + chunkSize);
+    await _adminSupabaseFetch(`campaign_debtors?campaign_id=eq.${encodeURIComponent(campaignId)}&debtor_code=in.(${chunk.map(code => encodeURIComponent(code)).join(',')})`, {
+      method: 'DELETE',
+      headers: { 'Prefer': 'return=minimal' }
+    });
+  }
+}
+
+async function _campSaveCampaignDebtors(campaignId, debtors) {
+  const rows = (debtors || []).map(d => _campDebtorToDb(campaignId, d));
+  if (!rows.length) return;
+  const chunkSize = 500;
+  try {
+    for (let i = 0; i < rows.length; i += chunkSize) {
+      const chunk = rows.slice(i, i + chunkSize);
+      await _adminSupabaseFetch('campaign_debtors?on_conflict=campaign_id,debtor_code', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify(chunk)
+      });
+    }
+  } catch (e) {
+    console.warn('Campaign debtor upsert failed; retrying with delete + insert', e);
+    await _campDeleteCampaignDebtorRows(campaignId, rows.map(row => row.debtor_code));
+    await _campPostRows('campaign_debtors', rows);
+  }
+}
+
 async function _campPatchCampaign(id, payload) {
   return _adminSupabaseFetch(`campaigns?id=eq.${encodeURIComponent(id)}`, {
     method: 'PATCH',
@@ -6713,6 +6756,134 @@ function formatFocPackage(row = {}, fallback = {}) {
   const fmtQty = qty => Number.isInteger(qty) ? String(qty) : String(Number(qty.toFixed(3)));
   const line = (item, qty, unit) => item ? `${item}${qty ? ` x ${fmtQty(qty)}` : ''}${unit ? ` ${unit}` : ''}` : '';
   return [line(item1, qty1, unit1), line(item2, qty2, unit2)].filter(Boolean).join(' + ');
+}
+
+function campaignDebtorCode(row) {
+  return String(row?.code || row?.debtor_code || '').trim().toUpperCase();
+}
+
+function campaignPackageSignature(row) {
+  return formatFocPackage(row || {}).toUpperCase();
+}
+
+function mergeCampaignDebtorListings(existingRows, uploadedRows, mode) {
+  const uploaded = (uploadedRows || []).filter(row => campaignDebtorCode(row));
+  if (mode === 'replace') return uploaded.map(row => ({ ...row }));
+
+  const byCode = new Map();
+  (existingRows || []).forEach(row => {
+    const code = campaignDebtorCode(row);
+    if (code) byCode.set(code, { ...row, code: row.code || row.debtor_code || code });
+  });
+  uploaded.forEach(row => {
+    const code = campaignDebtorCode(row);
+    byCode.set(code, { ...row, code: row.code || row.debtor_code || code });
+  });
+  return Array.from(byCode.values());
+}
+
+function campaignListingPreviewStats(existingRows, uploadedRows, mode) {
+  const existing = (existingRows || []).filter(row => campaignDebtorCode(row));
+  const uploaded = (uploadedRows || []).filter(row => campaignDebtorCode(row));
+  const existingByCode = new Map(existing.map(row => [campaignDebtorCode(row), row]));
+  const uploadedCodes = new Set(uploaded.map(row => campaignDebtorCode(row)));
+  const stats = {
+    current: existing.length,
+    uploaded: uploaded.length,
+    add: 0,
+    update: 0,
+    remove: 0,
+    packageChanged: 0
+  };
+  uploaded.forEach(row => {
+    const code = campaignDebtorCode(row);
+    const old = existingByCode.get(code);
+    if (old) {
+      stats.update += 1;
+      if (campaignPackageSignature(old) !== campaignPackageSignature(row)) stats.packageChanged += 1;
+    } else {
+      stats.add += 1;
+    }
+  });
+  if (mode === 'replace') {
+    stats.remove = existing.filter(row => !uploadedCodes.has(campaignDebtorCode(row))).length;
+  }
+  return stats;
+}
+
+function parseCampaignUploadRows(headers, rows, opts = {}) {
+  const normalizedHeaders = (headers || []).map(h => String(h || '').trim().toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' '));
+  const findHeader = (...names) => normalizedHeaders.findIndex(h => names.some(name => h === name || h.includes(name)));
+  const ci    = findHeader('debtor code', 'code');
+  const ni    = findHeader('debtor name', 'company name', 'company', 'name');
+  const cati  = findHeader('cat', 'category', 'rebate');
+  const agi   = findHeader('agent');
+  const foci1 = findHeader('foc item 1', 'foc item', 'foc sku', 'item');
+  const qty1  = findHeader('foc qty 1', 'foc qty', 'qty 1', 'qty1', 'qty');
+  const unit1 = findHeader('foc unit 1', 'foc unit', 'unit 1', 'unit');
+  const foci2 = findHeader('foc item 2');
+  const qty2  = findHeader('foc qty 2', 'qty 2', 'qty2');
+  const unit2 = findHeader('foc unit 2', 'unit 2');
+  const sknQtyi = findHeader('skn qty');
+  const sknri = findHeader('sknr');
+  const sknwi = findHeader('sknw');
+  const appi  = normalizedHeaders.findIndex(h => h.includes('approval'));
+  const notei = normalizedHeaders.findIndex(h => h === 'notes' || h.includes('note'));
+  const groupi = findHeader('group', 'team', 'cat group');
+  const reasoni = findHeader('eligibility reason', 'eligible reason', 'reason');
+  const brandPenGroupMap = opts.groupMap || (typeof readBrandPenetrationAgentGroupMap === 'function' ? readBrandPenetrationAgentGroupMap() : {});
+  const brandPenDefaultGroup = opts.defaultGroup ?? (typeof brandPenetrationDefaultGroup === 'function' ? brandPenetrationDefaultGroup() : '');
+  if (ci < 0) return [];
+
+  return (rows || []).filter(r => r?.[ci] && String(r[ci]).trim() && String(r[ci]).toLowerCase() !== 'nan')
+    .map(r => {
+      const agent = agi >= 0 ? String(r[agi] || '').trim().toUpperCase() : '';
+      const reason = reasoni >= 0 ? String(r[reasoni] || '').trim() : '';
+      const group = groupi >= 0 ? String(r[groupi] || '').trim().toUpperCase() : (brandPenGroupMap[agent] || brandPenDefaultGroup || '');
+      const note = notei >= 0 ? String(r[notei] || '').trim() : '';
+      const sukunNote = sknQtyi >= 0 ? String(r[sknQtyi] || '').trim() : '';
+      const sukunPackage = buildSukunListingFocPackage(
+        sukunNote,
+        sknri >= 0 ? r[sknri] : '',
+        sknwi >= 0 ? r[sknwi] : ''
+      );
+      const hasSukunPackage = !!(sukunPackage.foc_item || sukunPackage.foc_item_2);
+      return {
+        code:     String(r[ci] || '').trim(),
+        name:     ni >= 0 ? String(r[ni] || '').trim() : '',
+        agent,
+        cat:      cati >= 0 ? String(r[cati] || '').trim().toUpperCase() : '',
+        cat_group: group,
+        group,
+        eligibility_reason: reason,
+        promo_logic: reason,
+        foc_item: hasSukunPackage ? (sukunPackage.foc_item || '') : (foci1 >= 0 ? String(r[foci1] || '').trim().toUpperCase() : ''),
+        foc_qty:  hasSukunPackage ? (sukunPackage.foc_qty || 0) : (qty1 >= 0 ? parseFloat(r[qty1]) || 0 : 0),
+        foc_unit: hasSukunPackage ? (sukunPackage.foc_unit || '') : (unit1 >= 0 ? normalizeFocUnit(r[unit1]) : ''),
+        foc_item2: hasSukunPackage ? (sukunPackage.foc_item2 || '') : (foci2 >= 0 ? String(r[foci2] || '').trim().toUpperCase() : ''),
+        foc_qty2:  hasSukunPackage ? (sukunPackage.foc_qty2 || 0) : (qty2 >= 0 ? parseFloat(r[qty2]) || 0 : 0),
+        foc_unit2: hasSukunPackage ? (sukunPackage.foc_unit2 || '') : (unit2 >= 0 ? normalizeFocUnit(r[unit2]) : ''),
+        foc_item_2: hasSukunPackage ? (sukunPackage.foc_item_2 || '') : (foci2 >= 0 ? String(r[foci2] || '').trim().toUpperCase() : ''),
+        foc_qty_2:  hasSukunPackage ? (sukunPackage.foc_qty_2 || 0) : (qty2 >= 0 ? parseFloat(r[qty2]) || 0 : 0),
+        foc_unit_2: hasSukunPackage ? (sukunPackage.foc_unit_2 || '') : (unit2 >= 0 ? normalizeFocUnit(r[unit2]) : ''),
+        approval: appi >= 0 ? String(r[appi] || '').trim().toUpperCase() === 'TRUE' : false,
+        notes: note || sukunNote || reason,
+      };
+    });
+}
+
+function campaignUploadSummaryHtml(debtors, extra = '') {
+  const cats = [...new Set((debtors || []).map(d => d.cat).filter(Boolean))].sort();
+  const catInfo = cats.length ? ` - Categories: ${cats.join(', ')}` : '';
+  const missingPkg = (debtors || []).filter(d => !formatFocPackage(d)).length;
+  const packageCounts = (debtors || []).reduce((acc, d) => {
+    const label = formatFocPackage(d) || 'campaign default';
+    acc[label] = (acc[label] || 0) + 1;
+    return acc;
+  }, {});
+  const packageSummary = Object.entries(packageCounts).slice(0, 5)
+    .map(([label, count]) => `${kpiAdminEscape(label)} (${count})`).join(' &middot; ');
+  return `+ ${debtors.length} debtors loaded${kpiAdminEscape(catInfo)}${extra}<br><span style="color:#666;">Packages: ${packageSummary || 'campaign default'}${missingPkg ? ` &middot; ${missingPkg} use campaign default` : ''}</span>`;
 }
 
 function downloadFocCampaignTemplate() {
@@ -7509,6 +7680,17 @@ function previewCampFile(input) {
   const reader = new FileReader();
 
   function processRows(headers, rows) {
+    _campFileDebtors = parseCampaignUploadRows(headers, rows);
+    const parsedCats = [...new Set(_campFileDebtors.map(d => d.cat).filter(Boolean))].sort();
+    preview.innerHTML = campaignUploadSummaryHtml(_campFileDebtors);
+    if (parsedCats.length) {
+      renderCatRules(parsedCats);
+      document.getElementById('cat-rules-section').style.display = 'block';
+    } else {
+      document.getElementById('cat-rules-section').style.display = 'none';
+    }
+    return;
+
     const normalizedHeaders = headers.map(h => String(h || '').trim().toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' '));
     const findHeader = (...names) => normalizedHeaders.findIndex(h => names.some(name => h === name || h.includes(name)));
     const ci    = findHeader('debtor code', 'code');
@@ -7829,6 +8011,141 @@ async function closeCampaign(id) {
   }
 }
 
+function renderCampaignListingUpdatePanel(c) {
+  const current = c?.debtors?.length || 0;
+  return `
+    <div style="margin:12px 0;padding:12px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.35);">
+      <div style="font-family:var(--mono);font-size:10px;color:#888;letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px;">Update Debtor Listing</div>
+      <div style="font-family:var(--body);font-size:12px;color:var(--ink3);margin-bottom:10px;line-height:1.45;">
+        Upload a corrected debtor list for this campaign. Default mode updates matching debtor codes and adds new ones; replace mode makes the uploaded file the final listing.
+      </div>
+      <div style="display:grid;grid-template-columns:minmax(170px,220px) 1fr auto auto;gap:8px;align-items:center;">
+        <select id="camp-edit-list-mode-${c.id}" onchange="updateCampEditListingPreview('${c.id}')"
+          style="font-family:var(--mono);font-size:11px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);">
+          <option value="merge">Add / update only</option>
+          <option value="replace">Replace full listing</option>
+        </select>
+        <input type="file" id="camp-edit-file-${c.id}" accept=".xlsx,.xls,.csv" onchange="previewCampEditFile('${c.id}', this)"
+          style="font-family:var(--mono);font-size:10px;color:var(--ink3);">
+        <button type="button" onclick="downloadFocCampaignTemplate()"
+          style="background:none;border:1px solid var(--blue);color:var(--blue);font-family:var(--mono);font-size:9px;padding:6px 10px;border-radius:7px;cursor:pointer;">Template</button>
+        <button type="button" onclick="clearCampEditListingUpload('${c.id}')"
+          style="background:none;border:1px solid var(--border);color:var(--ink3);font-family:var(--mono);font-size:9px;padding:6px 10px;border-radius:7px;cursor:pointer;">Clear</button>
+      </div>
+      <div id="camp-edit-file-preview-${c.id}" style="margin-top:8px;font-family:var(--mono);font-size:10px;color:#666;">
+        Current listing: ${current} debtor${current === 1 ? '' : 's'}. No replacement file selected.
+      </div>
+      <button type="button" onclick="saveCampListingEdit('${c.id}')"
+        style="margin-top:10px;background:var(--ink);border:none;color:#fff;font-family:var(--mono);font-size:10px;padding:7px 14px;border-radius:8px;cursor:pointer;">Save debtor listing</button>
+    </div>`;
+}
+
+function updateCampEditListingPreview(id) {
+  const camp = CAMPAIGNS_DATA.campaigns.find(c => c.id === id);
+  const preview = document.getElementById('camp-edit-file-preview-' + id);
+  if (!camp || !preview) return;
+  const uploaded = _campEditFileDebtors[id] || [];
+  if (!uploaded.length) {
+    const current = camp.debtors?.length || 0;
+    preview.innerHTML = `Current listing: ${current} debtor${current === 1 ? '' : 's'}. No replacement file selected.`;
+    return;
+  }
+  const mode = document.getElementById('camp-edit-list-mode-' + id)?.value || 'merge';
+  const stats = campaignListingPreviewStats(camp.debtors || [], uploaded, mode);
+  const removeText = mode === 'replace'
+    ? ` &middot; <span style="color:${stats.remove ? '#c8381a' : '#666'};">${stats.remove} removed</span>`
+    : '';
+  const statLine = `<br><span style="color:#666;">Mode: ${mode === 'replace' ? 'replace full listing' : 'add/update only'} &middot; ${stats.add} new &middot; ${stats.update} updated${removeText} &middot; ${stats.packageChanged} package change${stats.packageChanged === 1 ? '' : 's'}</span>`;
+  preview.innerHTML = campaignUploadSummaryHtml(uploaded, statLine);
+}
+
+function clearCampEditListingUpload(id) {
+  delete _campEditFileDebtors[id];
+  const input = document.getElementById('camp-edit-file-' + id);
+  if (input) input.value = '';
+  updateCampEditListingPreview(id);
+}
+
+function previewCampEditFile(id, input) {
+  const file = input?.files?.[0];
+  if (!file) return;
+  const preview = document.getElementById('camp-edit-file-preview-' + id);
+  if (preview) preview.textContent = 'Reading file...';
+  const reader = new FileReader();
+  const processRows = (headers, rows) => {
+    _campEditFileDebtors[id] = parseCampaignUploadRows(headers, rows);
+    updateCampEditListingPreview(id);
+  };
+
+  if (file.name.toLowerCase().endsWith('.csv')) {
+    reader.onload = e => {
+      const lines = e.target.result.split('\n').filter(l => l.trim());
+      const headers = (lines[0] || '').split(',').map(h => h.trim().replace(/"/g, '').toLowerCase());
+      const rows = lines.slice(1).map(line => line.split(',').map(x => x.trim().replace(/"/g, '')));
+      processRows(headers, rows);
+    };
+    reader.readAsText(file);
+  } else {
+    reader.onload = e => {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      let hdrRow = 0;
+      for (let i = 0; i < Math.min(5, data.length); i += 1) {
+        if (data[i] && data[i].some(v => v && String(v).toLowerCase().includes('code'))) {
+          hdrRow = i;
+          break;
+        }
+      }
+      const headers = (data[hdrRow] || []).map(h => String(h || '').trim().toLowerCase());
+      const rows = data.slice(hdrRow + 1);
+      processRows(headers, rows);
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+async function saveCampListingEdit(id) {
+  const camp = CAMPAIGNS_DATA.campaigns.find(c => c.id === id);
+  if (!camp) return;
+  const uploaded = _campEditFileDebtors[id] || [];
+  if (!uploaded.length) {
+    alert('Please upload a debtor listing first.');
+    return;
+  }
+  const mode = document.getElementById('camp-edit-list-mode-' + id)?.value || 'merge';
+  const brandPenGroupMap = readBrandPenetrationAgentGroupMap();
+  const brandPenDefaultGroup = brandPenetrationDefaultGroup();
+  const prepared = uploaded.map(d => prepareCampaignDebtorForSave(d, {
+    groupMap: brandPenGroupMap,
+    defaultGroup: brandPenDefaultGroup,
+  }));
+  const stats = campaignListingPreviewStats(camp.debtors || [], prepared, mode);
+  if (mode === 'replace') {
+    const msg = `Replace "${camp.name}" listing with ${stats.uploaded} uploaded debtor(s)?\n\nThis will remove ${stats.remove} debtor(s) not in the upload. Existing claim/delivery history remains in Supabase, but removed debtors will no longer appear in Sales Dashboard for this campaign.`;
+    if (!confirm(msg)) return;
+  }
+
+  try {
+    await _campSaveCampaignDebtors(id, prepared);
+    if (mode === 'replace') {
+      const keepCodes = new Set(prepared.map(campaignDebtorCode));
+      const removeCodes = (camp.debtors || [])
+        .map(campaignDebtorCode)
+        .filter(code => code && !keepCodes.has(code));
+      if (removeCodes.length) await _campDeleteCampaignDebtorRows(id, removeCodes);
+    }
+    camp.debtors = mergeCampaignDebtorListings(camp.debtors || [], prepared, mode);
+    delete _campEditFileDebtors[id];
+    saveCampaignsData();
+    alert(`Campaign listing saved: ${stats.add} new, ${stats.update} updated${mode === 'replace' ? `, ${stats.remove} removed` : ''}.`);
+  } catch (e) {
+    console.error('Save campaign listing failed', e);
+    const detail = e?.message ? `\n\n${String(e.message).slice(0, 700)}` : '';
+    alert(`Failed to save campaign listing to Supabase.${detail}`);
+  }
+}
+
 function renderCampaignsList() {
   const el=document.getElementById('campaigns-list');
   if(!el)return;
@@ -7855,6 +8172,7 @@ function renderCampaignsList() {
               style="width:100%;font-family:var(--body);font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);margin-bottom:6px;">
             ${renderKpiNumeratorsGroup('camp-edit-' + c.id, getCampaignNumerators(c), { note: '(changing this can affect saved per-agent targets)' })}
             ${renderCampaignMechanismFields('camp-edit-' + c.id, c)}
+            ${renderCampaignListingUpdatePanel(c)}
             <div style="display:flex;gap:6px;">
               <input type="date" id="camp-edit-deadline-${c.id}" value="${c.deadline||''}"
                 style="flex:1;font-family:var(--mono);font-size:11px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);">
