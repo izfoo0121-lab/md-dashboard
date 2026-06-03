@@ -2607,6 +2607,31 @@ function isIfaceCampaign(c = {}) {
   return values.some(v => String(v || '').toUpperCase().includes('IFACE'));
 }
 
+function conversionPriceFloor(rollup = {}, c = {}) {
+  const notes = c.notes || {};
+  const candidates = [
+    rollup.price_floor,
+    rollup.min_rm_per_ctn,
+    c.price_floor,
+    c.min_rm_per_ctn,
+    notes.min_rm_per_ctn,
+    notes.price_floor
+  ];
+  for (const value of candidates) {
+    if (value === null || value === undefined || value === '') continue;
+    const n = Number(value);
+    if (Number.isFinite(n)) return n;
+  }
+  const matchValues = [
+    notes.qualifying_item_group,
+    notes.qualifying_value,
+    ...(Array.isArray(notes.qualifying_values) ? notes.qualifying_values : [])
+  ].map(v => String(v || '').toUpperCase());
+  if (matchValues.some(v => v.includes('TR-002'))) return 37.5;
+  if (matchValues.some(v => v.includes('EVO'))) return 41;
+  return null;
+}
+
 function campaignLookbackLabel(c = {}) {
   const months = c.notes?.lookback_months || [];
   if (months.length) return months.join('-');
@@ -5844,6 +5869,23 @@ function isConversionCampaign(c) {
   return c?.type === 'conversion_tiered' || c?.type === 'conversion_simple';
 }
 
+function isFocClaimCampaign(c = {}) {
+  if (isConversionCampaign(c)) return false;
+  const type = String(c.type || '').toLowerCase();
+  const focTypes = new Set(['free_sample', 'foc_sample', 'festive_gift', 'birthday_gift']);
+  if (focTypes.has(type)) return true;
+  const notes = c.notes || {};
+  const mechanism = [
+    c.mechanism,
+    c.mechanism_type,
+    c.promo_logic,
+    notes.mechanism,
+    notes.mechanism_type,
+    notes.promo_logic
+  ].join(' ').toLowerCase();
+  return mechanism.includes('foc') || mechanism.includes('gift') || mechanism.includes('delivery');
+}
+
 function isVisibleDebtorCampaign(c) {
   if (!isConversionCampaign(c)) return true;
   return Number(c.lookback_ctn || 0) <= 0;
@@ -6103,7 +6145,7 @@ function renderCamps() {
         convertedCount   = rollup.converted_count;
         convertedTargets = rollup.converted_targets;
         convertedCtn     = rollup.converted_ctn;
-        var priceFloor   = rollup.price_floor || c.notes?.min_rm_per_ctn || c.notes?.price_floor || (c.notes?.qualifying_item_group === 'TR-002' ? 37.5 : 41);
+        var priceFloor   = conversionPriceFloor(rollup, c);
         targetCount      = rollup.target_count;
         conversionRate   = rollup.conversion_rate_targets;
         agentTierIdx     = rollup.agent_tier_idx ?? -1;
@@ -6119,7 +6161,7 @@ function renderCamps() {
           const cc = visibleDebtorCampaigns(d).find(cc => cc.id===c.id);
           return cc && cc.converted ? sum + (cc.current_ctn||0) : sum;
         }, 0);
-        var priceFloor = c.notes?.min_rm_per_ctn || c.notes?.price_floor || (c.notes?.qualifying_item_group === 'TR-002' ? 37.5 : 41);
+        var priceFloor = conversionPriceFloor({}, c);
         targetCount = totalEnrolled;
         conversionRate = targetCount > 0 ? convertedTargets/targetCount : 0;
         const tier = agentTierFromCount(convertedCount, c.notes?.tier_thresholds || [], c.notes?.tier_names || []);
@@ -6165,7 +6207,7 @@ function renderCamps() {
           // Stat chips: total ctn, all-tier conversions if different from target conversions
           '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
             '<span style="font-family:var(--mono);font-size:8px;background:rgba(61,220,132,.15);color:var(--green);padding:2px 8px;border-radius:10px;">' +
-              convertedCtn.toFixed(1) + ' CTN @ ≥RM' + Number(priceFloor).toFixed(priceFloor % 1 ? 2 : 0) +
+              convertedCtn.toFixed(1) + ' CTN' + (Number(priceFloor || 0) > 0 ? ' @ \u2265RM' + Number(priceFloor).toFixed(priceFloor % 1 ? 2 : 0) : '') +
             '</span>' +
             (convertedCount > convertedTargets ?
               '<span style="font-family:var(--mono);font-size:8px;background:rgba(255,255,255,.06);color:var(--muted);padding:2px 8px;border-radius:10px;">+' + (convertedCount - convertedTargets) + ' non-target conversions</span>'
@@ -6213,6 +6255,18 @@ function renderCamps() {
       { key:'refused',    label:'\u274C Refused',     items: c.debtors.filter(d => d.visit_status?.status==='refused' && !isExcludedDebtor(d)), col:'var(--red)' },
       { key:'excluded',   label:'\uD83D\uDEAB Excluded',   items: c.debtors.filter(isExcludedDebtor), col:'#ff8866' },
     ].filter(g => g.items.length > 0);
+    const isFocClaim = isFocClaimCampaign(c);
+    const claimListCopy = isFocClaim
+      ? { show: 'Show FOC claim list', hide: 'Hide FOC claim list' }
+      : { show: 'Show campaign debtor list', hide: 'Hide campaign debtor list' };
+    const claimListExpanded = expandedCampaigns.has(c.id || c.name || 'campaign');
+    const claimListToggleLabel = claimListExpanded ? `\u25B2 ${claimListCopy.hide}` : `\u25BC ${claimListCopy.show} (${total})`;
+    const defaultPackageLine = formatCampaignFocPackage(c);
+    const defaultFocNote = c.foc_note || c.notes?.foc_note || '';
+    const focHeaderLine = [defaultPackageLine, defaultFocNote ? 'Note: ' + defaultFocNote : ''].filter(Boolean).join(' \u00B7 ');
+    const claimListToggle = '<div style="padding:8px 16px 12px;border-top:1px solid var(--border);">' +
+      '<button onclick=\'toggleCampaignDebtors(' + JSON.stringify(c.id || c.name || 'campaign') + ')\' style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:10px;padding:7px 10px;cursor:pointer;">' + claimListToggleLabel + '</button>' +
+      '</div>';
     return '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;">' +
       '<div style="padding:14px 16px;border-bottom:1px solid var(--border);">' +
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">' +
@@ -6229,8 +6283,11 @@ function renderCamps() {
       (delivered > 0 ? '<span style="font-family:var(--mono);font-size:8px;background:rgba(42,122,75,.2);color:var(--green);padding:2px 8px;border-radius:10px;">\u2713 ' + delivered + ' requests</span>' : '') +
       (refused   > 0 ? '<span style="font-family:var(--mono);font-size:8px;background:rgba(200,56,26,.15);color:var(--red);padding:2px 8px;border-radius:10px;">\u274C ' + refused + ' refused</span>' : '') +
       (excluded  > 0 ? '<span style="font-family:var(--mono);font-size:8px;background:rgba(255,136,102,.15);color:#ff8866;padding:2px 8px;border-radius:10px;">\uD83D\uDEAB ' + excluded + ' excluded</span>' : '') +
-      '</div></div>' +
-      '<div style="padding:8px 12px;">' +
+      '</div>' +
+      (focHeaderLine ? '<div style="font-family:var(--mono);font-size:9px;color:var(--accent);margin-top:8px;">' + campEsc(focHeaderLine) + '</div>' : '') +
+      '</div>' +
+      claimListToggle +
+      (claimListExpanded ? '<div style="padding:8px 12px;">' +
       groups.map(g =>
         '<div style="margin-bottom:8px;">' +
         '<div style="font-family:var(--mono);font-size:8px;color:' + g.col + ';text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">' + g.label + '</div>' +
@@ -6240,7 +6297,7 @@ function renderCamps() {
           const claimInfo  = campaignClaimInfo(cd);
           const isClaimed  = !!cd;
           const isExcluded = cd?.status === 'excluded';
-          const isFOCt     = c.type==='foc_sample'||c.type==='free_sample'||c.type==='festive_gift'||c.type==='birthday_gift';
+          const isFOCt     = isFocClaimCampaign(c);
           const claimLbl   = claimInfo.actionLabel;
           const claimBg    = claimInfo.bg;
           const claimColor = claimInfo.color;
@@ -6266,8 +6323,7 @@ function renderCamps() {
             '</div></div>';
         }).join('') + '</div>'
       ).join('') +
-      '</div>' +
-      renderCampaignDebtorPanel(c) +
+      '</div>' : '') +
       '</div>';
   }).join('');
 }
@@ -6454,7 +6510,7 @@ function renderCampaignDebtorPanel(camp) {
   const notYetTotal = rowsData.length - convertedTotal - awaitingTotal;
   const total = rowsData.length;
   const expanded = expandedCampaigns.has(campId);
-  const toggleLabel = expanded ? `▲ Hide Debtors` : `▼ View Debtors (${total})`;
+  const toggleLabel = expanded ? `\u25B2 Hide conversion details` : `\u25BC Show conversion details (${total})`;
   const toggle = `<div style="padding:8px 16px 12px;border-top:1px solid var(--border);">
     <button onclick='toggleCampaignDebtors(${JSON.stringify(campId)})' style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:10px;padding:7px 10px;cursor:pointer;">${toggleLabel}</button>
   </div>`;

@@ -8,16 +8,16 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'sales_dashboard.html'),
 function extractFunction(name) {
   const start = html.indexOf(`function ${name}`);
   assert(start >= 0, `${name} should exist`);
+  const bodyStart = html.indexOf('{', html.indexOf(')', start));
+  assert(bodyStart >= 0, `${name} should have a function body`);
   let depth = 0;
-  let seenBody = false;
-  for (let i = start; i < html.length; i += 1) {
+  for (let i = bodyStart; i < html.length; i += 1) {
     const ch = html[i];
     if (ch === '{') {
       depth += 1;
-      seenBody = true;
     } else if (ch === '}') {
       depth -= 1;
-      if (seenBody && depth === 0) return html.slice(start, i + 1);
+      if (depth === 0) return html.slice(start, i + 1);
     }
   }
   throw new Error(`Could not extract ${name}`);
@@ -32,6 +32,13 @@ assert(html.includes("'camps'"), 'Sales Dashboard should allow campaigns view de
 assert(html.includes("foc_item_2") && html.includes("foc_qty_2") && html.includes("foc_unit_2"), 'Sales Dashboard should display second debtor FOC line');
 assert(html.includes('campaignVisibleForSelectedMonth'), 'Sales Dashboard should filter expired campaigns against the selected month');
 assert(html.includes('filter(campaignVisibleForSelectedMonth)'), 'Debtor campaign badges should hide campaigns expired before the selected month');
+assert(html.includes('function isFocClaimCampaign'), 'Sales Dashboard should classify pure FOC/gift claim campaigns separately from conversion campaigns');
+assert(html.includes('Show FOC claim list') && html.includes('Hide FOC claim list'), 'FOC campaigns should use claim-list toggle wording');
+assert.strictEqual(
+  (html.match(/renderCampaignDebtorPanel\(c\)/g) || []).length,
+  1,
+  'FOC campaign cards should not append the shared conversion debtor panel'
+);
 
 const context = { DATA: { current_month: 'Jun 26' } };
 vm.createContext(context);
@@ -39,10 +46,22 @@ vm.runInContext([
   'const DATA = globalThis.DATA;',
   extractFunction('isCampaignActiveInMonth'),
   extractFunction('isConversionCampaign'),
+  extractFunction('isFocClaimCampaign'),
   extractFunction('isVisibleDebtorCampaign'),
   extractFunction('campaignVisibleForSelectedMonth'),
   extractFunction('visibleDebtorCampaigns'),
 ].join('\n'), context);
+
+assert.strictEqual(
+  context.isFocClaimCampaign({ type: 'other', mechanism_type: 'delivery_gift' }),
+  true,
+  'Delivery gift mechanisms should render as FOC claim lists even when the campaign type is generic'
+);
+assert.strictEqual(
+  context.isFocClaimCampaign({ type: 'conversion_simple', mechanism_type: 'delivery_gift' }),
+  false,
+  'Conversion campaigns with FOC rewards should keep the conversion details renderer'
+);
 
 const debtor = {
   campaigns: [

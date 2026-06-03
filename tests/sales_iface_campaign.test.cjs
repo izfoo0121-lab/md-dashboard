@@ -4,6 +4,7 @@ const path = require('path');
 const vm = require('vm');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'sales_dashboard.html'), 'utf8');
+const processData = fs.readFileSync(path.join(__dirname, '..', 'process_data.py'), 'utf8');
 
 function extractFunction(name) {
   const start = html.indexOf(`function ${name}`);
@@ -36,9 +37,14 @@ assert(html.includes('IFACE PEN'), 'Sales Dashboard should show the IFACE PEN FO
 assert(!html.includes('IFACE group standings in Sales'), 'Sales Dashboard should not render full group PK standings');
 assert(html.includes('function debtorMatchesSearch'), 'Sales Dashboard should share debtor search matching across debtor filters');
 assert(html.includes('function filterUnpurchasedDebtorsForView'), 'Unpurchased view should be searchable within selected brand/type');
+assert(html.includes('Show conversion details') && html.includes('Hide conversion details'), 'Conversion campaigns should keep a clearly-labelled details toggle');
+assert(html.includes('function conversionPriceFloor'), 'Sales Dashboard should resolve conversion price floors through a helper that preserves zero');
+assert(processData.includes('def campaign_conversion_price_floor'), 'process_data.py should resolve conversion price floors through a shared helper');
+assert(!processData.includes('floor_raw = 37.5 if qual_group == "TR-002" else 41.0'), 'process_data.py should not default every non-TR conversion campaign to RM41');
 
 const context = {};
 vm.createContext(context);
+vm.runInContext(extractFunction('conversionPriceFloor'), context);
 vm.runInContext(extractFunction('getDebtorType'), context);
 vm.runInContext(extractFunction('debtorMatchesSearch'), context);
 vm.runInContext(extractFunction('filterUnpurchasedDebtorsForView'), context);
@@ -49,6 +55,22 @@ vm.runInContext(extractFunction('isNoCcomBuyer'), context);
 vm.runInContext(extractFunction('futureDebtorSummaryStats'), context);
 vm.runInContext(extractFunction('futureDebtorPlanningCopy'), context);
 vm.runInContext(extractFunction('chooseInitialMonthLabel'), context);
+
+assert.strictEqual(
+  context.conversionPriceFloor({ price_floor: 0 }, { notes: { qualifying_item_group: 'IFACE' } }),
+  0,
+  'IFACE campaign display should preserve explicit RM0 floor instead of falling back to RM41'
+);
+assert.strictEqual(
+  context.conversionPriceFloor({}, { notes: { qualifying_item_group: 'IFACE' } }),
+  null,
+  'IFACE campaign display should not invent RM41 when no price floor is configured'
+);
+assert.strictEqual(
+  context.conversionPriceFloor({}, { notes: { qualifying_item_group: 'EVO' } }),
+  41,
+  'EVO conversion campaigns should keep the legacy RM41 default when no floor is configured'
+);
 
 const futureCopy = context.futureDebtorPlanningCopy({
   debtor_code: '300-C516',

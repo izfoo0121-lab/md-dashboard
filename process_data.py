@@ -1031,6 +1031,30 @@ def _norm_code(value):
     return str(value or "").strip().upper()
 
 
+def campaign_conversion_price_floor(notes=None, qual_group=""):
+    notes = notes or {}
+    for key in ("min_rm_per_ctn", "price_floor"):
+        raw = notes.get(key)
+        if raw is None or raw == "":
+            continue
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            continue
+
+    qual_values = notes.get("qualifying_values") or []
+    if isinstance(qual_values, str):
+        qual_values = [v.strip() for v in qual_values.split(",")]
+    match_values = {_norm_code(qual_group), _norm_code(notes.get("qualifying_item_group"))}
+    match_values.update(_norm_code(v) for v in qual_values if _norm_code(v))
+
+    if "TR-002" in match_values:
+        return 37.5
+    if any("EVO" in value for value in match_values):
+        return 41.0
+    return 0.0
+
+
 def _clean_sku_trace_config(config):
     rows = config if isinstance(config, list) and config else DEFAULT_SKU_TRACE_CONFIG
     clean = []
@@ -2175,12 +2199,7 @@ def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups, 
             qual_values = [_norm_code(v) for v in qual_values if _norm_code(v)]
             if _norm_code(qual_group) == "IFACE" or "IFACE" in qual_values:
                 qual_values = sorted(set(qual_values + ["IFACE"] + [_norm_code(v) for v in IFACE_ITEM_CODES]))
-            floor_raw = notes.get("min_rm_per_ctn")
-            if floor_raw is None or floor_raw == "":
-                floor_raw = notes.get("price_floor")
-            if floor_raw is None or floor_raw == "":
-                floor_raw = 37.5 if qual_group == "TR-002" else 41.0
-            price_floor = float(floor_raw)
+            price_floor = campaign_conversion_price_floor(notes, qual_group)
 
             # Build lookback paid_on strings using the campaign deadline year
             # (e.g. ["Feb 26", "Mar 26", "Apr 26"] for a 2026 campaign).
@@ -2225,12 +2244,8 @@ def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups, 
                 month_col = "tranx_mth_full" if "tranx_mth_full" in group_rows.columns else "paid_on"
                 lookback_rows = group_rows[group_rows[month_col].isin(lookback_keys)] if lookback_keys else group_rows.iloc[0:0]
                 current_rows  = group_rows[group_rows[month_col] == camp_month_key] if camp_month_key else group_rows.iloc[0:0]
-                # Price floor for conversion qualification (per-line).
-                # Only lines at >= RM 41/ctn count as conversions — excludes
-                # heavily discounted sales that don't represent real conversion.
-                # TODO: move PRICE_FLOOR to campaign config (notes.min_rm_per_ctn)
-                # so different conversion campaigns can have different thresholds.
-                if not current_rows.empty and "rm_ctn" in current_rows.columns:
+                # Apply a conversion price floor only when this campaign defines one.
+                if price_floor > 0 and not current_rows.empty and "rm_ctn" in current_rows.columns:
                     rm_num = pd.to_numeric(current_rows["rm_ctn"], errors="coerce")
                     current_rows = current_rows[rm_num >= price_floor]
                 lookback_ctn = round(float(lookback_rows["qty_ctn"].sum()), 2)
