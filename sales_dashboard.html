@@ -2360,6 +2360,7 @@ function onSearchInput() {
     renderGlobalSearch(val);
   } else {
     // Normal single-agent search
+    if (filters.special === 'unpurchased') unpurchasedPage = 1;
     renderDebtors();
   }
 }
@@ -2881,6 +2882,30 @@ function isThreeMonthNoCcomOrder(d) {
 function getDebtorType(d) {
   const t = String(d?.debtor_type || d?.type || d?.cust_type || d?.customer_type || '').trim();
   return /^(unknown|nan|null|none)$/i.test(t) ? '' : t;
+}
+
+function debtorMatchesSearch(d, query) {
+  const q = String(query || '').trim().toLowerCase();
+  if (!q) return true;
+  return [
+    d?.company_name,
+    d?.debtor_name,
+    d?.name,
+    d?.debtor_code,
+    d?.code,
+    d?.phone,
+    d?.phone_1,
+    d?.phone1
+  ].some(value => String(value || '').toLowerCase().includes(q));
+}
+
+function filterUnpurchasedDebtorsForView(debtors, typeFilter, searchQuery) {
+  const type = typeFilter || 'all';
+  return (debtors || []).filter(d => {
+    if (!debtorMatchesSearch(d, searchQuery)) return false;
+    if (type !== 'all' && (getDebtorType(d) || 'No Type') !== type) return false;
+    return true;
+  });
 }
 
 function birthdayMonthToIso(monthLabel) {
@@ -3629,8 +3654,10 @@ function renderUnpurchasedMode(debtors) {
     }).join('');
 
   const selectedDebtors = brandNeverBought[unpurchasedBrandFilter] || [];
+  const search = (document.getElementById('debtor-search')?.value || '').trim();
+  const searchMatchedDebtors = filterUnpurchasedDebtorsForView(selectedDebtors, 'all', search);
   const typeCounts = {};
-  selectedDebtors.forEach(d => {
+  searchMatchedDebtors.forEach(d => {
     const t = getDebtorType(d) || 'No Type';
     typeCounts[t] = (typeCounts[t] || 0) + 1;
   });
@@ -3638,7 +3665,7 @@ function renderUnpurchasedMode(debtors) {
   const typeButtons = [
     `<button class="filter-chip ${unpurchasedTypeFilter === 'all' ? 'active' : ''}"
       onclick="setUnpurchasedType('all',this)">
-      ALL (${selectedDebtors.length})</button>`,
+      ALL (${searchMatchedDebtors.length})</button>`,
     ...Object.entries(typeCounts)
       .sort((a, b) => b[1] - a[1])
       .map(([type, count]) =>
@@ -3648,9 +3675,7 @@ function renderUnpurchasedMode(debtors) {
       )
   ].join('');
 
-  const shown = unpurchasedTypeFilter === 'all'
-    ? selectedDebtors
-    : selectedDebtors.filter(d => (getDebtorType(d) || 'No Type') === unpurchasedTypeFilter);
+  const shown = filterUnpurchasedDebtorsForView(selectedDebtors, unpurchasedTypeFilter, search);
 
   shown.sort((a, b) => (a.company_name || '').localeCompare(b.company_name || ''));
   const totalShown = shown.length;
@@ -3670,7 +3695,7 @@ function renderUnpurchasedMode(debtors) {
 
   const debtorHtml = pageItems.length
     ? pageItems.map((d, idx) => renderDebtorCard(d, start + idx + 1)).join('')
-    : `<div class="empty-state">No debtors for ${unpurchasedBrandFilter}</div>`;
+    : `<div class="empty-state">No debtors for ${unpurchasedBrandFilter}${search ? ` matching "${search}"` : ''}</div>`;
 
   document.getElementById('page-info').textContent = `${startDisplay}–${endDisplay} of ${totalShown}`;
   document.getElementById('btn-prev').disabled = unpurchasedPage <= 1;

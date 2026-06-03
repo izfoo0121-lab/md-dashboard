@@ -34,10 +34,14 @@ assert(extractFunction('loadData').includes('const shouldShowFutureMonth = !hasP
 assert(html.includes('eligibility_reason'), 'Sales Dashboard should show why each IFACE debtor is eligible');
 assert(html.includes('IFACE PEN'), 'Sales Dashboard should show the IFACE PEN FOC note');
 assert(!html.includes('IFACE group standings in Sales'), 'Sales Dashboard should not render full group PK standings');
+assert(html.includes('function debtorMatchesSearch'), 'Sales Dashboard should share debtor search matching across debtor filters');
+assert(html.includes('function filterUnpurchasedDebtorsForView'), 'Unpurchased view should be searchable within selected brand/type');
 
 const context = {};
 vm.createContext(context);
 vm.runInContext(extractFunction('getDebtorType'), context);
+vm.runInContext(extractFunction('debtorMatchesSearch'), context);
+vm.runInContext(extractFunction('filterUnpurchasedDebtorsForView'), context);
 vm.runInContext(extractFunction('isPersonalDebtor'), context);
 vm.runInContext(extractFunction('canggihCtn'), context);
 vm.runInContext(extractFunction('eightcomCtn'), context);
@@ -96,6 +100,27 @@ assert.strictEqual(
   context.chooseInitialMonthLabel(['Apr 26', 'May 26'], 'Jun 26', 'May 26'),
   'May 26',
   'Explicit URL month should override the device-date default'
+);
+
+const unpurchasedRows = [
+  { debtor_code: '300-A001', company_name: 'Alpha Kedai', phone: '+601111', debtor_type: 'SH-Shop' },
+  { debtor_code: '300-B002', company_name: 'Bravo Trading', phone: '+602222', debtor_type: 'SH-Shop' },
+  { debtor_code: '300-C003', company_name: 'Charlie Freelance', phone: '+603333', debtor_type: 'FL-Freelancer' },
+];
+assert.deepStrictEqual(
+  context.filterUnpurchasedDebtorsForView(unpurchasedRows, 'all', 'bravo').map(d => d.debtor_code),
+  ['300-B002'],
+  'Unpurchased search should narrow by debtor name'
+);
+assert.deepStrictEqual(
+  context.filterUnpurchasedDebtorsForView(unpurchasedRows, 'SH-Shop', '300-A').map(d => d.debtor_code),
+  ['300-A001'],
+  'Unpurchased search should stack with debtor type filter'
+);
+assert.deepStrictEqual(
+  context.filterUnpurchasedDebtorsForView(unpurchasedRows, 'FL-Freelancer', '601111').map(d => d.debtor_code),
+  [],
+  'Unpurchased type filter should still exclude search matches in other types'
 );
 
 console.log('sales_iface_campaign.test.cjs passed');
