@@ -25,6 +25,7 @@ import json
 import os
 import re
 import sys
+import argparse
 import urllib.parse
 import urllib.request
 from datetime import datetime, date, timedelta
@@ -988,6 +989,22 @@ def current_month_label(today=None):
     return d.strftime("%b %y")  # e.g. "Mar 26"
 
 
+def normalize_month_label(value):
+    """Normalize admin/CLI month labels such as 'may26' or 'May 2026' to 'May 26'."""
+    raw = str(value or "").strip().replace("_", " ").replace("-", " ")
+    m = re.match(r"^([A-Za-z]{3,9})\s*(\d{2}|\d{4})$", raw)
+    if not m:
+        raise ValueError(f"Invalid month label: {value!r}")
+    mons = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+    mon = m.group(1)[:3].title()
+    if mon not in mons:
+        raise ValueError(f"Invalid month name: {value!r}")
+    yy = m.group(2)
+    if len(yy) == 4:
+        yy = yy[-2:]
+    return f"{mon} {yy}"
+
+
 def prev_month_labels(n=3, today=None):
     """Return list of n previous month labels for penetration lookback."""
     d = today or date.today()
@@ -998,6 +1015,40 @@ def prev_month_labels(n=3, today=None):
             first = (first.replace(day=1) - timedelta(days=1))
         labels.append(first.strftime("%b %y"))
     return labels
+
+
+def parse_runtime_options(argv=None):
+    parser = argparse.ArgumentParser(description="Generate Miracle MD dashboard data")
+    parser.add_argument("--month", dest="month_override", help="Regenerate a specific month, e.g. 'May 26' or may26")
+    parser.add_argument("--fast", action="store_true", help="Reuse cached expensive sections where supported")
+    return parser.parse_args(argv)
+
+
+def resolve_runtime_months(today=None, paid_on_vals=None, argv=None):
+    """Return (current month, previous months, explicit override flag)."""
+    opts = parse_runtime_options(argv)
+    today = today or date.today()
+
+    if opts.month_override:
+        cur_month = normalize_month_label(opts.month_override)
+        return cur_month, previous_month_labels_for(cur_month, 3), True
+
+    cur_month = current_month_label(today)
+    prev_months = prev_month_labels(3, today)
+
+    valid_paid_months = []
+    for value in paid_on_vals or []:
+        try:
+            valid_paid_months.append(normalize_month_label(value))
+        except ValueError:
+            pass
+    valid_paid_months = sorted(set(valid_paid_months), key=_month_sort_key)
+
+    if cur_month not in valid_paid_months and valid_paid_months:
+        cur_month = valid_paid_months[-1]
+        prev_months = previous_month_labels_for(cur_month, 3)
+
+    return cur_month, prev_months, False
 
 
 def pct(actual, target):
@@ -1016,6 +1067,146 @@ def color_code(pct_val):
     if pct_val >= 50:
         return "amber"
     return "red"
+
+
+def _norm_header(value):
+    return re.sub(r"[^A-Z0-9]+", "", str(value or "").upper())
+
+
+def _is_sales_header(values):
+    normalized = {_norm_header(v) for v in values if str(v or "").strip()}
+    return all(
+        key in normalized
+        for key in ("TRANXMTH", "DEBTORCODE", "PAIDON", "SALESTYPE", "QTYCTN")
+    )
+
+
+def detect_sales_sheet_and_header(path):
+    """Find the raw sales sheet/header row in clean or archived MD sales workbooks."""
+    import openpyxl
+
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    try:
+        for sheet in workbook.worksheets:
+            max_row = min(sheet.max_row or 0, 8)
+            max_col = min(sheet.max_column or 0, 30)
+            for row_idx in range(1, max_row + 1):
+                values = [sheet.cell(row_idx, col_idx).value for col_idx in range(1, max_col + 1)]
+                if _is_sales_header(values):
+                    return sheet.title, row_idx - 1
+    finally:
+        workbook.close()
+
+    return 0, 1
+
+
+def _as_float(value):
+    try:
+        return float(value or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def extract_payable_sales_summary(path, group_label="GRP 2"):
+    """Read official group totals from archived report Payable Sales sheet."""
+    import openpyxl
+
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    try:
+        if "Payable Sales" not in workbook.sheetnames:
+            return None
+        sheet = workbook["Payable Sales"]
+        group_row = None
+        brand_row = None
+        for row_idx in range(1, min(sheet.max_row or 0, 80) + 1):
+            label = str(sheet.cell(row_idx, 2).value or "").strip().upper()
+            if label == group_label.upper():
+                if group_row is None:
+                    group_row = row_idx
+                else:
+                    brand_row = row_idx
+                    break
+        if not group_row:
+            return None
+
+        summary = {
+            "total_sales_ctn": _as_float(sheet.cell(group_row, 3).value),
+            "prev_month_ctn": _as_float(sheet.cell(group_row, 4).value),
+            "cur_month_invoiced_paid": _as_float(sheet.cell(group_row, 5).value),
+            "pending_payment_ctn": _as_float(sheet.cell(group_row, 6).value),
+            "all_month_paid_ctn": _as_float(sheet.cell(group_row, 7).value),
+            "team_normal_ctn": _as_float(sheet.cell(group_row, 9).value),
+            "team_ma_ctn": _as_float(sheet.cell(group_row, 10).value),
+            "team_ga_ctn": _as_float(sheet.cell(group_row, 11).value),
+            "group_label": group_label,
+        }
+
+        if brand_row:
+            brand_cols = {
+                "SUKUN": 3,
+                "CLASSMILD": 4,
+                "EVO": 5,
+                "IMP": 6,
+                "LF": 7,
+                "TR": 8,
+                "BISON": 9,
+            }
+            summary["brand_actuals"] = {
+                brand: _as_float(sheet.cell(brand_row, col_idx).value)
+                for brand, col_idx in brand_cols.items()
+            }
+        return summary
+    finally:
+        workbook.close()
+
+
+def apply_payable_sales_summary(team, group_brands, payable_summary):
+    if not payable_summary:
+        return team, group_brands
+
+    team = dict(team or {})
+    for key in (
+        "team_normal_ctn",
+        "team_ga_ctn",
+        "team_ma_ctn",
+        "prev_month_ctn",
+        "cur_month_invoiced_paid",
+        "pending_payment_ctn",
+        "all_month_paid_ctn",
+        "total_sales_ctn",
+    ):
+        if key in payable_summary:
+            team[key] = _num2(payable_summary[key])
+
+    team["team_canggih_ctn"] = _num2(
+        team.get("team_normal_ctn", 0) + team.get("team_ga_ctn", 0) + team.get("team_ma_ctn", 0)
+    )
+    t1_total = float(team.get("t1_total_target") or 0)
+    t2_total = float(team.get("t2_total_target") or 0)
+    ga_total = float(team.get("ga_total_target") or 0)
+    ma_total = float(team.get("ma_total_target") or 0)
+    team["t1_pct"] = pct(team.get("team_normal_ctn", 0), t1_total)
+    team["t2_pct"] = pct(team.get("team_normal_ctn", 0), t2_total)
+    team["ga_pct"] = pct(team.get("team_ga_ctn", 0), ga_total)
+    team["ma_pct"] = pct(team.get("team_ma_ctn", 0), ma_total)
+    team["t1_gap"] = _num2(team.get("team_normal_ctn", 0) - t1_total) if t1_total else None
+    team["t2_gap"] = _num2(team.get("team_normal_ctn", 0) - t2_total) if t2_total else None
+    team["ga_gap"] = _num2(team.get("team_ga_ctn", 0) - ga_total) if ga_total else None
+    team["ma_gap"] = _num2(team.get("team_ma_ctn", 0) - ma_total) if ma_total else None
+    team["t1_color"] = color_code(team.get("t1_pct"))
+
+    group_brands = dict(group_brands or {})
+    for brand, actual in (payable_summary.get("brand_actuals") or {}).items():
+        if brand not in group_brands:
+            continue
+        row = dict(group_brands[brand] or {})
+        target = float(row.get("target_ctn") or 0)
+        row["actual_ctn"] = _num2(actual)
+        row["gap"] = _num2(actual - target) if target else None
+        row["pct"] = pct(actual, target)
+        group_brands[brand] = row
+
+    return team, group_brands
 
 
 def _num2(value):
@@ -1285,11 +1476,14 @@ def load_sales_report():
         log(f"❌ File not found: {SALES_FILE}")
         sys.exit(1)
 
+    sheet_name, header_row = detect_sales_sheet_and_header(SALES_FILE)
+    log(f"  Sales source sheet: {sheet_name} | header row: {header_row + 1}")
+
     # Read columns A:Z (indices 0–25), skip row 1 (special ref row), use row 2 as header
     df = pd.read_excel(
         SALES_FILE,
-        sheet_name=0,        # Read first sheet regardless of name (works for MD, Sheet1, etc.)
-        header=1,        # row index 1 = Excel row 2 = actual headers
+        sheet_name=sheet_name,
+        header=header_row,
         usecols="A:Z",
         dtype=str,       # read all as string first, cast later
         engine="openpyxl",
@@ -4303,9 +4497,7 @@ def main():
     log("MD Sales Dashboard — process_data.py (Phase 2)")
     log("=" * 60)
 
-    today      = date.today()
-    cur_month  = current_month_label(today)
-    prev_months = prev_month_labels(3, today)
+    today = date.today()
 
     # ── Load data ──────────────────────────────────────────────────
     targets   = load_targets()
@@ -4314,18 +4506,11 @@ def main():
 
     # ── Auto-detect current month from sales data ──────────────────
     # If today's month has no data, use latest month in paid_on column
-    MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-
-    def month_sort_key(m):
-        try:
-            parts = str(m).split()
-            mon = MONTH_ORDER.index(parts[0]) if parts[0] in MONTH_ORDER else 0
-            yr  = int(parts[1]) if len(parts) > 1 else 0
-            return yr * 12 + mon
-        except: return 0
-
     paid_on_vals = [v for v in df_raw["paid_on"].unique()
                     if v and v not in ('', 'NoComm') and len(str(v).split()) == 2]
+    cur_month = current_month_label(today)
+    prev_months = prev_month_labels(3, today)
+    month_sort_key = _month_sort_key
 
     if cur_month not in paid_on_vals and paid_on_vals:
         latest = sorted(paid_on_vals, key=month_sort_key)[-1]
@@ -4340,6 +4525,16 @@ def main():
             prev_months = prev_month_labels(3, fake_today)
             log(f"  Lookback adjusted to: {prev_months}")
         except: pass
+
+    default_month = current_month_label(today)
+    resolved_month, resolved_prev_months, explicit_month = resolve_runtime_months(today, paid_on_vals)
+    if explicit_month:
+        log(f"Month override requested: {resolved_month}")
+    elif resolved_month != default_month and cur_month == default_month:
+        log(f"âš  No data for {default_month} â€” auto-switching to latest: {resolved_month}")
+        log(f"  Lookback adjusted to: {resolved_prev_months}")
+    cur_month = resolved_month
+    prev_months = resolved_prev_months
 
     log(f"Current month: {cur_month}  |  Lookback: {prev_months}")
 
@@ -4781,6 +4976,10 @@ def main():
 
     kpi          = calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_camp, cur_month)
     team         = calc_team_summary(sales_prog, brand_comm, all_agents, targets, cur_month, df_raw, prev_months)
+    payable_summary = extract_payable_sales_summary(SALES_FILE)
+    if payable_summary:
+        team, group_brands = apply_payable_sales_summary(team, group_brands, payable_summary)
+        log(f"  Payable Sales summary applied for {payable_summary.get('group_label')}")
     working_days = calc_working_days(targets, cur_month)
     brand_camps  = calc_brand_campaigns(df, targets, agents, cur_month, prev_months, brand_config)
     agent_activity_daily = calc_agent_activity_daily(df, all_agents, cur_month)
@@ -5014,13 +5213,16 @@ def main():
     # ────────────────────────────────────────────────────────────────
 
     # ── Write JSON ──────────────────────────────────────────────────
-    debtor_analysis = build_debtor_analysis_data(df_raw, debtor_df, cur_month)
-    with open(DEBTOR_ANALYSIS_FILE, "w", encoding="utf-8") as f:
-        json.dump(debtor_analysis, f, ensure_ascii=False, separators=(",", ":"), default=str)
-    log(f"   Debtor analysis saved: {DEBTOR_ANALYSIS_FILE.name}")
+    if explicit_month:
+        log(f"   Historical regeneration: leaving {OUTPUT_FILE.name} and {DEBTOR_ANALYSIS_FILE.name} unchanged")
+    else:
+        debtor_analysis = build_debtor_analysis_data(df_raw, debtor_df, cur_month)
+        with open(DEBTOR_ANALYSIS_FILE, "w", encoding="utf-8") as f:
+            json.dump(debtor_analysis, f, ensure_ascii=False, separators=(",", ":"), default=str)
+        log(f"   Debtor analysis saved: {DEBTOR_ANALYSIS_FILE.name}")
 
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(output, f, ensure_ascii=False, indent=2, default=str)
+        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+            json.dump(output, f, ensure_ascii=False, indent=2, default=str)
 
     # Also save monthly snapshot e.g. data_mar26.json
     month_slug = cur_month.replace(" ", "").lower()  # "mar26"
@@ -5047,8 +5249,8 @@ def main():
     index_file.write_text(json.dumps(existing, indent=2), encoding="utf-8")
     log(f"   months_index.json updated: {existing}")
 
-    size_kb = OUTPUT_FILE.stat().st_size / 1024
-    log(f"\n✅ dashboard_data.json written — {size_kb:.0f} KB")
+    size_kb = monthly_file.stat().st_size / 1024
+    log(f"\n✅ {monthly_file.name} written — {size_kb:.0f} KB")
     log(f"   {len(agents)} agents  |  {cur_month}  |  Scope: {SCOPE_AREA}")
     log("=" * 60)
 

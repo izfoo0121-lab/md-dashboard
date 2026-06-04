@@ -5533,7 +5533,7 @@ function renderGroupBrandTargets() {
   const curMonthPaid    = team.cur_month_invoiced_paid    || 0;
   const totalPaidCtn    = prevMonthCtn + curMonthPaid;
   const totalUnpaidCtn  = team.team_8com_unpaid           || 0;
-  const canggihUnpaidCtn = Object.values(DATA.agents || {})
+  const canggihUnpaidCtn = team.pending_payment_ctn ?? Object.values(DATA.agents || {})
     .reduce((s, a) => s + (a.aging?.canggih_unpaid_ctn || 0), 0);
   const _MONTH_NUM = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',
                       Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
