@@ -1479,9 +1479,10 @@ function chooseInitialMonthLabel(months, realMonth, explicitMonth) {
 // when in future view.
 function isCampaignActiveInMonth(camp, monthStr) {
   const MONTHS_C = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const today = new Date().toISOString().slice(0, 7); // "2026-05"
-  const start = camp.start_date || camp.created_at || '';
+  const today = new Date().toISOString().slice(0, 7); // e.g. "2026-06"
   const deadline = camp.deadline || '';
+  const explicitStart = camp.start_date || camp.created_at || '';
+  const start = explicitStart || deadline || '';
 
   // Real-world start gate: campaign must have actually started
   if (start && String(start).slice(0,7) > today) return false;

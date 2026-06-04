@@ -67,6 +67,7 @@ const debtor = {
   campaigns: [
     { id: 'may-expired', type: 'free_sample', created_at: '2026-05-01', deadline: '2026-05-31' },
     { id: 'jun-active', type: 'free_sample', created_at: '2026-05-01', deadline: '2026-06-30' },
+    { id: 'jun-generated-no-start', type: 'free_sample', deadline: '2026-06-30' },
     { id: 'jun-closed', type: 'free_sample', active: false, created_at: '2026-06-01', deadline: '2026-06-30' },
     { id: 'jun-lookback-conversion', type: 'conversion_simple', created_at: '2026-05-01', deadline: '2026-06-30', lookback_ctn: 5 },
   ],
@@ -74,7 +75,7 @@ const debtor = {
 
 assert.deepStrictEqual(
   context.visibleDebtorCampaigns(debtor).map(c => c.id),
-  ['jun-active'],
+  ['jun-active', 'jun-generated-no-start'],
   'June debtor cards should hide expired May campaigns and already-converted lookback campaigns'
 );
 
@@ -82,7 +83,7 @@ context.DATA.current_month = 'May 26';
 assert.deepStrictEqual(
   context.visibleDebtorCampaigns(debtor).map(c => c.id),
   ['may-expired', 'jun-active'],
-  'May history should still show campaigns active in May'
+  'May history should still show campaigns active in May, but not generated June-only campaigns with no start date'
 );
 
 console.log('sales_foc_campaign.test.cjs passed');
