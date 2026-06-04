@@ -52,7 +52,38 @@ const context = {
       cur_month_invoiced_paid: 54352,
       team_8com_unpaid: 0,
     },
-    agents: {},
+    agents: {
+      BEN: {
+        sales_progression: {
+          tiers: {
+            normal_t1: { target: 930 },
+            normal_t2: { target: 1171 },
+            ga: { target: 23 },
+            ma: { target: 244 },
+          },
+        },
+      },
+      CJ: {
+        sales_progression: {
+          tiers: {
+            normal_t1: { target: 4078 },
+            normal_t2: { target: 4328 },
+            ga: { target: 362 },
+            ma: { target: 4837 },
+          },
+        },
+      },
+      TEAM_REST: {
+        sales_progression: {
+          tiers: {
+            normal_t1: { target: 41024 },
+            normal_t2: { target: 43751 },
+            ga: { target: 2617 },
+            ma: { target: 8936 },
+          },
+        },
+      },
+    },
     config: {},
   },
   document: {
@@ -75,9 +106,12 @@ vm.createContext(context);
 vm.runInContext(extractFunction('renderGroupBrandTargets'), context);
 context.renderGroupBrandTargets();
 
-assert(groupContent.innerHTML.includes('65,314'), 'Group tab total target should include Normal T1 + GA + MA targets');
+assert(groupContent.innerHTML.includes('46,032'), 'Group tab Normal T1 target should use the summed agent targets, not the stale group override');
+assert(!groupContent.innerHTML.includes('>46,000<'), 'Group tab Normal T1 target should not show the stale group override when agent targets are available');
+assert(groupContent.innerHTML.includes('49,250'), 'Group tab Normal T2 target should use the summed agent targets');
+assert(groupContent.innerHTML.includes('63,051'), 'Group tab total target should include summed Normal T1 + GA + MA targets');
 assert(groupContent.innerHTML.includes('61,498'), 'Group tab total actual should include Normal + GA + MA paid CTN');
-assert(groupContent.innerHTML.includes('-3,816'), 'Group tab total gap should be actual minus combined target');
-assert(groupContent.innerHTML.includes('94.16%'), 'Group tab total achievement should use combined actual / combined target');
+assert(groupContent.innerHTML.includes('-1,553'), 'Group tab total gap should be actual minus combined target');
+assert(groupContent.innerHTML.includes('97.54%'), 'Group tab total achievement should use combined actual / combined target');
 
 console.log('sales_group_totals.test.cjs passed');
