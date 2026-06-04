@@ -40,6 +40,9 @@ vm.runInContext([
   'var DATA = globalThis.DATA;',
   extractFunction('blockFutureViewAction'),
   extractFunction('isCampaignActiveInMonth'),
+  extractFunction('monthLabelToIso'),
+  extractFunction('isHistoricalMonth'),
+  extractFunction('shouldIncludeLiveCampaignForSales'),
   extractFunction('salesCampaignGroupBy'),
   extractFunction('salesParseCampaignNotes'),
   extractFunction('salesCampaignRuleFromDb'),
@@ -121,6 +124,51 @@ assert.strictEqual(
   'Live June campaign should not attach debtor rows to a May snapshot'
 );
 assert.strictEqual(mayData.agents.BEN.debtor_cards.debtors.length, 0);
+
+const closedMayCampaign = context.salesCampaignFromDb(
+  {
+    id: 'camp_evo_may26',
+    name: 'EVO MAY 2026 — Conversion',
+    type: 'conversion_tiered',
+    active: false,
+    created_at: '2026-05-03T01:54:53.126751+00:00',
+    deadline: '2026-05-31',
+  },
+  {},
+  {
+    camp_evo_may26: [
+      {
+        campaign_id: 'camp_evo_may26',
+        debtor_code: '300-KT209',
+        debtor_name: 'EDDY KAMPUNG BRING',
+        agent: 'JACKY',
+        debtor_type: 'SH-Shop',
+      },
+    ],
+  }
+);
+const historicalMayData = {
+  current_month: 'May 26',
+  agents: {
+    JACKY: { debtor_cards: { debtors: [] } },
+  },
+};
+assert.strictEqual(
+  context.mergeLiveCampaignsIntoSalesData(historicalMayData, { campaigns: [closedMayCampaign] }),
+  1,
+  'Closed live campaigns should still attach when viewing their historical month'
+);
+assert.strictEqual(
+  historicalMayData.agents.JACKY.debtor_cards.debtors[0].campaigns[0].name,
+  'EVO MAY 2026 — Conversion'
+);
+context.DATA = historicalMayData;
+vm.runInContext('DATA = globalThis.DATA;', context);
+assert.strictEqual(
+  context.visibleDebtorCampaigns(historicalMayData.agents.JACKY.debtor_cards.debtors[0]).map(c => c.name).join(','),
+  'EVO MAY 2026 — Conversion',
+  'Closed historical campaigns should remain visible when viewing that past month'
+);
 
 const data = {
   current_month: 'Jun 26',

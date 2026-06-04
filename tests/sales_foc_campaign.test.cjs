@@ -45,6 +45,8 @@ vm.createContext(context);
 vm.runInContext([
   'const DATA = globalThis.DATA;',
   extractFunction('isCampaignActiveInMonth'),
+  extractFunction('monthLabelToIso'),
+  extractFunction('isHistoricalMonth'),
   extractFunction('isConversionCampaign'),
   extractFunction('isFocClaimCampaign'),
   extractFunction('isVisibleDebtorCampaign'),

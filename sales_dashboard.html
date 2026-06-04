@@ -766,7 +766,9 @@ function mergeSalesCampaignEntry(existing, liveEntry) {
 function mergeLiveCampaignsIntoSalesData(data, live) {
   if (!data || !data.agents) return 0;
   const month = data.current_month || '';
-  const closedLiveIds = new Set((live?.campaigns || []).filter(c => c?.id && c.active === false).map(c => c.id));
+  const closedLiveIds = new Set((live?.campaigns || [])
+    .filter(c => c?.id && c.active === false && !shouldIncludeLiveCampaignForSales(c, month))
+    .map(c => c.id));
   if (closedLiveIds.size) {
     data.campaigns = (data.campaigns || []).filter(c => !closedLiveIds.has(c?.id));
     Object.values(data.agents || {}).forEach(agentData => {
@@ -779,8 +781,8 @@ function mergeLiveCampaignsIntoSalesData(data, live) {
     });
   }
   const activeCamps = (live?.campaigns || [])
-    .filter(c => c?.id && c.active !== false)
-    .filter(c => !month || isCampaignActiveInMonth(c, month));
+    .filter(c => c?.id)
+    .filter(c => shouldIncludeLiveCampaignForSales(c, month));
   if (!activeCamps.length) return 0;
 
   data.campaigns = [
@@ -1502,6 +1504,30 @@ function isCampaignActiveInMonth(camp, monthStr) {
     }
   }
   return true;
+}
+
+function monthLabelToIso(monthStr) {
+  const MONTHS_C = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  if (!monthStr) return '';
+  const parts = String(monthStr).trim().split(/\s+/);
+  if (parts.length !== 2) return '';
+  const m = MONTHS_C.indexOf(parts[0]) + 1;
+  const yy = parseInt(parts[1], 10);
+  if (!m || Number.isNaN(yy)) return '';
+  return `${2000 + yy}-${String(m).padStart(2,'0')}`;
+}
+
+function isHistoricalMonth(monthStr) {
+  const monthIso = monthLabelToIso(monthStr);
+  if (!monthIso) return false;
+  return monthIso < new Date().toISOString().slice(0, 7);
+}
+
+function shouldIncludeLiveCampaignForSales(camp, monthStr) {
+  if (!camp?.id) return false;
+  if (monthStr && !isCampaignActiveInMonth(camp, monthStr)) return false;
+  if (camp.active !== false) return true;
+  return isHistoricalMonth(monthStr);
 }
 
 function updateFutureViewBanner() {
@@ -5931,7 +5957,7 @@ function campaignVisibleForSelectedMonth(c) {
 
 function visibleDebtorCampaigns(debtor) {
   return (debtor?.campaigns || [])
-    .filter(c => c?.active !== false)
+    .filter(c => c?.active !== false || isHistoricalMonth(DATA?.current_month))
     .filter(campaignVisibleForSelectedMonth)
     .filter(isVisibleDebtorCampaign);
 }
