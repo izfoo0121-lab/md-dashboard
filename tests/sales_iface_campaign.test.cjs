@@ -51,6 +51,8 @@ vm.runInContext(extractFunction('filterUnpurchasedDebtorsForView'), context);
 vm.runInContext(extractFunction('isPersonalDebtor'), context);
 vm.runInContext(extractFunction('canggihCtn'), context);
 vm.runInContext(extractFunction('eightcomCtn'), context);
+vm.runInContext(extractFunction('threeMonthCanggihCtn'), context);
+vm.runInContext(extractFunction('threeMonthEightcomCtn'), context);
 vm.runInContext(extractFunction('isNoCcomBuyer'), context);
 vm.runInContext(extractFunction('futureDebtorSummaryStats'), context);
 vm.runInContext(extractFunction('futureDebtorPlanningCopy'), context);
@@ -85,7 +87,44 @@ const futureCopy = context.futureDebtorPlanningCopy({
   campaigns: [{ id: 'jun-camp', converted: true, current_ctn: 5, current_rm: 50 }]
 });
 
-assert.strictEqual(context.isNoCcomBuyer({ canggih_ctn_cur: 0, eightcom_ctn_cur: 6 }), true, 'Loaded-month CCOM 未拿 should mean 8COM CTN exists and CCOM CTN is zero');
+assert.strictEqual(
+  context.isNoCcomBuyer({
+    canggih_ctn_cur: 0,
+    eightcom_ctn_cur: 6,
+    canggih_ctn_prev1: 0,
+    canggih_ctn_prev2: 0,
+    canggih_ctn_prev3: 0,
+    eightcom_ctn_prev1: 0,
+    eightcom_ctn_prev2: 0,
+    eightcom_ctn_prev3: 0
+  }),
+  false,
+  'CCOM 未拿 should not mean current-month 8COM only'
+);
+assert.strictEqual(
+  context.isNoCcomBuyer({
+    canggih_ctn_prev1: 0,
+    canggih_ctn_prev2: 0,
+    canggih_ctn_prev3: 0,
+    eightcom_ctn_prev1: 2,
+    eightcom_ctn_prev2: 0,
+    eightcom_ctn_prev3: 4
+  }),
+  true,
+  'CCOM 未拿 should include debtors that bought 8COM in the selected month previous 3 months and bought no CCOM in those 3 months'
+);
+assert.strictEqual(
+  context.isNoCcomBuyer({
+    canggih_ctn_prev1: 1,
+    canggih_ctn_prev2: 0,
+    canggih_ctn_prev3: 0,
+    eightcom_ctn_prev1: 2,
+    eightcom_ctn_prev2: 3,
+    eightcom_ctn_prev3: 0
+  }),
+  false,
+  'CCOM 未拿 should exclude debtors with any CCOM purchase in the selected month previous 3 months'
+);
 assert.strictEqual(futureCopy.new_sku_count, 0, 'Future planning debtor copy should not leak prior-month new SKU count');
 assert.strictEqual(Object.keys(futureCopy.new_sku_status || {}).length, 0, 'Future planning debtor copy should not show prior-month new SKU badges');
 assert.strictEqual(futureCopy.ctn_cur, 0, 'Future planning debtor copy should zero selected-month CTN');

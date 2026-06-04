@@ -2924,8 +2924,16 @@ function eightcomCtn(d, key) {
   return Number(d?.[`eightcom_ctn_${key}`] ?? 0) || 0;
 }
 
+function threeMonthCanggihCtn(d) {
+  return canggihCtn(d, 'prev1') + canggihCtn(d, 'prev2') + canggihCtn(d, 'prev3');
+}
+
+function threeMonthEightcomCtn(d) {
+  return eightcomCtn(d, 'prev1') + eightcomCtn(d, 'prev2') + eightcomCtn(d, 'prev3');
+}
+
 function isNoCcomBuyer(d) {
-  return canggihCtn(d, 'cur') <= 0 && eightcomCtn(d, 'cur') > 0;
+  return threeMonthCanggihCtn(d) <= 0 && threeMonthEightcomCtn(d) > 0;
 }
 
 function isThreeMonthNoCcomOrder(d) {
@@ -3653,11 +3661,11 @@ function renderSpecialFilterExtra(d) {
       <div class="movement-summary-row">
         <div class="movement-summary-left">
           <span class="movement-summary-label">CCOM status</span>
-          <span class="status-inline" style="background:rgba(255,154,60,.15);color:var(--orange);">8COM only</span>
+          <span class="status-inline" style="background:rgba(255,154,60,.15);color:var(--orange);">last 3M 8COM only</span>
         </div>
         <div class="movement-summary-right">
-          <span class="status-inline" style="background:rgba(255,255,255,.08);color:var(--muted);">CCOM ${fmtNum(canggihCtn(d, 'cur'))} CTN</span>
-          <span class="status-inline" style="background:rgba(77,166,255,.15);color:var(--blue);">8COM ${fmtNum(eightcomCtn(d, 'cur'))} CTN</span>
+          <span class="status-inline" style="background:rgba(255,255,255,.08);color:var(--muted);">3M CCOM ${fmtNum(threeMonthCanggihCtn(d))} CTN</span>
+          <span class="status-inline" style="background:rgba(77,166,255,.15);color:var(--blue);">3M 8COM ${fmtNum(threeMonthEightcomCtn(d))} CTN</span>
         </div>
       </div>
     </div>`;
@@ -4534,7 +4542,7 @@ function renderDebtors() {
     bannerEl.style.display = 'flex';
     bannerEl.style.background = 'rgba(255,154,60,.08)';
     bannerEl.style.borderColor = 'rgba(255,154,60,.28)';
-    bannerEl.innerHTML = `<span style="font-family:var(--mono);font-size:11px;color:var(--orange);">CCOM 未拿 — ${filtered.length} 户本月只有 8COM / 没有 Canggih CTN</span>
+    bannerEl.innerHTML = `<span style="font-family:var(--mono);font-size:11px;color:var(--orange);">CCOM 未拿 — ${filtered.length} 户近3个月只买 8COM / 没买 CCOM</span>
       <button class="brand-banner-close" onclick="setSpecialFilter('no_ccom',document.querySelector('[data-val=\\'no_ccom\\']'))">×</button>`;
   } else if (filters.special === 'no3m') {
     bannerEl.style.display = 'flex';
@@ -4564,7 +4572,7 @@ function renderDebtors() {
     });
   }
   if (filters.special === 'no_ccom') {
-    filtered.sort((a, b) => eightcomCtn(b, 'cur') - eightcomCtn(a, 'cur'));
+    filtered.sort((a, b) => threeMonthEightcomCtn(b) - threeMonthEightcomCtn(a));
   }
   if (filters.special === 'no3m') {
     filtered.sort((a, b) => {
