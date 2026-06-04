@@ -5415,8 +5415,12 @@ function renderGroupBrandTargets() {
     {label:'MASTER AGENT',    key:'ma', target:team.ma_total_target, actual:team.team_ma_ctn,   gap:team.ma_gap, pct:team.ma_pct},
   ].filter(r => r.target && r.target > 0);
 
-  const totalTarget = team.t1_total_target || 0;
-  const totalActual = team.team_normal_ctn || 0;
+  const totalTarget = (Number(team.t1_total_target) || 0)
+                    + (Number(team.ga_total_target) || 0)
+                    + (Number(team.ma_total_target) || 0);
+  const totalActual = (Number(team.team_normal_ctn) || 0)
+                    + (Number(team.team_ga_ctn) || 0)
+                    + (Number(team.team_ma_ctn) || 0);
   const totalGap    = totalActual - totalTarget;
   const totalPct    = totalTarget ? (totalActual/totalTarget*100).toFixed(2) : 0;
 
