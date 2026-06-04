@@ -98,6 +98,30 @@ const liveCampaign = context.salesCampaignFromDb(
   }
 );
 
+assert.strictEqual(
+  context.isCampaignActiveInMonth(liveCampaign, 'May 26'),
+  false,
+  'June live campaign should not appear when May is selected'
+);
+assert.strictEqual(
+  context.isCampaignActiveInMonth(liveCampaign, 'Jun 26'),
+  true,
+  'June live campaign should appear when June is selected'
+);
+
+const mayData = {
+  current_month: 'May 26',
+  agents: {
+    BEN: { debtor_cards: { debtors: [] } },
+  },
+};
+assert.strictEqual(
+  context.mergeLiveCampaignsIntoSalesData(mayData, { campaigns: [liveCampaign] }),
+  0,
+  'Live June campaign should not attach debtor rows to a May snapshot'
+);
+assert.strictEqual(mayData.agents.BEN.debtor_cards.debtors.length, 0);
+
 const data = {
   current_month: 'Jun 26',
   is_future_view: true,

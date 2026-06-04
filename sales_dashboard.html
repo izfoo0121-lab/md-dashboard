@@ -1486,15 +1486,17 @@ function isCampaignActiveInMonth(camp, monthStr) {
   // Real-world start gate: campaign must have actually started
   if (start && String(start).slice(0,7) > today) return false;
 
-  // Selected month vs deadline: campaign must not have ended before this month
-  if (deadline && monthStr) {
+  // Selected month overlap: campaign must have started on/before the selected
+  // month and must not have ended before the selected month.
+  if (monthStr) {
     const parts = monthStr.split(' ');
     if (parts.length === 2) {
       const m = MONTHS_C.indexOf(parts[0]) + 1;
       const y = 2000 + parseInt(parts[1]);
       if (m && y) {
         const monthIso = `${y}-${String(m).padStart(2,'0')}`;
-        if (String(deadline).slice(0,7) < monthIso) return false;
+        if (start && String(start).slice(0,7) > monthIso) return false;
+        if (deadline && String(deadline).slice(0,7) < monthIso) return false;
       }
     }
   }
