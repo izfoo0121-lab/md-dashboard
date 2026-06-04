@@ -1,7 +1,65 @@
 {
   "_comment": "MD Sales Dashboard — loaded from Supabase",
-  "_loaded_at": "2026-06-03T16:00:48.572866",
+  "_loaded_at": "2026-06-04T09:25:28.274591",
   "agents": {
+    "XIAN": {
+      "is_newbie": false,
+      "active": true,
+      "is_new_this_month": false,
+      "sales_progression": {
+        "ga": 315,
+        "ma": 317,
+        "normal_t1": 3491,
+        "normal_t2": 3741
+      },
+      "brand_commission": {
+        "EVO": {
+          "pen_auto": false,
+          "ctn_target": 228,
+          "penetration_target": 7
+        },
+        "TR20": {
+          "pen_auto": true,
+          "ctn_target": 82,
+          "penetration_target": 5
+        },
+        "BISON": {
+          "pen_auto": true,
+          "ctn_target": 148,
+          "penetration_target": 5
+        },
+        "SUKUN": {
+          "pen_auto": true,
+          "ctn_target": 700,
+          "penetration_target": 3
+        },
+        "iFACE": {
+          "pen_auto": true,
+          "ctn_target": 65,
+          "penetration_target": 5
+        },
+        "LAM+LWM": {
+          "pen_auto": false,
+          "ctn_target": 18,
+          "penetration_target": 7
+        }
+      },
+      "kpi_targets": {
+        "new_sku": 17,
+        "vip_count": 24,
+        "new_accounts": 3,
+        "reactivation": 13,
+        "activation_rate": 80
+      },
+      "campaign_targets": {
+        "camp_1777773301331_count": 4
+      },
+      "kpi_auto_base": {
+        "month": "Jun 26",
+        "non_personal": 121,
+        "prev_inactive": 33
+      }
+    },
     "KI-MI": {
       "is_newbie": true,
       "active": true,
@@ -89,53 +147,143 @@
         }
       ]
     },
-    "XIAN": {
-      "is_newbie": false,
+    "BEN": {
+      "is_newbie": true,
       "active": true,
       "is_new_this_month": false,
       "sales_progression": {
-        "ga": 315,
-        "ma": 317,
-        "normal_t1": 3491,
-        "normal_t2": 3741
+        "ga": 23,
+        "ma": 244,
+        "normal_t1": 930,
+        "normal_t2": 1171
       },
       "brand_commission": {
         "EVO": {
           "pen_auto": false,
-          "ctn_target": 228,
-          "penetration_target": 7
+          "ctn_target": 25,
+          "penetration_target": 6
         },
         "TR20": {
           "pen_auto": true,
-          "ctn_target": 82,
+          "ctn_target": 5,
           "penetration_target": 5
         },
         "BISON": {
           "pen_auto": true,
-          "ctn_target": 148,
-          "penetration_target": 5
+          "ctn_target": 30,
+          "penetration_target": 4
         },
         "SUKUN": {
           "pen_auto": true,
-          "ctn_target": 700,
+          "ctn_target": 250,
           "penetration_target": 3
         },
         "iFACE": {
           "pen_auto": true,
-          "ctn_target": 65,
-          "penetration_target": 5
+          "ctn_target": 85,
+          "penetration_target": 4
         },
         "LAM+LWM": {
           "pen_auto": false,
           "ctn_target": 18,
-          "penetration_target": 7
+          "penetration_target": 6
         }
       },
       "kpi_targets": {
+        "event": 16,
         "new_sku": 17,
-        "vip_count": 24,
-        "new_accounts": 3,
-        "reactivation": 13,
+        "vip_count": 18,
+        "new_accounts": 5,
+        "reactivation": 20,
+        "activation_rate": 80
+      },
+      "campaign_targets": {
+        "camp_1778113461122_ctn": 30,
+        "camp_1777773301331_count": 4,
+        "camp_1778113461122_count": 5
+      },
+      "kpi_auto_base": {
+        "month": "Jun 26",
+        "non_personal": 91,
+        "prev_inactive": 51
+      },
+      "newbie_tiers": [
+        {
+          "reward": 1200,
+          "threshold": 800
+        },
+        {
+          "reward": 1800,
+          "threshold": 930
+        },
+        {
+          "reward": 2400,
+          "threshold": 1171
+        }
+      ],
+      "newbie_account_tiers": [
+        {
+          "count": 3,
+          "reward": 200
+        },
+        {
+          "count": 5,
+          "reward": 600
+        },
+        {
+          "count": 7,
+          "reward": 800
+        }
+      ]
+    },
+    "LEON": {
+      "is_newbie": false,
+      "active": true,
+      "is_new_this_month": false,
+      "sales_progression": {
+        "ga": 1324,
+        "ma": 2114,
+        "normal_t1": 3911,
+        "normal_t2": 4162
+      },
+      "brand_commission": {
+        "EVO": {
+          "pen_auto": false,
+          "ctn_target": 212,
+          "penetration_target": 5
+        },
+        "TR20": {
+          "pen_auto": true,
+          "ctn_target": 104,
+          "penetration_target": 4
+        },
+        "BISON": {
+          "pen_auto": true,
+          "ctn_target": 240,
+          "penetration_target": 4
+        },
+        "SUKUN": {
+          "pen_auto": true,
+          "ctn_target": 600,
+          "penetration_target": 2
+        },
+        "iFACE": {
+          "pen_auto": true,
+          "ctn_target": 140,
+          "penetration_target": 4
+        },
+        "LAM+LWM": {
+          "pen_auto": false,
+          "ctn_target": 18,
+          "penetration_target": 6
+        }
+      },
+      "kpi_targets": {
+        "event": 16,
+        "new_sku": 17,
+        "vip_count": 21,
+        "new_accounts": 4,
+        "reactivation": 4,
         "activation_rate": 80
       },
       "campaign_targets": {
@@ -143,9 +291,37 @@
       },
       "kpi_auto_base": {
         "month": "Jun 26",
-        "non_personal": 121,
-        "prev_inactive": 33
-      }
+        "non_personal": 103,
+        "prev_inactive": 11
+      },
+      "newbie_tiers": [
+        {
+          "reward": 0,
+          "threshold": 0
+        },
+        {
+          "reward": 0,
+          "threshold": 0
+        },
+        {
+          "reward": 0,
+          "threshold": 0
+        }
+      ],
+      "newbie_account_tiers": [
+        {
+          "count": 0,
+          "reward": 0
+        },
+        {
+          "count": 0,
+          "reward": 0
+        },
+        {
+          "count": 0,
+          "reward": 0
+        }
+      ]
     },
     "KF": {
       "is_newbie": false,
@@ -955,182 +1131,6 @@
         "month": "Jun 26",
         "non_personal": 0,
         "prev_inactive": 0
-      },
-      "newbie_tiers": [
-        {
-          "reward": 0,
-          "threshold": 0
-        },
-        {
-          "reward": 0,
-          "threshold": 0
-        },
-        {
-          "reward": 0,
-          "threshold": 0
-        }
-      ],
-      "newbie_account_tiers": [
-        {
-          "count": 0,
-          "reward": 0
-        },
-        {
-          "count": 0,
-          "reward": 0
-        },
-        {
-          "count": 0,
-          "reward": 0
-        }
-      ]
-    },
-    "BEN": {
-      "is_newbie": true,
-      "active": true,
-      "is_new_this_month": false,
-      "sales_progression": {
-        "ga": 23,
-        "ma": 244,
-        "normal_t1": 930,
-        "normal_t2": 1171
-      },
-      "brand_commission": {
-        "EVO": {
-          "pen_auto": false,
-          "ctn_target": 25,
-          "penetration_target": 6
-        },
-        "TR20": {
-          "pen_auto": true,
-          "ctn_target": 5,
-          "penetration_target": 5
-        },
-        "BISON": {
-          "pen_auto": true,
-          "ctn_target": 30,
-          "penetration_target": 4
-        },
-        "SUKUN": {
-          "pen_auto": true,
-          "ctn_target": 250,
-          "penetration_target": 3
-        },
-        "iFACE": {
-          "pen_auto": true,
-          "ctn_target": 85,
-          "penetration_target": 4
-        },
-        "LAM+LWM": {
-          "pen_auto": false,
-          "ctn_target": 18,
-          "penetration_target": 6
-        }
-      },
-      "kpi_targets": {
-        "event": 16,
-        "new_sku": 17,
-        "vip_count": 18,
-        "new_accounts": 5,
-        "reactivation": 20,
-        "activation_rate": 80
-      },
-      "campaign_targets": {
-        "camp_1778113461122_ctn": 30,
-        "camp_1777773301331_count": 4,
-        "camp_1778113461122_count": 5
-      },
-      "kpi_auto_base": {
-        "month": "Jun 26",
-        "non_personal": 91,
-        "prev_inactive": 51
-      },
-      "newbie_tiers": [
-        {
-          "reward": 1200,
-          "threshold": 800
-        },
-        {
-          "reward": 1800,
-          "threshold": 930
-        },
-        {
-          "reward": 2400,
-          "threshold": 1171
-        }
-      ],
-      "newbie_account_tiers": [
-        {
-          "count": 3,
-          "reward": 200
-        },
-        {
-          "count": 5,
-          "reward": 600
-        },
-        {
-          "count": 7,
-          "reward": 800
-        }
-      ]
-    },
-    "LEON": {
-      "is_newbie": false,
-      "active": true,
-      "is_new_this_month": false,
-      "sales_progression": {
-        "ga": 1324,
-        "ma": 2114,
-        "normal_t1": 3911,
-        "normal_t2": 4162
-      },
-      "brand_commission": {
-        "EVO": {
-          "pen_auto": false,
-          "ctn_target": 212,
-          "penetration_target": 5
-        },
-        "TR20": {
-          "pen_auto": true,
-          "ctn_target": 104,
-          "penetration_target": 4
-        },
-        "BISON": {
-          "pen_auto": true,
-          "ctn_target": 240,
-          "penetration_target": 4
-        },
-        "SUKUN": {
-          "pen_auto": true,
-          "ctn_target": 600,
-          "penetration_target": 2
-        },
-        "iFACE": {
-          "pen_auto": true,
-          "ctn_target": 140,
-          "penetration_target": 4
-        },
-        "LAM+LWM": {
-          "pen_auto": false,
-          "ctn_target": 18,
-          "penetration_target": 6
-        }
-      },
-      "kpi_targets": {
-        "event": 16,
-        "new_sku": 17,
-        "vip_count": 21,
-        "new_accounts": 4,
-        "reactivation": 4,
-        "activation_rate": 80
-      },
-      "campaign_targets": {
-        "camp_1777773301331_count": 4
-      },
-      "kpi_auto_base": {
-        "month": "Jun 26",
-        "non_personal": 103,
-        "prev_inactive": 11
       },
       "newbie_tiers": [
         {
@@ -4073,86 +4073,6 @@
         "total_debtors": 139
       }
     },
-    "Mar 26": {
-      "CJ": {
-        "non_personal": 116,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 27,
-        "total_debtors": 129
-      },
-      "JW": {
-        "non_personal": 49,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 16,
-        "total_debtors": 110
-      },
-      "KF": {
-        "non_personal": 159,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 60,
-        "total_debtors": 224
-      },
-      "KW": {
-        "non_personal": 140,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 36,
-        "total_debtors": 182
-      },
-      "YI": {
-        "non_personal": 169,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 82,
-        "total_debtors": 265
-      },
-      "BEN": {
-        "non_personal": 91,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 46,
-        "total_debtors": 139
-      },
-      "KEE": {
-        "non_personal": 124,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 50,
-        "total_debtors": 162
-      },
-      "NMK": {
-        "non_personal": 122,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 34,
-        "total_debtors": 152
-      },
-      "KEAN": {
-        "non_personal": 118,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 28,
-        "total_debtors": 215
-      },
-      "LEON": {
-        "non_personal": 114,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 27,
-        "total_debtors": 159
-      },
-      "JACKY": {
-        "non_personal": 142,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 65,
-        "total_debtors": 189
-      },
-      "JAMES": {
-        "non_personal": 128,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 19,
-        "total_debtors": 200
-      },
-      "KI-MI": {
-        "non_personal": 157,
-        "captured_date": "2026-04-02",
-        "prev_inactive": 60,
-        "total_debtors": 256
-      }
-    },
     "Jun 26": {
       "CJ": {
         "non_personal": 105,
@@ -4237,6 +4157,86 @@
         "captured_date": "2026-06-02",
         "prev_inactive": 75,
         "total_debtors": 263
+      }
+    },
+    "Mar 26": {
+      "CJ": {
+        "non_personal": 116,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 27,
+        "total_debtors": 129
+      },
+      "JW": {
+        "non_personal": 49,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 16,
+        "total_debtors": 110
+      },
+      "KF": {
+        "non_personal": 159,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 60,
+        "total_debtors": 224
+      },
+      "KW": {
+        "non_personal": 140,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 36,
+        "total_debtors": 182
+      },
+      "YI": {
+        "non_personal": 169,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 82,
+        "total_debtors": 265
+      },
+      "BEN": {
+        "non_personal": 91,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 46,
+        "total_debtors": 139
+      },
+      "KEE": {
+        "non_personal": 124,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 50,
+        "total_debtors": 162
+      },
+      "NMK": {
+        "non_personal": 122,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 34,
+        "total_debtors": 152
+      },
+      "KEAN": {
+        "non_personal": 118,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 28,
+        "total_debtors": 215
+      },
+      "LEON": {
+        "non_personal": 114,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 27,
+        "total_debtors": 159
+      },
+      "JACKY": {
+        "non_personal": 142,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 65,
+        "total_debtors": 189
+      },
+      "JAMES": {
+        "non_personal": 128,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 19,
+        "total_debtors": 200
+      },
+      "KI-MI": {
+        "non_personal": 157,
+        "captured_date": "2026-04-02",
+        "prev_inactive": 60,
+        "total_debtors": 256
       }
     },
     "May 26": {
@@ -4670,6 +4670,14 @@
       }
     },
     "Jun 26": {
+      "XIAN": {
+        "EVO": 93,
+        "TR20": 97,
+        "BISON": 91,
+        "SUKUN": 63,
+        "iFACE": 107,
+        "LAM+LWM": 111
+      },
       "KI-MI": {
         "EVO": 128,
         "TR20": 156,
@@ -4678,13 +4686,21 @@
         "iFACE": 124,
         "LAM+LWM": 116
       },
-      "XIAN": {
-        "EVO": 93,
-        "TR20": 97,
-        "BISON": 91,
-        "SUKUN": 63,
-        "iFACE": 107,
-        "LAM+LWM": 111
+      "BEN": {
+        "EVO": 80,
+        "TR20": 91,
+        "BISON": 84,
+        "SUKUN": 56,
+        "iFACE": 82,
+        "LAM+LWM": 89
+      },
+      "LEON": {
+        "EVO": 42,
+        "TR20": 83,
+        "BISON": 80,
+        "SUKUN": 46,
+        "iFACE": 72,
+        "LAM+LWM": 91
       },
       "KF": {
         "EVO": 66,
@@ -4766,22 +4782,6 @@
         "iFACE": 0,
         "LAM+LWM": 0
       },
-      "BEN": {
-        "EVO": 80,
-        "TR20": 91,
-        "BISON": 84,
-        "SUKUN": 56,
-        "iFACE": 82,
-        "LAM+LWM": 89
-      },
-      "LEON": {
-        "EVO": 42,
-        "TR20": 83,
-        "BISON": 80,
-        "SUKUN": 46,
-        "iFACE": 72,
-        "LAM+LWM": 91
-      },
       "CJ": {
         "EVO": 78,
         "TR20": 68,
@@ -4795,7 +4795,7 @@
   "penetration_snapshot_meta": {
     "Jun 26": {
       "pool_version": "dm_active_nonpersonal_debtorwide_v2",
-      "updated_at": "2026-06-03T16:01:36"
+      "updated_at": "2026-06-04T09:27:28"
     }
   }
 }
