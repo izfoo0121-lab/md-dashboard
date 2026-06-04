@@ -37,19 +37,19 @@ const context = {
       t2_total_target: 49000,
       ga_total_target: 3000,
       ma_total_target: 16314,
-      team_normal_ctn: 45792,
-      team_ga_ctn: 3190,
-      team_ma_ctn: 12516,
-      t1_gap: -208,
-      t2_gap: -3208,
-      ga_gap: 190,
-      ma_gap: -3798,
-      t1_pct: 99.55,
-      t2_pct: 93.45,
-      ga_pct: 106.33,
-      ma_pct: 76.72,
-      prev_month_ctn: 7146,
-      cur_month_invoiced_paid: 54352,
+      team_normal_ctn: 47353,
+      team_ga_ctn: 3255,
+      team_ma_ctn: 12519,
+      t1_gap: 1353,
+      t2_gap: -1647,
+      ga_gap: 255,
+      ma_gap: -3795,
+      t1_pct: 102.94,
+      t2_pct: 96.64,
+      ga_pct: 108.5,
+      ma_pct: 76.74,
+      prev_month_ctn: 7236,
+      cur_month_invoiced_paid: 56328,
       team_8com_unpaid: 0,
     },
     agents: {
@@ -106,12 +106,12 @@ vm.createContext(context);
 vm.runInContext(extractFunction('renderGroupBrandTargets'), context);
 context.renderGroupBrandTargets();
 
-assert(groupContent.innerHTML.includes('46,032'), 'Group tab Normal T1 target should use the summed agent targets, not the stale group override');
-assert(!groupContent.innerHTML.includes('>46,000<'), 'Group tab Normal T1 target should not show the stale group override when agent targets are available');
-assert(groupContent.innerHTML.includes('49,250'), 'Group tab Normal T2 target should use the summed agent targets');
-assert(groupContent.innerHTML.includes('63,051'), 'Group tab total target should include summed Normal T1 + GA + MA targets');
-assert(groupContent.innerHTML.includes('61,498'), 'Group tab total actual should include Normal + GA + MA paid CTN');
-assert(groupContent.innerHTML.includes('-1,553'), 'Group tab total gap should be actual minus combined target');
-assert(groupContent.innerHTML.includes('97.54%'), 'Group tab total achievement should use combined actual / combined target');
+assert(groupContent.innerHTML.includes('46,000'), 'Group tab Normal T1 target should use the fixed Admin group target');
+assert(!groupContent.innerHTML.includes('46,032'), 'Group tab Normal T1 target should not be replaced by summed agent targets');
+assert(groupContent.innerHTML.includes('49,000'), 'Group tab Normal T2 target should use the fixed Admin group target');
+assert(groupContent.innerHTML.includes('65,314'), 'Group tab total target should be fixed Normal T1 + GA + MA targets');
+assert(groupContent.innerHTML.includes('63,127'), 'Group tab total actual should include Normal + GA + MA paid CTN');
+assert(groupContent.innerHTML.includes('-2,187'), 'Group tab total gap should be actual minus combined fixed target');
+assert(groupContent.innerHTML.includes('96.65%'), 'Group tab total achievement should use combined actual / fixed target');
 
 console.log('sales_group_totals.test.cjs passed');

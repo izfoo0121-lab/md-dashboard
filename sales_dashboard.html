@@ -5385,27 +5385,6 @@ function renderGroupBrandTargets() {
   const gbt  = DATA.group_brand_targets || {};
   const wd   = DATA.working_days || {};
   const team = DATA.team || {};
-  const sp   = DATA.agents || {};
-  const sumAgentTierTarget = key => Object.values(sp).reduce((sum, agentData) => {
-    const n = Number(agentData?.sales_progression?.tiers?.[key]?.target);
-    return Number.isFinite(n) ? sum + n : sum;
-  }, 0);
-  const groupTarget = (key, fallback) => {
-    const summed = sumAgentTierTarget(key);
-    return summed > 0 ? summed : (Number(fallback) || 0);
-  };
-  const groupTierRow = (label, key, fallbackTarget, actual) => {
-    const rowActual = Number(actual) || 0;
-    const rowTarget = groupTarget(key, fallbackTarget);
-    return {
-      label,
-      key,
-      target: rowTarget,
-      actual: rowActual,
-      gap: rowTarget ? rowActual - rowTarget : null,
-      pct: rowTarget ? rowActual / rowTarget * 100 : null,
-    };
-  };
 
   // ── Working days header ───────────────────────────────────────────────
   const wdHtml = `
@@ -5429,15 +5408,43 @@ function renderGroupBrandTargets() {
 
   // ── SP Tier Table ─────────────────────────────────────────────────────
   const tierRows = [
-    groupTierRow('RM0.80 / RM1.25', 'normal_t1', team.t1_total_target, team.team_normal_ctn),
-    groupTierRow('Tier 2 RM1.35', 'normal_t2', team.t2_total_target, team.team_normal_ctn),
-    groupTierRow('GA (RM0.70/RM0.90)', 'ga', team.ga_total_target, team.team_ga_ctn),
-    groupTierRow('MASTER AGENT', 'ma', team.ma_total_target, team.team_ma_ctn),
+    {
+      label: 'RM0.80 / RM1.25',
+      key: 't1',
+      target: Number(team.t1_total_target) || 0,
+      actual: Number(team.team_normal_ctn) || 0,
+      gap: Number(team.t1_gap) || 0,
+      pct: Number(team.t1_pct) || 0,
+    },
+    {
+      label: 'Tier 2 RM1.35',
+      key: 't2',
+      target: Number(team.t2_total_target) || 0,
+      actual: Number(team.team_normal_ctn) || 0,
+      gap: Number(team.t2_gap) || 0,
+      pct: Number(team.t2_pct) || 0,
+    },
+    {
+      label: 'GA (RM0.70/RM0.90)',
+      key: 'ga',
+      target: Number(team.ga_total_target) || 0,
+      actual: Number(team.team_ga_ctn) || 0,
+      gap: Number(team.ga_gap) || 0,
+      pct: Number(team.ga_pct) || 0,
+    },
+    {
+      label: 'MASTER AGENT',
+      key: 'ma',
+      target: Number(team.ma_total_target) || 0,
+      actual: Number(team.team_ma_ctn) || 0,
+      gap: Number(team.ma_gap) || 0,
+      pct: Number(team.ma_pct) || 0,
+    },
   ].filter(r => r.target && r.target > 0);
 
-  const totalTarget = groupTarget('normal_t1', team.t1_total_target)
-                    + groupTarget('ga', team.ga_total_target)
-                    + groupTarget('ma', team.ma_total_target);
+  const totalTarget = (Number(team.t1_total_target) || 0)
+                    + (Number(team.ga_total_target) || 0)
+                    + (Number(team.ma_total_target) || 0);
   const totalActual = (Number(team.team_normal_ctn) || 0)
                     + (Number(team.team_ga_ctn) || 0)
                     + (Number(team.team_ma_ctn) || 0);
