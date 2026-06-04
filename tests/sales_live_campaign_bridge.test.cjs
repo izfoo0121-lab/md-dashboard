@@ -170,6 +170,41 @@ assert.strictEqual(
   'Closed historical campaigns should remain visible when viewing that past month'
 );
 
+const malformedAgentCampaign = context.salesCampaignFromDb(
+  {
+    id: 'camp_bad_agent',
+    name: 'Bad Agent Row',
+    type: 'free_sample',
+    active: true,
+    created_at: '2026-05-03T01:54:53.126751+00:00',
+    deadline: '2026-05-31',
+  },
+  {},
+  {
+    camp_bad_agent: [
+      {
+        campaign_id: 'camp_bad_agent',
+        debtor_code: '300-C516',
+        debtor_name: 'KEDAI MAKANAN',
+        agent: 'MINUMAN DAN RUNCIT YA SRI BLAU STORE-POKYA',
+        debtor_type: 'SH-Shop',
+      },
+    ],
+  }
+);
+const knownAgentData = {
+  current_month: 'May 26',
+  agents: {
+    KW: { debtor_cards: { debtors: [] } },
+  },
+};
+assert.strictEqual(
+  context.mergeLiveCampaignsIntoSalesData(knownAgentData, { campaigns: [malformedAgentCampaign] }),
+  0,
+  'Malformed campaign debtor agent values should not create fake agents'
+);
+assert.strictEqual(knownAgentData.agents['MINUMAN DAN RUNCIT YA SRI BLAU STORE-POKYA'], undefined);
+
 const data = {
   current_month: 'Jun 26',
   is_future_view: true,

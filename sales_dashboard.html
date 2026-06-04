@@ -791,12 +791,14 @@ function mergeLiveCampaignsIntoSalesData(data, live) {
   ];
 
   let applied = 0;
+  const knownAgents = new Set(Object.keys(data.agents || {}).map(a => String(a).trim().toUpperCase()).filter(Boolean));
   activeCamps.forEach(camp => {
     (camp.debtors || []).forEach(record => {
       const placeholder = salesDebtorRecordToCard(record);
       if (!placeholder) return;
       const agent = String(record.agent || placeholder.agent || '').trim().toUpperCase();
       if (!agent) return;
+      if (knownAgents.size && !knownAgents.has(agent)) return;
       data.agents[agent] ||= {};
       data.agents[agent].debtor_cards ||= {};
       data.agents[agent].debtor_cards.debtors ||= [];

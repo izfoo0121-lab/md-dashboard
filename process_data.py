@@ -1005,6 +1005,50 @@ def normalize_month_label(value):
     return f"{mon} {yy}"
 
 
+def _month_label_to_year_month(label):
+    mons = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+    try:
+        parts = normalize_month_label(label).split()
+        if len(parts) != 2:
+            return None
+        return (2000 + int(parts[1]), mons.index(parts[0]) + 1)
+    except Exception:
+        return None
+
+
+def _dateish_to_year_month(value):
+    if not value:
+        return None
+    try:
+        from dateutil.parser import parse as dparse
+        parsed = dparse(str(value))
+        return (parsed.year, parsed.month)
+    except Exception:
+        return None
+
+
+def campaign_active_for_output_month(camp, cur_month, today=None):
+    """Return whether a campaign belongs in a generated month snapshot."""
+    cur_ym = _month_label_to_year_month(cur_month)
+    if not cur_ym:
+        return bool(camp.get("active", True))
+
+    today = today or date.today()
+    today_ym = (today.year, today.month)
+    start_ym = _dateish_to_year_month(camp.get("start_date") or camp.get("created_at"))
+    deadline_ym = _dateish_to_year_month(camp.get("deadline"))
+    if not start_ym:
+        start_ym = deadline_ym
+
+    if start_ym and start_ym > cur_ym:
+        return False
+    if deadline_ym and deadline_ym < cur_ym:
+        return False
+    if camp.get("active", True) is False and cur_ym >= today_ym:
+        return False
+    return True
+
+
 def prev_month_labels(n=3, today=None):
     """Return list of n previous month labels for penetration lookback."""
     d = today or date.today()
@@ -4559,34 +4603,10 @@ def main():
         log("WARNING: campaigns.json missing; area_groups defaulting to {}")
 
     def _campaign_active_in_month(camp):
-        # Month filter — campaigns appear if they have STARTED in real-world time
-        # AND haven't ENDED in past dashboard months.
-        # Rationale: cur_month may auto-switch to a previous month if no current
-        # sales data exists yet (e.g., early in a new month). Campaigns that have
-        # started in real time should appear regardless, so agents see them on Day 1.
-        camp_start    = camp.get("start_date") or camp.get("created_at", "")
-        camp_deadline = camp.get("deadline", "")
-        try:
-            from dateutil.parser import parse as dparse
-            from datetime import date
-            today_str = date.today().strftime("%Y-%m")
-            cm_date = dparse("01 " + cur_month)
-            cm_str  = cm_date.strftime("%Y-%m")
-
-            # Start check: real-world today (not cur_month)
-            # → A campaign that started May 2 is visible May 3 even if dashboard shows April
-            if camp_start:
-                sd_str = dparse(str(camp_start)).strftime("%Y-%m")
-                if sd_str > today_str: return False  # not started yet in real time
-
-            # Deadline check: cur_month (historical hide)
-            # → A campaign that ended in March should not appear when viewing March
-            if camp_deadline:
-                dl_str = dparse(str(camp_deadline)).strftime("%Y-%m")
-                if dl_str < cm_str: return False  # already ended
-        except Exception:
-            pass  # if date parsing fails, include campaign
-        return True
+        # Generated snapshots must stay month-accurate. Active campaigns are
+        # included only if they overlap cur_month; closed campaigns are kept for
+        # historical month snapshots so old campaign results remain reviewable.
+        return campaign_active_for_output_month(camp, cur_month, today=today)
 
     def _append_campaign_map_entry(camp, code, cat, cat_group, crule, debtor=None):
         if not code: return
@@ -4651,7 +4671,6 @@ def main():
         with open(CAMPAIGNS_FILE, encoding="utf-8") as f:
             data = json.load(f)
         for camp in data.get("campaigns", []):
-            if not camp.get("active", True): continue
             if not _campaign_active_in_month(camp): continue
             loaded += 1
             if camp.get("type") in ("conversion_tiered", "conversion_simple"):
@@ -4668,7 +4687,7 @@ def main():
         return loaded
 
     try:
-        campaign_rows = _supabase_get("campaigns?select=*&active=eq.true")
+        campaign_rows = _supabase_get("campaigns?select=*")
         rule_rows     = _supabase_get("campaign_cat_rules?select=*")
         debtor_rows   = _supabase_get("campaign_debtors?select=*")
 
@@ -4701,6 +4720,7 @@ def main():
                 "start_date": camp_row.get("start_date",""),
                 "deadline": camp_row.get("deadline",""),
                 "created_at": camp_row.get("created_at",""),
+                "active": camp_row.get("active", True),
                 "notes": camp_row.get("notes"),
                 "min_order_ctn": camp_row.get("min_order_ctn", 0) or 0,
                 "promo_detail": camp_row.get("promo_detail","") or "",

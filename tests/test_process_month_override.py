@@ -104,6 +104,44 @@ class ProcessMonthOverrideTests(unittest.TestCase):
         self.assertEqual(summary["brand_actuals"]["CLASSMILD"], 14337)
         self.assertEqual(summary["brand_actuals"]["EVO"], 10426)
 
+    def test_campaign_active_for_output_month_keeps_history_clean(self):
+        june_active = {
+            "active": True,
+            "created_at": "2026-06-02T13:14:42+00:00",
+            "deadline": "2026-06-30",
+        }
+        may_closed = {
+            "active": False,
+            "created_at": "2026-05-03T01:54:53+00:00",
+            "deadline": "2026-05-31",
+        }
+        june_closed = {
+            "active": False,
+            "created_at": "2026-06-01T00:00:00+00:00",
+            "deadline": "2026-06-30",
+        }
+
+        self.assertFalse(
+            process_data.campaign_active_for_output_month(
+                june_active, "May 26", today=date(2026, 6, 4)
+            )
+        )
+        self.assertTrue(
+            process_data.campaign_active_for_output_month(
+                may_closed, "May 26", today=date(2026, 6, 4)
+            )
+        )
+        self.assertFalse(
+            process_data.campaign_active_for_output_month(
+                june_closed, "Jun 26", today=date(2026, 6, 4)
+            )
+        )
+        self.assertTrue(
+            process_data.campaign_active_for_output_month(
+                june_closed, "Jun 26", today=date(2026, 7, 1)
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
