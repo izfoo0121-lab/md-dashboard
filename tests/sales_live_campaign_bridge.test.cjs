@@ -237,7 +237,18 @@ const staleGenerated = {
             status: 'pending',
             campaigns: [
               { id: 'camp_sukun_sample_jun26', name: 'SUKUN SAMPLE JUN26', type: 'free_sample', deadline: '2026-06-30' },
-              { id: 'camp_1780407172845', name: 'SUKUN FOC JUN26', type: 'free_sample', deadline: '2026-06-30' },
+              {
+                id: 'camp_1780407172845',
+                name: 'SUKUN FOC JUN26',
+                type: 'free_sample',
+                deadline: '2026-06-30',
+                foc_item: 'SKNR',
+                foc_qty: 2,
+                foc_unit: 'packs',
+                foc_item_2: 'SKNW',
+                foc_qty_2: 2,
+                foc_unit_2: 'packs',
+              },
             ],
           },
         ],
@@ -260,7 +271,17 @@ const liveWithClosed = {
       id: 'camp_1780407172845',
       name: 'SUKUN FOC JUN26',
       active: true,
-      debtors: [{ debtor_code: '300-J025', debtor_name: 'PANTAI LANJUT KAK JAK', agent: 'JAMES', foc_item: 'SKNR', foc_qty: 2, foc_unit: 'packs' }],
+      debtors: [{
+        debtor_code: '300-J025',
+        debtor_name: 'PANTAI LANJUT KAK JAK',
+        agent: 'JAMES',
+        foc_item: 'SKNR',
+        foc_qty: 2,
+        foc_unit: 'ctn',
+        foc_item_2: 'SKNW',
+        foc_qty_2: 2,
+        foc_unit_2: 'ctn',
+      }],
     },
   ],
 };
@@ -269,6 +290,16 @@ assert.strictEqual(
   staleGenerated.agents.JAMES.debtor_cards.debtors[0].campaigns.map(c => c.name).join(','),
   'SUKUN FOC JUN26',
   'Closed Supabase campaigns should be stripped from stale generated Sales debtor cards'
+);
+assert.strictEqual(
+  staleGenerated.agents.JAMES.debtor_cards.debtors[0].campaigns[0].foc_unit,
+  'ctn',
+  'Live Supabase FOC package edits should override stale generated package units'
+);
+assert.strictEqual(
+  staleGenerated.agents.JAMES.debtor_cards.debtors[0].campaigns[0].foc_unit_2,
+  'ctn',
+  'Live Supabase second FOC package unit should override stale generated package units'
 );
 
 context.DATA = data;

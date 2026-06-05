@@ -754,6 +754,11 @@ function mergeSalesCampaignEntry(existing, liveEntry) {
   ['lookback_ctn','current_ctn','current_paid_ctn','current_invoice_ctn','current_unpaid_ctn','current_rm','converted','status'].forEach(key => {
     if (existing[key] !== undefined && existing[key] !== null && existing[key] !== '') merged[key] = existing[key];
   });
+  // Admin edits debtor-level FOC packages in Supabase. Those instructions must
+  // win over generated JSON so campaign list updates appear after reload.
+  ['foc_item','foc_qty','foc_unit','foc_item_2','foc_qty_2','foc_unit_2','foc_note'].forEach(key => {
+    if (liveEntry[key] !== undefined && liveEntry[key] !== null && liveEntry[key] !== '') merged[key] = liveEntry[key];
+  });
   ['foc_item','foc_qty','foc_unit','foc_item_2','foc_qty_2','foc_unit_2','foc_note','eligibility_reason','promo_logic'].forEach(key => {
     if ((existing[key] === undefined || existing[key] === null || existing[key] === '') && liveEntry[key] !== undefined) {
       merged[key] = liveEntry[key];
