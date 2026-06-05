@@ -248,6 +248,7 @@ const staleGenerated = {
                 foc_item_2: 'SKNW',
                 foc_qty_2: 2,
                 foc_unit_2: 'packs',
+                foc_package: 'SKNR x 2 packs + SKNW x 2 packs',
               },
             ],
           },
@@ -300,6 +301,11 @@ assert.strictEqual(
   staleGenerated.agents.JAMES.debtor_cards.debtors[0].campaigns[0].foc_unit_2,
   'ctn',
   'Live Supabase second FOC package unit should override stale generated package units'
+);
+assert.strictEqual(
+  staleGenerated.agents.JAMES.debtor_cards.debtors[0].campaigns[0].foc_package,
+  '',
+  'Live Supabase FOC package edits should clear stale generated package display strings'
 );
 
 context.DATA = data;

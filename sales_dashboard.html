@@ -756,9 +756,13 @@ function mergeSalesCampaignEntry(existing, liveEntry) {
   });
   // Admin edits debtor-level FOC packages in Supabase. Those instructions must
   // win over generated JSON so campaign list updates appear after reload.
+  const hasLiveFocPackage = ['foc_item','foc_qty','foc_unit','foc_item_2','foc_qty_2','foc_unit_2'].some(key =>
+    liveEntry[key] !== undefined && liveEntry[key] !== null && liveEntry[key] !== ''
+  );
   ['foc_item','foc_qty','foc_unit','foc_item_2','foc_qty_2','foc_unit_2','foc_note'].forEach(key => {
     if (liveEntry[key] !== undefined && liveEntry[key] !== null && liveEntry[key] !== '') merged[key] = liveEntry[key];
   });
+  if (hasLiveFocPackage) merged.foc_package = '';
   ['foc_item','foc_qty','foc_unit','foc_item_2','foc_qty_2','foc_unit_2','foc_note','eligibility_reason','promo_logic'].forEach(key => {
     if ((existing[key] === undefined || existing[key] === null || existing[key] === '') && liveEntry[key] !== undefined) {
       merged[key] = liveEntry[key];
