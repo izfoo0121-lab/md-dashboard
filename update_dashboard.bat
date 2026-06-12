@@ -56,12 +56,12 @@ if "%LOCAL_AHEAD%"=="" (
 )
 if not "%LOCAL_AHEAD%"=="0" (
     echo ERROR: This checkout has local commits or has diverged from GitHub main.
-    echo        Local ahead: %LOCAL_AHEAD% commit(s), GitHub ahead: %LOCAL_BEHIND% commit(s).
+    echo        Local ahead count: %LOCAL_AHEAD%, GitHub ahead count: %LOCAL_BEHIND%.
     echo        No data was regenerated, so GitHub main is protected from stale pushes.
     pause & exit /b 1
 )
 if not "%LOCAL_BEHIND%"=="0" (
-    echo Auto-pulling latest GitHub main ^(%LOCAL_BEHIND% commit^(s^)^)...
+    echo Auto-pulling latest GitHub main. Behind count: %LOCAL_BEHIND%.
     git pull --ff-only origin main
     if errorlevel 1 (
         echo ERROR: Could not auto-pull latest GitHub main.

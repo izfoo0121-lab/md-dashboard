@@ -14,6 +14,7 @@ class UpdateDashboardSourceSyncTests(unittest.TestCase):
         self.assertIn("Auto-pulling latest GitHub main", bat)
         self.assertIn("git pull --ff-only origin main", bat)
         self.assertIn("local commits or has diverged", bat)
+        self.assertNotIn("commit(s)", bat)
 
     def test_update_dashboard_syncs_debtor_maintenance_from_desktop(self):
         bat = (ROOT / "update_dashboard.bat").read_text(encoding="utf-8")
