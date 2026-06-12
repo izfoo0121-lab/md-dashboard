@@ -2681,17 +2681,18 @@ function renderBulkImportSection() {
         Bulk Import Targets
       </summary>
       <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);line-height:1.6;margin:10px 0;">
-        Paste CSV with columns: <b>agent,field_type,field_key,value</b>. field_type supports <b>sales_prog</b>,
-        <b>brand_comm</b>, <b>kpi</b>, <b>campaign</b>, <b>newbie_ctn</b>, <b>newbie_acc</b>, and <b>flag</b>.
-        Blank value clears the target. Current month: <b>${kpiAdminEscape(month || 'not selected')}</b>
+        Paste either <b>Row Template</b> CSV (one agent per row, targets as columns) or <b>System Template</b> CSV
+        with columns <b>agent,field_type,field_key,value</b>. Row Template blank cells are ignored; System Template blank value clears the target.
+        Current month: <b>${kpiAdminEscape(month || 'not selected')}</b>
         ${campCount ? `(${campCount} active campaign target column${campCount === 1 ? '' : 's'} available)` : '(no active campaign target rows for this month)'}.
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-        <button onclick="downloadTargetsTemplate()" style="font-family:var(--mono);font-size:10px;padding:7px 11px;border:1px solid var(--border);border-radius:8px;background:var(--blue);color:#fff;cursor:pointer;">Download Template</button>
+        <button onclick="downloadTargetsRowTemplate()" style="font-family:var(--mono);font-size:10px;padding:7px 11px;border:1px solid var(--border);border-radius:8px;background:var(--blue);color:#fff;cursor:pointer;">Download Row Template</button>
+        <button onclick="downloadTargetsTemplate()" style="font-family:var(--mono);font-size:10px;padding:7px 11px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);cursor:pointer;">Download System Template</button>
         <button onclick="validateTargetsImport()" style="font-family:var(--mono);font-size:10px;padding:7px 11px;border:1px solid var(--border);border-radius:8px;background:var(--green);color:#fff;cursor:pointer;">Validate</button>
         <button id="targets-import-apply-btn" onclick="applyTargetsImport()" disabled style="font-family:var(--mono);font-size:10px;padding:7px 11px;border:1px solid var(--border);border-radius:8px;background:var(--accent);color:#fff;cursor:pointer;opacity:.55;">Apply to Form</button>
       </div>
-      <textarea id="targets-import-csv" rows="8" placeholder="agent,field_type,field_key,value&#10;BEN,kpi,vip_count,5&#10;BEN,campaign,camp_1777773301331,43" style="width:100%;min-height:150px;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;resize:vertical;"></textarea>
+      <textarea id="targets-import-csv" rows="8" placeholder="agent,active,is_newbie,normal_t1,normal_t2,ga,ma,iface_pen_target,iface_ctn_target,kpi_new_accounts,kpi_vip_count&#10;BEN,1,0,930,1171,,,4,85,5,12" style="width:100%;min-height:150px;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;resize:vertical;"></textarea>
       <div id="targets-import-result" style="font-family:var(--mono);font-size:10px;color:var(--ink3);line-height:1.5;margin-top:8px;"></div>
       <div style="font-family:var(--mono);font-size:9px;color:var(--accent);margin-top:8px;">Click SAVE ALL TARGETS below to persist to Supabase.</div>
     </details>`;
@@ -2781,6 +2782,162 @@ function ensureTargetTierArray(agentCfg, key, defaults) {
   while (agentCfg[key].length < 3) agentCfg[key].push({...defaults[agentCfg[key].length]});
 }
 
+function bulkTargetBrandSlug(brand) {
+  return String(brand || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\+/g, '_')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .replace(/_+/g, '_');
+}
+
+function normalizeTargetsWideHeader(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/%/g, 'percent')
+    .replace(/\+/g, '_')
+    .replace(/[^a-z0-9:]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .replace(/_+/g, '_');
+}
+
+function getBulkTargetWideColumns(month) {
+  const cols = [];
+  const add = (header, fieldType, fieldKey, label) => cols.push({ header, field_type: fieldType, field_key: fieldKey, label: label || header });
+
+  add('active', 'flag', 'active', 'Active');
+  add('is_newbie', 'flag', 'is_newbie', 'Newbie');
+  ['normal_t1','normal_t2','ga','ma'].forEach(key => add(key, 'sales_prog', key));
+
+  BRANDS.forEach(brand => {
+    const slug = bulkTargetBrandSlug(brand);
+    add(`${slug}_pen_target`, 'brand_comm', `${brand}:penetration_target`, `${brand} penetration target`);
+    add(`${slug}_ctn_target`, 'brand_comm', `${brand}:ctn_target`, `${brand} CTN target`);
+  });
+
+  BULK_TARGET_KPI_KEYS.forEach(key => add(`kpi_${key}`, 'kpi', key));
+
+  getBulkImportCampaignKeys(month).forEach(camp => {
+    add(`campaign_${camp.key}`, 'campaign', camp.key, camp.label || camp.key);
+  });
+
+  [1,2,3].forEach(n => {
+    add(`newbie_ctn_t${n}_threshold`, 'newbie_ctn', `ctn_tier_${n}_threshold`);
+    add(`newbie_ctn_t${n}_reward`, 'newbie_ctn', `ctn_tier_${n}_reward`);
+  });
+  [1,2,3].forEach(n => {
+    add(`newbie_acc_t${n}_count`, 'newbie_acc', `acc_tier_${n}_count`);
+    add(`newbie_acc_t${n}_reward`, 'newbie_acc', `acc_tier_${n}_reward`);
+  });
+
+  return cols;
+}
+
+function getBulkTargetWideColumnMap(month) {
+  const map = new Map();
+  getBulkTargetWideColumns(month).forEach(col => {
+    map.set(normalizeTargetsWideHeader(col.header), col);
+    map.set(normalizeTargetsWideHeader(col.label), col);
+  });
+  return map;
+}
+
+function isTargetsWideCsvHeader(rawHeader) {
+  const normalized = rawHeader.map(normalizeTargetsWideHeader);
+  const systemHeader = ['agent','field_type','field_key','value'];
+  if (systemHeader.every((h, i) => normalized[i] === h)) return false;
+  if (!normalized.includes('agent')) return false;
+  if (rawHeader.length <= 4) return false;
+  const colMap = getBulkTargetWideColumnMap(getBulkImportMonth());
+  return normalized.some(h => h !== 'agent' && colMap.has(h));
+}
+
+function getBulkTargetWideValue(agent, col) {
+  const current = getTargetsImportCurrent(agent, col.field_type, col.field_key);
+  if (current == null) return '';
+  if (col.field_type === 'flag') return current ? 1 : 0;
+  return current;
+}
+
+function normalizeWideTargetValue(rawValue, col, result, lineNo) {
+  const raw = String(rawValue ?? '').trim();
+  if (raw === '') return { skip: true };
+  if (col.field_type === 'flag') {
+    const value = raw.toLowerCase();
+    if (['1','y','yes','true','active','newbie'].includes(value)) return { raw: '1', value: 1 };
+    if (['0','n','no','false','inactive','not_newbie'].includes(value)) return { raw: '0', value: 0 };
+    result.errors.push(`Line ${lineNo}: ${col.header} must be 1/0, Y/N, Yes/No, or blank.`);
+    return { skip: true };
+  }
+  const numeric = Number(raw.replace(/,/g, ''));
+  if (!Number.isFinite(numeric)) {
+    result.errors.push(`Line ${lineNo}: ${col.header} value "${raw}" is not numeric.`);
+    return { skip: true };
+  }
+  return { raw, value: numeric };
+}
+
+function parseTargetsWideCsv(lines, rawHeader) {
+  const result = { rows: [], warnings: [], errors: [], total: 0, applyCount: 0, valid: false, sectionCounts: {}, mode: 'row' };
+  const month = getBulkImportMonth();
+  const normalizedHeader = rawHeader.map(normalizeTargetsWideHeader);
+  const agentIdx = normalizedHeader.indexOf('agent');
+  const colMap = getBulkTargetWideColumnMap(month);
+  const columnDefs = rawHeader.map((header, idx) => idx === agentIdx ? null : colMap.get(normalizedHeader[idx]) || null);
+  const unknownHeaders = new Set();
+  const knownAgents = new Set(Object.keys(CONFIG?.agents || {}).map(a => a.toUpperCase()));
+
+  lines.slice(1).forEach((line, idx) => {
+    const lineNo = idx + 2;
+    const cols = parseCsvLine(line);
+    if (!cols.some(c => String(c || '').trim())) return;
+    result.total++;
+
+    const agentInput = normalizeImportAgent(cols[agentIdx]);
+    const agent = Object.keys(CONFIG.agents || {}).find(a => a.toUpperCase() === agentInput);
+    if (!agent || !knownAgents.has(agentInput)) {
+      result.errors.push(`Line ${lineNo}: unknown agent "${cols[agentIdx]}".`);
+      return;
+    }
+
+    rawHeader.forEach((header, colIdx) => {
+      if (colIdx === agentIdx) return;
+      const rawValue = cols[colIdx] ?? '';
+      if (String(rawValue || '').trim() === '') return;
+      const col = columnDefs[colIdx];
+      if (!col) {
+        unknownHeaders.add(header);
+        return;
+      }
+      const normalized = normalizeWideTargetValue(rawValue, col, result, lineNo);
+      if (normalized.skip) return;
+      const current = getTargetsImportCurrent(agent, col.field_type, col.field_key);
+      result.sectionCounts[col.field_type] = (result.sectionCounts[col.field_type] || 0) + 1;
+      result.rows.push({
+        lineNo,
+        agent,
+        field_type: col.field_type,
+        field_key: col.field_key,
+        value: normalized.value,
+        raw_value: normalized.raw,
+        current,
+      });
+    });
+  });
+
+  if (unknownHeaders.size) {
+    result.warnings.push(`Ignored unknown Row Template column${unknownHeaders.size === 1 ? '' : 's'} with values: ${Array.from(unknownHeaders).join(', ')}`);
+  }
+  if (result.total > 0) {
+    result.warnings.push('Row Template mode: blank cells are ignored, not cleared. Use System Template blank values when you need to clear a target.');
+  }
+  result.applyCount = result.rows.length;
+  result.valid = result.applyCount > 0 && result.errors.length === 0;
+  return result;
+}
+
 function parseTargetsCsv(text) {
   const lines = String(text || '').replace(/\r/g, '').split('\n').filter(l => l.trim());
   const result = { rows: [], warnings: [], errors: [], total: 0, applyCount: 0, valid: false, sectionCounts: {} };
@@ -2789,7 +2946,10 @@ function parseTargetsCsv(text) {
     return result;
   }
 
-  const header = parseCsvLine(lines[0]).map(h => h.toLowerCase());
+  const rawHeader = parseCsvLine(lines[0]);
+  if (isTargetsWideCsvHeader(rawHeader)) return parseTargetsWideCsv(lines, rawHeader);
+
+  const header = rawHeader.map(h => h.toLowerCase());
   const expected = ['agent','field_type','field_key','value'];
   const hasHeader = expected.every((h, i) => header[i] === h);
   const dataLines = hasHeader ? lines.slice(1) : lines;
@@ -2988,6 +3148,26 @@ function applyTargetsImport() {
 function csvEscape(value) {
   const s = String(value ?? '');
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function downloadTargetsRowTemplate() {
+  const month = getBulkImportMonth();
+  const agents = Object.keys(CONFIG?.agents || {}).filter(agent => CONFIG.agents[agent]?.active !== false).sort();
+  const columns = getBulkTargetWideColumns(month);
+  const rows = [['agent', ...columns.map(col => col.header)]];
+  agents.forEach(agent => {
+    rows.push([agent, ...columns.map(col => getBulkTargetWideValue(agent, col))]);
+  });
+  const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `targets_row_template_${(month || 'month').replace(/[^a-zA-Z0-9_-]/g, '_')}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function downloadTargetsTemplate() {
