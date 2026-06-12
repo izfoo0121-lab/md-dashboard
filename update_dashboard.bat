@@ -44,12 +44,31 @@ if %errorlevel% neq 0 (
     echo ERROR: Could not fetch origin/main.
     pause & exit /b 1
 )
-git merge-base --is-ancestor origin/main HEAD
-if %errorlevel% neq 0 (
-    echo ERROR: This checkout is behind or diverged from GitHub main.
-    echo        Open md-dashboard-live-main or sync this folder before running update_dashboard.bat.
+set LOCAL_AHEAD=
+set LOCAL_BEHIND=
+for /f "tokens=1,2" %%A in ('git rev-list --left-right --count HEAD...origin/main') do (
+    set LOCAL_AHEAD=%%A
+    set LOCAL_BEHIND=%%B
+)
+if "%LOCAL_AHEAD%"=="" (
+    echo ERROR: Could not compare this checkout with GitHub main.
+    pause & exit /b 1
+)
+if not "%LOCAL_AHEAD%"=="0" (
+    echo ERROR: This checkout has local commits or has diverged from GitHub main.
+    echo        Local ahead: %LOCAL_AHEAD% commit(s), GitHub ahead: %LOCAL_BEHIND% commit(s).
     echo        No data was regenerated, so GitHub main is protected from stale pushes.
     pause & exit /b 1
+)
+if not "%LOCAL_BEHIND%"=="0" (
+    echo Auto-pulling latest GitHub main ^(%LOCAL_BEHIND% commit^(s^)^)...
+    git pull --ff-only origin main
+    if errorlevel 1 (
+        echo ERROR: Could not auto-pull latest GitHub main.
+        echo        Local edited files may overlap incoming GitHub changes.
+        echo        Commit/stash local work or sync this folder manually, then run again.
+        pause & exit /b 1
+    )
 )
 echo Done.
 echo.
