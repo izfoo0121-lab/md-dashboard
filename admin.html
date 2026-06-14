@@ -2702,7 +2702,7 @@ function renderBulkImportSection() {
   }
 }
 
-function parseCsvLine(line) {
+function parseCsvLine(line, delimiter = ',') {
   const out = [];
   let cur = '';
   let inQuotes = false;
@@ -2711,7 +2711,7 @@ function parseCsvLine(line) {
     if (ch === '"') {
       if (inQuotes && line[i + 1] === '"') { cur += '"'; i++; }
       else inQuotes = !inQuotes;
-    } else if (ch === ',' && !inQuotes) {
+    } else if (ch === delimiter && !inQuotes) {
       out.push(cur);
       cur = '';
     } else {
@@ -2720,6 +2720,13 @@ function parseCsvLine(line) {
   }
   out.push(cur);
   return out.map(v => v.trim());
+}
+
+function detectTargetsImportDelimiter(lines) {
+  const sample = (lines || []).find(line => String(line || '').trim()) || '';
+  const tabCount = (sample.match(/\t/g) || []).length;
+  const commaCount = (sample.match(/,/g) || []).length;
+  return tabCount > commaCount ? '\t' : ',';
 }
 
 function normalizeImportAgent(agent) {
@@ -2879,7 +2886,7 @@ function normalizeWideTargetValue(rawValue, col, result, lineNo) {
   return { raw, value: numeric };
 }
 
-function parseTargetsWideCsv(lines, rawHeader) {
+function parseTargetsWideCsv(lines, rawHeader, delimiter = ',') {
   const result = { rows: [], warnings: [], errors: [], total: 0, applyCount: 0, valid: false, sectionCounts: {}, mode: 'row' };
   const month = getBulkImportMonth();
   const normalizedHeader = rawHeader.map(normalizeTargetsWideHeader);
@@ -2891,7 +2898,7 @@ function parseTargetsWideCsv(lines, rawHeader) {
 
   lines.slice(1).forEach((line, idx) => {
     const lineNo = idx + 2;
-    const cols = parseCsvLine(line);
+    const cols = parseCsvLine(line, delimiter);
     if (!cols.some(c => String(c || '').trim())) return;
     result.total++;
 
@@ -2946,8 +2953,9 @@ function parseTargetsCsv(text) {
     return result;
   }
 
-  const rawHeader = parseCsvLine(lines[0]);
-  if (isTargetsWideCsvHeader(rawHeader)) return parseTargetsWideCsv(lines, rawHeader);
+  const delimiter = detectTargetsImportDelimiter(lines);
+  const rawHeader = parseCsvLine(lines[0], delimiter);
+  if (isTargetsWideCsvHeader(rawHeader)) return parseTargetsWideCsv(lines, rawHeader, delimiter);
 
   const header = rawHeader.map(h => h.toLowerCase());
   const expected = ['agent','field_type','field_key','value'];
@@ -2965,7 +2973,7 @@ function parseTargetsCsv(text) {
 
   dataLines.forEach((line, idx) => {
     const lineNo = (hasHeader ? idx + 2 : idx + 1);
-    const cols = parseCsvLine(line);
+    const cols = parseCsvLine(line, delimiter);
     result.total++;
     if (cols.length !== 4) {
       result.errors.push(`Line ${lineNo}: expected 4 columns, got ${cols.length}.`);

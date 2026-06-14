@@ -71,6 +71,7 @@ function updateKPITotal() {}
 var document = { getElementById: () => null };
 var alert = (msg) => { throw new Error(msg); };
 ${extractFunction('parseCsvLine')}
+${extractFunction('detectTargetsImportDelimiter')}
 ${extractFunction('normalizeImportAgent')}
 ${extractFunction('getTargetsImportPath')}
 ${extractFunction('getTargetsImportCurrent')}
@@ -107,6 +108,18 @@ assert.strictEqual(parsed.mode, 'row', 'Wide CSV should be detected as row templ
 assert.strictEqual(parsed.valid, true, `Wide CSV should validate cleanly: ${parsed.errors.join('; ')}`);
 assert.strictEqual(parsed.applyCount, 15, 'Only nonblank row-template cells should apply');
 assert(parsed.warnings.some(w => w.includes('blank cells are ignored')), 'Validation should explain blank-cell behavior');
+
+const tsv = [
+  'agent\tactive\tis_newbie\tnormal_t1\tiface_pen_target\tiface_ctn_target\tkpi_vip_count\tkpi_event\tcampaign_camp_iface_count',
+  'BEN\t1\t0\t930\t5\t80\t12\t16\t7',
+  'CJ\t\tY\t\t4\t\t3\t\t',
+].join('\n');
+const parsedExcelPaste = context.parseTargetsCsv(tsv);
+assert.strictEqual(parsedExcelPaste.mode, 'row', 'Excel tab-separated paste should be detected as row template mode');
+assert.strictEqual(parsedExcelPaste.valid, true, `Excel paste should validate cleanly: ${parsedExcelPaste.errors.join('; ')}`);
+assert.strictEqual(parsedExcelPaste.applyCount, 11, 'Excel tab-separated paste should apply nonblank cells');
+assert(parsedExcelPaste.rows.some(r => r.agent === 'BEN' && r.field_type === 'sales_prog' && r.field_key === 'normal_t1' && r.value === 930), 'Excel paste should parse normal_t1');
+assert(parsedExcelPaste.rows.some(r => r.agent === 'CJ' && r.field_type === 'flag' && r.field_key === 'is_newbie' && r.value === 1), 'Excel paste should parse Y flag values');
 
 context.LAST_TARGETS_IMPORT = parsed;
 context.applyTargetsImport();
