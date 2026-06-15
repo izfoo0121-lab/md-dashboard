@@ -26,6 +26,8 @@ import os
 import re
 import sys
 import argparse
+import math
+import numbers
 import urllib.parse
 import urllib.request
 from datetime import datetime, date, timedelta
@@ -33,6 +35,39 @@ from pathlib import Path
 
 import pandas as pd
 import openpyxl
+
+def make_json_safe(value):
+    """Return a JSON-safe copy with spreadsheet NaN/Infinity values replaced by null."""
+    if isinstance(value, dict):
+        return {str(k): make_json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [make_json_safe(v) for v in value]
+    if value is None or isinstance(value, (str, bool)):
+        return value
+    if isinstance(value, numbers.Integral):
+        return int(value)
+    if isinstance(value, numbers.Real):
+        numeric = float(value)
+        return value if math.isfinite(numeric) else None
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+    return value
+
+def write_dashboard_json(path, payload, *, indent=2, separators=None):
+    safe_payload = make_json_safe(payload)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(
+            safe_payload,
+            f,
+            ensure_ascii=False,
+            indent=indent,
+            separators=separators,
+            default=str,
+            allow_nan=False,
+        )
 
 # ── Supabase config (read-only fetches for campaigns) ─────────────────────────
 SUPABASE_URL = "https://rqitgmydcbyiygqjssrb.supabase.co"
@@ -5237,18 +5272,15 @@ def main():
         log(f"   Historical regeneration: leaving {OUTPUT_FILE.name} and {DEBTOR_ANALYSIS_FILE.name} unchanged")
     else:
         debtor_analysis = build_debtor_analysis_data(df_raw, debtor_df, cur_month)
-        with open(DEBTOR_ANALYSIS_FILE, "w", encoding="utf-8") as f:
-            json.dump(debtor_analysis, f, ensure_ascii=False, separators=(",", ":"), default=str)
+        write_dashboard_json(DEBTOR_ANALYSIS_FILE, debtor_analysis, indent=None, separators=(",", ":"))
         log(f"   Debtor analysis saved: {DEBTOR_ANALYSIS_FILE.name}")
 
-        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-            json.dump(output, f, ensure_ascii=False, indent=2, default=str)
+        write_dashboard_json(OUTPUT_FILE, output)
 
     # Also save monthly snapshot e.g. data_mar26.json
     month_slug = cur_month.replace(" ", "").lower()  # "mar26"
     monthly_file = BASE_DIR / f"data_{month_slug}.json"
-    with open(monthly_file, "w", encoding="utf-8") as f:
-        json.dump(output, f, ensure_ascii=False, indent=2, default=str)
+    write_dashboard_json(monthly_file, output)
     log(f"   Monthly snapshot saved: data_{month_slug}.json")
 
     # Update months_index.json — list of available months
