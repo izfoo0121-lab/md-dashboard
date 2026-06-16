@@ -1,6 +1,6 @@
 {
   "_comment": "MD Sales Dashboard — loaded from Supabase",
-  "_loaded_at": "2026-06-15T10:54:17.546317",
+  "_loaded_at": "2026-06-16T12:30:25.516387",
   "agents": {
     "XIAN": {
       "is_newbie": false,
@@ -4892,7 +4892,7 @@
   "penetration_snapshot_meta": {
     "Jun 26": {
       "pool_version": "dm_active_nonpersonal_debtorwide_v2",
-      "updated_at": "2026-06-15T10:55:13"
+      "updated_at": "2026-06-16T12:31:23"
     }
   }
 }
