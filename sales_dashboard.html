@@ -6,6 +6,10 @@
   <meta http-equiv="Expires" content="0">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<script>
+const SALES_DASHBOARD_BUILD = '20260621-01';
+const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
+</script>
 <script src="admin_context.js"></script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
 <title>Touro MD Sales Dashboard</title>
@@ -1459,6 +1463,43 @@ async function fetchAvailableMonthLabels() {
   }
 }
 
+function normalizeDashboardVersionPayload(payload) {
+  if (!payload || typeof payload !== 'object') return '';
+  return String(payload.sales_dashboard || payload.build || payload.version || '').trim();
+}
+
+function shouldReloadForDashboardVersion(latestVersion, currentBuild, currentSearch) {
+  const latest = String(latestVersion || '').trim();
+  const current = String(currentBuild || '').trim();
+  if (!latest || latest === current) return false;
+  const params = new URLSearchParams(currentSearch || '');
+  return params.get('v') !== latest;
+}
+
+function buildDashboardVersionReloadUrl(currentHref, latestVersion) {
+  const fallback = 'https://izfoo0121-lab.github.io/md-dashboard/sales_dashboard.html';
+  const base = (typeof window !== 'undefined' && window.location && window.location.href)
+    ? window.location.href
+    : fallback;
+  const url = new URL(currentHref || base, base);
+  url.searchParams.set('v', String(latestVersion || '').trim());
+  return url.toString();
+}
+
+async function refreshIfStaleDashboardVersion() {
+  try {
+    const r = await fetch(`${SALES_DASHBOARD_VERSION_PATH}?v=${Date.now()}`, { cache: 'no-store' });
+    if (!r.ok) return false;
+    const latest = normalizeDashboardVersionPayload(await r.json());
+    if (!shouldReloadForDashboardVersion(latest, SALES_DASHBOARD_BUILD, window.location.search)) return false;
+    window.location.replace(buildDashboardVersionReloadUrl(window.location.href, latest));
+    return true;
+  } catch (e) {
+    console.warn('[SalesDashboard] version check skipped', e);
+    return false;
+  }
+}
+
 function monthLabelFromSlug(slug) {
   const m = String(slug || '').match(/^([a-z]{3})(\d{2})$/i);
   if (!m) return DATA?.current_month || '';
@@ -1948,6 +1989,7 @@ async function switchMonth(slug) {
 // ── Load Data ──────────────────────────────────────────────────────────────
 async function loadData() {
   try {
+    if (await refreshIfStaleDashboardVersion()) return;
     const months = await fetchAvailableMonthLabels();
     const realMonth = getRealWorldMonthLabel();
     const explicitMonth = explicitUrlMonthLabel();

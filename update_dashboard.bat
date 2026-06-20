@@ -158,7 +158,7 @@ echo.
 
 REM -- Step 5: Push to GitHub -------------------------------
 echo [5/5] Pushing to GitHub...
-git add dashboard_data.json debtor_analysis_data.json history.json targets.json
+git add dashboard_data.json debtor_analysis_data.json history.json targets.json dashboard_version.json
 git add process_data.py targets_loader.py
 git add sales_dashboard.html management.html admin.html admin_context.js
 git add accounts.html campaign_audit.html stock.html stock_calendar.html debtor_analysis.html debtor_map.html index.html
