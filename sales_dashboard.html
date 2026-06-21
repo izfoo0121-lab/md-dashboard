@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <script>
-const SALES_DASHBOARD_BUILD = '20260621-02';
+const SALES_DASHBOARD_BUILD = '20260621-03';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
@@ -3027,7 +3027,16 @@ function normalizeSkuItemCode(value) {
 }
 
 function getDebtorPurchaseBreakdown(d) {
-  return d?.unpurchased_breakdown || d?.month_breakdown || {};
+  return {
+    ...(d?.month_breakdown || {}),
+    ...(d?.unpurchased_breakdown || {})
+  };
+}
+
+function debtorBreakdownRowsForMonth(d, monthLabel) {
+  const unpurchasedRows = d?.unpurchased_breakdown?.[monthLabel];
+  if (Array.isArray(unpurchasedRows)) return unpurchasedRows;
+  return d?.month_breakdown?.[monthLabel] || [];
 }
 
 function getUnpurchasedSkuCatalog(debtors = []) {
@@ -3064,7 +3073,7 @@ function skuRecencyMonths(monthLabel = DATA?.current_month || '') {
 function skuCtnInMonth(d, skuItem, monthLabel) {
   const wanted = normalizeSkuItemCode(skuItem);
   if (!wanted || !monthLabel) return 0;
-  const rows = getDebtorPurchaseBreakdown(d)?.[monthLabel] || [];
+  const rows = debtorBreakdownRowsForMonth(d, monthLabel);
   return rows
     .filter(row => normalizeSkuItemCode(row?.item) === wanted)
     .reduce((sum, row) => {
@@ -3842,6 +3851,7 @@ function renderSpecialFilterExtra(d) {
 }
 
 function legacyRenderUnpurchasedMode(debtors) {
+  return renderUnpurchasedMode(debtors);
   const PERSONAL = ['P-Personal','P-PERSONAL','personal','Personal','PERSONAL'];
   const eligible = debtors.filter(d =>
     getDebtorType(d) &&
@@ -3945,6 +3955,7 @@ function legacyRenderUnpurchasedMode(debtors) {
 }
 
 function setUnpurchasedBrand(brand, el) {
+  return setUnpurchasedSku(brand);
   unpurchasedBrandFilter = brand;
   unpurchasedTypeFilter  = 'all';
   unpurchasedPage = 1;
@@ -4112,6 +4123,7 @@ function renderUnpurchasedMode(debtors) {
 }
 
 function legacyExportUnpurchasedExcel() {
+  return exportUnpurchasedExcel();
   if (typeof XLSX === 'undefined') {
     alert('Excel export library not loaded yet. Try again in a moment.');
     return;
@@ -4156,6 +4168,7 @@ function legacyExportUnpurchasedExcel() {
 // Print the currently-displayed 未购买 debtor list. CSS @media print
 // hides everything except the #debtor-list section.
 function legacyExportUnpurchasedPDF() {
+  return exportUnpurchasedPDF();
   if (!_lastUnpurchasedExport || !_lastUnpurchasedExport.debtors || !_lastUnpurchasedExport.debtors.length) {
     alert('No debtors to print. Make sure 未购买 filter is active and a brand is selected.');
     return;

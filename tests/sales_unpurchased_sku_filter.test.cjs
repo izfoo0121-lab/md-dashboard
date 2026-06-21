@@ -41,6 +41,7 @@ vm.createContext(context);
   'shiftedMonthLabel',
   'normalizeSkuItemCode',
   'getDebtorPurchaseBreakdown',
+  'debtorBreakdownRowsForMonth',
   'getUnpurchasedSkuCatalog',
   'skuRecencyMonths',
   'skuCtnInMonth',
@@ -96,6 +97,18 @@ const rows = {
       'Apr 26': [],
       'Mar 26': []
     }
+  },
+  staleUnpurchasedBreakdown: {
+    debtor_code: '300-E005',
+    unpurchased_breakdown: {
+      'May 26': [{ item: 'CMX', ctn: 9 }]
+    },
+    month_breakdown: {
+      'Jun 26': [{ item: 'CMX', ctn: 2 }],
+      'May 26': [],
+      'Apr 26': [],
+      'Mar 26': []
+    }
   }
 };
 
@@ -133,6 +146,11 @@ assert.strictEqual(
   context.matchesSkuRecencyMode(rows.sknwOnly, 'SKNR', 'bought_3m', 'Jun 26'),
   false,
   'exact SKU matching should not count SKNW as a SKNR purchase'
+);
+assert.strictEqual(
+  context.summarizeDebtorSkuRecency(rows.staleUnpurchasedBreakdown, 'CMX', 'Jun 26').currentCtn,
+  2,
+  'selected month counts should fall back to month_breakdown when unpurchased_breakdown has no selected-month rows'
 );
 
 console.log('sales_unpurchased_sku_filter.test.cjs passed');

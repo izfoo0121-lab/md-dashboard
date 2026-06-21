@@ -6811,13 +6811,16 @@ async function loadCampaignsData() {
     localStorage.setItem('touro_campaigns', JSON.stringify(CAMPAIGNS_DATA));
   } catch(e) {
     console.warn('Supabase campaign load failed; using local fallback', e);
-    try { CAMPAIGNS_DATA = JSON.parse(localStorage.getItem('touro_campaigns')||'{"campaigns":[]}'); }
-    catch(err) { CAMPAIGNS_DATA = { campaigns: [] }; }
+    CAMPAIGNS_DATA = { campaigns: [] };
     if (!(CAMPAIGNS_DATA.campaigns || []).length) {
       try {
-        const r = await fetch('campaigns.json?v=' + Date.now());
+        const r = await fetch('campaigns.json?v=' + Date.now(), { cache: 'no-store' });
         if (r.ok) CAMPAIGNS_DATA = await r.json();
       } catch(err) { console.warn('campaigns.json fallback failed', err); }
+    }
+    if (!(CAMPAIGNS_DATA.campaigns || []).length) {
+      try { CAMPAIGNS_DATA = JSON.parse(localStorage.getItem('touro_campaigns')||'{"campaigns":[]}'); }
+      catch(err) { CAMPAIGNS_DATA = { campaigns: [] }; }
     }
   }
   _onCampaignsLoaded();
