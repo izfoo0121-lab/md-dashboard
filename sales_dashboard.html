@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <script>
-const SALES_DASHBOARD_BUILD = '20260621-01';
+const SALES_DASHBOARD_BUILD = '20260621-02';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
@@ -1415,7 +1415,8 @@ let dropCtnFilter = 'all';
 let dropSkuFilter = 'all';
 let gainCtnFilter = 'all';
 let gainSkuFilter = 'all';
-let unpurchasedBrandFilter = 'IFACE';
+let unpurchasedSkuFilter = '';
+let unpurchasedRecencyMode = 'not_bought';
 let unpurchasedTypeFilter  = 'all';
 let nonvipTypeFilter = 'all';
 let MONTHS_WITH_DATA = [];
@@ -1436,6 +1437,7 @@ const UNPURCHASED_BRAND_ITEMS = {
   'TR20':    ['TR20'],
   'LAM+LWM': ['LAM','LWM'],
 };
+const UNPURCHASED_SKU_PRIORITY = ['SKNR','SKNW','CMX','CMP','DPM EVO','EVO','IFACE R','IFACE M','IFACE B','IFACE DB','BISON-R','BISON-G','BISON-M','TR-002','TR20','LAM','LWM'];
 
 const BRAND_COLORS = {
   'iFACE':'#4da6ff','SUKUN':'#a78bfa','EVO':'#ff5f5f',
@@ -1975,8 +1977,7 @@ async function switchMonth(slug) {
       dropSkuFilter = 'all';
       gainCtnFilter = 'all';
       gainSkuFilter = 'all';
-      unpurchasedBrandFilter = 'IFACE';
-      unpurchasedTypeFilter  = 'all';
+      resetUnpurchasedFilters();
       nonvipTypeFilter = 'all';
       renderNoAgentState();
     }
@@ -2558,8 +2559,7 @@ function selectAgent(agent) {
   dropSkuFilter = 'all';
   gainCtnFilter = 'all';
   gainSkuFilter = 'all';
-  unpurchasedBrandFilter = 'IFACE';
-  unpurchasedTypeFilter  = 'all';
+  resetUnpurchasedFilters();
   nonvipTypeFilter = 'all';
 
   // If debtors not loaded yet, fetch from GitHub
@@ -2945,8 +2945,7 @@ function setSpecialFilter(val, el) {
       gainSkuFilter = 'all';
     }
     if (val === 'unpurchased') {
-      unpurchasedBrandFilter = 'IFACE';
-      unpurchasedTypeFilter  = 'all';
+      resetUnpurchasedFilters();
     }
     if (val === 'nonvip') {
       nonvipTypeFilter = 'all';
@@ -3021,6 +3020,110 @@ function filterUnpurchasedDebtorsForView(debtors, typeFilter, searchQuery) {
     if (type !== 'all' && (getDebtorType(d) || 'No Type') !== type) return false;
     return true;
   });
+}
+
+function normalizeSkuItemCode(value) {
+  return String(value || '').trim().toUpperCase().replace(/\s+/g, ' ');
+}
+
+function getDebtorPurchaseBreakdown(d) {
+  return d?.unpurchased_breakdown || d?.month_breakdown || {};
+}
+
+function getUnpurchasedSkuCatalog(debtors = []) {
+  const values = new Set();
+  const add = value => {
+    const code = normalizeSkuItemCode(value);
+    if (code) values.add(code);
+  };
+
+  (DATA?.brand_penetration_filter_options?.item_code_values || []).forEach(add);
+  Object.values(UNPURCHASED_BRAND_ITEMS || {}).flat().forEach(add);
+  (debtors || []).forEach(d => {
+    const breakdown = getDebtorPurchaseBreakdown(d);
+    Object.values(breakdown || {}).flat().forEach(row => add(row?.item));
+  });
+
+  const all = [...values];
+  const priority = UNPURCHASED_SKU_PRIORITY.filter(code => values.has(code));
+  const prioritySet = new Set(priority);
+  const rest = all.filter(code => !prioritySet.has(code)).sort((a, b) => a.localeCompare(b));
+  return [...priority, ...rest];
+}
+
+function skuRecencyMonths(monthLabel = DATA?.current_month || '') {
+  const prev3 = [-3, -2, -1].map(offset => shiftedMonthLabel(monthLabel, offset)).filter(Boolean);
+  const current = shiftedMonthLabel(monthLabel, 0) || monthLabel || '';
+  return {
+    prev3,
+    current,
+    all: [...prev3, current].filter(Boolean)
+  };
+}
+
+function skuCtnInMonth(d, skuItem, monthLabel) {
+  const wanted = normalizeSkuItemCode(skuItem);
+  if (!wanted || !monthLabel) return 0;
+  const rows = getDebtorPurchaseBreakdown(d)?.[monthLabel] || [];
+  return rows
+    .filter(row => normalizeSkuItemCode(row?.item) === wanted)
+    .reduce((sum, row) => {
+      const ctn = Number(row?.ctn || 0);
+      return sum + (ctn > 0 ? ctn : 0);
+    }, 0);
+}
+
+function summarizeDebtorSkuRecency(d, skuItem, monthLabel = DATA?.current_month || '') {
+  const months = skuRecencyMonths(monthLabel);
+  const prev3Ctn = months.prev3.reduce((sum, m) => sum + skuCtnInMonth(d, skuItem, m), 0);
+  const currentCtn = skuCtnInMonth(d, skuItem, months.current);
+  const allRows = months.all.map(m => ({ month: m, ctn: skuCtnInMonth(d, skuItem, m) }));
+  const last = [...allRows].reverse().find(row => row.ctn > 0);
+  return {
+    sku: normalizeSkuItemCode(skuItem),
+    prev3Months: months.prev3,
+    currentMonth: months.current,
+    prev3Ctn,
+    currentCtn,
+    totalCtn: prev3Ctn + currentCtn,
+    lastPurchaseMonth: last?.month || ''
+  };
+}
+
+function matchesSkuRecencyMode(d, skuItem, mode = 'not_bought', monthLabel = DATA?.current_month || '') {
+  const summary = summarizeDebtorSkuRecency(d, skuItem, monthLabel);
+  if (mode === 'bought_3m') return summary.prev3Ctn > 0;
+  return summary.totalCtn <= 0;
+}
+
+function resetUnpurchasedFilters() {
+  unpurchasedSkuFilter = '';
+  unpurchasedRecencyMode = 'not_bought';
+  unpurchasedTypeFilter = 'all';
+  unpurchasedPage = 1;
+}
+
+function renderSkuRecencyExtraHtml(summary, mode) {
+  const modeColor = mode === 'bought_3m' ? 'var(--green)' : 'var(--accent)';
+  const last = summary.lastPurchaseMonth || 'none';
+  const prevMonths = summary.prev3Months.join(', ');
+  return `<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:8px 0 4px;">
+    <div style="padding:8px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,.03);">
+      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;">前三个月 CTN</div>
+      <div style="font-family:var(--display);font-size:20px;color:${summary.prev3Ctn > 0 ? 'var(--green)' : 'var(--red)'};">${fmtNum(summary.prev3Ctn)}</div>
+      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">${campEsc(prevMonths)}</div>
+    </div>
+    <div style="padding:8px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,.03);">
+      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;">本月 CTN</div>
+      <div style="font-family:var(--display);font-size:20px;color:${summary.currentCtn > 0 ? 'var(--green)' : 'var(--red)'};">${fmtNum(summary.currentCtn)}</div>
+      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">${campEsc(summary.currentMonth)}</div>
+    </div>
+    <div style="padding:8px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,.03);">
+      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;">最后购买月份</div>
+      <div style="font-family:var(--display);font-size:20px;color:${modeColor};">${campEsc(last)}</div>
+      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">${campEsc(summary.sku)}</div>
+    </div>
+  </div>`;
 }
 
 function birthdayMonthToIso(monthLabel) {
@@ -3738,7 +3841,7 @@ function renderSpecialFilterExtra(d) {
   return '';
 }
 
-function renderUnpurchasedMode(debtors) {
+function legacyRenderUnpurchasedMode(debtors) {
   const PERSONAL = ['P-Personal','P-PERSONAL','personal','Personal','PERSONAL'];
   const eligible = debtors.filter(d =>
     getDebtorType(d) &&
@@ -3864,7 +3967,151 @@ function changeUnpurchasedPage(dir) {
 
 // Export the currently-displayed 未购买 debtor list to Excel.
 // Uses the global selectedDebtors that renderUnpurchasedMode populated.
-function exportUnpurchasedExcel() {
+function setUnpurchasedSku(sku) {
+  unpurchasedSkuFilter = normalizeSkuItemCode(sku);
+  unpurchasedTypeFilter = 'all';
+  unpurchasedPage = 1;
+  const debtors = DATA?.agents?.[currentAgent]?.debtor_cards?.debtors || [];
+  renderUnpurchasedMode(debtors);
+}
+
+function setUnpurchasedMode(mode, el) {
+  unpurchasedRecencyMode = mode === 'bought_3m' ? 'bought_3m' : 'not_bought';
+  unpurchasedTypeFilter = 'all';
+  unpurchasedPage = 1;
+  const debtors = DATA?.agents?.[currentAgent]?.debtor_cards?.debtors || [];
+  renderUnpurchasedMode(debtors);
+}
+
+function renderUnpurchasedMode(debtors) {
+  const PERSONAL = ['P-Personal','P-PERSONAL','personal','Personal','PERSONAL'];
+  const eligible = (debtors || []).filter(d =>
+    getDebtorType(d) &&
+    !PERSONAL.some(p => getDebtorType(d).includes(p)) &&
+    d.dm_active !== false
+  );
+
+  const skuCatalog = getUnpurchasedSkuCatalog(eligible);
+  if (!skuCatalog.length) {
+    document.getElementById('debtor-list').innerHTML = `<div class="empty-state">No SKU item data available for this month.</div>`;
+    return;
+  }
+  if (!skuCatalog.includes(normalizeSkuItemCode(unpurchasedSkuFilter))) {
+    unpurchasedSkuFilter = skuCatalog.find(code => UNPURCHASED_SKU_PRIORITY.includes(code)) || skuCatalog[0];
+  }
+  if (!['not_bought','bought_3m'].includes(unpurchasedRecencyMode)) {
+    unpurchasedRecencyMode = 'not_bought';
+  }
+
+  const modeLabels = {
+    not_bought: 'SKU 未购买',
+    bought_3m: '三个月内购买'
+  };
+  const modeHelp = {
+    not_bought: '前三个月 + 本月都没有购买',
+    bought_3m: '前三个月有购买；本月另外显示'
+  };
+  const modeCounts = {
+    not_bought: eligible.filter(d => matchesSkuRecencyMode(d, unpurchasedSkuFilter, 'not_bought', DATA?.current_month || '')).length,
+    bought_3m: eligible.filter(d => matchesSkuRecencyMode(d, unpurchasedSkuFilter, 'bought_3m', DATA?.current_month || '')).length
+  };
+  const modeButtons = Object.entries(modeLabels).map(([mode, label]) => `
+    <button class="filter-chip ${unpurchasedRecencyMode === mode ? 'active' : ''}"
+      onclick="setUnpurchasedMode('${mode}',this)">
+      ${label} (${modeCounts[mode] || 0})
+    </button>
+  `).join('');
+  const skuOptions = skuCatalog.map(code => `
+    <option value="${campEsc(code)}" ${code === unpurchasedSkuFilter ? 'selected' : ''}>${campEsc(code)}</option>
+  `).join('');
+
+  const selectedDebtors = eligible.filter(d => matchesSkuRecencyMode(d, unpurchasedSkuFilter, unpurchasedRecencyMode, DATA?.current_month || ''));
+  const search = (document.getElementById('debtor-search')?.value || '').trim();
+  const searchMatchedDebtors = filterUnpurchasedDebtorsForView(selectedDebtors, 'all', search);
+  const typeCounts = {};
+  searchMatchedDebtors.forEach(d => {
+    const t = getDebtorType(d) || 'No Type';
+    typeCounts[t] = (typeCounts[t] || 0) + 1;
+  });
+
+  const typeButtons = [
+    `<button class="filter-chip ${unpurchasedTypeFilter === 'all' ? 'active' : ''}"
+      onclick="setUnpurchasedType('all',this)">
+      ALL (${searchMatchedDebtors.length})</button>`,
+    ...Object.entries(typeCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([type, count]) =>
+        `<button class="filter-chip ${unpurchasedTypeFilter === type ? 'active' : ''}"
+          onclick="setUnpurchasedType('${type.replace(/'/g,"\\'")}',this)">
+          ${type} (${count})</button>`
+      )
+  ].join('');
+
+  const shown = filterUnpurchasedDebtorsForView(selectedDebtors, unpurchasedTypeFilter, search);
+  shown.sort((a, b) => (a.company_name || '').localeCompare(b.company_name || ''));
+  const totalShown = shown.length;
+  const pages = Math.max(1, Math.ceil(totalShown / PAGE_SIZE));
+  unpurchasedPage = Math.min(Math.max(1, unpurchasedPage), pages);
+  const start = (unpurchasedPage - 1) * PAGE_SIZE;
+  const pageItems = shown.slice(start, start + PAGE_SIZE);
+  const startDisplay = totalShown ? start + 1 : 0;
+  const endDisplay = Math.min(start + PAGE_SIZE, totalShown);
+
+  _lastUnpurchasedExport = {
+    agent: currentAgent,
+    sku: unpurchasedSkuFilter,
+    mode: unpurchasedRecencyMode,
+    modeLabel: modeLabels[unpurchasedRecencyMode] || 'SKU 未购买',
+    monthLabel: DATA?.current_month || '',
+    debtors: shown,
+  };
+
+  const debtorHtml = pageItems.length
+    ? pageItems.map((d, idx) => {
+      const summary = summarizeDebtorSkuRecency(d, unpurchasedSkuFilter, DATA?.current_month || '');
+      return renderDebtorCard(d, start + idx + 1, renderSkuRecencyExtraHtml(summary, unpurchasedRecencyMode));
+    }).join('')
+    : `<div class="empty-state">No debtors for ${campEsc(unpurchasedSkuFilter)}${search ? ` matching "${campEsc(search)}"` : ''}</div>`;
+
+  document.getElementById('page-info').textContent = `${startDisplay}-${endDisplay} of ${totalShown}`;
+  document.getElementById('btn-prev').disabled = unpurchasedPage <= 1;
+  document.getElementById('btn-next').disabled = unpurchasedPage >= pages;
+  document.getElementById('btn-prev').onclick = () => changeUnpurchasedPage(-1);
+  document.getElementById('btn-next').onclick = () => changeUnpurchasedPage(1);
+
+  document.getElementById('debtor-list').innerHTML = `
+    <div style="display:flex;gap:6px;margin-bottom:10px;justify-content:flex-end;">
+      <button onclick="exportUnpurchasedExcel()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);border-radius:6px;color:var(--green);cursor:pointer;">Export Excel</button>
+      <button onclick="exportUnpurchasedPDF()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:6px;color:var(--accent);cursor:pointer;">Print / PDF</button>
+    </div>
+    <div style="margin-bottom:10px;">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">SKU ITEM</div>
+      <div style="display:grid;grid-template-columns:minmax(220px,360px) 1fr;gap:8px;align-items:center;">
+        <select onchange="setUnpurchasedSku(this.value)"
+          style="width:100%;font-family:var(--mono);font-size:12px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);">
+          ${skuOptions}
+        </select>
+        <div style="display:flex;gap:6px;overflow-x:auto;white-space:nowrap;padding-bottom:4px;">
+          ${modeButtons}
+        </div>
+      </div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:5px;">
+        ${modeHelp[unpurchasedRecencyMode] || ''} · Exact SKU item matching only
+      </div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">TYPE · ${modeLabels[unpurchasedRecencyMode] || 'SKU 未购买'} ${campEsc(unpurchasedSkuFilter)}</div>
+      <div style="display:flex;gap:6px;overflow-x:auto;white-space:nowrap;padding-bottom:4px;">
+        ${typeButtons}
+      </div>
+    </div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:10px;padding:4px 8px;background:rgba(255,255,255,.03);border-radius:6px;border-left:2px solid var(--green);">
+      ${selectedDebtors.length} 个客户 · ${modeLabels[unpurchasedRecencyMode] || 'SKU 未购买'} ${campEsc(unpurchasedSkuFilter)} · ${DATA?.current_month || ''} · 不含Personal
+    </div>
+    ${debtorHtml}`;
+}
+
+function legacyExportUnpurchasedExcel() {
   if (typeof XLSX === 'undefined') {
     alert('Excel export library not loaded yet. Try again in a moment.');
     return;
@@ -3908,7 +4155,7 @@ function exportUnpurchasedExcel() {
 
 // Print the currently-displayed 未购买 debtor list. CSS @media print
 // hides everything except the #debtor-list section.
-function exportUnpurchasedPDF() {
+function legacyExportUnpurchasedPDF() {
   if (!_lastUnpurchasedExport || !_lastUnpurchasedExport.debtors || !_lastUnpurchasedExport.debtors.length) {
     alert('No debtors to print. Make sure 未购买 filter is active and a brand is selected.');
     return;
@@ -3927,6 +4174,69 @@ function exportUnpurchasedPDF() {
 
 // Build a Camps export workbook from the currently-rendered campMap.
 // One sheet per campaign, listing its debtors with claim status.
+function exportUnpurchasedExcel() {
+  if (typeof XLSX === 'undefined') {
+    alert('Excel export library not loaded yet. Try again in a moment.');
+    return;
+  }
+  if (!_lastUnpurchasedExport || !_lastUnpurchasedExport.debtors || !_lastUnpurchasedExport.debtors.length) {
+    alert('No debtors to export. Make sure the SKU recency filter is active and an item is selected.');
+    return;
+  }
+
+  const { agent, sku, modeLabel, monthLabel, debtors } = _lastUnpurchasedExport;
+  const rows = debtors.map(d => {
+    const summary = summarizeDebtorSkuRecency(d, sku, monthLabel || DATA?.current_month || '');
+    return {
+      'Code': d.debtor_code || '',
+      'Name': d.company_name || '',
+      'Type': d.debtor_type || '',
+      'Phone': d.phone || '',
+      'SKU': sku || '',
+      'Mode': modeLabel || '',
+      'Prev 3M CTN': summary.prev3Ctn,
+      'Current CTN': summary.currentCtn,
+      'Last Purchase Month': summary.lastPurchaseMonth || '',
+      'Address': d.address || '',
+      'VIP': d.vip ? 'Y' : '',
+      'Last Visit': d.last_visit_date || '',
+      'Last Order': d.last_order_date || '',
+    };
+  });
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [
+    { wch: 14 }, { wch: 35 }, { wch: 16 }, { wch: 14 },
+    { wch: 12 }, { wch: 16 }, { wch: 12 }, { wch: 12 },
+    { wch: 18 }, { wch: 40 }, { wch: 4 }, { wch: 12 }, { wch: 12 },
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, `${modeLabel || 'SKU'} ${sku || ''}`.slice(0, 31));
+
+  const today = new Date().toISOString().slice(0,10);
+  const safeAgent = (agent || 'all').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const safeSku = String(sku || 'sku').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const safeMode = String(modeLabel || 'sku_filter').replace(/[^a-zA-Z0-9_-]/g, '_');
+  XLSX.writeFile(wb, `${safeAgent}_${safeMode}_${safeSku}_${today}.xlsx`);
+}
+
+function exportUnpurchasedPDF() {
+  if (!_lastUnpurchasedExport || !_lastUnpurchasedExport.debtors || !_lastUnpurchasedExport.debtors.length) {
+    alert('No debtors to print. Make sure the SKU recency filter is active and an item is selected.');
+    return;
+  }
+  document.body.classList.add('print-mode-unpurchased');
+  const cleanup = () => {
+    document.body.classList.remove('print-mode-unpurchased');
+    window.removeEventListener('afterprint', cleanup);
+  };
+  window.addEventListener('afterprint', cleanup);
+  setTimeout(() => {
+    window.print();
+  }, 50);
+}
+
 function campExportCurrentStatus(agent, camp, debtor) {
   const debtorCode = debtor.debtor_code || debtor.code || '';
   const claim = getCampClaims(agent, camp.id, debtorCode);
