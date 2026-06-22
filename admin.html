@@ -7312,7 +7312,7 @@ function renderBrandPenetrationOptionSelectors() {
   }
   if (matchChips) {
     matchChips.innerHTML = selectedMatches.length
-      ? selectedMatches.map(v => `<button type="button" onclick="removeBrandPenetrationMatchValue('${kpiAdminEscape(v)}')" style="border:1px solid rgba(15,118,110,.3);background:#fff;color:var(--green);border-radius:999px;padding:4px 8px;font-family:var(--mono);font-size:9px;cursor:pointer;">${kpiAdminEscape(v)} ×</button>`).join('')
+      ? selectedMatches.map(v => `<button type="button" data-value="${kpiAdminEscape(v)}" onclick="removeBrandPenetrationMatchValue(this.dataset.value)" style="border:1px solid rgba(15,118,110,.3);background:#fff;color:var(--green);border-radius:999px;padding:4px 8px;font-family:var(--mono);font-size:9px;cursor:pointer;">${kpiAdminEscape(v)} x</button>`).join('')
       : '<span style="font-family:var(--mono);font-size:9px;color:var(--ink3);">No match values selected.</span>';
   }
   if (typeWrap) {
@@ -7323,13 +7323,13 @@ function renderBrandPenetrationOptionSelectors() {
         return token && (typeKey === token || typeKey.includes(token) || token.includes(typeKey));
       });
       return `<label style="display:flex;align-items:center;gap:4px;border:1px solid var(--border);background:#fff;border-radius:999px;padding:4px 8px;font-family:var(--mono);font-size:9px;cursor:pointer;">
-        <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleBrandPenetrationExcludeType('${kpiAdminEscape(type)}', this.checked)"> ${kpiAdminEscape(type)}
+        <input type="checkbox" data-value="${kpiAdminEscape(type)}" ${checked ? 'checked' : ''} onchange="toggleBrandPenetrationExcludeType(this.dataset.value, this.checked)"> ${kpiAdminEscape(type)}
       </label>`;
     }).join('');
   }
   if (monthWrap) {
     monthWrap.innerHTML = options.months.map(month => `<label style="display:flex;align-items:center;gap:4px;border:1px solid var(--border);background:#fff;border-radius:999px;padding:4px 8px;font-family:var(--mono);font-size:9px;cursor:pointer;">
-      <input type="checkbox" ${selectedMonths.has(month) ? 'checked' : ''} onchange="toggleBrandPenetrationLookbackMonth('${kpiAdminEscape(month)}', this.checked)"> ${kpiAdminEscape(month)}
+      <input type="checkbox" data-value="${kpiAdminEscape(month)}" ${selectedMonths.has(month) ? 'checked' : ''} onchange="toggleBrandPenetrationLookbackMonth(this.dataset.value, this.checked)"> ${kpiAdminEscape(month)}
     </label>`).join('');
   }
 }
@@ -7489,7 +7489,7 @@ function renderBrandPenetrationOptionSelectors() {
   }
   if (matchChips) {
     matchChips.innerHTML = selectedMatches.length
-      ? selectedMatches.map(v => `<button type="button" onclick="removeBrandPenetrationMatchValue(${kpiAdminJsLiteral(v)})" style="border:1px solid rgba(15,118,110,.3);background:#fff;color:var(--green);border-radius:999px;padding:4px 8px;font-family:var(--mono);font-size:9px;cursor:pointer;">${kpiAdminEscape(v)} x</button>`).join('')
+      ? selectedMatches.map(v => `<button type="button" data-value="${kpiAdminEscape(v)}" onclick="removeBrandPenetrationMatchValue(this.dataset.value)" style="border:1px solid rgba(15,118,110,.3);background:#fff;color:var(--green);border-radius:999px;padding:4px 8px;font-family:var(--mono);font-size:9px;cursor:pointer;">${kpiAdminEscape(v)} x</button>`).join('')
       : '<span style="font-family:var(--mono);font-size:9px;color:var(--ink3);">No match values selected.</span>';
   }
   if (typeWrap) {
@@ -7500,13 +7500,13 @@ function renderBrandPenetrationOptionSelectors() {
         return token && (typeKey === token || typeKey.includes(token) || token.includes(typeKey));
       });
       return `<label style="display:flex;align-items:center;gap:4px;border:1px solid var(--border);background:#fff;border-radius:999px;padding:4px 8px;font-family:var(--mono);font-size:9px;cursor:pointer;">
-        <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleBrandPenetrationExcludeType(${kpiAdminJsLiteral(type)}, this.checked)"> ${kpiAdminEscape(type)}
+        <input type="checkbox" data-value="${kpiAdminEscape(type)}" ${checked ? 'checked' : ''} onchange="toggleBrandPenetrationExcludeType(this.dataset.value, this.checked)"> ${kpiAdminEscape(type)}
       </label>`;
     }).join('');
   }
   if (monthWrap) {
     monthWrap.innerHTML = options.months.map(month => `<label style="display:flex;align-items:center;gap:4px;border:1px solid var(--border);background:#fff;border-radius:999px;padding:4px 8px;font-family:var(--mono);font-size:9px;cursor:pointer;">
-      <input type="checkbox" ${selectedMonths.has(month) ? 'checked' : ''} onchange="toggleBrandPenetrationLookbackMonth(${kpiAdminJsLiteral(month)}, this.checked)"> ${kpiAdminEscape(month)}
+      <input type="checkbox" data-value="${kpiAdminEscape(month)}" ${selectedMonths.has(month) ? 'checked' : ''} onchange="toggleBrandPenetrationLookbackMonth(this.dataset.value, this.checked)"> ${kpiAdminEscape(month)}
     </label>`).join('');
   }
 }
