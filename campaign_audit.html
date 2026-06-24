@@ -261,6 +261,14 @@ window.addEventListener('DOMContentLoaded', () => {
       style="background:rgba(61,220,132,.1);border:1px solid rgba(61,220,132,.3);color:var(--green);font-family:var(--mono);font-size:10px;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;">
       ✓ APPROVE BY CAMPAIGN
     </button>
+    <button onclick="showBulkMarkPanel('delivered')"
+      style="background:rgba(61,220,132,.1);border:1px solid rgba(61,220,132,.3);color:var(--green);font-family:var(--mono);font-size:10px;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;">
+      BULK MARK DELIVERED
+    </button>
+    <button onclick="showBulkMarkPanel('remove')"
+      style="background:rgba(255,136,102,.1);border:1px solid rgba(255,136,102,.35);color:#ff8866;font-family:var(--mono);font-size:10px;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;">
+      BULK REMOVE TARGET
+    </button>
     <span id="bulk-approve-status" style="font-family:var(--mono);font-size:10px;color:var(--muted);"></span>
   </div>
 </div>
@@ -638,6 +646,8 @@ function indexSupabaseRows(rows) {
       bulk: !!r.bulk,
       status: r.status,                      // raw status — needed for excluded filtering
       reason: r.reason || '',                // exclusion reason
+      actor: r.actor || 'agent',
+      campType: r.camp_type || null,
     };
     // Audit shape derived from status
     if (r.status === 'verified' || r.status === 'processed') {
@@ -662,6 +672,90 @@ function getAuditKey(month, agent, campId, debtorCode) {
 }
 function getAudit(month, agent, campId, debtorCode) {
   return AUDIT_CACHE[getAuditKey(month, agent, campId, debtorCode)] || null;
+}
+
+function auditClaimCategory(claim, audit) {
+  const unclaimedStatuses = new Set([
+    'unclaimed',
+    'withdrawn',
+    'withdraw',
+    'removed',
+    'deleted',
+    'cancelled',
+    'canceled',
+    'not_requested',
+    'not-requested'
+  ]);
+  const auditStatus = String(audit?.status || '').toLowerCase();
+  const claimStatus = String(claim?.status || '').toLowerCase();
+  if (auditStatus === 'verified' || auditStatus === 'processed' || claimStatus === 'verified' || claimStatus === 'processed') return 'verified';
+  if (auditStatus === 'rejected' || claimStatus === 'rejected') return 'rejected';
+  if (!claim || unclaimedStatuses.has(claimStatus)) return 'unclaimed';
+  if (claimStatus === 'excluded') return 'excluded';
+  return 'pending';
+}
+
+function auditClaimIsManagerOff(claim) {
+  const actor = String(claim?.actor || '').toLowerCase();
+  return String(claim?.status || '').toLowerCase() === 'excluded'
+    && (actor === 'management_bulk_off' || actor === 'campaign_audit_bulk_off' || actor === 'management_off');
+}
+
+function campaignAuditBulkReasonLabel(reason) {
+  return ({
+    wrong_account: 'Wrong account',
+    duplicate: 'Duplicate debtor',
+    closed: 'Shop closed',
+    not_eligible: 'Not eligible',
+    wrong_agent: 'Assigned to wrong agent',
+    management_decision: 'Management decision',
+    other: 'Other'
+  })[reason] || reason || 'Management decision';
+}
+
+function campaignAuditBulkClaimData(mode, opts) {
+  opts = opts || {};
+  const ts = opts.ts || new Date().toISOString();
+  const campType = opts.campType || opts.camp_type || null;
+  if (mode === 'remove') {
+    const reason = opts.reason || 'management_decision';
+    const label = campaignAuditBulkReasonLabel(reason);
+    const notes = String(opts.remark || '').trim();
+    const batch = opts.batchId ? ` [${opts.batchId}]` : '';
+    return {
+      ts,
+      count: 1,
+      remark: `Manager off: ${label}${notes ? ' - ' + notes : ''}${batch}`,
+      bulk: true,
+      status: 'excluded',
+      actor: 'management_bulk_off',
+      reason,
+      campType
+    };
+  }
+  return {
+    ts,
+    count: 1,
+    remark: 'Bulk import - delivered earlier',
+    bulk: true,
+    status: 'verified',
+    actor: 'campaign_audit_bulk',
+    campType
+  };
+}
+
+function campaignAuditBulkSelectionState(claim, audit, mode) {
+  const category = auditClaimCategory(claim, audit);
+  if (mode === 'remove') {
+    if (category === 'unclaimed') return { canSelect: true, label: '' };
+    if (category === 'excluded') return { canSelect: false, label: 'Already off' };
+    if (category === 'verified') return { canSelect: false, label: 'Already processed' };
+    if (category === 'pending') return { canSelect: false, label: 'Request already sent' };
+    return { canSelect: false, label: 'Already audited' };
+  }
+  return category === 'unclaimed'
+    ? { canSelect: true, label: '' }
+    : { canSelect: false, label: 'Already marked' };
 }
 
 // Persist an audit decision to Supabase (UPDATE claims.status)
@@ -1138,42 +1232,59 @@ function renderAudit() {
   });
 
   document.getElementById('audit-content').innerHTML = Object.entries(byAgent).map(([agent, recs]) => {
-    const agentClaimed  = recs.filter(r=>!!r.claim).length;
-    const agentVerified = recs.filter(r=>r.audit?.status==='verified').length;
-    const agentRejected = recs.filter(r=>r.audit?.status==='rejected').length;
-    const agentExcluded = recs.filter(r=>r.claim?.status==='excluded').length;
-    const agentPending  = agentClaimed - agentVerified - agentRejected - agentExcluded;
-    const agentUnclaimed = recs.length - agentClaimed;
+    const categoryFor = r => auditClaimCategory(r.claim, r.audit);
+    const agentClaimed  = recs.filter(r=>['pending','verified','rejected'].includes(categoryFor(r))).length;
+    const agentVerified = recs.filter(r=>categoryFor(r)==='verified').length;
+    const agentRejected = recs.filter(r=>categoryFor(r)==='rejected').length;
+    const agentExcluded = recs.filter(r=>categoryFor(r)==='excluded').length;
+    const agentPending  = recs.filter(r=>categoryFor(r)==='pending').length;
+    const agentUnclaimed = recs.filter(r=>categoryFor(r)==='unclaimed').length;
     const agentConverted = recs.filter(r=>isConversionCamp(r.camp) && r.campEntry?.converted).length;
     const agentShowsConversion = recs.some(r=>isConversionCamp(r.camp));
     const conversionPct = recs.length > 0 ? Math.round(agentConverted/recs.length*100) : 0;
     // Progress is computed only over non-excluded claims (excluded are out-of-scope for admin)
-    const progressDenom = agentClaimed - agentExcluded;
+    const progressDenom = agentClaimed;
     const agentPct      = progressDenom > 0 ? Math.round((agentVerified+agentRejected)/progressDenom*100) : 0;
     const progColor     = agentPct>=80?'var(--green)':agentPct>=50?'var(--gold)':'var(--red)';
 
     const rows = recs.map(r => {
-      const isExcluded = r.claim?.status === 'excluded';
+      const claimCategory = categoryFor(r);
+      const isExcluded = claimCategory === 'excluded';
+      const isManagerOff = auditClaimIsManagerOff(r.claim);
       const isConversion = isConversionCamp(r.camp);
       const isConverted = isConversion && !!r.campEntry?.converted;
-      const requestLabel = !r.claim
+      const requestLabel = claimCategory === 'unclaimed'
                          ? 'Not requested'
                          : isExcluded
                            ? '🚫 Excluded'
-                           : r.audit?.status === 'verified'
+                            : claimCategory === 'verified'
                              ? 'Processed'
-                             : r.audit?.status === 'rejected'
+                              : claimCategory === 'rejected'
                                ? 'Rejected'
-                               : 'Request sent';
+                                : 'Request sent';
+      const displayRequestLabel = isExcluded ? (isManagerOff ? 'Manager Off' : 'Excluded') : requestLabel;
       const conversionLabel = isConverted ? '✓ Paid converted' : 'No paid order yet';
       const statusLabel = isConversion ? `${conversionLabel} · ${requestLabel}` : requestLabel;
-      const statusClass = isConversion ? (isConverted ? 'claimed' : 'unclaimed') : (!r.claim ? 'unclaimed' : (isExcluded ? 'excluded' : (r.audit?.status || 'claimed')));
+      const auditStatusLabel = isConversion ? `${conversionLabel} - ${displayRequestLabel}` : displayRequestLabel;
+      const statusClass = isConversion ? (isConverted ? 'claimed' : 'unclaimed') : (claimCategory === 'pending' ? 'pending' : claimCategory);
       const isFOC = r.camp.type==='foc_sample'||r.camp.type==='festive_gift'||r.camp.type==='birthday_gift';
-      const actionLabel = !r.claim ? 'Not requested' : (isExcluded ? 'Unable to deliver' : requestLabel);
+      const actionLabel = claimCategory === 'unclaimed' ? 'Not requested' : (isExcluded ? (isManagerOff ? 'Manager removed' : 'Unable to deliver') : displayRequestLabel);
       const conversionMeta = isConversion ? `Feb-Apr: ${r.campEntry?.lookback_ctn ?? 0} CTN · May: ${r.campEntry?.current_ctn ?? 0} CTN` : '';
       // Reason label lookup (same as sales_dashboard)
       const reasonMap = {closed:'Shop Closed',unreachable:'Unreachable',moved:'Moved',refused:'Refused',other:'Other'};
-      const reasonText = isExcluded ? (reasonMap[r.claim?.reason] || r.claim?.reason || 'No reason') : '';
+      const reasonText = isExcluded ? (isManagerOff ? campaignAuditBulkReasonLabel(r.claim?.reason) : (reasonMap[r.claim?.reason] || r.claim?.reason || 'No reason')) : '';
+      const claimTimeText = claimCategory === 'unclaimed' ? '' : (r.claim?.ts || 'â€”');
+      const rowActionHtml = claimCategory === 'pending'
+        ? `<button class="audit-btn verify" onclick="auditClaim('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}','verified')">✓</button>
+           <button class="audit-btn reject" onclick="promptReject('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}')">×</button>`
+        : (claimCategory === 'verified' || claimCategory === 'rejected')
+          ? `<button class="audit-btn undo" onclick="auditClaim('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}','undo')">Undo</button>`
+          : isManagerOff
+            ? `<button class="audit-btn undo" onclick="undoManagerOff('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}')">Undo Off</button>`
+            : '';
+      const managerOffActionHtml = isManagerOff
+        ? `<button class="audit-btn undo" onclick="undoManagerOff('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}')">Undo Off</button>`
+        : '';
 
       return `<div class="claim-row ${statusClass}" id="row-${agent}-${r.camp.id}-${r.debtor.debtor_code}">
         <div class="claim-info">
@@ -1185,7 +1296,8 @@ function renderAudit() {
           </div>
         </div>
         <div class="claim-actions">
-          <span class="claim-status ${statusClass}">${statusLabel}</span>
+          <span class="claim-status ${statusClass}">${auditStatusLabel}</span>
+          ${managerOffActionHtml}
           ${!r.claim || isExcluded ? '' : (!r.audit ? `
             <button class="audit-btn verify" onclick="auditClaim('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}','verified')">✓</button>
             <button class="audit-btn reject" onclick="promptReject('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}')">✗</button>
@@ -1669,6 +1781,30 @@ async function auditClaim(month, agent, campId, debtorCode, action) {
   renderAudit();
 }
 
+async function undoManagerOff(month, agent, campId, debtorCode) {
+  if (!confirm(`Undo manager off for ${debtorCode}?`)) return;
+  const code = String(debtorCode || '').toUpperCase();
+  const key = `${agent}|${campId}|${code}`;
+  const slug = String(month || '').replace(' ', '');
+
+  localStorage.removeItem(`camp_claim_${slug}_${agent}_${campId}_${code}`);
+  delete CLAIMS_CACHE[key];
+  delete AUDIT_CACHE[key];
+
+  if (typeof GistSync !== 'undefined' && GistSync.removeClaim) {
+    await GistSync.removeClaim(month, agent, campId, code);
+  }
+  if (typeof GistSync !== 'undefined' && GistSync.logAudit) {
+    GistSync.logAudit('management', 'campaign_audit_bulk_remove_undo', month, {
+      agent,
+      camp_id: campId,
+      debtor_code: code
+    });
+  }
+  showToast('Manager off undone');
+  renderAudit();
+}
+
 function promptReject(month, agent, campId, debtorCode) {
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
@@ -2124,6 +2260,193 @@ function confirmBulkMark(month) {
 }
 
 // ── Claims Backup / Restore ────────────────────────────────────────────────
+// Mode-aware bulk tool. Later declarations intentionally override the legacy
+// delivered-only functions above while preserving handleBulkFile/toggleAllBulk.
+function showBulkMarkPanel(mode) {
+  mode = mode === 'remove' ? 'remove' : 'delivered';
+  const isRemove = mode === 'remove';
+  const month  = document.getElementById('month-select').value;
+  const camps  = (CAMP_DATA?.campaigns||[]).filter(c=>c.active).filter(c => isCampaignActiveInMonth(c, month));
+  const title = isRemove ? 'Bulk Remove From Target' : 'Bulk Mark Delivered';
+  const subtitle = isRemove
+    ? 'Manager override: remove selected debtors from effective campaign target'
+    : "For past deliveries that weren't recorded";
+  const actionText = isRemove ? 'REMOVE SELECTED FROM TARGET' : 'MARK ALL SELECTED';
+  const actionBg = isRemove ? '#ff8866' : 'var(--green)';
+  const actionShadow = isRemove ? '0 0 14px rgba(255,136,102,.32)' : '0 0 14px rgba(61,220,132,.4)';
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
+  overlay.innerHTML = `
+    <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;">
+      <input type="hidden" id="bulk-action-mode" value="${mode}">
+      <div style="font-family:var(--display);font-size:22px;margin-bottom:4px;">${title}</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px;">${subtitle}</div>
+
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Campaign</div>
+      <select id="bulk-camp-sel" onchange="loadBulkDebtors()" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;margin-bottom:12px;">
+        ${camps.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
+      </select>
+
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Agent</div>
+      <select id="bulk-agent-sel" onchange="loadBulkDebtors()" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;margin-bottom:12px;">
+        <option value="">-- Select Agent --</option>
+        ${AGENTS.map(a=>`<option value="${a}">${a}</option>`).join('')}
+      </select>
+
+      ${isRemove ? `
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Remove Reason</div>
+      <select id="bulk-remove-reason" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;margin-bottom:12px;">
+        <option value="wrong_account">Wrong account</option>
+        <option value="duplicate">Duplicate debtor</option>
+        <option value="closed">Shop closed</option>
+        <option value="not_eligible">Not eligible</option>
+        <option value="wrong_agent">Assigned to wrong agent</option>
+        <option value="management_decision">Management decision</option>
+        <option value="other">Other</option>
+      </select>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Remark</div>
+      <input id="bulk-remove-remark" type="text" placeholder="Short note for audit trail"
+        style="width:100%;box-sizing:border-box;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;margin-bottom:12px;">
+      ` : ''}
+
+      <div style="margin-bottom:12px;">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">
+          OR - Upload Excel/CSV with debtor codes
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="file" id="bulk-file-input" accept=".xlsx,.csv" onchange="handleBulkFile(this)"
+            style="font-family:var(--mono);font-size:10px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px;flex:1;">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">Column: "Code" or "Debtor Code"</div>
+        </div>
+        <div id="bulk-file-status" style="font-family:var(--mono);font-size:9px;color:var(--green);margin-top:4px;display:none;"></div>
+      </div>
+
+      <div id="bulk-debtor-list" style="margin-bottom:14px;"></div>
+
+      <div style="display:flex;gap:10px;">
+        <button onclick="confirmBulkMark('${month}')"
+          style="flex:1;background:${actionBg};border:none;color:#000;font-family:var(--mono);font-size:12px;font-weight:800;padding:13px;border-radius:10px;cursor:pointer;box-shadow:${actionShadow};">
+          ${actionText}
+        </button>
+        <button onclick="this.closest('div[style*=fixed]').remove()"
+          style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:13px;border-radius:10px;cursor:pointer;">
+          Cancel
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+}
+
+function loadBulkDebtors() {
+  const agent  = document.getElementById('bulk-agent-sel')?.value;
+  const campId = document.getElementById('bulk-camp-sel')?.value;
+  const month  = document.getElementById('month-select').value;
+  const el     = document.getElementById('bulk-debtor-list');
+  const mode   = document.getElementById('bulk-action-mode')?.value === 'remove' ? 'remove' : 'delivered';
+  if (!el || !agent || !campId) return;
+
+  const debtors = DASH_DATA?.agents?.[agent]?.debtor_cards?.debtors || [];
+  const camp = (CAMP_DATA?.campaigns || []).find(c => c.id === campId);
+  const byCode = {};
+  debtors
+    .filter(d => (d.campaigns||[]).some(c=>c.id===campId))
+    .forEach(d => { byCode[String(d.debtor_code || '').toUpperCase()] = d; });
+  (camp?.debtors || []).forEach(record => {
+    if (String(record.agent || '').toUpperCase() !== agent) return;
+    const card = auditDebtorRecordToCard(record);
+    if (!card) return;
+    byCode[card.debtor_code] = byCode[card.debtor_code] || card;
+  });
+  const campDebtors = Object.values(byCode);
+
+  if (!campDebtors.length) {
+    el.innerHTML = `<div style="font-family:var(--mono);font-size:10px;color:var(--muted);padding:10px 0;">No debtors found for this agent/campaign</div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;">${campDebtors.length} debtors - ${mode === 'remove' ? 'unclaimed only' : 'unmarked only'}</div>
+      <button onclick="toggleAllBulk(true)" style="font-family:var(--mono);font-size:9px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:3px 8px;border-radius:6px;cursor:pointer;">Select All</button>
+    </div>
+    ${campDebtors.map(d => {
+      const claim = getClaim(month, agent, campId, d.debtor_code);
+      const state = campaignAuditBulkSelectionState(claim, getAudit(month, agent, campId, d.debtor_code), mode);
+      return `<label style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:rgba(255,255,255,.02);margin-bottom:4px;cursor:pointer;${state.canSelect?'':'opacity:.4;pointer-events:none;'}">
+        <input type="checkbox" class="bulk-check" value="${d.debtor_code}" ${state.canSelect?'':'disabled'} style="width:16px;height:16px;">
+        <div>
+          <div style="font-family:var(--mono);font-size:11px;font-weight:500;">${d.company_name||d.debtor_code}</div>
+          <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">${d.debtor_code}${state.label?' - '+state.label:''}</div>
+        </div>
+      </label>`;
+    }).join('')}`;
+}
+
+async function confirmBulkMark(month) {
+  const agent  = document.getElementById('bulk-agent-sel')?.value;
+  const campId = document.getElementById('bulk-camp-sel')?.value;
+  const mode   = document.getElementById('bulk-action-mode')?.value === 'remove' ? 'remove' : 'delivered';
+  if (!agent || !campId) { showToast('Select agent and campaign first'); return; }
+
+  const checked = Array.from(document.querySelectorAll('.bulk-check:checked')).map(cb=>cb.value);
+  if (!checked.length) { showToast('No debtors selected'); return; }
+
+  const reason = document.getElementById('bulk-remove-reason')?.value || 'management_decision';
+  const remark = document.getElementById('bulk-remove-remark')?.value?.trim() || '';
+  if (mode === 'remove' && reason === 'other' && !remark) {
+    showToast('Remark required for Other');
+    return;
+  }
+  if (mode === 'remove' && !confirm(`Remove ${checked.length} debtors from target for ${agent}?\n\nThis keeps the admin listing but deducts them from effective target.`)) return;
+
+  const ts = new Date().toISOString();
+  const camp = (CAMP_DATA?.campaigns || []).find(c => c.id === campId);
+  const batchId = `${mode === 'remove' ? 'bulk_off' : 'bulk_mark'}_${Date.now().toString(36)}`;
+
+  await Promise.all(checked.map(debtorCode => {
+    const claimData = campaignAuditBulkClaimData(mode, {
+      ts,
+      reason,
+      remark,
+      batchId,
+      campType: camp?.type || null
+    });
+    const code = String(debtorCode || '').toUpperCase();
+    const key = `camp_claim_${month.replace(' ','')}_${agent}_${campId}_${code}`;
+    localStorage.setItem(key, JSON.stringify(claimData));
+    const cacheKey = `${agent}|${campId}|${code}`;
+    CLAIMS_CACHE[cacheKey] = claimData;
+    if (mode === 'remove') {
+      delete AUDIT_CACHE[cacheKey];
+    } else {
+      AUDIT_CACHE[cacheKey] = { status:'verified', ts, by:'management' };
+    }
+    if (typeof GistSync !== 'undefined' && GistSync.saveClaim) {
+      return GistSync.saveClaim(month, agent, campId, code, claimData);
+    }
+    return Promise.resolve();
+  }));
+
+  if (typeof GistSync !== 'undefined' && GistSync.logAudit) {
+    GistSync.logAudit('management', mode === 'remove' ? 'campaign_audit_bulk_remove' : 'campaign_audit_bulk_mark', month, {
+      agent,
+      camp_id: campId,
+      count: checked.length,
+      mode,
+      reason: mode === 'remove' ? reason : '',
+      batch_id: batchId
+    });
+  }
+
+  document.querySelector('div[style*=fixed]')?.remove();
+  showToast(mode === 'remove'
+    ? `Done: ${checked.length} debtors removed from target`
+    : `Done: ${checked.length} debtors marked as delivered`);
+  renderAudit();
+}
+
 function exportClaimsBackup() {
   const month = document.getElementById('month-select').value;
   const slug  = month.replace(' ','');
