@@ -38,6 +38,9 @@ vm.runInContext([
   extractFunction('campaignAuditBulkReasonLabel'),
   extractFunction('campaignAuditBulkClaimData'),
   extractFunction('campaignAuditBulkSelectionState'),
+  extractFunction('campaignAuditBulkAgentOptions'),
+  extractFunction('campaignAuditBulkSelectedEntries'),
+  extractFunction('campaignAuditBulkCodeKeys'),
 ].join('\n'), context);
 
 const managerOffClaim = context.campaignAuditBulkClaimData('remove', {
@@ -79,6 +82,44 @@ assert.deepStrictEqual(
   plain(context.campaignAuditBulkSelectionState({ status: 'verified' }, { status: 'verified' }, 'remove')),
   { canSelect: false, label: 'Already processed' },
   'Bulk remove should not allow processed rows'
+);
+assert.deepStrictEqual(
+  plain(context.campaignAuditBulkAgentOptions('remove', ['BEN', 'CJ'])),
+  [
+    { value: 'ALL', label: 'All Agents' },
+    { value: 'BEN', label: 'BEN' },
+    { value: 'CJ', label: 'CJ' },
+  ],
+  'Bulk remove should default to an all-agent scope'
+);
+assert.deepStrictEqual(
+  plain(context.campaignAuditBulkAgentOptions('delivered', ['BEN'])),
+  [
+    { value: '', label: '-- Select Agent --' },
+    { value: 'BEN', label: 'BEN' },
+  ],
+  'Bulk delivered should remain agent-scoped'
+);
+assert.deepStrictEqual(
+  plain(context.campaignAuditBulkSelectedEntries([
+    { value: '300-A001', dataset: { agent: 'BEN', code: '300-A001' } },
+    { value: '300-A002', dataset: { agent: 'CJ', code: '300-A002' } },
+  ], 'ALL')),
+  [
+    { agent: 'BEN', debtorCode: '300-A001' },
+    { agent: 'CJ', debtorCode: '300-A002' },
+  ],
+  'Bulk remove should persist each uploaded debtor under its actual campaign agent'
+);
+assert.deepStrictEqual(
+  plain(context.campaignAuditBulkCodeKeys('300-L0382')),
+  ['300-L0382', 'L0382'],
+  'Bulk upload should match full debtor codes and short Excel debtor codes'
+);
+assert.deepStrictEqual(
+  plain(context.campaignAuditBulkCodeKeys(' Km013 ')),
+  ['KM013'],
+  'Bulk upload should normalize pasted Excel code casing'
 );
 
 console.log('campaign_audit_manager_off.test.cjs passed');

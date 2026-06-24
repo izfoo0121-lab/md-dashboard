@@ -758,6 +758,29 @@ function campaignAuditBulkSelectionState(claim, audit, mode) {
     : { canSelect: false, label: 'Already marked' };
 }
 
+function campaignAuditBulkAgentOptions(mode, agents) {
+  const cleanAgents = (agents || []).filter(Boolean);
+  const mapped = cleanAgents.map(agent => ({ value: agent, label: agent }));
+  if (mode === 'remove') return [{ value: 'ALL', label: 'All Agents' }, ...mapped];
+  return [{ value: '', label: '-- Select Agent --' }, ...mapped];
+}
+
+function campaignAuditBulkSelectedEntries(checkboxes, fallbackAgent) {
+  return Array.from(checkboxes || []).map(cb => ({
+    agent: cb?.dataset?.agent || fallbackAgent || '',
+    debtorCode: String(cb?.dataset?.code || cb?.value || '').trim().toUpperCase()
+  })).filter(entry => entry.agent && entry.debtorCode);
+}
+
+function campaignAuditBulkCodeKeys(code) {
+  const full = String(code || '').trim().toUpperCase().replace(/\s+/g, '');
+  if (!full) return [];
+  const keys = [full];
+  const short = full.includes('-') ? full.split('-').pop() : '';
+  if (short && short !== full) keys.push(short);
+  return [...new Set(keys)];
+}
+
 // Persist an audit decision to Supabase (UPDATE claims.status)
 async function saveAudit(month, agent, campId, debtorCode, auditData) {
   const key = `${agent}|${campId}|${(debtorCode||'').toUpperCase()}`;
@@ -2274,6 +2297,7 @@ function showBulkMarkPanel(mode) {
   const actionText = isRemove ? 'REMOVE SELECTED FROM TARGET' : 'MARK ALL SELECTED';
   const actionBg = isRemove ? '#ff8866' : 'var(--green)';
   const actionShadow = isRemove ? '0 0 14px rgba(255,136,102,.32)' : '0 0 14px rgba(61,220,132,.4)';
+  const agentOptions = campaignAuditBulkAgentOptions(mode, AGENTS);
 
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
@@ -2288,10 +2312,9 @@ function showBulkMarkPanel(mode) {
         ${camps.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
       </select>
 
-      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Agent</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">${isRemove ? 'Agent Scope' : 'Agent'}</div>
       <select id="bulk-agent-sel" onchange="loadBulkDebtors()" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;margin-bottom:12px;">
-        <option value="">-- Select Agent --</option>
-        ${AGENTS.map(a=>`<option value="${a}">${a}</option>`).join('')}
+        ${agentOptions.map(opt=>`<option value="${opt.value}">${opt.label}</option>`).join('')}
       </select>
 
       ${isRemove ? `
@@ -2337,6 +2360,7 @@ function showBulkMarkPanel(mode) {
     </div>`;
   document.body.appendChild(overlay);
   overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+  loadBulkDebtors();
 }
 
 function loadBulkDebtors() {
@@ -2345,24 +2369,44 @@ function loadBulkDebtors() {
   const month  = document.getElementById('month-select').value;
   const el     = document.getElementById('bulk-debtor-list');
   const mode   = document.getElementById('bulk-action-mode')?.value === 'remove' ? 'remove' : 'delivered';
-  if (!el || !agent || !campId) return;
+  if (!el || !campId) return;
+  if (mode !== 'remove' && !agent) return;
 
-  const debtors = DASH_DATA?.agents?.[agent]?.debtor_cards?.debtors || [];
   const camp = (CAMP_DATA?.campaigns || []).find(c => c.id === campId);
-  const byCode = {};
-  debtors
-    .filter(d => (d.campaigns||[]).some(c=>c.id===campId))
-    .forEach(d => { byCode[String(d.debtor_code || '').toUpperCase()] = d; });
+  const agentList = (mode === 'remove' && (!agent || agent === 'ALL')) ? AGENTS : [agent];
+  const byAgentCode = {};
+  const agentMatches = rowAgent => {
+    if (!rowAgent) return false;
+    if (mode === 'remove' && (!agent || agent === 'ALL')) return true;
+    return String(rowAgent || '').toUpperCase() === String(agent || '').toUpperCase();
+  };
+
+  agentList.forEach(rowAgent => {
+    const debtors = DASH_DATA?.agents?.[rowAgent]?.debtor_cards?.debtors || [];
+    debtors
+      .filter(d => (d.campaigns||[]).some(c=>c.id===campId))
+      .forEach(d => {
+        const code = String(d.debtor_code || '').toUpperCase();
+        if (!code) return;
+        byAgentCode[`${rowAgent}|${code}`] = { agent: rowAgent, debtor: d };
+      });
+  });
   (camp?.debtors || []).forEach(record => {
-    if (String(record.agent || '').toUpperCase() !== agent) return;
+    const rowAgent = String(record.agent || '').trim();
+    if (!agentMatches(rowAgent)) return;
     const card = auditDebtorRecordToCard(record);
     if (!card) return;
-    byCode[card.debtor_code] = byCode[card.debtor_code] || card;
+    const code = String(card.debtor_code || '').toUpperCase();
+    if (!code) return;
+    byAgentCode[`${rowAgent}|${code}`] = byAgentCode[`${rowAgent}|${code}`] || { agent: rowAgent, debtor: card };
   });
-  const campDebtors = Object.values(byCode);
+  const campDebtors = Object.values(byAgentCode).sort((a, b) => (
+    String(a.agent).localeCompare(String(b.agent)) ||
+    String(a.debtor.company_name || a.debtor.debtor_code).localeCompare(String(b.debtor.company_name || b.debtor.debtor_code))
+  ));
 
   if (!campDebtors.length) {
-    el.innerHTML = `<div style="font-family:var(--mono);font-size:10px;color:var(--muted);padding:10px 0;">No debtors found for this agent/campaign</div>`;
+    el.innerHTML = `<div style="font-family:var(--mono);font-size:10px;color:var(--muted);padding:10px 0;">No debtors found for this ${mode === 'remove' ? 'scope' : 'agent'}/campaign</div>`;
     return;
   }
 
@@ -2371,14 +2415,17 @@ function loadBulkDebtors() {
       <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;">${campDebtors.length} debtors - ${mode === 'remove' ? 'unclaimed only' : 'unmarked only'}</div>
       <button onclick="toggleAllBulk(true)" style="font-family:var(--mono);font-size:9px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:3px 8px;border-radius:6px;cursor:pointer;">Select All</button>
     </div>
-    ${campDebtors.map(d => {
-      const claim = getClaim(month, agent, campId, d.debtor_code);
-      const state = campaignAuditBulkSelectionState(claim, getAudit(month, agent, campId, d.debtor_code), mode);
+    ${campDebtors.map(row => {
+      const d = row.debtor;
+      const rowAgent = row.agent;
+      const code = String(d.debtor_code || '').toUpperCase();
+      const claim = getClaim(month, rowAgent, campId, code);
+      const state = campaignAuditBulkSelectionState(claim, getAudit(month, rowAgent, campId, code), mode);
       return `<label style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:rgba(255,255,255,.02);margin-bottom:4px;cursor:pointer;${state.canSelect?'':'opacity:.4;pointer-events:none;'}">
-        <input type="checkbox" class="bulk-check" value="${d.debtor_code}" ${state.canSelect?'':'disabled'} style="width:16px;height:16px;">
+        <input type="checkbox" class="bulk-check" value="${code}" data-code="${code}" data-agent="${rowAgent}" ${state.canSelect?'':'disabled'} style="width:16px;height:16px;">
         <div>
           <div style="font-family:var(--mono);font-size:11px;font-weight:500;">${d.company_name||d.debtor_code}</div>
-          <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">${d.debtor_code}${state.label?' - '+state.label:''}</div>
+          <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">${code} - ${rowAgent}${state.label?' - '+state.label:''}</div>
         </div>
       </label>`;
     }).join('')}`;
@@ -2388,9 +2435,10 @@ async function confirmBulkMark(month) {
   const agent  = document.getElementById('bulk-agent-sel')?.value;
   const campId = document.getElementById('bulk-camp-sel')?.value;
   const mode   = document.getElementById('bulk-action-mode')?.value === 'remove' ? 'remove' : 'delivered';
-  if (!agent || !campId) { showToast('Select agent and campaign first'); return; }
+  if (!campId) { showToast('Select campaign first'); return; }
+  if (mode !== 'remove' && !agent) { showToast('Select agent and campaign first'); return; }
 
-  const checked = Array.from(document.querySelectorAll('.bulk-check:checked')).map(cb=>cb.value);
+  const checked = campaignAuditBulkSelectedEntries(document.querySelectorAll('.bulk-check:checked'), agent);
   if (!checked.length) { showToast('No debtors selected'); return; }
 
   const reason = document.getElementById('bulk-remove-reason')?.value || 'management_decision';
@@ -2399,13 +2447,15 @@ async function confirmBulkMark(month) {
     showToast('Remark required for Other');
     return;
   }
-  if (mode === 'remove' && !confirm(`Remove ${checked.length} debtors from target for ${agent}?\n\nThis keeps the admin listing but deducts them from effective target.`)) return;
+  const affectedAgents = [...new Set(checked.map(entry => entry.agent))].sort();
+  const scopeLabel = mode === 'remove' && (!agent || agent === 'ALL') ? `${affectedAgents.length} agents` : agent;
+  if (mode === 'remove' && !confirm(`Remove ${checked.length} debtors from target for ${scopeLabel}?\n\nThis keeps the admin listing but deducts them from effective target.`)) return;
 
   const ts = new Date().toISOString();
   const camp = (CAMP_DATA?.campaigns || []).find(c => c.id === campId);
   const batchId = `${mode === 'remove' ? 'bulk_off' : 'bulk_mark'}_${Date.now().toString(36)}`;
 
-  await Promise.all(checked.map(debtorCode => {
+  await Promise.all(checked.map(entry => {
     const claimData = campaignAuditBulkClaimData(mode, {
       ts,
       reason,
@@ -2413,10 +2463,11 @@ async function confirmBulkMark(month) {
       batchId,
       campType: camp?.type || null
     });
-    const code = String(debtorCode || '').toUpperCase();
-    const key = `camp_claim_${month.replace(' ','')}_${agent}_${campId}_${code}`;
+    const code = String(entry.debtorCode || '').toUpperCase();
+    const rowAgent = entry.agent;
+    const key = `camp_claim_${month.replace(' ','')}_${rowAgent}_${campId}_${code}`;
     localStorage.setItem(key, JSON.stringify(claimData));
-    const cacheKey = `${agent}|${campId}|${code}`;
+    const cacheKey = `${rowAgent}|${campId}|${code}`;
     CLAIMS_CACHE[cacheKey] = claimData;
     if (mode === 'remove') {
       delete AUDIT_CACHE[cacheKey];
@@ -2424,14 +2475,15 @@ async function confirmBulkMark(month) {
       AUDIT_CACHE[cacheKey] = { status:'verified', ts, by:'management' };
     }
     if (typeof GistSync !== 'undefined' && GistSync.saveClaim) {
-      return GistSync.saveClaim(month, agent, campId, code, claimData);
+      return GistSync.saveClaim(month, rowAgent, campId, code, claimData);
     }
     return Promise.resolve();
   }));
 
   if (typeof GistSync !== 'undefined' && GistSync.logAudit) {
     GistSync.logAudit('management', mode === 'remove' ? 'campaign_audit_bulk_remove' : 'campaign_audit_bulk_mark', month, {
-      agent,
+      agent: scopeLabel,
+      agents: affectedAgents,
       camp_id: campId,
       count: checked.length,
       mode,
@@ -2530,10 +2582,12 @@ function handleBulkFile(input) {
 
 function applyBulkCodes(codes, filename, statusEl) {
   // Match uploaded codes against debtor list and auto-check them
+  const wantedCodes = new Set((codes || []).flatMap(campaignAuditBulkCodeKeys));
   const checkboxes = document.querySelectorAll('.bulk-check:not([disabled])');
   let matched = 0;
   checkboxes.forEach(cb => {
-    if (codes.includes(cb.value)) {
+    const codeKeys = campaignAuditBulkCodeKeys(cb.dataset?.code || cb.value);
+    if (codeKeys.some(code => wantedCodes.has(code))) {
       cb.checked = true;
       matched++;
     }
