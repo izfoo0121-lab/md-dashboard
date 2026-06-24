@@ -1,6 +1,6 @@
 {
   "_comment": "MD Sales Dashboard — loaded from Supabase",
-  "_loaded_at": "2026-06-23T10:51:40.588157",
+  "_loaded_at": "2026-06-24T11:03:14.596142",
   "agents": {
     "XIAN": {
       "is_newbie": false,
@@ -814,6 +814,93 @@
         "prev_inactive": 16
       }
     },
+    "JAMES": {
+      "is_newbie": false,
+      "active": true,
+      "is_new_this_month": false,
+      "sales_progression": {
+        "ga": 0,
+        "ma": 163,
+        "normal_t1": 3350,
+        "normal_t2": 3450
+      },
+      "brand_commission": {
+        "EVO": {
+          "pen_auto": false,
+          "ctn_target": 560,
+          "penetration_target": 6
+        },
+        "TR20": {
+          "pen_auto": true,
+          "ctn_target": 34,
+          "penetration_target": 7
+        },
+        "BISON": {
+          "pen_auto": true,
+          "ctn_target": 217,
+          "penetration_target": 6
+        },
+        "SUKUN": {
+          "pen_auto": true,
+          "ctn_target": 574,
+          "penetration_target": 3
+        },
+        "iFACE": {
+          "pen_auto": true,
+          "ctn_target": 500,
+          "penetration_target": 5
+        },
+        "LAM+LWM": {
+          "pen_auto": false,
+          "ctn_target": 18,
+          "penetration_target": 8
+        }
+      },
+      "kpi_targets": {
+        "event": 16,
+        "new_sku": 17,
+        "vip_count": 3,
+        "new_accounts": 3,
+        "reactivation": 5,
+        "activation_rate": 80
+      },
+      "campaign_targets": {
+        "camp_1777773301331_count": 4
+      },
+      "kpi_auto_base": {
+        "month": "Jun 26",
+        "non_personal": 132,
+        "prev_inactive": 13
+      },
+      "newbie_tiers": [
+        {
+          "reward": 0,
+          "threshold": 0
+        },
+        {
+          "reward": 0,
+          "threshold": 0
+        },
+        {
+          "reward": 0,
+          "threshold": 0
+        }
+      ],
+      "newbie_account_tiers": [
+        {
+          "count": 0,
+          "reward": 0
+        },
+        {
+          "count": 0,
+          "reward": 0
+        },
+        {
+          "count": 0,
+          "reward": 0
+        }
+      ]
+    },
     "LEON": {
       "is_newbie": false,
       "active": true,
@@ -958,93 +1045,6 @@
         "month": "Jun 26",
         "non_personal": 0,
         "prev_inactive": 0
-      },
-      "newbie_tiers": [
-        {
-          "reward": 0,
-          "threshold": 0
-        },
-        {
-          "reward": 0,
-          "threshold": 0
-        },
-        {
-          "reward": 0,
-          "threshold": 0
-        }
-      ],
-      "newbie_account_tiers": [
-        {
-          "count": 0,
-          "reward": 0
-        },
-        {
-          "count": 0,
-          "reward": 0
-        },
-        {
-          "count": 0,
-          "reward": 0
-        }
-      ]
-    },
-    "JAMES": {
-      "is_newbie": false,
-      "active": true,
-      "is_new_this_month": false,
-      "sales_progression": {
-        "ga": 0,
-        "ma": 163,
-        "normal_t1": 3350,
-        "normal_t2": 3450
-      },
-      "brand_commission": {
-        "EVO": {
-          "pen_auto": false,
-          "ctn_target": 560,
-          "penetration_target": 6
-        },
-        "TR20": {
-          "pen_auto": true,
-          "ctn_target": 34,
-          "penetration_target": 7
-        },
-        "BISON": {
-          "pen_auto": true,
-          "ctn_target": 217,
-          "penetration_target": 6
-        },
-        "SUKUN": {
-          "pen_auto": true,
-          "ctn_target": 574,
-          "penetration_target": 3
-        },
-        "iFACE": {
-          "pen_auto": true,
-          "ctn_target": 500,
-          "penetration_target": 5
-        },
-        "LAM+LWM": {
-          "pen_auto": false,
-          "ctn_target": 18,
-          "penetration_target": 8
-        }
-      },
-      "kpi_targets": {
-        "event": 16,
-        "new_sku": 17,
-        "vip_count": 3,
-        "new_accounts": 3,
-        "reactivation": 5,
-        "activation_rate": 80
-      },
-      "campaign_targets": {
-        "camp_1777773301331_count": 4
-      },
-      "kpi_auto_base": {
-        "month": "Jun 26",
-        "non_personal": 132,
-        "prev_inactive": 13
       },
       "newbie_tiers": [
         {
@@ -3646,36 +3646,6 @@
     "BISON": 2350.0,
     "TR": 16500.0
   },
-  "newbie_scheme": {
-    "ctn_tiers": [
-      {
-        "reward": 1200,
-        "threshold": 1000
-      },
-      {
-        "reward": 1800,
-        "threshold": 1342
-      },
-      {
-        "reward": 2400,
-        "threshold": 1592
-      }
-    ],
-    "account_tiers": [
-      {
-        "count": 2,
-        "reward": 200
-      },
-      {
-        "count": 4,
-        "reward": 600
-      },
-      {
-        "count": 6,
-        "reward": 800
-      }
-    ]
-  },
   "brand_config": {
     "EVO": [
       "EVO"
@@ -3974,6 +3944,36 @@
       "camp_1777773301331_count": 0.02,
       "camp_1778113461122_count": 0.02
     }
+  },
+  "newbie_scheme": {
+    "ctn_tiers": [
+      {
+        "reward": 1200,
+        "threshold": 1000
+      },
+      {
+        "reward": 1800,
+        "threshold": 1342
+      },
+      {
+        "reward": 2400,
+        "threshold": 1592
+      }
+    ],
+    "account_tiers": [
+      {
+        "count": 2,
+        "reward": 200
+      },
+      {
+        "count": 4,
+        "reward": 600
+      },
+      {
+        "count": 6,
+        "reward": 800
+      }
+    ]
   },
   "public_holidays": [
     {
@@ -4847,6 +4847,14 @@
         "iFACE": 0,
         "LAM+LWM": 0
       },
+      "JAMES": {
+        "EVO": 68,
+        "TR20": 133,
+        "BISON": 111,
+        "SUKUN": 68,
+        "iFACE": 103,
+        "LAM+LWM": 118
+      },
       "LEON": {
         "EVO": 43,
         "TR20": 84,
@@ -4862,14 +4870,6 @@
         "SUKUN": 0,
         "iFACE": 0,
         "LAM+LWM": 0
-      },
-      "JAMES": {
-        "EVO": 68,
-        "TR20": 133,
-        "BISON": 111,
-        "SUKUN": 68,
-        "iFACE": 103,
-        "LAM+LWM": 118
       },
       "CJ": {
         "EVO": 79,
@@ -4892,7 +4892,7 @@
   "penetration_snapshot_meta": {
     "Jun 26": {
       "pool_version": "dm_active_nonpersonal_debtorwide_v2",
-      "updated_at": "2026-06-23T10:54:31"
+      "updated_at": "2026-06-24T11:05:21"
     }
   }
 }
