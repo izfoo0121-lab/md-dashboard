@@ -4,6 +4,7 @@ import os
 import tempfile
 
 import openpyxl
+import pandas as pd
 
 import process_data
 
@@ -141,6 +142,38 @@ class ProcessMonthOverrideTests(unittest.TestCase):
                 june_closed, "Jun 26", today=date(2026, 7, 1)
             )
         )
+
+    def test_agent_scope_ignores_blank_non_scope_target_shells(self):
+        targets = {
+            "agents": {
+                "BEN": {
+                    "active": True,
+                    "sales_progression": {"normal_t1": 900, "normal_t2": 1100},
+                },
+                "JW": {
+                    "active": False,
+                    "sales_progression": {"normal_t1": 700},
+                },
+                "CALSON": {
+                    "active": True,
+                    "sales_progression": {},
+                    "brand_commission": {
+                        "EVO": {"ctn_target": 0, "penetration_target": 0, "pen_auto": False},
+                    },
+                    "kpi_targets": {},
+                    "campaign_targets": {},
+                },
+            }
+        }
+        scoped_sales = pd.DataFrame({"agent": ["BEN", "CALSON"]})
+
+        all_agents, active_agents, inactive_agents = process_data.resolve_dashboard_agents(
+            targets, scoped_sales
+        )
+
+        self.assertEqual(all_agents, ["BEN", "JW"])
+        self.assertEqual(active_agents, ["BEN"])
+        self.assertEqual(inactive_agents, ["JW"])
 
 
 if __name__ == "__main__":

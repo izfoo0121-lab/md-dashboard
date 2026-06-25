@@ -1818,6 +1818,72 @@ def filter_scope(df):
     return scoped
 
 
+def _target_value_present(value):
+    """True when a target/config value is meaningful enough to show an agent."""
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, numbers.Real):
+        return math.isfinite(float(value)) and abs(float(value)) > 0.000001
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return False
+        try:
+            return abs(float(text)) > 0.000001
+        except ValueError:
+            return False
+    return False
+
+
+def _agent_config_has_dashboard_targets(cfg):
+    """Ignore active target shells that carry no targets for this dashboard."""
+    if not isinstance(cfg, dict):
+        return False
+    for section in ("sales_progression", "kpi_targets", "campaign_targets"):
+        values = (cfg.get(section) or {}).values() if isinstance(cfg.get(section), dict) else []
+        if any(_target_value_present(v) for v in values):
+            return True
+    brand_cfg = cfg.get("brand_commission") or {}
+    if isinstance(brand_cfg, dict):
+        for item in brand_cfg.values():
+            if not isinstance(item, dict):
+                continue
+            if _target_value_present(item.get("ctn_target")) or _target_value_present(item.get("penetration_target")):
+                return True
+    for section in ("newbie_tiers", "newbie_account_tiers"):
+        tiers = cfg.get(section) or []
+        if not isinstance(tiers, list):
+            continue
+        for tier in tiers:
+            if isinstance(tier, dict) and any(_target_value_present(v) for v in tier.values()):
+                return True
+    return False
+
+
+def resolve_dashboard_agents(targets, scoped_df):
+    """Return all/active/inactive agent lists for the GRP 2A dashboard output."""
+    agents_cfg = (targets or {}).get("agents", {}) or {}
+    target_agents = [
+        agent for agent, cfg in agents_cfg.items()
+        if agent
+        and not cfg.get("archived", False)
+        and _agent_config_has_dashboard_targets(cfg)
+    ]
+    data_agents = []
+    if scoped_df is not None and "agent" in scoped_df.columns:
+        data_agents = sorted(a for a in scoped_df["agent"].dropna().unique().tolist() if a)
+    raw_agents = target_agents if target_agents else data_agents
+    all_agents = list(raw_agents)
+    active_agents = [
+        a for a in raw_agents
+        if agents_cfg.get(a, {}).get("active", True) != False
+    ]
+    inactive_agents = [a for a in all_agents if a not in active_agents]
+    return all_agents, active_agents, inactive_agents
+
+
 # ── Module 1: Sales Progression ───────────────────────────────────────────────
 
 def calc_sales_progression(df, targets, agents, cur_month):
@@ -4824,22 +4890,14 @@ def main():
     sku_trace_config = _clean_sku_trace_config(targets.get("sku_trace_config", DEFAULT_SKU_TRACE_CONFIG))
 
     # ── Agent list ─────────────────────────────────────────────────
-    agents_from_targets = list(targets.get("agents", {}).keys())
-    agents_from_data    = sorted(df["agent"].unique().tolist())
-    raw_agents = agents_from_targets if agents_from_targets else agents_from_data
-    raw_agents = [a for a in raw_agents if a]
-    # Archived agents excluded from EVERYWHERE (they've left the company)
-    raw_agents = [a for a in raw_agents if not targets.get("agents", {}).get(a, {}).get("archived", False)]
-
     # Two agent lists:
     #   all_agents  = includes active=false (e.g. JW) for company-wide totals
     #   agents      = active only - for dropdowns, per-agent rankings, cards
     # Business rule: "JW (active=False) hidden from agent dashboard
     #   but CTN counts in team totals"
-    all_agents = list(raw_agents)
-    agents     = [a for a in raw_agents
-                  if targets.get("agents", {}).get(a, {}).get("active", True) != False]
-    inactive_agents = [a for a in all_agents if a not in agents]
+    # targets_agents can contain other groups as blank active shells; keep only
+    # agents with actual dashboard targets so this GRP 2A build stays scoped.
+    all_agents, agents, inactive_agents = resolve_dashboard_agents(targets, df)
     log(f"Active agents:   {agents}")
     if inactive_agents:
         log(f"Inactive agents (team-totals only): {inactive_agents}")
