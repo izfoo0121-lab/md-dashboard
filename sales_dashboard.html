@@ -1181,6 +1181,9 @@ function updateSyncStatus() {
     <span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">Type:</span>
     <button class="filter-chip active" onclick="setTypeFilter('all',this)">All</button>
   </div>
+  <div id="debtor-export-bar" style="display:flex;justify-content:flex-end;gap:8px;align-items:center;margin:10px 0 8px;">
+    <button class="page-btn" onclick="exportFullDebtorListExcel()" style="min-width:220px;border-color:rgba(61,220,132,.45);color:var(--green);">Download Full Debtor List</button>
+  </div>
   <div id="debtor-list"></div>
   <div class="pagination">
     <button class="page-btn" id="btn-prev" onclick="changePage(-1)">← Prev</button>
@@ -4187,6 +4190,133 @@ function legacyExportUnpurchasedPDF() {
 
 // Build a Camps export workbook from the currently-rendered campMap.
 // One sheet per campaign, listing its debtors with claim status.
+function safeExportText(value) {
+  if (value === null || value === undefined) return '';
+  const text = String(value).trim();
+  if (!text || text.toLowerCase() === 'nan' || text.toLowerCase() === 'none') return '';
+  return text;
+}
+
+function safeExportFilenamePart(value) {
+  const text = safeExportText(value) || 'list';
+  return text.replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+
+function fullDebtorExportCampaigns(debtor) {
+  if (!debtor) return [];
+  if (typeof visibleDebtorCampaigns === 'function') {
+    try {
+      return visibleDebtorCampaigns(debtor) || [];
+    } catch (err) {
+      return debtor.campaigns || [];
+    }
+  }
+  return debtor.campaigns || [];
+}
+
+function campaignNamesForDebtorExport(debtor) {
+  return fullDebtorExportCampaigns(debtor)
+    .map(camp => safeExportText(camp && (camp.name || camp.title || camp.id)))
+    .filter(Boolean)
+    .join(' | ');
+}
+
+function campaignFocForDebtorExport(debtor) {
+  return fullDebtorExportCampaigns(debtor)
+    .map(camp => {
+      if (!camp) return '';
+      if (typeof formatCampaignFocPackage === 'function') {
+        const formatted = safeExportText(formatCampaignFocPackage(camp));
+        if (formatted) return formatted;
+      }
+      const item1 = safeExportText(camp.foc_item_resolved || camp.foc_item || camp.default_foc_item);
+      const qty1 = safeExportText(camp.foc_qty || camp.default_foc_qty);
+      const unit1 = safeExportText(camp.foc_unit || camp.default_foc_unit);
+      const item2 = safeExportText(camp.foc_item_2 || camp.foc_item2 || camp.default_foc_item_2 || camp.default_foc_item2);
+      const qty2 = safeExportText(camp.foc_qty_2 || camp.foc_qty2 || camp.default_foc_qty_2 || camp.default_foc_qty2);
+      const unit2 = safeExportText(camp.foc_unit_2 || camp.foc_unit2 || camp.default_foc_unit_2 || camp.default_foc_unit2 || unit1);
+      const first = item1 ? item1 + (qty1 ? ' x ' + qty1 : '') + (unit1 ? ' ' + unit1 : '') : '';
+      const second = item2 ? item2 + (qty2 ? ' x ' + qty2 : '') + (unit2 ? ' ' + unit2 : '') : '';
+      const note = safeExportText(camp.foc_note || camp.delivery_note || camp.note);
+      const packageText = [first, second].filter(Boolean).join(' + ');
+      return [packageText ? 'FOC: ' + packageText : '', note ? 'Note: ' + note : ''].filter(Boolean).join(' ');
+    })
+    .filter(Boolean)
+    .join(' | ');
+}
+
+function numericExportValue(value) {
+  const n = Number(value || 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function buildFullDebtorExportRows(agent, data) {
+  const selectedAgent = safeExportText(agent || currentAgent);
+  const agentData = data && data.agents && selectedAgent ? data.agents[selectedAgent] : null;
+  const debtors = agentData && agentData.debtor_cards && Array.isArray(agentData.debtor_cards.debtors)
+    ? agentData.debtor_cards.debtors
+    : [];
+
+  return debtors.map(debtor => {
+    const debtorCode = safeExportText(debtor.debtor_code || debtor.code);
+    const flag = typeof getFlag === 'function' && selectedAgent && debtorCode
+      ? getFlag(selectedAgent, debtorCode)
+      : null;
+    return {
+      'Agent': selectedAgent,
+      'Debtor Code': debtorCode,
+      'Company Name': safeExportText(debtor.company_name || debtor.name || debtor.debtor_name),
+      'Debtor Type': safeExportText(debtor.debtor_type || debtor.type),
+      'Phone': safeExportText(debtor.phone || debtor.phone1 || debtor.mobile),
+      'Area': safeExportText(debtor.area || debtor.area_code || debtor.group || debtor.debtor_area),
+      'Account Status': safeExportText(debtor.account_status || debtor.status_label),
+      'Dashboard Status': safeExportText(debtor.status),
+      'VIP': debtor.vip ? 'Y' : '',
+      'Birthday': (debtor.birthday || debtor.is_birthday) ? 'Y' : '',
+      'Current Month CTN': numericExportValue(debtor.ctn_cur),
+      'M-1 CTN': numericExportValue(debtor.ctn_prev1),
+      'M-2 CTN': numericExportValue(debtor.ctn_prev2),
+      'M-3 CTN': numericExportValue(debtor.ctn_prev3),
+      'Last Purchase Date': safeExportText(debtor.last_purchase_date || debtor.last_order_date || debtor.last_visit_date),
+      'New SKU Count': numericExportValue(debtor.new_sku_count),
+      'Active Campaigns': campaignNamesForDebtorExport(debtor),
+      'Campaign FOC Package / Notes': campaignFocForDebtorExport(debtor),
+      'Flag Status / Reason': flag ? safeExportText(flag.reason || flag.status || 'flagged') : '',
+      'Address': safeExportText(debtor.address),
+    };
+  });
+}
+
+function exportFullDebtorListExcel() {
+  if (typeof XLSX === 'undefined') {
+    alert('Excel export library not loaded yet. Try again in a moment.');
+    return;
+  }
+  if (!currentAgent) {
+    alert('Select an agent first.');
+    return;
+  }
+  const rows = buildFullDebtorExportRows(currentAgent, DATA);
+  if (!rows.length) {
+    alert('No debtors to export for this agent.');
+    return;
+  }
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [
+    { wch: 10 }, { wch: 14 }, { wch: 36 }, { wch: 18 }, { wch: 16 },
+    { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 5 }, { wch: 8 },
+    { wch: 14 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 16 },
+    { wch: 12 }, { wch: 30 }, { wch: 36 }, { wch: 20 }, { wch: 42 },
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Full Debtor List');
+  const monthPart = safeExportFilenamePart(DATA && DATA.current_month ? DATA.current_month : 'Current');
+  const agentPart = safeExportFilenamePart(currentAgent);
+  XLSX.writeFile(wb, 'MD_Full_Debtor_List_' + agentPart + '_' + monthPart + '.xlsx');
+}
+
 function exportUnpurchasedExcel() {
   if (typeof XLSX === 'undefined') {
     alert('Excel export library not loaded yet. Try again in a moment.');
