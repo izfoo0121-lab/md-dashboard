@@ -1,6 +1,6 @@
 {
   "_comment": "MD Sales Dashboard — loaded from Supabase",
-  "_loaded_at": "2026-06-26T10:22:20.721424",
+  "_loaded_at": "2026-06-30T11:11:17.241380",
   "agents": {
     "XIAN": {
       "is_newbie": false,
@@ -532,7 +532,7 @@
         "BISON": {
           "pen_auto": true,
           "ctn_target": 106,
-          "penetration_target": 6
+          "penetration_target": 5
         },
         "SUKUN": {
           "pen_auto": true,
@@ -1825,17 +1825,17 @@
         "TR20": {
           "pen_auto": true,
           "ctn_target": 5,
-          "penetration_target": 9
+          "penetration_target": 8
         },
         "BISON": {
           "pen_auto": true,
           "ctn_target": 264,
-          "penetration_target": 8
+          "penetration_target": 7
         },
         "SUKUN": {
           "pen_auto": true,
           "ctn_target": 814,
-          "penetration_target": 6
+          "penetration_target": 5
         },
         "iFACE": {
           "pen_auto": true,
@@ -1948,6 +1948,46 @@
         "prev_inactive": 16
       }
     },
+    "WEI": {
+      "is_newbie": false,
+      "active": true,
+      "is_new_this_month": false,
+      "sales_progression": {},
+      "brand_commission": {
+        "EVO": {
+          "pen_auto": false,
+          "ctn_target": 0,
+          "penetration_target": 0
+        },
+        "TR20": {
+          "pen_auto": true,
+          "ctn_target": 0,
+          "penetration_target": 0
+        },
+        "BISON": {
+          "pen_auto": true,
+          "ctn_target": 0,
+          "penetration_target": 0
+        },
+        "SUKUN": {
+          "pen_auto": true,
+          "ctn_target": 0,
+          "penetration_target": 0
+        },
+        "iFACE": {
+          "pen_auto": true,
+          "ctn_target": 0,
+          "penetration_target": 0
+        },
+        "LAM+LWM": {
+          "pen_auto": false,
+          "ctn_target": 0,
+          "penetration_target": 0
+        }
+      },
+      "kpi_targets": {},
+      "campaign_targets": {}
+    },
     "JAMES": {
       "is_newbie": false,
       "active": true,
@@ -1967,12 +2007,12 @@
         "TR20": {
           "pen_auto": true,
           "ctn_target": 34,
-          "penetration_target": 7
+          "penetration_target": 6
         },
         "BISON": {
           "pen_auto": true,
           "ctn_target": 217,
-          "penetration_target": 6
+          "penetration_target": 5
         },
         "SUKUN": {
           "pen_auto": true,
@@ -2121,46 +2161,6 @@
           "reward": 0
         }
       ]
-    },
-    "WEI": {
-      "is_newbie": false,
-      "active": true,
-      "is_new_this_month": false,
-      "sales_progression": {},
-      "brand_commission": {
-        "EVO": {
-          "pen_auto": false,
-          "ctn_target": 0,
-          "penetration_target": 0
-        },
-        "TR20": {
-          "pen_auto": true,
-          "ctn_target": 0,
-          "penetration_target": 0
-        },
-        "BISON": {
-          "pen_auto": true,
-          "ctn_target": 0,
-          "penetration_target": 0
-        },
-        "SUKUN": {
-          "pen_auto": true,
-          "ctn_target": 0,
-          "penetration_target": 0
-        },
-        "iFACE": {
-          "pen_auto": true,
-          "ctn_target": 0,
-          "penetration_target": 0
-        },
-        "LAM+LWM": {
-          "pen_auto": false,
-          "ctn_target": 0,
-          "penetration_target": 0
-        }
-      },
-      "kpi_targets": {},
-      "campaign_targets": {}
     },
     "KONG": {
       "is_newbie": false,
@@ -5149,6 +5149,97 @@
     "TR": 16500.0,
     "BISON": 2350.0
   },
+  "brand_config": {
+    "EVO": [
+      "EVO"
+    ],
+    "TR20": [
+      "TR20"
+    ],
+    "BISON": [
+      "BISON-G",
+      "BISON-R",
+      "BISON-M"
+    ],
+    "SUKUN": [
+      "SKNR",
+      "SKNW"
+    ],
+    "iFACE": [
+      "IFACE B",
+      "IFACE M",
+      "IFACE R",
+      "IFACE DB"
+    ],
+    "LAM+LWM": [
+      "LAM",
+      "LWM"
+    ]
+  },
+  "group_brand_config": {
+    "LF": [
+      "LF-002"
+    ],
+    "TR": [
+      "TR20",
+      "TR-002"
+    ],
+    "EVO": [
+      "EVO"
+    ],
+    "IMP": [
+      "IMP-001"
+    ],
+    "BISON": [
+      "BISON-G",
+      "BISON-M",
+      "BISON-R"
+    ],
+    "SUKUN": [
+      "SKNR",
+      "SKNW"
+    ],
+    "CLASSMILD": [
+      "CM-002"
+    ]
+  },
+  "inhouse_codes": [
+    "90",
+    "DPM EVO",
+    "IMP-001",
+    "LB22",
+    "LF-002",
+    "LIC-001",
+    "LMM-002",
+    "TR-002",
+    "CM-002",
+    "LG22",
+    "LR22",
+    "LBOLD",
+    "MARISE",
+    "HTM-002",
+    "ZYG",
+    "ZL",
+    "EC",
+    "ZPA",
+    "LC20",
+    "CMX",
+    "CMP",
+    "IFACE B",
+    "IFACE M",
+    "IFACE R",
+    "IFACE DB",
+    "SKNR",
+    "SKNW",
+    "EVO",
+    "BISON-G",
+    "BISON-R",
+    "BISON-M",
+    "TR20",
+    "LAM",
+    "LWM",
+    "CMLT"
+  ],
   "kpi_weights": {
     "Apr 26": {
       "event": 0.03,
@@ -5449,97 +5540,6 @@
       "date": "2026-12-25",
       "name": "Christmas Day"
     }
-  ],
-  "brand_config": {
-    "EVO": [
-      "EVO"
-    ],
-    "TR20": [
-      "TR20"
-    ],
-    "BISON": [
-      "BISON-G",
-      "BISON-R",
-      "BISON-M"
-    ],
-    "SUKUN": [
-      "SKNR",
-      "SKNW"
-    ],
-    "iFACE": [
-      "IFACE B",
-      "IFACE M",
-      "IFACE R",
-      "IFACE DB"
-    ],
-    "LAM+LWM": [
-      "LAM",
-      "LWM"
-    ]
-  },
-  "group_brand_config": {
-    "LF": [
-      "LF-002"
-    ],
-    "TR": [
-      "TR20",
-      "TR-002"
-    ],
-    "EVO": [
-      "EVO"
-    ],
-    "IMP": [
-      "IMP-001"
-    ],
-    "BISON": [
-      "BISON-G",
-      "BISON-M",
-      "BISON-R"
-    ],
-    "SUKUN": [
-      "SKNR",
-      "SKNW"
-    ],
-    "CLASSMILD": [
-      "CM-002"
-    ]
-  },
-  "inhouse_codes": [
-    "90",
-    "DPM EVO",
-    "IMP-001",
-    "LB22",
-    "LF-002",
-    "LIC-001",
-    "LMM-002",
-    "TR-002",
-    "CM-002",
-    "LG22",
-    "LR22",
-    "LBOLD",
-    "MARISE",
-    "HTM-002",
-    "ZYG",
-    "ZL",
-    "EC",
-    "ZPA",
-    "LC20",
-    "CMX",
-    "CMP",
-    "IFACE B",
-    "IFACE M",
-    "IFACE R",
-    "IFACE DB",
-    "SKNR",
-    "SKNW",
-    "EVO",
-    "BISON-G",
-    "BISON-R",
-    "BISON-M",
-    "TR20",
-    "LAM",
-    "LWM",
-    "CMLT"
   ],
   "sku_trace_config_by_scope": {
     "Jun 26": {
@@ -6357,12 +6357,12 @@
         "LAM+LWM": 0
       },
       "KI-MI": {
-        "EVO": 104,
-        "TR20": 132,
-        "BISON": 110,
-        "SUKUN": 49,
-        "iFACE": 101,
-        "LAM+LWM": 92
+        "EVO": 103,
+        "TR20": 131,
+        "BISON": 109,
+        "SUKUN": 48,
+        "iFACE": 100,
+        "LAM+LWM": 91
       },
       "KEE": {
         "EVO": 112,
@@ -6389,28 +6389,28 @@
         "LAM+LWM": 123
       },
       "YI": {
-        "EVO": 122,
-        "TR20": 169,
-        "BISON": 133,
-        "SUKUN": 111,
-        "iFACE": 146,
-        "LAM+LWM": 157
+        "EVO": 123,
+        "TR20": 170,
+        "BISON": 134,
+        "SUKUN": 112,
+        "iFACE": 147,
+        "LAM+LWM": 158
       },
       "NMK": {
-        "EVO": 40,
-        "TR20": 117,
-        "BISON": 108,
-        "SUKUN": 71,
-        "iFACE": 106,
-        "LAM+LWM": 102
+        "EVO": 41,
+        "TR20": 118,
+        "BISON": 109,
+        "SUKUN": 72,
+        "iFACE": 107,
+        "LAM+LWM": 103
       },
       "SAM": {
-        "EVO": 39,
-        "TR20": 55,
-        "BISON": 40,
-        "SUKUN": 32,
-        "iFACE": 52,
-        "LAM+LWM": 52
+        "EVO": 40,
+        "TR20": 56,
+        "BISON": 41,
+        "SUKUN": 33,
+        "iFACE": 53,
+        "LAM+LWM": 53
       },
       "BEN": {
         "EVO": 80,
@@ -6421,12 +6421,12 @@
         "LAM+LWM": 89
       },
       "KF": {
-        "EVO": 74,
-        "TR20": 171,
-        "BISON": 150,
-        "SUKUN": 113,
-        "iFACE": 144,
-        "LAM+LWM": 155
+        "EVO": 70,
+        "TR20": 167,
+        "BISON": 146,
+        "SUKUN": 109,
+        "iFACE": 140,
+        "LAM+LWM": 151
       },
       "JW": {
         "EVO": 0,
@@ -6437,20 +6437,20 @@
         "LAM+LWM": 0
       },
       "JAMES": {
-        "EVO": 69,
-        "TR20": 134,
-        "BISON": 112,
-        "SUKUN": 69,
-        "iFACE": 104,
-        "LAM+LWM": 119
+        "EVO": 64,
+        "TR20": 128,
+        "BISON": 106,
+        "SUKUN": 63,
+        "iFACE": 99,
+        "LAM+LWM": 113
       },
       "LEON": {
-        "EVO": 44,
-        "TR20": 85,
-        "BISON": 82,
-        "SUKUN": 48,
-        "iFACE": 74,
-        "LAM+LWM": 93
+        "EVO": 45,
+        "TR20": 86,
+        "BISON": 83,
+        "SUKUN": 49,
+        "iFACE": 75,
+        "LAM+LWM": 94
       },
       "CJ": {
         "EVO": 79,
@@ -6465,7 +6465,7 @@
   "penetration_snapshot_meta": {
     "Jun 26": {
       "pool_version": "dm_active_nonpersonal_debtorwide_v2",
-      "updated_at": "2026-06-26T10:24:37"
+      "updated_at": "2026-06-30T11:13:35"
     }
   }
 }
