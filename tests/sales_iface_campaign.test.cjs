@@ -38,6 +38,9 @@ assert(!html.includes('IFACE group standings in Sales'), 'Sales Dashboard should
 assert(html.includes('function debtorMatchesSearch'), 'Sales Dashboard should share debtor search matching across debtor filters');
 assert(html.includes('function filterUnpurchasedDebtorsForView'), 'Unpurchased view should be searchable within selected brand/type');
 assert(html.includes('Show conversion details') && html.includes('Hide conversion details'), 'Conversion campaigns should keep a clearly-labelled details toggle');
+assert(html.includes('auto_distribution_delivered'), 'Sales KPI panel should label distribution campaigns by delivered/listed progress');
+assert(html.includes('Delivered:'), 'Sales KPI panel should describe distribution campaign actuals as delivered counts');
+assert(html.includes('manager off'), 'Sales KPI panel should explain Distribution target deductions from Campaign Audit remove/off rows');
 assert(html.includes('function conversionPriceFloor'), 'Sales Dashboard should resolve conversion price floors through a helper that preserves zero');
 assert(html.includes('function isLinkedConversionRepeatCampaign'), 'Sales Dashboard should detect linked conversion + repeat campaigns');
 assert(html.includes('function renderLinkedCampaignSummary'), 'Sales Dashboard should render linked conversion + repeat progress');

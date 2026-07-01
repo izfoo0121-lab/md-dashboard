@@ -1341,6 +1341,18 @@ function progressKpiOptions(D) {
   return fixed;
 }
 
+function mgmtKpiSourceLabel(item = {}) {
+  const source = item.source || '';
+  if (source === 'manual_override') return 'manual override';
+  if (source === 'auto_distribution_delivered') return 'Distribution delivered';
+  if (source === 'auto_linked_conversion_repeat') return 'Linked conversion + repeat';
+  if (source === 'auto_paid_conversion') return 'Auto paid conversion';
+  if (source === 'management_delivery_upload') return 'Delivery list';
+  if (source === 'agent_self_report') return 'Self-report';
+  if (source === 'manual') return 'Manual';
+  return source || 'auto';
+}
+
 function renderAgentProgressKpi(D) {
   const options = progressKpiOptions(D);
   if (!options.some(([k]) => k === KPI_PROGRESS_METRIC)) KPI_PROGRESS_METRIC = options[0]?.[0] || 'activation_rate';
@@ -1361,10 +1373,13 @@ function renderAgentProgressKpi(D) {
     const gap = actual - target;
     const score = Number(item.score || 0);
     const max = Number(item.max_score || 0);
-    const source = item.source === 'manual_override' ? 'manual override' : (item.source || 'auto');
+    const source = mgmtKpiSourceLabel(item);
+    const sourceDetail = item.numerator === 'distribution' && Number(item.distribution_removed_target || 0) > 0
+      ? `${source} - listed ${fn(item.distribution_listed_target ?? item.target)} - manager off ${fn(item.distribution_removed_target)}`
+      : source;
     return `<div class="ap-row" style="grid-template-columns:90px repeat(5,minmax(105px,1fr));">
       <div class="ap-cell ap-agent" onclick="openDrill(${JSON.stringify(agent)})">${mgmtEsc(agent)}</div>
-      <div class="ap-cell"><div class="ap-kpi ${apStatusClass(pct,D)}">${fn(actual)}</div><div class="ap-sub">${mgmtEsc(source)}</div></div>
+      <div class="ap-cell"><div class="ap-kpi ${apStatusClass(pct,D)}">${fn(actual)}</div><div class="ap-sub">${mgmtEsc(sourceDetail)}</div></div>
       <div class="ap-cell">${fn(target)}</div>
       <div class="ap-cell"><span class="ap-pill ${apPillClass(pct,D)}">${fp(pct)}</span></div>
       <div class="ap-cell"><div class="ap-kpi ${gap>=0?'ap-hit':'ap-behind'}">${gap>=0?'+':''}${fn(gap)}</div></div>

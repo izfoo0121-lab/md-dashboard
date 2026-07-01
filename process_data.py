@@ -134,6 +134,29 @@ def fetch_kpi_manual_overrides(cur_month):
         log(f"   [Supabase KPI] Skipped: {e}")
         return {}
 
+CAMPAIGN_TARGET_EXCLUSION_ACTORS = {
+    "management_bulk_off",
+    "campaign_audit_bulk_off",
+    "management_off",
+}
+
+
+def _campaign_target_exclusion_sets(claim_rows):
+    """Return manager-approved campaign target removals keyed by (campaign_id, agent)."""
+    excluded = {}
+    for r in claim_rows or []:
+        status = str(r.get("status") or "").strip().lower()
+        actor = str(r.get("actor") or "").strip().lower()
+        if status != "excluded" or actor not in CAMPAIGN_TARGET_EXCLUSION_ACTORS:
+            continue
+        camp_id = r.get("camp_id") or r.get("campaign_id")
+        agent = (r.get("agent") or "").upper()
+        debtor_code = (r.get("debtor_code") or "").upper()
+        if camp_id and agent and debtor_code:
+            excluded.setdefault((camp_id, agent), set()).add(debtor_code)
+    return excluded
+
+
 def fetch_campaign_deliveries(cur_month):
     """Fetch management delivery-list campaign achievements, indexed by (campaign_id, agent).
 
@@ -155,6 +178,7 @@ def fetch_campaign_deliveries(cur_month):
             debtor_code = (r.get("debtor_code") or "").upper()
             if camp_id and agent and debtor_code:
                 claim_keys.add((camp_id, agent, debtor_code))
+        target_exclusions = _campaign_target_exclusion_sets(claim_rows)
         by_camp_agent = {}
         filtered = 0
         for r in rows or []:
@@ -167,14 +191,17 @@ def fetch_campaign_deliveries(cur_month):
                 filtered += 1
                 continue
             by_camp_agent.setdefault((camp_id, agent), []).append(debtor_code)
+        removed_count = sum(len(codes) for codes in target_exclusions.values())
         msg = f"   campaign_deliveries: {len(rows or [])} rows across {len(by_camp_agent)} (campaign, agent) pairs"
         if filtered:
             msg += f" ({filtered} agent-claim mirrors ignored)"
+        if removed_count:
+            msg += f" ({removed_count} manager-off targets removed)"
         log(msg)
-        return by_camp_agent
+        return by_camp_agent, target_exclusions
     except Exception as e:
         log(f"   WARNING: Could not fetch campaign_deliveries: {e}")
-        return {}
+        return {}, {}
 
 def fetch_kpi_manual_overrides_keyed(cur_month):
     """Fetch keyed KPI manual override rows, indexed by (agent, kpi_key)."""
@@ -1303,6 +1330,8 @@ def _norm_code(value):
 
 LINKED_CAMPAIGN_NUMERATOR = "linked_conversion_repeat"
 LINKED_CAMPAIGN_TARGET = 50.0
+DISTRIBUTION_CAMPAIGN_NUMERATOR = "distribution"
+TRACKING_ONLY_CAMPAIGN_NUMERATOR = "none"
 
 
 def linked_campaign_settings(notes=None):
@@ -4408,8 +4437,21 @@ def _normalise_campaign_numerators(camp):
         return ["count"]
     clean = []
     for n in nums:
-        if n in ("count", "ctn", LINKED_CAMPAIGN_NUMERATOR) and n not in clean:
-            clean.append(n)
+        raw = str(n or "").strip().lower()
+        if raw in (TRACKING_ONLY_CAMPAIGN_NUMERATOR, "tracking_only", "tracking-only"):
+            return [TRACKING_ONLY_CAMPAIGN_NUMERATOR]
+        if raw in ("count", "penetration"):
+            norm = "count"
+        elif raw in ("ctn", "carton", "carton_volume"):
+            norm = "ctn"
+        elif raw in (DISTRIBUTION_CAMPAIGN_NUMERATOR, "delivery", "delivered"):
+            norm = DISTRIBUTION_CAMPAIGN_NUMERATOR
+        elif raw == LINKED_CAMPAIGN_NUMERATOR:
+            norm = LINKED_CAMPAIGN_NUMERATOR
+        else:
+            continue
+        if norm not in clean:
+            clean.append(norm)
     return clean or ["count"]
 
 def _score_campaign_kpi_item(actual, target, weight):
@@ -4426,7 +4468,12 @@ def _resolve_campaign_kpi_actual(camp, agent_code, numerator, deliveries_by_camp
     auto_actual = 0.0
     auto_source = "auto"
 
-    if camp_type in ("conversion_simple", "conversion_tiered"):
+    if numerator == DISTRIBUTION_CAMPAIGN_NUMERATOR:
+        dist_exclusions = camp.get("distribution_exclusions") or {}
+        removed_codes = set(dist_exclusions.get(agent_code) or [])
+        auto_actual = float(len(set(delivered_codes) - removed_codes))
+        auto_source = "auto_distribution_delivered"
+    elif camp_type in ("conversion_simple", "conversion_tiered"):
         rollup = (conversion_rollup or {}).get(camp_id, {})
         if numerator == LINKED_CAMPAIGN_NUMERATOR:
             linked = rollup.get("linked_progress") or {}
@@ -4469,17 +4516,34 @@ def build_per_campaign_kpi_items(agent_code, ag_cfg, active_campaigns, deliverie
         if not camp_id:
             continue
         for numerator in _normalise_campaign_numerators(camp):
+            if numerator == TRACKING_ONLY_CAMPAIGN_NUMERATOR:
+                continue
             kpi_key = _campaign_metric_key(camp_id, numerator)
             if not kpi_key:
                 continue
             if numerator == LINKED_CAMPAIGN_NUMERATOR:
                 target = LINKED_CAMPAIGN_TARGET
+            elif numerator == DISTRIBUTION_CAMPAIGN_NUMERATOR:
+                dist_targets = camp.get("distribution_targets") or {}
+                raw_target = dist_targets.get(agent_code)
+                if raw_target is None:
+                    raw_target = _get_campaign_target_compat(camp_tgts, camp_id, numerator)
+                try:
+                    listed_target = float(raw_target or 0)
+                except (TypeError, ValueError):
+                    listed_target = 0.0
+                dist_exclusions = camp.get("distribution_exclusions") or {}
+                removed_codes = set(dist_exclusions.get(agent_code) or [])
+                removed_target = min(len(removed_codes), int(listed_target)) if listed_target else 0
+                target = max(0.0, listed_target - removed_target)
             else:
                 raw_target = _get_campaign_target_compat(camp_tgts, camp_id, numerator)
                 try:
                     target = float(raw_target or 0)
                 except (TypeError, ValueError):
                     target = 0.0
+                listed_target = target
+                removed_target = 0
             weight = _get_campaign_weight_compat(month_weights, camp_id, numerator)
             resolved = _resolve_campaign_kpi_actual(
                 camp, agent_code, numerator, deliveries_by_camp_agent,
@@ -4508,6 +4572,10 @@ def build_per_campaign_kpi_items(agent_code, ag_cfg, active_campaigns, deliverie
                 "campaign_name": camp.get("name", camp_id),
                 "campaign_type": camp.get("type", "other"),
             }
+            if numerator == DISTRIBUTION_CAMPAIGN_NUMERATOR:
+                items[kpi_key]["distribution_listed_target"] = listed_target
+                items[kpi_key]["distribution_removed_target"] = removed_target
+                items[kpi_key]["distribution_effective_target"] = target
     return items
 
 def _agent_tier_from_count(count, thresholds, tier_names):
@@ -4963,6 +5031,8 @@ def main():
             "type":            camp.get("type","other"),
             "kpi_numerators":  _normalise_campaign_numerators(camp),
             "brand":           camp.get("brand",""),
+            "debtor_code":      code,
+            "agent":            ((debtor or {}).get("agent") or "").upper(),
             "cat":             cat,
             "start_date":      camp.get("start_date",""),
             "deadline":        camp.get("deadline",""),
@@ -5497,15 +5567,37 @@ def main():
     # ── end conversion campaigns rollup ─────────────────────────────────────
 
     campaign_group_progress = calc_conversion_campaign_group_progress(debtor_cards, active_conversion_campaigns)
+    deliveries_by_camp_agent, distribution_exclusions_by_camp_agent = fetch_campaign_deliveries(cur_month)
 
     active_campaigns_for_month = {}
+    distribution_sets_by_campaign = {}
     for camp_list in campaign_map.values():
         for camp in camp_list:
             cid = camp.get("id")
-            if cid and cid not in active_campaigns_for_month:
-                active_campaigns_for_month[cid] = camp
+            if not cid:
+                continue
+            if cid not in active_campaigns_for_month:
+                active_campaigns_for_month[cid] = dict(camp)
+            agent = (camp.get("agent") or "").upper()
+            debtor_code = (camp.get("debtor_code") or "").upper()
+            if agent and debtor_code:
+                distribution_sets_by_campaign.setdefault(cid, {}).setdefault(agent, set()).add(debtor_code)
+    for cid, camp in active_campaigns_for_month.items():
+        agent_sets = distribution_sets_by_campaign.get(cid, {})
+        camp["distribution_targets"] = {agent: len(codes) for agent, codes in agent_sets.items()}
+        camp["distribution_exclusions"] = {}
+        camp["distribution_removed_targets"] = {}
+        camp["distribution_effective_targets"] = {}
+        for agent, codes in agent_sets.items():
+            removed_codes = set(distribution_exclusions_by_camp_agent.get((cid, agent), set())) & set(codes)
+            if removed_codes:
+                camp["distribution_exclusions"][agent] = sorted(removed_codes)
+            camp["distribution_removed_targets"][agent] = len(removed_codes)
+            camp["distribution_effective_targets"][agent] = max(0, len(codes) - len(removed_codes))
+        camp["distribution_target_total"] = sum(camp["distribution_targets"].values())
+        camp["distribution_removed_total"] = sum(camp["distribution_removed_targets"].values())
+        camp["distribution_effective_total"] = sum(camp["distribution_effective_targets"].values())
     active_campaigns_for_month = list(active_campaigns_for_month.values())
-    deliveries_by_camp_agent = fetch_campaign_deliveries(cur_month)
     overrides_by_agent_key = fetch_kpi_manual_overrides_keyed(cur_month)
     kpi_weights_for_month = (targets.get("kpi_weights") or {}).get(cur_month, {}) or {}
 

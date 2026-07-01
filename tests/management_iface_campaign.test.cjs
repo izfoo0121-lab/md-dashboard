@@ -12,5 +12,8 @@ assert(html.includes('function mgmtIsLinkedCampaign'), 'Management should detect
 assert(html.includes('function mgmtLinkedProgressScore'), 'Management should calculate linked campaign /50 progress');
 assert(html.includes('Linked campaign group standings'), 'Management should show linked campaign group standings separately');
 assert(html.includes('1ST OD') && html.includes('RP OD'), 'Management should label linked campaign stages');
+assert(html.includes('auto_distribution_delivered'), 'Management KPI tab should recognise distribution campaign source');
+assert(html.includes('Distribution delivered'), 'Management KPI tab should show distribution actuals as delivered/listed progress');
+assert(html.includes('manager off'), 'Management KPI tab should explain Distribution effective target deductions');
 
 console.log('management_iface_campaign.test.cjs passed');

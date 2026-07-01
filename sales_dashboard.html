@@ -6520,18 +6520,25 @@ function renderKPI() {
         const isManual = item.source === 'manual';
         const canEdit  = item.input_role === 'agent';
         const isCampaignKpi = !!item.campaign_id;
+        const isDistributionKpi = item.numerator === 'distribution' || item.source === 'auto_distribution_delivered';
         const hasActualOverride = isCampaignKpi && item.override_actual !== null && item.override_actual !== undefined && item.override_actual !== '';
         const finalActual = item.final_actual ?? item.actual;
         const autoActual = item.auto_actual ?? item.actual;
+        const distributionDeductNote = isDistributionKpi && Number(item.distribution_removed_target || 0) > 0
+          ? ` · listed ${item.distribution_listed_target ?? item.target} - manager off ${item.distribution_removed_target}`
+          : '';
         const sourceLabel =
           item.source === 'manual_override' ? 'Override' :
+          item.source === 'auto_distribution_delivered' ? 'Distribution' :
           item.source === 'auto_paid_conversion' ? 'Auto paid' :
           item.source === 'management_delivery_upload' ? 'Delivery list' :
           item.source === 'agent_self_report' ? 'Self-report' :
           isManual ? 'Manual' : '';
         const actualLine = item.target != null
           ? (isCampaignKpi
-              ? `Actual: ${finalActual ?? '—'} / ${item.target} · ${hasActualOverride ? `Auto ${autoActual ?? 0} → Override ${item.override_actual}` : `Auto ${autoActual ?? finalActual ?? 0}`}`
+              ? (isDistributionKpi
+                  ? `Delivered: ${finalActual ?? '—'} / ${item.target}${distributionDeductNote} · ${hasActualOverride ? `Auto ${autoActual ?? 0} → Override ${item.override_actual}` : `Auto delivered ${autoActual ?? finalActual ?? 0}`}`
+                  : `Actual: ${finalActual ?? '—'} / ${item.target} · ${hasActualOverride ? `Auto ${autoActual ?? 0} → Override ${item.override_actual}` : `Auto ${autoActual ?? finalActual ?? 0}`}`)
               : `${item.actual ?? '—'} / ${item.target} · ${(item.pct||0).toFixed(1)}%`)
           : `Score: ${item.actual ?? '—'} pts`;
 

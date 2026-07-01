@@ -942,13 +942,19 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
             <span style="font-weight:normal;color:#666;font-size:12px;">(what counts toward score)</span>
           </label>
           <label style="display:inline-flex;align-items:center;gap:6px;margin-right:16px;font-family:var(--mono);font-size:11px;">
-            <input type="checkbox" data-kpi-numerator-scope="new-camp" name="new-camp_kpi_numerator" value="count" checked> Count (渗透率)
+            <input type="checkbox" data-kpi-numerator-scope="new-camp" name="new-camp_kpi_numerator" value="none" onchange="handleKpiNumeratorChange('new-camp', this)"> None - tracking only
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;margin-right:16px;font-family:var(--mono);font-size:11px;">
+            <input type="checkbox" data-kpi-numerator-scope="new-camp" name="new-camp_kpi_numerator" value="distribution" checked onchange="handleKpiNumeratorChange('new-camp', this)"> Distribution - delivered/listed
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;margin-right:16px;font-family:var(--mono);font-size:11px;">
+            <input type="checkbox" data-kpi-numerator-scope="new-camp" name="new-camp_kpi_numerator" value="count" onchange="handleKpiNumeratorChange('new-camp', this)"> Penetration - converted debtor count
           </label>
           <label style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;">
-            <input type="checkbox" data-kpi-numerator-scope="new-camp" name="new-camp_kpi_numerator" value="ctn"> Carton Volume (条数)
+            <input type="checkbox" data-kpi-numerator-scope="new-camp" name="new-camp_kpi_numerator" value="ctn" onchange="handleKpiNumeratorChange('new-camp', this)"> Carton - paid CTN
           </label>
           <label style="display:inline-flex;align-items:center;gap:6px;margin-left:16px;font-family:var(--mono);font-size:11px;">
-            <input type="checkbox" data-kpi-numerator-scope="new-camp" name="new-camp_kpi_numerator" value="linked_conversion_repeat"> Linked conversion + repeat
+            <input type="checkbox" data-kpi-numerator-scope="new-camp" name="new-camp_kpi_numerator" value="linked_conversion_repeat" onchange="handleKpiNumeratorChange('new-camp', this)"> Linked conversion + repeat
           </label>
         </div>
 
@@ -3839,7 +3845,7 @@ function getGeneratedKpiCampaignsForMonth(monthLabel) {
     Object.entries(agentData?.kpi?.items || {}).forEach(([key, item]) => {
       if (!key.startsWith('camp_') || !item?.campaign_id) return;
       const id = String(item.campaign_id || '').trim();
-      const numerator = item.numerator || (key.endsWith('_ctn') ? 'ctn' : 'count');
+      const numerator = item.numerator || (key.endsWith('_distribution') ? 'distribution' : (key.endsWith('_ctn') ? 'ctn' : 'count'));
       const existing = byId.get(id) || {
         id,
         name: item.campaign_name || item.label || id,
@@ -3847,7 +3853,7 @@ function getGeneratedKpiCampaignsForMonth(monthLabel) {
         active: true,
         kpi_numerators: []
       };
-      if ((numerator === 'count' || numerator === 'ctn') && !existing.kpi_numerators.includes(numerator)) {
+      if ((numerator === 'distribution' || numerator === 'count' || numerator === 'ctn') && !existing.kpi_numerators.includes(numerator)) {
         existing.kpi_numerators.push(numerator);
       }
       byId.set(id, existing);
@@ -3891,12 +3897,12 @@ function getCampaignNumerators(camp) {
   const nums = Array.isArray(camp?.kpi_numerators) && camp.kpi_numerators.length
     ? camp.kpi_numerators
     : ['count'];
-  return [...new Set(nums.filter(n => n === 'count' || n === 'ctn' || n === 'linked_conversion_repeat'))];
+  return normaliseCampaignNumerators(nums, { fallback: 'count' });
 }
 
 function getCampaignMetricRows(camp) {
   const base = getCampaignKeyBase(camp);
-  return getCampaignNumerators(camp).map(num => ({
+  return getCampaignNumerators(camp).filter(num => num !== 'none').map(num => ({
     campaign: camp,
     numerator: num,
     key: `${base}_${num}`,
@@ -3907,9 +3913,11 @@ function getCampaignMetricRows(camp) {
 
 function getCampaignMetricLabel(camp, numerator) {
   const name = camp?.name || camp?.id || 'Campaign';
+  if (numerator === 'none') return `${name} (Tracking only)`;
+  if (numerator === 'distribution') return `${name} (Distribution delivered/listed)`;
   if (numerator === 'linked_conversion_repeat') return `${name} (Linked Conversion + Repeat)`;
-  if (numerator === 'ctn') return `${name} (Carton 条数)`;
-  return `${name} (Count 渗透率)`;
+  if (numerator === 'ctn') return `${name} (Carton paid CTN)`;
+  return `${name} (Penetration converted debtor count)`;
 }
 
 function getCampaignMetricValue(obj, metricKey) {
@@ -3926,14 +3934,14 @@ function getCampaignMetricValue(obj, metricKey) {
 
 function parseCampaignImportKey(fieldKey) {
   const key = String(fieldKey || '').trim();
-  const m = key.match(/^(camp_.+)_(count|ctn|linked_conversion_repeat)$/);
+  const m = key.match(/^(camp_.+)_(distribution|count|ctn|linked_conversion_repeat)$/);
   if (m) return { key, campaignKey: m[1], numerator: m[2], legacy: false };
   if (key.startsWith('camp_')) return { key: `${key}_count`, campaignKey: key, numerator: 'count', legacy: true };
   return null;
 }
 
 function renderKpiNumeratorsGroup(scope, nums, opts = {}) {
-  const current = Array.isArray(nums) && nums.length ? nums : ['count'];
+  const current = normaliseCampaignNumerators(nums, { fallback: 'count' });
   const title = opts.title || 'KPI Numerators';
   const note = opts.note || '(what counts toward score)';
   return `<div class="kpi-numerators-section" data-numerators-section="${scope}" style="margin-top:12px;">
@@ -3942,32 +3950,71 @@ function renderKpiNumeratorsGroup(scope, nums, opts = {}) {
       <span style="font-weight:normal;color:#666;font-size:12px;">${note}</span>
     </label>
     <label style="display:inline-flex;align-items:center;gap:6px;margin-right:16px;font-family:var(--mono);font-size:11px;">
-      <input type="checkbox" data-kpi-numerator-scope="${scope}" name="${scope}_kpi_numerator" value="count" ${current.includes('count') ? 'checked' : ''}> Count (渗透率)
+      <input type="checkbox" data-kpi-numerator-scope="${scope}" name="${scope}_kpi_numerator" value="none" ${current.includes('none') ? 'checked' : ''} onchange="handleKpiNumeratorChange('${scope}', this)"> None - tracking only
+    </label>
+    <label style="display:inline-flex;align-items:center;gap:6px;margin-right:16px;font-family:var(--mono);font-size:11px;">
+      <input type="checkbox" data-kpi-numerator-scope="${scope}" name="${scope}_kpi_numerator" value="distribution" ${current.includes('distribution') ? 'checked' : ''} onchange="handleKpiNumeratorChange('${scope}', this)"> Distribution - delivered/listed
+    </label>
+    <label style="display:inline-flex;align-items:center;gap:6px;margin-right:16px;font-family:var(--mono);font-size:11px;">
+      <input type="checkbox" data-kpi-numerator-scope="${scope}" name="${scope}_kpi_numerator" value="count" ${current.includes('count') ? 'checked' : ''} onchange="handleKpiNumeratorChange('${scope}', this)"> Penetration - converted debtor count
+    </label>
+    <label style="display:inline-flex;align-items:center;gap:6px;margin-right:16px;font-family:var(--mono);font-size:11px;">
+      <input type="checkbox" data-kpi-numerator-scope="${scope}" name="${scope}_kpi_numerator" value="ctn" ${current.includes('ctn') ? 'checked' : ''} onchange="handleKpiNumeratorChange('${scope}', this)"> Carton - paid CTN
     </label>
     <label style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;">
-      <input type="checkbox" data-kpi-numerator-scope="${scope}" name="${scope}_kpi_numerator" value="ctn" ${current.includes('ctn') ? 'checked' : ''}> Carton Volume (条数)
-    </label>
-    <label style="display:inline-flex;align-items:center;gap:6px;margin-left:16px;font-family:var(--mono);font-size:11px;">
-      <input type="checkbox" data-kpi-numerator-scope="${scope}" name="${scope}_kpi_numerator" value="linked_conversion_repeat" ${current.includes('linked_conversion_repeat') ? 'checked' : ''}> Linked conversion + repeat
+      <input type="checkbox" data-kpi-numerator-scope="${scope}" name="${scope}_kpi_numerator" value="linked_conversion_repeat" ${current.includes('linked_conversion_repeat') ? 'checked' : ''} onchange="handleKpiNumeratorChange('${scope}', this)"> Linked conversion + repeat
     </label>
   </div>`;
 }
 
 function readKpiNumerators(scope) {
-  return Array.from(document.querySelectorAll(`input[data-kpi-numerator-scope="${scope}"]:checked`)).map(el => el.value);
+  const raw = Array.from(document.querySelectorAll(`input[data-kpi-numerator-scope="${scope}"]:checked`)).map(el => el.value);
+  return normaliseCampaignNumerators(raw, { fallback: null });
+}
+
+function normaliseCampaignNumerators(nums, opts = {}) {
+  const fallback = Object.prototype.hasOwnProperty.call(opts, 'fallback') ? opts.fallback : 'count';
+  const arr = Array.isArray(nums) ? nums : [];
+  const clean = [];
+  for (const rawValue of arr) {
+    const raw = String(rawValue || '').trim().toLowerCase();
+    if (raw === 'none' || raw === 'tracking_only' || raw === 'tracking-only') return ['none'];
+    let value = '';
+    if (raw === 'distribution' || raw === 'delivery' || raw === 'delivered') value = 'distribution';
+    else if (raw === 'count' || raw === 'penetration') value = 'count';
+    else if (raw === 'ctn' || raw === 'carton' || raw === 'carton_volume') value = 'ctn';
+    else if (raw === 'linked_conversion_repeat') return ['linked_conversion_repeat'];
+    if (value && !clean.includes(value)) clean.push(value);
+  }
+  if (!clean.length && fallback) return [fallback];
+  return clean;
+}
+
+function handleKpiNumeratorChange(scope, changed) {
+  if (!changed || !changed.checked) return;
+  const boxes = Array.from(document.querySelectorAll(`input[data-kpi-numerator-scope="${scope}"]`));
+  if (changed.value === 'none' || changed.value === 'linked_conversion_repeat') {
+    boxes.forEach(box => { box.checked = box === changed; });
+    return;
+  }
+  boxes.forEach(box => {
+    if (box.value === 'none' || box.value === 'linked_conversion_repeat') box.checked = false;
+  });
 }
 
 function setKpiNumeratorsForScope(scope, selected) {
   const boxes = Array.from(document.querySelectorAll(`input[data-kpi-numerator-scope="${scope}"]`));
   if (!boxes.length) return;
-  const values = Array.isArray(selected) ? selected : [];
+  const values = normaliseCampaignNumerators(selected, { fallback: null });
   boxes.forEach(box => { box.checked = values.includes(box.value); });
 }
 
 function applyKpiNumeratorDefaults(scope, type) {
   const boxes = Array.from(document.querySelectorAll(`input[data-kpi-numerator-scope="${scope}"]`));
   if (!boxes.length) return;
-  const defaults = type === 'conversion_simple' ? ['count', 'ctn'] : ['count'];
+  const defaults = type === 'conversion_simple' ? ['count', 'ctn'] : (
+    ['free_sample', 'festive_gift', 'birthday_gift'].includes(type) ? ['distribution'] : ['none']
+  );
   setKpiNumeratorsForScope(scope, defaults);
 }
 
