@@ -21,5 +21,11 @@ assert(html.includes('id="new-camp-gift-addon"'), 'Create form should expose the
 assert(html.includes('new-camp-volume-basis'), 'Existing volume basis field should remain available');
 assert(html.includes('new-camp-reward-tiers'), 'Existing reward tier field should remain available');
 assert(html.includes('new-camp-lookback-months'), 'Existing lookback field should remain available');
+assert(html.includes('Linked Conversion + Repeat Promo'), 'Admin should include linked conversion + repeat mechanism');
+assert(html.includes('linked_conversion_repeat'), 'Admin should persist linked conversion + repeat mechanism/numerator key');
+assert(html.includes('new-camp-stage1-target-pct'), 'Create form should expose Stage 1 conversion target percentage');
+assert(html.includes('new-camp-stage2-target-pct'), 'Create form should expose Stage 2 repeat target percentage');
+assert(html.includes('[1ST OD]'), 'Create form should include default Stage 1 FOC note');
+assert(html.includes('[RP OD]'), 'Create form should include default Stage 2 FOC note');
 
 console.log('admin_campaign_mechanisms.test.cjs passed');

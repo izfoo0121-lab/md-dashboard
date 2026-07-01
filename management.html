@@ -1615,20 +1615,81 @@ function renderAgentProgressSkuTrace(D) {
   return chips + summary + apTable('90px repeat(4,minmax(120px,1fr))', ['Agent','Tranx Month','Paid On','Target CTN','Comm'], rows);
 }
 
+function mgmtIsLinkedCampaign(row = {}) {
+  const notes = row.notes || {};
+  const nums = Array.isArray(row.kpi_numerators) ? row.kpi_numerators : [];
+  return !!(
+    row.linked_campaign ||
+    row.linked_progress ||
+    notes.mechanism_type === 'linked_conversion_repeat' ||
+    nums.includes('linked_conversion_repeat')
+  );
+}
+
+function mgmtLinkedProgressScore(progress = {}) {
+  const conversionTarget = Number(progress.conversion_target || 0);
+  const repeatTarget = Number(progress.repeat_target || 0);
+  const conversionActual = Number(progress.conversion_actual || 0);
+  const repeatActual = Number(progress.repeat_actual || 0);
+  const conversionEarned = conversionTarget > 0 ? Math.min(conversionActual / conversionTarget, 1) * 20 : 0;
+  const repeatEarned = repeatTarget > 0 ? Math.min(repeatActual / repeatTarget, 1) * 30 : 0;
+  return Math.round((conversionEarned + repeatEarned) * 1000) / 1000;
+}
+
 function progressCampaignSummaries(D) {
   const out = {};
   apAgents(D).forEach(agent => {
     const campaigns = D.agents[agent]?.conversion_campaigns || {};
     Object.entries(campaigns).forEach(([id, row]) => {
-      if (!out[id]) out[id] = { id, name: row.name || id, agents: {}, enrolled: 0, converted: 0, target: 0, ctn: 0 };
+      if (!out[id]) {
+        out[id] = {
+          id,
+          name: row.name || id,
+          agents: {},
+          enrolled: 0,
+          converted: 0,
+          target: 0,
+          ctn: 0,
+          linked: false,
+          linked_progress: {
+            eligible_base: 0,
+            conversion_actual: 0,
+            conversion_target: 0,
+            repeat_actual: 0,
+            repeat_target: 0,
+            repeat_ctn: 0,
+            campaign_actual: 0,
+            campaign_target: 50
+          }
+        };
+      }
       out[id].agents[agent] = row;
+      const linked = mgmtIsLinkedCampaign(row);
+      out[id].linked = out[id].linked || linked;
+      const lp = row.linked_progress || {};
+      if (linked) {
+        out[id].linked_progress.eligible_base += Number(lp.eligible_base ?? row.enrolled_count ?? row.total_enrolled ?? 0);
+        out[id].linked_progress.conversion_actual += Number(lp.conversion_actual ?? row.converted_count ?? 0);
+        out[id].linked_progress.conversion_target += Number(lp.conversion_target ?? row.target_count ?? 0);
+        out[id].linked_progress.repeat_actual += Number(lp.repeat_actual ?? 0);
+        out[id].linked_progress.repeat_target += Number(lp.repeat_target ?? 0);
+        out[id].linked_progress.repeat_ctn += Number(lp.repeat_ctn ?? 0);
+      }
       out[id].enrolled += Number(row.enrolled_count ?? row.total_enrolled ?? 0);
       out[id].converted += Number(row.converted_count ?? row.converted_targets ?? 0);
       out[id].target += Number(row.target_count ?? row.total_enrolled ?? 0);
       out[id].ctn += Number(row.converted_ctn || 0);
     });
   });
-  return Object.values(out).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  return Object.values(out).map(s => {
+    if (s.linked) {
+      s.linked_progress.campaign_actual = mgmtLinkedProgressScore(s.linked_progress);
+      s.enrolled = s.linked_progress.eligible_base;
+      s.converted = s.linked_progress.conversion_actual;
+      s.target = s.linked_progress.conversion_target;
+    }
+    return s;
+  }).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
 }
 
 function renderCampaignDebtorDetails(row) {
@@ -1651,6 +1712,76 @@ function renderAgentProgressCampaigns(D) {
     `<button class="ap-chip ${s.id===CAMPAIGN_PROGRESS_FOCUS?'active':''}" onclick="setProgressCampaignFocus(${JSON.stringify(s.id)})">${mgmtEsc(s.name)}</button>`
   ).join('')}</div>`;
   const summary = summaries.find(s=>s.id === CAMPAIGN_PROGRESS_FOCUS) || summaries[0];
+  const groupData = D.campaign_group_progress?.[summary.id];
+  const linked = summary.linked || !!groupData?.linked_campaign;
+  if (linked) {
+    const totals = groupData?.totals || summary.linked_progress || {};
+    const eligible = Number(totals.eligible_base ?? summary.linked_progress?.eligible_base ?? summary.enrolled ?? 0);
+    const convActual = Number(totals.conversion_actual ?? summary.linked_progress?.conversion_actual ?? summary.converted ?? 0);
+    const convTarget = Number(totals.conversion_target ?? summary.linked_progress?.conversion_target ?? summary.target ?? 0);
+    const repeatActual = Number(totals.repeat_actual ?? summary.linked_progress?.repeat_actual ?? 0);
+    const repeatTarget = Number(totals.repeat_target ?? summary.linked_progress?.repeat_target ?? 0);
+    const ctn = Number(totals.converted_ctn ?? summary.ctn ?? 0);
+    const score = Number(totals.campaign_actual ?? summary.linked_progress?.campaign_actual ?? mgmtLinkedProgressScore({
+      conversion_actual: convActual,
+      conversion_target: convTarget,
+      repeat_actual: repeatActual,
+      repeat_target: repeatTarget
+    }));
+    let html = chips + `<div class="ap-summary-grid">
+      <div class="ap-summary"><div class="ap-summary-val">${fi(eligible)}</div><div class="ap-summary-lbl">Eligible base</div></div>
+      <div class="ap-summary"><div class="ap-summary-val">${fi(convActual)} / ${fi(convTarget)}</div><div class="ap-summary-lbl">1ST OD converted - ${fp(apPct(convActual, convTarget))}</div></div>
+      <div class="ap-summary"><div class="ap-summary-val">${fi(repeatActual)} / ${fi(repeatTarget)}</div><div class="ap-summary-lbl">RP OD repeat - ${fp(apPct(repeatActual, repeatTarget))}</div></div>
+      <div class="ap-summary"><div class="ap-summary-val">${fn(ctn)}</div><div class="ap-summary-lbl">Qualified CTN</div></div>
+      <div class="ap-summary"><div class="ap-summary-val">${fn(score)} / 50</div><div class="ap-summary-lbl">Campaign KPI actual</div></div>
+    </div>`;
+
+    if (groupData?.group_rows?.length) {
+      const groupRows = groupData.group_rows.map(row => {
+        const gScore = Number(row.campaign_actual ?? mgmtLinkedProgressScore(row));
+        return `<div class="ap-row" style="grid-template-columns:120px repeat(5,minmax(110px,1fr));">
+          <div class="ap-cell"><b>${mgmtEsc(row.group || '-')}</b></div>
+          <div class="ap-cell">${fi(row.eligible_base || 0)}</div>
+          <div class="ap-cell">${fi(row.conversion_actual || 0)} / ${fi(row.conversion_target || 0)}<div class="ap-subline">${fp(apPct(row.conversion_actual, row.conversion_target))}</div></div>
+          <div class="ap-cell">${fi(row.repeat_actual || 0)} / ${fi(row.repeat_target || 0)}<div class="ap-subline">${fp(apPct(row.repeat_actual, row.repeat_target))}</div></div>
+          <div class="ap-cell">${fn(row.converted_ctn || 0)}</div>
+          <div class="ap-cell">${fn(gScore)} / 50</div>
+        </div>`;
+      }).join('');
+      html += `<div class="ap-sub" style="margin:10px 0 6px;">Linked campaign group standings</div>`;
+      html += apTable('120px repeat(5,minmax(110px,1fr))', ['Group','Eligible','1ST OD','RP OD','CTN','Score'], groupRows);
+    }
+
+    const agentRows = (groupData?.agent_rows?.length ? groupData.agent_rows : Object.entries(summary.agents).map(([agent,row]) => {
+      const lp = row.linked_progress || {};
+      return {
+        agent,
+        group: row.group || '',
+        eligible_base: lp.eligible_base ?? row.enrolled_count ?? row.total_enrolled ?? 0,
+        conversion_actual: lp.conversion_actual ?? row.converted_count ?? 0,
+        conversion_target: lp.conversion_target ?? row.target_count ?? 0,
+        repeat_actual: lp.repeat_actual ?? 0,
+        repeat_target: lp.repeat_target ?? 0,
+        converted_ctn: row.converted_ctn ?? 0,
+        campaign_actual: lp.campaign_actual
+      };
+    })).map(row => {
+      const rowScore = Number(row.campaign_actual ?? mgmtLinkedProgressScore(row));
+      return `<div class="ap-row" style="grid-template-columns:90px 110px repeat(6,minmax(100px,1fr));">
+        <div class="ap-cell ap-agent" onclick="openDrill(${JSON.stringify(row.agent)})">${mgmtEsc(row.agent)}</div>
+        <div class="ap-cell">${mgmtEsc(row.group || '-')}</div>
+        <div class="ap-cell">${fi(row.eligible_base || 0)}</div>
+        <div class="ap-cell">${fi(row.conversion_actual || 0)} / ${fi(row.conversion_target || 0)}<div class="ap-subline">${fp(apPct(row.conversion_actual, row.conversion_target))}</div></div>
+        <div class="ap-cell">${fi(row.repeat_actual || 0)} / ${fi(row.repeat_target || 0)}<div class="ap-subline">${fp(apPct(row.repeat_actual, row.repeat_target))}</div></div>
+        <div class="ap-cell">${fn(row.converted_ctn || 0)}</div>
+        <div class="ap-cell">${fn(rowScore)} / 50</div>
+        <div class="ap-cell">${renderCampaignDebtorDetails(row)}</div>
+      </div>`;
+    }).join('');
+    html += `<div class="ap-sub" style="margin:10px 0 6px;">Agent rows</div>`;
+    html += apTable('90px 110px repeat(6,minmax(100px,1fr))', ['Agent','Group','Eligible','1ST OD','RP OD','CTN','Score','Drilldown'], agentRows);
+    return html;
+  }
   const pct = apPct(summary.converted, summary.target || summary.enrolled);
   let html = chips + `<div class="ap-summary-grid">
     <div class="ap-summary"><div class="ap-summary-val">${fi(summary.enrolled)}</div><div class="ap-summary-lbl">Enrolled debtors</div></div>
@@ -1659,7 +1790,6 @@ function renderAgentProgressCampaigns(D) {
     <div class="ap-summary"><div class="ap-summary-val">${fp(pct)}</div><div class="ap-summary-lbl">Conversion rate</div></div>
   </div>`;
 
-  const groupData = D.campaign_group_progress?.[summary.id];
   if (groupData?.group_rows?.length) {
     const poolRate = Number(groupData.pk_pool_rate || 0);
     const groupRows = groupData.group_rows.map(row => `<div class="ap-row" style="grid-template-columns:120px repeat(5,minmax(110px,1fr));">
@@ -4214,9 +4344,41 @@ function renderCampaignsMgmt() {
     }
 
     if (isConversion) {
+      const linkedCampaign = mgmtIsLinkedCampaign(camp) || AGENTS.some(ag => mgmtIsLinkedCampaign(VIEW_DATA?.agents?.[ag]?.conversion_campaigns?.[camp.id] || {}));
       const perAgent = {};
       AGENTS.forEach(ag => {
         const rollup = VIEW_DATA?.agents?.[ag]?.conversion_campaigns?.[camp.id] || {};
+        const linkedRollup = linkedCampaign ? (rollup.linked_progress || {}) : {};
+        if (linkedCampaign) {
+          const eligible = Number(linkedRollup.eligible_base ?? rollup.enrolled_count ?? rollup.total_enrolled ?? 0);
+          const conversionActual = Number(linkedRollup.conversion_actual ?? rollup.converted_count ?? 0);
+          const conversionTarget = Number(linkedRollup.conversion_target ?? rollup.target_count ?? 0);
+          const repeatActual = Number(linkedRollup.repeat_actual ?? 0);
+          const repeatTarget = Number(linkedRollup.repeat_target ?? 0);
+          const score = Number(linkedRollup.campaign_actual ?? mgmtLinkedProgressScore(linkedRollup));
+          const pct = conversionTarget > 0 ? Math.min(100, Math.round(conversionActual / conversionTarget * 100)) : 0;
+          perAgent[ag] = {
+            poolCount: eligible,
+            delivered: conversionActual,
+            onListDelivered: conversionActual,
+            offListDelivered: 0,
+            excluded: 0,
+            offListCodes: [],
+            effPool: conversionTarget || eligible,
+            pct,
+            yet: Math.max(0, (conversionTarget || eligible) - conversionActual),
+            convertedCtn: Number(rollup.converted_ctn || 0),
+            tier: '',
+            toNext: 0,
+            nextTier: '',
+            linkedCampaign: true,
+            conversionTarget,
+            repeatActual,
+            repeatTarget,
+            campaignActual: score,
+          };
+          return;
+        }
         const enrolled = Number(rollup.enrolled_count || 0);
         const converted = Number(rollup.converted_count || 0);
         const convertedCtn = Number(rollup.converted_ctn || 0);
@@ -4241,14 +4403,25 @@ function renderCampaignsMgmt() {
       const totalPoolCount = Object.values(perAgent).reduce((s, a) => s + a.poolCount, 0);
       const delivered = Object.values(perAgent).reduce((s, a) => s + a.delivered, 0);
       const convertedCtn = Object.values(perAgent).reduce((s, a) => s + a.convertedCtn, 0);
-      const totalYet = Math.max(0, totalPoolCount - delivered);
-      const pct = totalPoolCount > 0 ? Math.min(100, Math.round(delivered / totalPoolCount * 100)) : 0;
+      const linkedConversionTarget = Object.values(perAgent).reduce((s, a) => s + Number(a.conversionTarget || 0), 0);
+      const linkedRepeatActual = Object.values(perAgent).reduce((s, a) => s + Number(a.repeatActual || 0), 0);
+      const linkedRepeatTarget = Object.values(perAgent).reduce((s, a) => s + Number(a.repeatTarget || 0), 0);
+      const linkedCampaignActual = mgmtLinkedProgressScore({
+        conversion_actual: delivered,
+        conversion_target: linkedConversionTarget,
+        repeat_actual: linkedRepeatActual,
+        repeat_target: linkedRepeatTarget
+      });
+      const effPool = linkedCampaign ? (linkedConversionTarget || totalPoolCount) : totalPoolCount;
+      const totalYet = Math.max(0, effPool - delivered);
+      const pct = effPool > 0 ? Math.min(100, Math.round(delivered / effPool * 100)) : 0;
 
       return {
-        camp, isBday, isConversion, perAgent,
+        camp, isBday, isConversion, linkedCampaign, perAgent,
         totalPoolCount, totalExcluded: 0,
         totalOnList: delivered, totalOffList: 0, allOffListCodes: [],
-        effPool: totalPoolCount, delivered, totalYet, pct, convertedCtn,
+        effPool, delivered, totalYet, pct, convertedCtn,
+        linkedConversionTarget, linkedRepeatActual, linkedRepeatTarget, linkedCampaignActual,
       };
     }
     const pool   = getCampaignPool(camp);
@@ -4523,9 +4696,10 @@ function renderCampaignsMgmt() {
   }
 
   list.innerHTML = headerBar + campStats.map(stats => {
-    const { camp, isBday, isConversion, perAgent, totalPoolCount, totalExcluded,
+    const { camp, isBday, isConversion, linkedCampaign, perAgent, totalPoolCount, totalExcluded,
             totalOnList, totalOffList, allOffListCodes,
-            effPool, delivered, totalYet, pct, convertedCtn } = stats;
+            effPool, delivered, totalYet, pct, convertedCtn,
+            linkedConversionTarget, linkedRepeatActual, linkedRepeatTarget, linkedCampaignActual } = stats;
     const accentCol = TYPE_COLORS[camp.type] || 'var(--accent)';
     const pctCol    = barColor(pct);
     const cardId    = `camp-card-${camp.id}`;
@@ -4536,6 +4710,8 @@ function renderCampaignsMgmt() {
       if (stats.missingConfig) breakdown = ` <span style="color:var(--accent);">· follow-up not configured</span>`;
       else if (stats.unavailable) breakdown = ` <span style="color:var(--ink3);">· ${stats.purchaseMonths || stats.followMonth} not available yet</span>`;
       else breakdown = ` <span style="color:var(--ink3);">· ${fi(convertedCtn || 0)} CTN in ${stats.purchaseMonths || stats.followMonth}</span>`;
+    } else if (linkedCampaign) {
+      breakdown = ` <span style="color:var(--ink3);"> - 1ST target ${fi(linkedConversionTarget || 0)} - RP ${fi(linkedRepeatActual || 0)}/${fi(linkedRepeatTarget || 0)} - score ${fn(linkedCampaignActual || 0)}/50 - ${fi(convertedCtn || 0)} CTN</span>`;
     } else if (isConversion) {
       breakdown = ` <span style="color:var(--ink3);">· ${fi(convertedCtn || 0)} CTN</span>`;
     } else if (isBday) {
@@ -4562,6 +4738,9 @@ function renderCampaignsMgmt() {
         const offTxt = (!isBday && a.offListDelivered > 0)
           ? ` · <span style="color:var(--purple);">+${a.offListDelivered} off-list</span>` : '';
         const ctnTxt = (isConversion || stats.isFollowup) ? ` · ${fi(a.convertedCtn || 0)} CTN` : '';
+        const linkedTxt = linkedCampaign
+          ? ` - RP ${fi(a.repeatActual || 0)}/${fi(a.repeatTarget || 0)} - score ${fn(a.campaignActual || 0)}/50`
+          : '';
         const tierTxt = isConversion && a.tier
           ? ` · <span style="color:var(--green);">${a.tier}</span>`
           : (isConversion && a.nextTier ? ` · <span style="color:var(--ink3);">${a.toNext} to ${a.nextTier}</span>` : '');
@@ -4572,7 +4751,7 @@ function renderCampaignsMgmt() {
         <div style="display:grid;grid-template-columns:64px 1fr 50px;gap:10px;align-items:center;padding:6px 14px;border-top:1px solid var(--border);">
           <div style="font-family:var(--display);font-size:14px;letter-spacing:.04em;">${ag}</div>
           <div>
-            <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-bottom:2px;">${poolTxt} ${actionLabel} · ${yetTxt}${ctnTxt}${tierTxt}${excTxt}${offTxt}</div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-bottom:2px;">${poolTxt} ${actionLabel} · ${yetTxt}${ctnTxt}${linkedTxt}${tierTxt}${excTxt}${offTxt}</div>
             <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
               <div style="height:100%;width:${a.pct}%;background:${col};border-radius:2px;transition:width .4s;"></div>
             </div>

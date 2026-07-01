@@ -1301,6 +1301,135 @@ def _norm_code(value):
     return str(value or "").strip().upper()
 
 
+LINKED_CAMPAIGN_NUMERATOR = "linked_conversion_repeat"
+LINKED_CAMPAIGN_TARGET = 50.0
+
+
+def linked_campaign_settings(notes=None):
+    """Normalise two-stage conversion + repeat campaign settings from campaign notes."""
+    notes = notes or {}
+
+    def _float_setting(*keys, default=0):
+        for key in keys:
+            raw = notes.get(key)
+            if raw is None or raw == "":
+                continue
+            try:
+                return float(raw)
+            except (TypeError, ValueError):
+                continue
+        return float(default)
+
+    def _text_setting(*keys, default=""):
+        for key in keys:
+            value = str(notes.get(key) or "").strip()
+            if value:
+                return value
+        return default
+
+    conversion_units = _float_setting("linked_conversion_units", "conversion_units", default=20)
+    repeat_units = _float_setting("linked_repeat_units", "repeat_units", default=30)
+    return {
+        "conversion_target_pct": _float_setting("linked_conversion_target_pct", "conversion_target_pct", default=20),
+        "repeat_target_pct": _float_setting("linked_repeat_target_pct", "repeat_target_pct", default=30),
+        "conversion_units": conversion_units,
+        "repeat_units": repeat_units,
+        "campaign_target": _float_setting("linked_internal_target", "campaign_target", default=conversion_units + repeat_units),
+        "price_floor": _float_setting("min_rm_per_ctn", "price_floor", default=40),
+        "stage1_min_ctn": _float_setting("stage1_min_ctn", default=1),
+        "stage2_min_ctn": _float_setting("stage2_min_ctn", default=3),
+        "stage1_foc_item": _text_setting("stage1_foc_item", default="SUKUN"),
+        "stage1_foc_qty": _float_setting("stage1_foc_qty", default=3),
+        "stage1_foc_unit": _text_setting("stage1_foc_unit", default="packs"),
+        "stage1_foc_note": _text_setting("stage1_foc_note", default="[1ST OD]"),
+        "stage2_foc_item": _text_setting("stage2_foc_item", default="SUKUN"),
+        "stage2_foc_qty": _float_setting("stage2_foc_qty", default=1),
+        "stage2_foc_unit": _text_setting("stage2_foc_unit", default="ctn"),
+        "stage2_foc_note": _text_setting("stage2_foc_note", default="[RP OD]"),
+    }
+
+
+def calculate_linked_campaign_score(eligible_base, converted_actual, repeat_actual, settings=None):
+    settings = linked_campaign_settings(settings or {})
+    eligible_base = max(0, int(math.ceil(float(eligible_base or 0))))
+    converted_actual = max(0, int(float(converted_actual or 0)))
+    repeat_actual = max(0, int(float(repeat_actual or 0)))
+    conversion_target = int(math.ceil(eligible_base * settings["conversion_target_pct"] / 100.0)) if eligible_base else 0
+    repeat_target = int(math.ceil(converted_actual * settings["repeat_target_pct"] / 100.0)) if converted_actual else 0
+    conversion_earned = (
+        min(converted_actual / conversion_target, 1.0) * settings["conversion_units"]
+        if conversion_target else 0.0
+    )
+    repeat_earned = (
+        min(repeat_actual / repeat_target, 1.0) * settings["repeat_units"]
+        if repeat_target else 0.0
+    )
+    campaign_actual = round(conversion_earned + repeat_earned, 3)
+    campaign_target = float(settings["campaign_target"] or LINKED_CAMPAIGN_TARGET)
+    return {
+        "eligible_base": eligible_base,
+        "conversion_target_pct": settings["conversion_target_pct"],
+        "repeat_target_pct": settings["repeat_target_pct"],
+        "conversion_target": conversion_target,
+        "repeat_target": repeat_target,
+        "conversion_actual": converted_actual,
+        "repeat_actual": repeat_actual,
+        "conversion_units": settings["conversion_units"],
+        "repeat_units": settings["repeat_units"],
+        "conversion_earned": round(conversion_earned, 3),
+        "repeat_earned": round(repeat_earned, 3),
+        "campaign_actual": campaign_actual,
+        "campaign_target": campaign_target,
+        "pct": round((campaign_actual / campaign_target) * 100, 1) if campaign_target else 0,
+    }
+
+
+def is_linked_conversion_repeat_campaign(camp):
+    if not isinstance(camp, dict):
+        return False
+    notes = camp.get("notes") or {}
+    nums = camp.get("kpi_numerators") or []
+    if isinstance(nums, str):
+        nums = [nums]
+    return (
+        notes.get("mechanism_type") == LINKED_CAMPAIGN_NUMERATOR
+        or LINKED_CAMPAIGN_NUMERATOR in nums
+    )
+
+
+def _linked_paid_order_events(rows):
+    """Return debtor paid order events so one invoice cannot count for both stages."""
+    if rows is None or rows.empty:
+        return []
+    doc_col = "doc_no" if "doc_no" in rows.columns else None
+    date_col = "date_parsed" if "date_parsed" in rows.columns else None
+    qty_col = "qty_ctn" if "qty_ctn" in rows.columns else None
+    if not qty_col:
+        return []
+    work = rows.copy()
+    if doc_col:
+        group_cols = [doc_col]
+        agg = {qty_col: "sum"}
+        if date_col:
+            agg[date_col] = "min"
+        grouped = work.groupby(group_cols, dropna=False).agg(agg).reset_index()
+    else:
+        grouped = work.reset_index(drop=True)
+    events = []
+    for idx, row in grouped.iterrows():
+        date_val = row.get(date_col) if date_col else None
+        events.append({
+            "doc_no": str(row.get(doc_col) or idx) if doc_col else str(idx),
+            "date": date_val,
+            "ctn": _num2(row.get(qty_col) or 0),
+        })
+    events.sort(key=lambda r: (
+        pd.Timestamp.max if pd.isna(r.get("date")) else r.get("date"),
+        str(r.get("doc_no") or "")
+    ))
+    return events
+
+
 def campaign_conversion_price_floor(notes=None, qual_group=""):
     notes = notes or {}
     for key in ("min_rm_per_ctn", "price_floor"):
@@ -1464,14 +1593,21 @@ def calc_conversion_campaign_group_progress(debtor_cards, campaigns):
     out = {}
     for cid, camp in camp_lookup.items():
         pk_rate = _campaign_pk_pool_rate(camp)
+        linked_campaign = is_linked_conversion_repeat_campaign(camp)
         out[cid] = {
             "id": cid,
             "name": camp.get("name", cid),
             "is_iface_campaign": _is_iface_campaign(camp),
+            "linked_campaign": linked_campaign,
+            "linked_settings": linked_campaign_settings(camp.get("notes") or {}) if linked_campaign else {},
             "pk_pool_rate": pk_rate,
             "groups": {},
             "agents": {},
-            "totals": {"new_accounts": 0, "converted_count": 0, "converted_ctn": 0, "pool_value": 0},
+            "totals": {
+                "new_accounts": 0, "converted_count": 0, "converted_ctn": 0, "pool_value": 0,
+                "eligible_base": 0, "repeat_actual": 0, "repeat_ctn": 0,
+                "conversion_target": 0, "repeat_target": 0, "campaign_actual": 0, "campaign_target": 0,
+            },
             "winner_by_accounts": "",
             "winner_by_ctn": "",
         }
@@ -1494,6 +1630,13 @@ def calc_conversion_campaign_group_progress(debtor_cards, campaigns):
                     "not_converted_count": 0,
                     "converted_ctn": 0,
                     "pool_value": 0,
+                    "eligible_base": 0,
+                    "repeat_actual": 0,
+                    "repeat_ctn": 0,
+                    "conversion_target": 0,
+                    "repeat_target": 0,
+                    "campaign_actual": 0,
+                    "campaign_target": 0,
                     "rank_new_accounts": 0,
                     "rank_converted_ctn": 0,
                 })
@@ -1505,6 +1648,13 @@ def calc_conversion_campaign_group_progress(debtor_cards, campaigns):
                     "not_converted_count": 0,
                     "converted_ctn": 0,
                     "pool_value": 0,
+                    "eligible_base": 0,
+                    "repeat_actual": 0,
+                    "repeat_ctn": 0,
+                    "conversion_target": 0,
+                    "repeat_target": 0,
+                    "campaign_actual": 0,
+                    "campaign_target": 0,
                     "converted_debtors": [],
                     "not_converted_debtors": [],
                 })
@@ -1515,6 +1665,19 @@ def calc_conversion_campaign_group_progress(debtor_cards, campaigns):
                 group_entry["new_accounts"] += 1
                 agent_entry["new_accounts"] += 1
                 out[cid]["totals"]["new_accounts"] += 1
+                if out[cid].get("linked_campaign"):
+                    repeat_actual = int(camp.get("linked_stage2_actual") or 0)
+                    repeat_ctn = _num2(camp.get("linked_repeat_ctn") or 0)
+                    group_entry["eligible_base"] += 1
+                    agent_entry["eligible_base"] += 1
+                    out[cid]["totals"]["eligible_base"] += 1
+                    if repeat_actual:
+                        group_entry["repeat_actual"] += repeat_actual
+                        agent_entry["repeat_actual"] += repeat_actual
+                        out[cid]["totals"]["repeat_actual"] += repeat_actual
+                        group_entry["repeat_ctn"] = _num2(group_entry["repeat_ctn"] + repeat_ctn)
+                        agent_entry["repeat_ctn"] = _num2(agent_entry["repeat_ctn"] + repeat_ctn)
+                        out[cid]["totals"]["repeat_ctn"] = _num2(out[cid]["totals"]["repeat_ctn"] + repeat_ctn)
                 if converted:
                     group_entry["converted_count"] += 1
                     agent_entry["converted_count"] += 1
@@ -1535,6 +1698,31 @@ def calc_conversion_campaign_group_progress(debtor_cards, campaigns):
                     agent_entry["not_converted_debtors"].append(debtor_row)
 
     for camp_data in out.values():
+        if camp_data.get("linked_campaign"):
+            settings = camp_data.get("linked_settings") or {}
+            total_score = calculate_linked_campaign_score(
+                camp_data["totals"].get("eligible_base", 0),
+                camp_data["totals"].get("converted_count", 0),
+                camp_data["totals"].get("repeat_actual", 0),
+                settings,
+            )
+            camp_data["totals"].update(total_score)
+            for row in camp_data["groups"].values():
+                score = calculate_linked_campaign_score(
+                    row.get("eligible_base", 0),
+                    row.get("converted_count", 0),
+                    row.get("repeat_actual", 0),
+                    settings,
+                )
+                row.update(score)
+            for row in camp_data["agents"].values():
+                score = calculate_linked_campaign_score(
+                    row.get("eligible_base", 0),
+                    row.get("converted_count", 0),
+                    row.get("repeat_actual", 0),
+                    settings,
+                )
+                row.update(score)
         group_rows = list(camp_data["groups"].values())
         _rank_group_rows(group_rows, "new_accounts")
         _rank_group_rows(group_rows, "converted_ctn")
@@ -2539,6 +2727,10 @@ def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups, 
             if _norm_code(qual_group) == "IFACE" or "IFACE" in qual_values:
                 qual_values = sorted(set(qual_values + ["IFACE"] + [_norm_code(v) for v in IFACE_ITEM_CODES]))
             price_floor = campaign_conversion_price_floor(notes, qual_group)
+            linked_campaign = is_linked_conversion_repeat_campaign(camp)
+            linked_settings = linked_campaign_settings(notes) if linked_campaign else {}
+            if linked_campaign and price_floor <= 0:
+                price_floor = float(linked_settings.get("price_floor") or 40)
 
             # Build lookback paid_on strings using the campaign deadline year
             # (e.g. ["Feb 26", "Mar 26", "Apr 26"] for a 2026 campaign).
@@ -2573,6 +2765,7 @@ def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups, 
                 current_ctn = 0.0
                 current_invoice_ctn = 0.0
                 current_unpaid_ctn = 0.0
+                paid_current_rows = conv_rows.iloc[0:0] if hasattr(conv_rows, "iloc") else pd.DataFrame()
             else:
                 item_group_norm = conv_rows["item_group"].map(_norm_code)
                 group_mask = item_group_norm.isin(qual_values or [_norm_code(qual_group)])
@@ -2599,6 +2792,23 @@ def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups, 
                 current_ctn = round(float(paid_current_rows["qty_ctn"].sum()), 2)
                 current_unpaid_ctn = round(float(unpaid_current_rows["qty_ctn"].sum()), 2)
 
+            linked_stage1_actual = 0
+            linked_stage2_actual = 0
+            linked_repeat_ctn = 0.0
+            linked_status = ""
+            linked_events = []
+            if linked_campaign:
+                linked_stage1_actual = 1 if (lookback_ctn == 0 and current_ctn > 0) else 0
+                if linked_stage1_actual:
+                    linked_events = _linked_paid_order_events(paid_current_rows)
+                    repeat_min_ctn = float(linked_settings.get("stage2_min_ctn") or 3)
+                    repeat_events = [ev for ev in linked_events[1:] if float(ev.get("ctn") or 0) >= repeat_min_ctn]
+                    linked_stage2_actual = 1 if repeat_events else 0
+                    linked_repeat_ctn = _num2(sum(float(ev.get("ctn") or 0) for ev in repeat_events))
+                    linked_status = "rp_od_achieved" if linked_stage2_actual else "waiting_repeat"
+                else:
+                    linked_status = "not_converted"
+
             camp["lookback_ctn"]   = lookback_ctn
             camp["current_ctn"]    = current_ctn
             camp["converted"]      = (lookback_ctn == 0) and (current_ctn > 0)
@@ -2610,6 +2820,27 @@ def _calc_camp_progress(dcode, agent, campaign_map, d_rows, cur_m, area_groups, 
             camp["foc_earned"]     = 0
             camp["qualified"]      = camp["converted"]
             camp["foc_item_resolved"] = ""
+            if linked_campaign:
+                camp["linked_campaign"] = True
+                camp["linked_stage1_actual"] = linked_stage1_actual
+                camp["linked_stage2_actual"] = linked_stage2_actual
+                camp["linked_repeat_ctn"] = linked_repeat_ctn
+                camp["linked_status"] = linked_status
+                camp["linked_stage1_note"] = linked_settings.get("stage1_foc_note")
+                camp["linked_stage2_note"] = linked_settings.get("stage2_foc_note")
+                camp["linked_stage1_package"] = {
+                    "item": linked_settings.get("stage1_foc_item"),
+                    "qty": linked_settings.get("stage1_foc_qty"),
+                    "unit": linked_settings.get("stage1_foc_unit"),
+                    "note": linked_settings.get("stage1_foc_note"),
+                }
+                camp["linked_stage2_package"] = {
+                    "item": linked_settings.get("stage2_foc_item"),
+                    "qty": linked_settings.get("stage2_foc_qty"),
+                    "unit": linked_settings.get("stage2_foc_unit"),
+                    "note": linked_settings.get("stage2_foc_note"),
+                }
+                camp["linked_order_count"] = len(linked_events)
             continue
 
         # Resolve FOC item based on group
@@ -4177,7 +4408,7 @@ def _normalise_campaign_numerators(camp):
         return ["count"]
     clean = []
     for n in nums:
-        if n in ("count", "ctn") and n not in clean:
+        if n in ("count", "ctn", LINKED_CAMPAIGN_NUMERATOR) and n not in clean:
             clean.append(n)
     return clean or ["count"]
 
@@ -4197,11 +4428,16 @@ def _resolve_campaign_kpi_actual(camp, agent_code, numerator, deliveries_by_camp
 
     if camp_type in ("conversion_simple", "conversion_tiered"):
         rollup = (conversion_rollup or {}).get(camp_id, {})
-        if numerator == "count":
+        if numerator == LINKED_CAMPAIGN_NUMERATOR:
+            linked = rollup.get("linked_progress") or {}
+            auto_actual = float(linked.get("campaign_actual", 0) or 0)
+            auto_source = "auto_linked_conversion_repeat"
+        elif numerator == "count":
             auto_actual = float(rollup.get("converted_count", 0) or 0)
         elif numerator == "ctn":
             auto_actual = float(rollup.get("converted_ctn", 0) or 0)
-        auto_source = "auto_paid_conversion"
+        if numerator != LINKED_CAMPAIGN_NUMERATOR:
+            auto_source = "auto_paid_conversion"
     elif numerator == "count" and delivered_codes:
         auto_actual = float(len(set(delivered_codes)))
         auto_source = "management_delivery_upload"
@@ -4236,11 +4472,14 @@ def build_per_campaign_kpi_items(agent_code, ag_cfg, active_campaigns, deliverie
             kpi_key = _campaign_metric_key(camp_id, numerator)
             if not kpi_key:
                 continue
-            raw_target = _get_campaign_target_compat(camp_tgts, camp_id, numerator)
-            try:
-                target = float(raw_target or 0)
-            except (TypeError, ValueError):
-                target = 0.0
+            if numerator == LINKED_CAMPAIGN_NUMERATOR:
+                target = LINKED_CAMPAIGN_TARGET
+            else:
+                raw_target = _get_campaign_target_compat(camp_tgts, camp_id, numerator)
+                try:
+                    target = float(raw_target or 0)
+                except (TypeError, ValueError):
+                    target = 0.0
             weight = _get_campaign_weight_compat(month_weights, camp_id, numerator)
             resolved = _resolve_campaign_kpi_actual(
                 camp, agent_code, numerator, deliveries_by_camp_agent,
@@ -5145,10 +5384,14 @@ def main():
                     notes = camp.get("notes") or {}
                     tier_names = list(notes.get("tier_names") or [])
                     thresholds = notes.get("tier_thresholds") or []
+                    linked_campaign = is_linked_conversion_repeat_campaign(camp)
+                    linked_settings = linked_campaign_settings(notes) if linked_campaign else {}
                     per_camp[cid] = {
                         "name":              camp.get("name", ""),
                         "tier_thresholds":   thresholds,
                         "tier_names":        tier_names,
+                        "linked_campaign":   linked_campaign,
+                        "linked_settings":    linked_settings,
                         "total_enrolled":    0,
                         "enrolled_count":    0,
                         "converted_count":   0,
@@ -5161,6 +5404,27 @@ def main():
                         "to_next_tier":      0,
                         "next_tier_label":   None,
                     }
+                    if linked_campaign:
+                        per_camp[cid]["linked_progress"] = {
+                            "eligible_base": 0,
+                            "conversion_actual": 0,
+                            "repeat_actual": 0,
+                            "repeat_ctn": 0.0,
+                            "stage1_note": linked_settings.get("stage1_foc_note"),
+                            "stage2_note": linked_settings.get("stage2_foc_note"),
+                            "stage1_package": {
+                                "item": linked_settings.get("stage1_foc_item"),
+                                "qty": linked_settings.get("stage1_foc_qty"),
+                                "unit": linked_settings.get("stage1_foc_unit"),
+                                "note": linked_settings.get("stage1_foc_note"),
+                            },
+                            "stage2_package": {
+                                "item": linked_settings.get("stage2_foc_item"),
+                                "qty": linked_settings.get("stage2_foc_qty"),
+                                "unit": linked_settings.get("stage2_foc_unit"),
+                                "note": linked_settings.get("stage2_foc_note"),
+                            },
+                        }
                 entry = per_camp[cid]
                 entry["total_enrolled"] += 1
                 entry["enrolled_count"] += 1
@@ -5169,6 +5433,12 @@ def main():
                     entry["converted_count"] += 1
                     entry["converted_targets"] += 1
                     entry["converted_ctn"] += float(camp.get("current_ctn", 0) or 0)
+                if entry.get("linked_campaign"):
+                    linked = entry.setdefault("linked_progress", {})
+                    linked["eligible_base"] = int(linked.get("eligible_base", 0) or 0) + 1
+                    linked["conversion_actual"] = int(linked.get("conversion_actual", 0) or 0) + int(camp.get("linked_stage1_actual") or 0)
+                    linked["repeat_actual"] = int(linked.get("repeat_actual", 0) or 0) + int(camp.get("linked_stage2_actual") or 0)
+                    linked["repeat_ctn"] = _num2(float(linked.get("repeat_ctn", 0) or 0) + float(camp.get("linked_repeat_ctn", 0) or 0))
 
         # Apply user-set per-agent campaign targets after counts settle.
         # Missing/null campaign_targets fall back to the computed enrolled target
@@ -5182,12 +5452,29 @@ def main():
 
         # Compute conversion rate after counts settle
         for cid, entry in per_camp.items():
-            user_target = _get_campaign_target_compat(camp_tgts, cid, "count")
-            if user_target is not None:
-                try:
-                    entry["target_count"] = float(user_target)
-                except (TypeError, ValueError):
-                    pass
+            if entry.get("linked_campaign"):
+                linked = entry.get("linked_progress") or {}
+                score = calculate_linked_campaign_score(
+                    linked.get("eligible_base", 0),
+                    linked.get("conversion_actual", 0),
+                    linked.get("repeat_actual", 0),
+                    entry.get("linked_settings") or {},
+                )
+                score["repeat_ctn"] = _num2(linked.get("repeat_ctn", 0))
+                score["stage1_note"] = linked.get("stage1_note")
+                score["stage2_note"] = linked.get("stage2_note")
+                score["stage1_package"] = linked.get("stage1_package")
+                score["stage2_package"] = linked.get("stage2_package")
+                entry["linked_progress"] = score
+                entry["target_count"] = score["conversion_target"]
+                entry["converted_targets"] = score["conversion_actual"]
+            else:
+                user_target = _get_campaign_target_compat(camp_tgts, cid, "count")
+                if user_target is not None:
+                    try:
+                        entry["target_count"] = float(user_target)
+                    except (TypeError, ValueError):
+                        pass
             tc = entry["target_count"]
             entry["conversion_rate_targets"] = round(
                 entry["converted_targets"] / tc, 4

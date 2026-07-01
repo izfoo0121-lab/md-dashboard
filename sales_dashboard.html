@@ -2681,6 +2681,26 @@ function formatCampaignFocPackage(c = {}) {
   return text ? `FOC: ${text}` : '';
 }
 
+function isLinkedConversionRepeatCampaign(c = {}) {
+  const notes = c.notes || {};
+  const nums = Array.isArray(c.kpi_numerators) ? c.kpi_numerators : [];
+  return notes.mechanism_type === 'linked_conversion_repeat' || nums.includes('linked_conversion_repeat') || !!c.linked_campaign;
+}
+
+function formatLinkedStagePackage(c = {}, stage = 1) {
+  const notes = c.notes || {};
+  const pkg = stage === 2
+    ? (c.linked_stage2_package || notes.stage2_package || {})
+    : (c.linked_stage1_package || notes.stage1_package || {});
+  const item = pkg.item || notes[`stage${stage}_foc_item`] || 'SUKUN';
+  const qty = pkg.qty ?? notes[`stage${stage}_foc_qty`] ?? (stage === 2 ? 1 : 3);
+  const unit = pkg.unit || notes[`stage${stage}_foc_unit`] || (stage === 2 ? 'ctn' : 'packs');
+  const note = pkg.note || notes[`stage${stage}_foc_note`] || (stage === 2 ? '[RP OD]' : '[1ST OD]');
+  const q = Number(qty || 0);
+  const qText = q ? (Number.isInteger(q) ? String(q) : String(Number(q.toFixed(3)))) : '';
+  return `FOC: ${String(item || '').toUpperCase()}${qText ? ` x ${qText}` : ''} ${normalizeFocUnitDisplay(unit)}${note ? ` · Note: ${note}` : ''}`;
+}
+
 function isIfaceCampaign(c = {}) {
   const notes = c.notes || {};
   const values = [
@@ -2754,6 +2774,40 @@ function renderIfaceMissionSummary(c = {}, stats = {}) {
   </div>`;
 }
 
+function renderLinkedCampaignSummary(c = {}, linked = {}) {
+  const claimable = c.debtors || [];
+  const claimed = claimable.filter(d => getCampClaims(currentAgent, c.id, d.debtor_code)).length;
+  const conversionTarget = Number(linked.conversion_target || 0);
+  const conversionActual = Number(linked.conversion_actual || 0);
+  const repeatTarget = Number(linked.repeat_target || 0);
+  const repeatActual = Number(linked.repeat_actual || 0);
+  const score = Number(linked.campaign_actual || 0);
+  const scoreTarget = Number(linked.campaign_target || 50);
+  const convPct = conversionTarget ? Math.round(conversionActual / conversionTarget * 100) : 0;
+  const repeatPct = repeatTarget ? Math.round(repeatActual / repeatTarget * 100) : 0;
+  return `<div style="padding:0 16px 12px;">
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:8px;">
+      <div style="border:1px solid rgba(77,166,255,.25);background:rgba(77,166,255,.08);border-radius:10px;padding:9px 10px;">
+        <div style="font-family:var(--display);font-size:20px;color:var(--blue);">${fmtNum(linked.eligible_base || claimable.length)}</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">Eligible base</div>
+      </div>
+      <div style="border:1px solid rgba(61,220,132,.28);background:rgba(61,220,132,.08);border-radius:10px;padding:9px 10px;">
+        <div style="font-family:var(--display);font-size:20px;color:var(--green);">${fmtNum(conversionActual)} / ${fmtNum(conversionTarget)}</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">1ST OD converted · ${convPct}%</div>
+      </div>
+      <div style="border:1px solid rgba(255,204,102,.28);background:rgba(255,204,102,.08);border-radius:10px;padding:9px 10px;">
+        <div style="font-family:var(--display);font-size:20px;color:var(--accent);">${fmtNum(repeatActual)} / ${fmtNum(repeatTarget)}</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">RP OD repeat · ${repeatPct}%</div>
+      </div>
+      <div style="border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.045);border-radius:10px;padding:9px 10px;">
+        <div style="font-family:var(--display);font-size:20px;color:var(--text);">${fmtNum(score)} / ${fmtNum(scoreTarget)}</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">KPI internal · claims ${claimed}/${claimable.length}</div>
+      </div>
+    </div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--accent);margin-top:8px;">${formatLinkedStagePackage(c, 1)} · ${formatLinkedStagePackage(c, 2).replace(/^FOC: /, 'RP: ')}</div>
+  </div>`;
+}
+
 function conversionCampaignStatus(c = {}) {
   const lookback = Number(c.lookback_ctn ?? 0);
   const paid = Number(c.current_paid_ctn ?? c.current_ctn ?? 0);
@@ -2761,6 +2815,83 @@ function conversionCampaignStatus(c = {}) {
   const rawUnpaid = Number(c.current_unpaid_ctn ?? 0);
   const unpaid = rawUnpaid > 0 ? rawUnpaid : Math.max(0, invoice - paid);
   const converted = !!c.converted;
+  if (isLinkedConversionRepeatCampaign(c)) {
+    const status = c.linked_status || (c.linked_stage2_actual ? 'rp_od_achieved' : converted ? 'waiting_repeat' : 'not_converted');
+    if (status === 'rp_od_achieved') {
+      return {
+        key: 'rp_od_achieved',
+        group: 'converted',
+        label: 'RP OD achieved',
+        shortLabel: 'RP OD',
+        note: 'Repeat order counted',
+        color: 'var(--green)',
+        bg: 'rgba(61,220,132,.12)',
+        border: 'rgba(61,220,132,.4)',
+        lookback,
+        paid,
+        unpaid,
+        invoice,
+        currentText: `${fmtNum(paid)} CTN paid · ${fmtNum(c.linked_repeat_ctn || 0)} repeat`,
+        claimable: true,
+        linkedStage: 2
+      };
+    }
+    if (status === 'waiting_repeat' || converted) {
+      return {
+        key: 'waiting_repeat',
+        group: 'converted',
+        label: 'Waiting repeat',
+        shortLabel: '1ST OD',
+        note: 'Stage 1 achieved; follow up RP OD',
+        color: 'var(--accent)',
+        bg: 'rgba(240,192,64,.12)',
+        border: 'rgba(240,192,64,.35)',
+        lookback,
+        paid,
+        unpaid,
+        invoice,
+        currentText: `${fmtNum(paid)} CTN paid`,
+        claimable: true,
+        linkedStage: 2
+      };
+    }
+    if (unpaid > 0) {
+      return {
+        key: 'awaiting_payment',
+        group: 'awaiting_payment',
+        label: 'Awaiting payment',
+        shortLabel: 'Unpaid',
+        note: 'Stage 1 waits for paid invoice',
+        color: 'var(--orange)',
+        bg: 'rgba(255,154,60,.12)',
+        border: 'rgba(255,154,60,.35)',
+        lookback,
+        paid,
+        unpaid,
+        invoice,
+        currentText: `${fmtNum(unpaid)} CTN unpaid`,
+        claimable: false,
+        linkedStage: 1
+      };
+    }
+    return {
+      key: 'not_converted',
+      group: 'not-yet',
+      label: 'Not converted',
+      shortLabel: 'Not converted',
+      note: 'No qualifying paid order yet',
+      color: 'var(--muted)',
+      bg: 'rgba(255,255,255,.06)',
+      border: 'rgba(255,255,255,.12)',
+      lookback,
+      paid,
+      unpaid,
+      invoice,
+      currentText: '0 CTN',
+      claimable: false,
+      linkedStage: 1
+    };
+  }
   if (converted) {
     return {
       key: 'converted',
@@ -4590,9 +4721,13 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
         const lbMonths = (c.notes && c.notes.lookback_months) || [];
         const lbLabel  = lbMonths.length >= 2 ? `${lbMonths[0]}-${lbMonths[lbMonths.length-1]}` : (lbMonths[0] || 'Lookback');
         const summaryLine = `${lbLabel}: ${fmtNum(lookbackCtn)} CTN · ${conv.currentText}`;
-        const focPackageText = formatCampaignFocPackage(c);
+        const focPackageText = isLinkedConversionRepeatCampaign(c)
+          ? formatLinkedStagePackage(c, conv.linkedStage || 1)
+          : formatCampaignFocPackage(c);
         const eligibilityReason = c.eligibility_reason || c.promo_logic || '';
-        const focNote = c.foc_note || c.notes?.foc_note || (isIfaceCampaign(c) ? 'IFACE PEN' : '');
+        const focNote = isLinkedConversionRepeatCampaign(c)
+          ? ''
+          : (c.foc_note || c.notes?.foc_note || (isIfaceCampaign(c) ? 'IFACE PEN' : ''));
 
         const convertedChip = `<span style="font-family:var(--mono);font-size:9px;color:${conv.color};background:${conv.bg};border:1px solid ${conv.border};padding:2px 6px;border-radius:4px;font-weight:600;">${conv.label}</span>`;
         const claimData = getCampClaims(currentAgent, c.id, d.debtor_code);
@@ -6471,7 +6606,7 @@ function campaignVisibleForSelectedMonth(c) {
 
 function visibleDebtorCampaigns(debtor) {
   return (debtor?.campaigns || [])
-    .filter(c => c?.active !== false || isHistoricalMonth(DATA?.current_month))
+    .filter(c => c?.active !== false)
     .filter(campaignVisibleForSelectedMonth)
     .filter(isVisibleDebtorCampaign);
 }
@@ -6554,6 +6689,9 @@ function showCampDetail(event, debtorCode, debtorName) {
       ? `<div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:6px;">${c.description}</div>` : '';
     const isConversionCamp = c.type === 'conversion_tiered' || c.type === 'conversion_simple';
     const conv = isConversionCamp ? conversionCampaignStatus(c) : null;
+    const linkedPackageLine = conv && isLinkedConversionRepeatCampaign(c)
+      ? formatLinkedStagePackage(c, conv.linkedStage || 1)
+      : '';
     const conversionHtml = conv
       ? `<div style="margin-top:8px;background:${conv.bg};border:1px solid ${conv.border};border-radius:8px;padding:8px 10px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
@@ -6561,6 +6699,7 @@ function showCampDetail(event, debtorCode, debtorName) {
             <div style="font-family:var(--mono);font-size:9px;color:${conv.color};">${conv.note}</div>
           </div>
           <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:4px;">Feb-Apr: ${fmtNum(conv.lookback)} CTN · ${conv.currentText}</div>
+          ${linkedPackageLine ? `<div style="font-family:var(--mono);font-size:9px;color:var(--accent);margin-top:3px;">${linkedPackageLine}</div>` : ''}
           ${conv.unpaid > 0 ? `<div style="font-family:var(--mono);font-size:9px;color:var(--orange);margin-top:3px;">Invoice CTN exists, but campaign conversion waits for paid CTN.</div>` : ''}
         </div>` : '';
 
@@ -6712,6 +6851,8 @@ function renderCamps() {
       // Pull rollup data from the agent block. Fall back to computing from
       // c.debtors if rollup is missing (defensive — handles stale data).
       const rollup = DATA.agents[currentAgent]?.conversion_campaigns?.[c.id];
+      const linkedCampaign = isLinkedConversionRepeatCampaign(c) || !!rollup?.linked_campaign || !!rollup?.linked_progress;
+      let linkedProgress = rollup?.linked_progress || null;
       let totalEnrolled, convertedCount, convertedTargets, convertedCtn, targetCount, conversionRate;
       let agentTierIdx, agentTierLabel, toNextTier, nextTierLabel;
       if (rollup) {
@@ -6744,6 +6885,31 @@ function renderCamps() {
         toNextTier = tier.toNext;
         nextTierLabel = tier.nextLabel;
       }
+      if (linkedCampaign && !linkedProgress) {
+        const linkedRows = c.debtors.map(d => visibleDebtorCampaigns(d).find(cc => cc.id === c.id)).filter(Boolean);
+        const eligibleBase = linkedRows.length;
+        const conversionActual = linkedRows.filter(cc => cc.linked_stage1_actual || cc.converted).length;
+        const repeatActual = linkedRows.filter(cc => cc.linked_stage2_actual || cc.linked_status === 'rp_od_achieved').length;
+        const conversionTarget = Math.ceil(eligibleBase * Number(c.notes?.linked_conversion_target_pct || 20) / 100);
+        const repeatTarget = Math.ceil(conversionActual * Number(c.notes?.linked_repeat_target_pct || 30) / 100);
+        const conversionEarned = conversionTarget ? Math.min(conversionActual / conversionTarget, 1) * 20 : 0;
+        const repeatEarned = repeatTarget ? Math.min(repeatActual / repeatTarget, 1) * 30 : 0;
+        linkedProgress = {
+          eligible_base: eligibleBase,
+          conversion_actual: conversionActual,
+          conversion_target: conversionTarget,
+          repeat_actual: repeatActual,
+          repeat_target: repeatTarget,
+          campaign_actual: Math.round((conversionEarned + repeatEarned) * 1000) / 1000,
+          campaign_target: 50
+        };
+      }
+      if (linkedCampaign && linkedProgress) {
+        totalEnrolled = linkedProgress.eligible_base ?? totalEnrolled;
+        convertedTargets = linkedProgress.conversion_actual ?? convertedTargets;
+        targetCount = linkedProgress.conversion_target ?? targetCount;
+        conversionRate = targetCount > 0 ? convertedTargets / targetCount : 0;
+      }
 
       // Conversion rate as percent
       const ratePct = Math.round((conversionRate || 0) * 100);
@@ -6760,6 +6926,7 @@ function renderCamps() {
         awaitingCount,
         awaitingCtn
       }) : '';
+      const linkedMission = linkedCampaign && linkedProgress ? renderLinkedCampaignSummary(c, linkedProgress) : '';
 
       return '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;">' +
         // Header section
@@ -6791,9 +6958,10 @@ function renderCamps() {
               : '') +
           '</div>' +
         '</div>' +
-        ifaceMission +
+        linkedMission +
+        (!linkedMission ? ifaceMission : '') +
         // Body: agent-level tier status
-        (isIfaceCampaign(c) ? '' : '<div style="padding:10px 16px 14px;">' +
+        ((isIfaceCampaign(c) || linkedCampaign) ? '' : '<div style="padding:10px 16px 14px;">' +
           '<div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Agent tier status</div>' +
           '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
             '<span style="font-family:var(--mono);font-size:9px;color:' + tierDisplay.color + ';background:' + tierDisplay.bg + ';border:1px solid ' + tierDisplay.border + ';padding:3px 9px;border-radius:10px;font-weight:600;">' + tierDisplay.label + '</span>' +
@@ -6877,7 +7045,12 @@ function renderCamps() {
           const claimColor = claimInfo.color;
           const claimBdr   = claimInfo.border;
           const debtorCamp = visibleDebtorCampaigns(d).find(cc => cc.id === c.id) || c;
-          const packageLine = formatCampaignFocPackage(debtorCamp);
+          const linkedStage = isLinkedConversionRepeatCampaign(debtorCamp)
+            ? (conversionCampaignStatus(debtorCamp).linkedStage || 1)
+            : 1;
+          const packageLine = isLinkedConversionRepeatCampaign(debtorCamp)
+            ? formatLinkedStagePackage(debtorCamp, linkedStage)
+            : formatCampaignFocPackage(debtorCamp);
           const metaLine   = isExcluded ? d.debtor_code + ' \u00B7 ' + unableReasonLabel(cd.reason) + (cd.remark ? ' \u2014 ' + cd.remark : '') : d.debtor_code + ' \u00B7 ' + claimInfo.label + (cd?.ts ? ' \u00B7 ' + cd.ts : '') + (cd?.count > 1 ? ' \u00B7 ' + cd.count + '\u00D7 requests' : '');
           const rowBg      = isExcluded ? 'rgba(255,136,102,.04)' : isClaimed ? claimInfo.bg : 'rgba(255,255,255,.03)';
           const rowBorder  = isExcluded ? 'rgba(255,136,102,.2)' : isClaimed ? claimInfo.border : 'transparent';
@@ -7045,7 +7218,8 @@ function campDebtorConversionInfo(camp, debtor) {
     invoice: conv.invoice,
     note: conv.note,
     claimable: conv.claimable,
-    currentText: conv.currentText
+    currentText: conv.currentText,
+    linkedStage: conv.linkedStage || 1
   };
 }
 
@@ -7125,7 +7299,9 @@ function renderCampaignDebtorPanel(camp) {
       ? `onclick='toggleCampClaim(event,${JSON.stringify(d.debtor_code || '')},${JSON.stringify(campId)},${JSON.stringify(d.company_name || d.debtor_code || '')},${JSON.stringify(camp.promo_detail || camp.name || '')},${JSON.stringify(camp.type || 'other')})'`
       : `onclick='event.stopPropagation()' disabled`;
     const debtorCamp = visibleDebtorCampaigns(d).find(cc => cc.id === campId) || camp;
-    const packageLine = formatCampaignFocPackage(debtorCamp);
+    const packageLine = isLinkedConversionRepeatCampaign(debtorCamp)
+      ? formatLinkedStagePackage(debtorCamp, t.linkedStage || 1)
+      : formatCampaignFocPackage(debtorCamp);
     const eligibilityReason = debtorCamp.eligibility_reason || debtorCamp.promo_logic || '';
     const focNote = debtorCamp.foc_note || camp.foc_note || debtorCamp.notes?.foc_note || (isIfaceCampaign(camp) ? 'IFACE PEN' : '');
     return header + `<div class="camp-debtor-row" style="display:grid;grid-template-columns:34px minmax(0,1fr) 92px 88px 82px 82px 112px;gap:8px;align-items:center;padding:7px 8px;background:${rowBg};border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;">

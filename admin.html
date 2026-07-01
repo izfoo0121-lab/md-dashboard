@@ -947,6 +947,9 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
           <label style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;">
             <input type="checkbox" data-kpi-numerator-scope="new-camp" name="new-camp_kpi_numerator" value="ctn"> Carton Volume (条数)
           </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;margin-left:16px;font-family:var(--mono);font-size:11px;">
+            <input type="checkbox" data-kpi-numerator-scope="new-camp" name="new-camp_kpi_numerator" value="linked_conversion_repeat"> Linked conversion + repeat
+          </label>
         </div>
 
         <!-- FOC fields — shown for free_sample and festive_gift types -->
@@ -1030,6 +1033,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
                 <option value="manual_claim">Manual list / exact package</option>
                 <option value="delivery_gift">Gift / FOC Delivery</option>
                 <option value="conversion">Brand Penetration / Win-back</option>
+                <option value="linked_conversion_repeat">Linked Conversion + Repeat Promo</option>
                 <option value="volume_reward">Volume Segment Offer</option>
               </select>
             </div>
@@ -1085,6 +1089,32 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
               style="text-transform:capitalize;">
             <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:4px;">
               Months to check for "did this debtor buy the qualifying item?"
+            </div>
+          </div>
+
+          <div id="new-camp-linked-stage-wrap" style="border:1px solid rgba(15,118,110,.24);background:#f7fbfa;border-radius:10px;padding:10px 12px;margin:10px 0;">
+            <div style="font-family:var(--display);font-size:15px;letter-spacing:.04em;margin-bottom:6px;">Linked Conversion + Repeat Promo</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);line-height:1.6;margin-bottom:10px;">
+              One campaign card, two stages. KPI actual is scored internally as 20 conversion units + 30 repeat units = 50.
+            </div>
+            <div class="input-row">
+              <div class="field-wrap"><div class="field-lbl">Stage 1 target % of eligible base</div><input type="number" min="0" max="100" step="0.1" id="new-camp-stage1-target-pct" value="20"></div>
+              <div class="field-wrap"><div class="field-lbl">Stage 1 FOC note</div><input type="text" id="new-camp-stage1-foc-note" value="[1ST OD]"></div>
+            </div>
+            <div class="input-row">
+              <div class="field-wrap"><div class="field-lbl">Stage 1 free item</div><input type="text" id="new-camp-stage1-foc-item" value="SUKUN" style="text-transform:uppercase;"></div>
+              <div class="field-wrap"><div class="field-lbl">Stage 1 free qty</div><input type="number" min="0" step="0.1" id="new-camp-stage1-foc-qty" value="3"></div>
+              <div class="field-wrap"><div class="field-lbl">Stage 1 unit</div><select id="new-camp-stage1-foc-unit"><option value="packs">packs</option><option value="ctn">ctn</option><option value="box">box</option><option value="piece">piece</option></select></div>
+            </div>
+            <div class="input-row">
+              <div class="field-wrap"><div class="field-lbl">Stage 2 target % of converted base</div><input type="number" min="0" max="100" step="0.1" id="new-camp-stage2-target-pct" value="30"></div>
+              <div class="field-wrap"><div class="field-lbl">Stage 2 min repeat CTN</div><input type="number" min="0" step="0.1" id="new-camp-stage2-min-ctn" value="3"></div>
+              <div class="field-wrap"><div class="field-lbl">Stage 2 FOC note</div><input type="text" id="new-camp-stage2-foc-note" value="[RP OD]"></div>
+            </div>
+            <div class="input-row">
+              <div class="field-wrap"><div class="field-lbl">Stage 2 free item</div><input type="text" id="new-camp-stage2-foc-item" value="SUKUN" style="text-transform:uppercase;"></div>
+              <div class="field-wrap"><div class="field-lbl">Stage 2 free qty</div><input type="number" min="0" step="0.1" id="new-camp-stage2-foc-qty" value="1"></div>
+              <div class="field-wrap"><div class="field-lbl">Stage 2 unit</div><select id="new-camp-stage2-foc-unit"><option value="ctn">ctn</option><option value="packs">packs</option><option value="box">box</option><option value="piece">piece</option></select></div>
             </div>
           </div>
 
@@ -3861,7 +3891,7 @@ function getCampaignNumerators(camp) {
   const nums = Array.isArray(camp?.kpi_numerators) && camp.kpi_numerators.length
     ? camp.kpi_numerators
     : ['count'];
-  return [...new Set(nums.filter(n => n === 'count' || n === 'ctn'))];
+  return [...new Set(nums.filter(n => n === 'count' || n === 'ctn' || n === 'linked_conversion_repeat'))];
 }
 
 function getCampaignMetricRows(camp) {
@@ -3877,6 +3907,7 @@ function getCampaignMetricRows(camp) {
 
 function getCampaignMetricLabel(camp, numerator) {
   const name = camp?.name || camp?.id || 'Campaign';
+  if (numerator === 'linked_conversion_repeat') return `${name} (Linked Conversion + Repeat)`;
   if (numerator === 'ctn') return `${name} (Carton 条数)`;
   return `${name} (Count 渗透率)`;
 }
@@ -3895,7 +3926,7 @@ function getCampaignMetricValue(obj, metricKey) {
 
 function parseCampaignImportKey(fieldKey) {
   const key = String(fieldKey || '').trim();
-  const m = key.match(/^(camp_.+)_(count|ctn)$/);
+  const m = key.match(/^(camp_.+)_(count|ctn|linked_conversion_repeat)$/);
   if (m) return { key, campaignKey: m[1], numerator: m[2], legacy: false };
   if (key.startsWith('camp_')) return { key: `${key}_count`, campaignKey: key, numerator: 'count', legacy: true };
   return null;
@@ -3916,6 +3947,9 @@ function renderKpiNumeratorsGroup(scope, nums, opts = {}) {
     <label style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;">
       <input type="checkbox" data-kpi-numerator-scope="${scope}" name="${scope}_kpi_numerator" value="ctn" ${current.includes('ctn') ? 'checked' : ''}> Carton Volume (条数)
     </label>
+    <label style="display:inline-flex;align-items:center;gap:6px;margin-left:16px;font-family:var(--mono);font-size:11px;">
+      <input type="checkbox" data-kpi-numerator-scope="${scope}" name="${scope}_kpi_numerator" value="linked_conversion_repeat" ${current.includes('linked_conversion_repeat') ? 'checked' : ''}> Linked conversion + repeat
+    </label>
   </div>`;
 }
 
@@ -3923,11 +3957,18 @@ function readKpiNumerators(scope) {
   return Array.from(document.querySelectorAll(`input[data-kpi-numerator-scope="${scope}"]:checked`)).map(el => el.value);
 }
 
+function setKpiNumeratorsForScope(scope, selected) {
+  const boxes = Array.from(document.querySelectorAll(`input[data-kpi-numerator-scope="${scope}"]`));
+  if (!boxes.length) return;
+  const values = Array.isArray(selected) ? selected : [];
+  boxes.forEach(box => { box.checked = values.includes(box.value); });
+}
+
 function applyKpiNumeratorDefaults(scope, type) {
   const boxes = Array.from(document.querySelectorAll(`input[data-kpi-numerator-scope="${scope}"]`));
   if (!boxes.length) return;
   const defaults = type === 'conversion_simple' ? ['count', 'ctn'] : ['count'];
-  boxes.forEach(box => { box.checked = defaults.includes(box.value); });
+  setKpiNumeratorsForScope(scope, defaults);
 }
 
 function _campScopeId(scope, field) {
@@ -4032,6 +4073,7 @@ function renderIfaceGroupMapEditor() { return renderBrandPenetrationGroupMapEdit
 
 function campaignMechanismTypeFor(camp, notes = {}) {
   if (notes.mechanism_type) return notes.mechanism_type;
+  if (Array.isArray(camp?.kpi_numerators) && camp.kpi_numerators.includes('linked_conversion_repeat')) return 'linked_conversion_repeat';
   if ((camp.type || '').startsWith('conversion_')) return 'conversion';
   if (Array.isArray(notes.reward_tiers) && notes.reward_tiers.length) return 'volume_reward';
   if (camp.type === 'birthday_gift' || camp.type === 'festive_gift' || camp.type === 'free_sample') return 'delivery_gift';
@@ -4054,6 +4096,11 @@ function campaignMechanismDisplayMeta(mechanism, type) {
       title: 'Brand Penetration / Win-back',
       help: 'Use for current-month purchase or no-lookback-then-current campaigns.',
       preview: 'Sales shows eligibility reason; Management compares conversion and CTN.'
+    },
+    linked_conversion_repeat: {
+      title: 'Linked Conversion + Repeat Promo',
+      help: 'Use when one campaign has Stage 1 conversion and Stage 2 repeat order targets.',
+      preview: 'Sales shows one mission card; KPI scores Stage 1 as 20 units and Stage 2 as 30 units.'
     },
     volume_reward: {
       title: 'Volume Segment Offer',
@@ -4090,8 +4137,16 @@ function readCampaignMechanism(scope, type) {
   const priceFloor = priceFloorRaw === '' || priceFloorRaw == null ? null : Number(priceFloorRaw);
   const lookbackMonths = _campCsv(get('lookback-months')?.value || '');
   const rewardTiers = parseCampaignRewardTiers(get('reward-tiers')?.value || '');
-  const isConversion = mechanismType === 'conversion';
+  const isLinked = mechanismType === 'linked_conversion_repeat';
+  const isConversion = mechanismType === 'conversion' || isLinked;
   const isVolume = mechanismType === 'volume_reward';
+  const num = (field, fallback = null) => {
+    const raw = get(field)?.value;
+    if (raw === '' || raw == null) return fallback;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : fallback;
+  };
+  const text = (field, fallback = '') => String(get(field)?.value || fallback || '').trim();
   const followUpEnabled = !!get('follow-up-enabled')?.checked;
   const followUpMonths = parseInt(get('follow-up-months')?.value, 10);
   const followUpValues = _campCsv(get('follow-up-target')?.value || '').map(v => v.toUpperCase());
@@ -4112,6 +4167,24 @@ function readCampaignMechanism(scope, type) {
     follow_up_match: get('follow-up-match')?.value || matchBy,
     follow_up_values: followUpEnabled ? (followUpValues.length ? followUpValues : matchValues) : []
   };
+  if (isLinked) {
+    notes.linked_conversion_target_pct = num('stage1-target-pct', 20);
+    notes.linked_repeat_target_pct = num('stage2-target-pct', 30);
+    notes.linked_conversion_units = 20;
+    notes.linked_repeat_units = 30;
+    notes.linked_internal_target = 50;
+    notes.stage1_min_ctn = num('stage1-min-ctn', 1);
+    notes.stage1_foc_item = text('stage1-foc-item', 'SUKUN').toUpperCase();
+    notes.stage1_foc_qty = num('stage1-foc-qty', 3);
+    notes.stage1_foc_unit = normalizeFocUnit(text('stage1-foc-unit', 'packs'));
+    notes.stage1_foc_note = text('stage1-foc-note', '[1ST OD]');
+    notes.stage2_min_ctn = num('stage2-min-ctn', 3);
+    notes.stage2_foc_item = text('stage2-foc-item', 'SUKUN').toUpperCase();
+    notes.stage2_foc_qty = num('stage2-foc-qty', 1);
+    notes.stage2_foc_unit = normalizeFocUnit(text('stage2-foc-unit', 'ctn'));
+    notes.stage2_foc_note = text('stage2-foc-note', '[RP OD]');
+    if (!Number.isFinite(notes.min_rm_per_ctn)) notes.min_rm_per_ctn = 40;
+  }
   const helperBrand = String(document.getElementById('brand-pen-brand')?.value || '').trim().toUpperCase();
   const helperValues = _campCsv(document.getElementById('brand-pen-values')?.value || '').map(v => v.toUpperCase());
   const helperValueSet = new Set([helperBrand, ...helperValues].filter(Boolean));
@@ -4144,7 +4217,8 @@ function readCampaignMechanism(scope, type) {
 function toggleCampaignMechanismSections(scope, type = '') {
   const get = field => document.getElementById(_campScopeId(scope, field));
   const mechanism = get('mechanism-type')?.value || ((type || '').startsWith('conversion_') ? 'conversion' : 'manual_claim');
-  const isConversion = mechanism === 'conversion';
+  const isLinked = mechanism === 'linked_conversion_repeat';
+  const isConversion = mechanism === 'conversion' || isLinked;
   const isTiered = isConversion && type === 'conversion_tiered';
   const isVolume = mechanism === 'volume_reward';
   const show = (field, visible) => {
@@ -4154,12 +4228,14 @@ function toggleCampaignMechanismSections(scope, type = '') {
 
   show('conversion-rule-wrap', isConversion);
   show('lookback-wrap', isConversion);
+  show('linked-stage-wrap', isLinked);
   show('match-row', isConversion || isVolume);
   show('qualifying-wrap', isConversion || isVolume);
   show('volume-row', isVolume);
   show('reward-wrap', isVolume);
   show('tier-row', isTiered);
   show('tier-note', isTiered);
+  if (isLinked) setKpiNumeratorsForScope(scope, ['linked_conversion_repeat']);
   updateCampaignMechanismCopy(scope, type);
 }
 
@@ -4176,6 +4252,7 @@ function renderCampaignMechanismFields(scope, camp = {}) {
         <option value="manual_claim" ${mechanismType==='manual_claim'?'selected':''}>Manual list / exact package</option>
         <option value="delivery_gift" ${mechanismType==='delivery_gift'?'selected':''}>Gift / FOC Delivery</option>
         <option value="conversion" ${mechanismType==='conversion'?'selected':''}>Brand Penetration / Win-back</option>
+        <option value="linked_conversion_repeat" ${mechanismType==='linked_conversion_repeat'?'selected':''}>Linked Conversion + Repeat Promo</option>
         <option value="volume_reward" ${mechanismType==='volume_reward'?'selected':''}>Volume Segment Offer</option>
       </select></div>
       <div class="field-wrap" id="${_campScopeId(scope,'conversion-rule-wrap')}"><div class="field-lbl">Conversion Rule</div><select id="${_campScopeId(scope,'conversion-rule')}">
@@ -4196,6 +4273,29 @@ function renderCampaignMechanismFields(scope, camp = {}) {
       <div class="field-wrap"><div class="field-lbl">Min RM / CTN</div><input type="number" min="0" step="0.01" id="${_campScopeId(scope,'price-floor')}" value="${notes.min_rm_per_ctn ?? notes.price_floor ?? ''}" placeholder="41.00"></div>
     </div>
     <div class="input-group" id="${_campScopeId(scope,'lookback-wrap')}"><div class="input-label">Lookback Months</div><input id="${_campScopeId(scope,'lookback-months')}" value="${(notes.lookback_months||[]).join(', ').replace(/"/g,'&quot;')}" placeholder="Feb,Mar,Apr"></div>
+    <div id="${_campScopeId(scope,'linked-stage-wrap')}" style="border:1px solid rgba(15,118,110,.24);background:#f7fbfa;border-radius:10px;padding:10px 12px;margin:10px 0;">
+      <div style="font-family:var(--display);font-size:15px;letter-spacing:.04em;margin-bottom:6px;">Linked Conversion + Repeat Promo</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);line-height:1.6;margin-bottom:10px;">Internal campaign scoring: Stage 1 conversion = 20 units, Stage 2 repeat = 30 units, total target = 50.</div>
+      <div class="input-row">
+        <div class="field-wrap"><div class="field-lbl">Stage 1 target %</div><input type="number" min="0" max="100" step="0.1" id="${_campScopeId(scope,'stage1-target-pct')}" value="${notes.linked_conversion_target_pct ?? notes.conversion_target_pct ?? 20}"></div>
+        <div class="field-wrap"><div class="field-lbl">Stage 1 FOC note</div><input id="${_campScopeId(scope,'stage1-foc-note')}" value="${(notes.stage1_foc_note || '[1ST OD]').replace(/"/g,'&quot;')}"></div>
+      </div>
+      <div class="input-row">
+        <div class="field-wrap"><div class="field-lbl">Stage 1 free item</div><input id="${_campScopeId(scope,'stage1-foc-item')}" value="${(notes.stage1_foc_item || 'SUKUN').replace(/"/g,'&quot;')}" style="text-transform:uppercase;"></div>
+        <div class="field-wrap"><div class="field-lbl">Stage 1 free qty</div><input type="number" min="0" step="0.1" id="${_campScopeId(scope,'stage1-foc-qty')}" value="${notes.stage1_foc_qty ?? 3}"></div>
+        <div class="field-wrap"><div class="field-lbl">Stage 1 unit</div><select id="${_campScopeId(scope,'stage1-foc-unit')}"><option value="packs" ${(notes.stage1_foc_unit||'packs')==='packs'?'selected':''}>packs</option><option value="ctn" ${notes.stage1_foc_unit==='ctn'?'selected':''}>ctn</option><option value="box" ${notes.stage1_foc_unit==='box'?'selected':''}>box</option><option value="piece" ${notes.stage1_foc_unit==='piece'?'selected':''}>piece</option></select></div>
+      </div>
+      <div class="input-row">
+        <div class="field-wrap"><div class="field-lbl">Stage 2 target %</div><input type="number" min="0" max="100" step="0.1" id="${_campScopeId(scope,'stage2-target-pct')}" value="${notes.linked_repeat_target_pct ?? notes.repeat_target_pct ?? 30}"></div>
+        <div class="field-wrap"><div class="field-lbl">Stage 2 min repeat CTN</div><input type="number" min="0" step="0.1" id="${_campScopeId(scope,'stage2-min-ctn')}" value="${notes.stage2_min_ctn ?? 3}"></div>
+        <div class="field-wrap"><div class="field-lbl">Stage 2 FOC note</div><input id="${_campScopeId(scope,'stage2-foc-note')}" value="${(notes.stage2_foc_note || '[RP OD]').replace(/"/g,'&quot;')}"></div>
+      </div>
+      <div class="input-row">
+        <div class="field-wrap"><div class="field-lbl">Stage 2 free item</div><input id="${_campScopeId(scope,'stage2-foc-item')}" value="${(notes.stage2_foc_item || 'SUKUN').replace(/"/g,'&quot;')}" style="text-transform:uppercase;"></div>
+        <div class="field-wrap"><div class="field-lbl">Stage 2 free qty</div><input type="number" min="0" step="0.1" id="${_campScopeId(scope,'stage2-foc-qty')}" value="${notes.stage2_foc_qty ?? 1}"></div>
+        <div class="field-wrap"><div class="field-lbl">Stage 2 unit</div><select id="${_campScopeId(scope,'stage2-foc-unit')}"><option value="ctn" ${(notes.stage2_foc_unit||'ctn')==='ctn'?'selected':''}>ctn</option><option value="packs" ${notes.stage2_foc_unit==='packs'?'selected':''}>packs</option><option value="box" ${notes.stage2_foc_unit==='box'?'selected':''}>box</option><option value="piece" ${notes.stage2_foc_unit==='piece'?'selected':''}>piece</option></select></div>
+      </div>
+    </div>
     <div class="input-group" id="${_campScopeId(scope,'qualifying-wrap')}" style="display:none;"></div>
     <div class="input-row" id="${_campScopeId(scope,'volume-row')}">
       <div class="field-wrap"><div class="field-lbl">Volume Basis</div><select id="${_campScopeId(scope,'volume-basis')}">
@@ -4244,6 +4344,11 @@ function renderCampaignMechanismSummary(camp) {
   const match = notes.qualifying_value || notes.qualifying_item_group;
   if (match) bits.push(`${notes.qualifying_match || 'item_group'}: ${match}`);
   if (notes.min_rm_per_ctn || notes.price_floor) bits.push(`>= RM${notes.min_rm_per_ctn || notes.price_floor}`);
+  if (notes.mechanism_type === 'linked_conversion_repeat') {
+    bits.push(`1ST ${notes.linked_conversion_target_pct || 20}%`);
+    bits.push(`RP ${notes.linked_repeat_target_pct || 30}%`);
+    bits.push('score /50');
+  }
   if (Array.isArray(notes.reward_tiers) && notes.reward_tiers.length) bits.push(`${notes.reward_tiers.length} reward tiers`);
   if (notes.follow_up_enabled) {
     const vals = (notes.follow_up_values || []).join(', ') || notes.qualifying_value || notes.qualifying_item_group || 'target SKU';
@@ -7750,11 +7855,16 @@ function validateCampaignMechanismBeforeSave(scope, type) {
   const hasDefaultGift = !!String(document.getElementById('new-camp-foc-item')?.value || '').trim();
   const hasUploadedRows = Array.isArray(_campFileDebtors) && _campFileDebtors.length > 0;
 
-  if (mechanism === 'conversion') {
+  if (mechanism === 'conversion' || mechanism === 'linked_conversion_repeat') {
     if (!matchValues.length) errors.push('Brand Penetration / Win-back needs at least one match value.');
     if (conversionRule === 'no_lookback_then_current' && !lookbackMonths.length) {
       errors.push('No-lookback conversion needs at least one lookback month.');
     }
+  }
+  if (mechanism === 'linked_conversion_repeat') {
+    if (!String(get('stage1-foc-note')?.value || '').trim()) errors.push('Linked promo needs a Stage 1 FOC note.');
+    if (!String(get('stage2-foc-note')?.value || '').trim()) errors.push('Linked promo needs a Stage 2 FOC note.');
+    if ((Number(get('stage2-min-ctn')?.value) || 0) <= 0) errors.push('Linked promo needs a Stage 2 minimum repeat CTN.');
   }
   if (mechanism === 'volume_reward') {
     if (!matchValues.length) errors.push('Volume Segment Offer needs the item group/code to measure.');

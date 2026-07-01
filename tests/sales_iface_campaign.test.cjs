@@ -39,6 +39,11 @@ assert(html.includes('function debtorMatchesSearch'), 'Sales Dashboard should sh
 assert(html.includes('function filterUnpurchasedDebtorsForView'), 'Unpurchased view should be searchable within selected brand/type');
 assert(html.includes('Show conversion details') && html.includes('Hide conversion details'), 'Conversion campaigns should keep a clearly-labelled details toggle');
 assert(html.includes('function conversionPriceFloor'), 'Sales Dashboard should resolve conversion price floors through a helper that preserves zero');
+assert(html.includes('function isLinkedConversionRepeatCampaign'), 'Sales Dashboard should detect linked conversion + repeat campaigns');
+assert(html.includes('function renderLinkedCampaignSummary'), 'Sales Dashboard should render linked conversion + repeat progress');
+assert(html.includes('formatLinkedStagePackage'), 'Sales Dashboard should show stage-specific FOC packages for linked campaigns');
+assert(html.includes('Waiting repeat'), 'Sales Dashboard should expose the Stage 1 achieved / waiting repeat status');
+assert(html.includes('RP OD achieved'), 'Sales Dashboard should expose the repeat achieved status');
 assert(processData.includes('def campaign_conversion_price_floor'), 'process_data.py should resolve conversion price floors through a shared helper');
 assert(!processData.includes('floor_raw = 37.5 if qual_group == "TR-002" else 41.0'), 'process_data.py should not default every non-TR conversion campaign to RM41');
 
