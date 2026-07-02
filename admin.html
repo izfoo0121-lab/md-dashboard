@@ -517,6 +517,26 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
       <div class="sec-divider">Brand → Item Code Mapping</div>
       <div id="brand-sku-forms"></div>
 
+      <div class="admin-card" style="margin-top:12px;">
+        <div style="font-family:var(--display);font-size:18px;letter-spacing:.04em;margin-bottom:6px;">New SKU Matrix</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);margin-bottom:10px;">
+          Edit groups used by New SKU KPI and sales dashboard SKU filters. Saved rules are stored in live config; download sku_rules.json before regenerating local static data.
+        </div>
+        <div id="new-sku-rules-editor"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+          <button class="small-btn" type="button" onclick="addNewSkuRuleRow()">+ Add SKU Group</button>
+          <button class="small-btn" type="button" onclick="downloadSkuRulesConfig()">Download sku_rules.json</button>
+        </div>
+      </div>
+
+      <div class="admin-card" style="margin-top:12px;">
+        <div style="font-family:var(--display);font-size:18px;letter-spacing:.04em;margin-bottom:6px;">SKU Rules Preview</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);margin-bottom:10px;">
+          Snapshot used by generated dashboard data. Price and sales type thresholds remain in price reference.
+        </div>
+        <div id="sku-rules-preview"></div>
+      </div>
+
       <div class="sec-divider">All In-House Item Codes</div>
       <div class="admin-card">
         <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);margin-bottom:8px;">All Canggih products (incl. brand codes above). 8COM items are auto-excluded by item group.</div>
@@ -3635,6 +3655,8 @@ function renderSKUForms() {
 
   renderInhouseCodes();
   renderSkuTraceConfig();
+  renderNewSkuRulesEditor();
+  renderSkuRulesPreview();
 }
 
 function skuChip(code, brand) {
@@ -3721,6 +3743,197 @@ function renderSkuTraceConfig() {
       <button class="sku-trace-remove" type="button" onclick="removeSkuTraceConfig(${idx})" title="Remove">x</button>
     </div>
   `).join('');
+}
+
+function adminSkuRulesSnapshot() {
+  return CONFIG?.sku_rules_snapshot
+    || CONFIG?.sku_rules
+    || DASH_DATA?.config?.sku_rules_snapshot
+    || DASH_DATA?.sku_rules_snapshot
+    || null;
+}
+
+function adminRuleItemsText(rule) {
+  const codes = Array.isArray(rule?.item_codes) ? rule.item_codes : [];
+  const prefixes = Array.isArray(rule?.item_code_prefixes) ? rule.item_code_prefixes.map(v => `${v}*`) : [];
+  const groups = Array.isArray(rule?.item_groups) ? rule.item_groups.map(v => `[${v}]`) : [];
+  return [...codes, ...prefixes, ...groups].filter(Boolean).join(', ') || '-';
+}
+
+function adminRuleMapHtml(title, rows) {
+  const entries = Array.isArray(rows)
+    ? rows.map((rule, idx) => [String(rule?.label || rule?.key || rule || idx + 1), typeof rule === 'object' && rule !== null ? rule : { item_codes: [rule] }])
+    : Object.entries(rows || {});
+  if (!entries.length) {
+    return `<div class="ap-empty" style="margin-bottom:8px;">No ${kpiAdminEscape(title)} rules in active snapshot.</div>`;
+  }
+  return `<div style="margin-bottom:12px;">
+    <div style="font-family:var(--display);font-size:15px;letter-spacing:.04em;margin:8px 0;">${kpiAdminEscape(title)}</div>
+    ${entries.map(([key, rule]) => `<div class="sku-trace-row" style="grid-template-columns:130px 1fr;">
+      <div style="font-family:var(--mono);font-weight:700;color:var(--accent);">${kpiAdminEscape(key)}</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--ink2);">${kpiAdminEscape(adminRuleItemsText(rule))}</div>
+    </div>`).join('')}
+  </div>`;
+}
+
+function renderSkuRulesPreview() {
+  const el = document.getElementById('sku-rules-preview');
+  if (!el) return;
+  const snapshot = adminSkuRulesSnapshot();
+  if (!snapshot) {
+    el.innerHTML = '<div class="ap-empty">No SKU rules snapshot found in current config. Add New SKU Matrix rows or load generated dashboard data.</div>';
+    return;
+  }
+  const traceRows = Array.isArray(snapshot.sku_trace_defaults) ? snapshot.sku_trace_defaults : [];
+  el.innerHTML = `
+    <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);margin-bottom:10px;">
+      SKU Rules v${kpiAdminEscape(snapshot.version || '')} &middot; ${kpiAdminEscape(snapshot.updated_at || '')}
+    </div>
+    ${adminRuleMapHtml('Brand Targets', snapshot.brand_targets)}
+    ${adminRuleMapHtml('ZLB Brands', snapshot.zlb_brands)}
+    ${adminRuleMapHtml('New SKU Groups', snapshot.new_sku_groups)}
+    <div style="font-family:var(--display);font-size:15px;letter-spacing:.04em;margin:8px 0;">SKU Trace Defaults</div>
+    ${traceRows.map(row => `<div class="sku-trace-row" style="grid-template-columns:180px 1fr 90px;">
+      <div>${kpiAdminEscape(row?.label || '')}</div>
+      <div>${kpiAdminEscape((Array.isArray(row?.item_codes) ? row.item_codes : []).join(', '))}</div>
+      <div>${Number(row?.commission_rate || 0).toFixed(2)}</div>
+    </div>`).join('') || '<div class="ap-empty">No SKU Trace defaults.</div>'}
+  `;
+}
+
+function adminSkuRuleListFromMap(ruleMap) {
+  return Object.entries(ruleMap || {}).map(([key, rule]) => ({
+    key: String(key || '').trim().toUpperCase(),
+    item_codes: Array.isArray(rule?.item_codes) ? [...rule.item_codes] : [],
+    item_code_prefixes: Array.isArray(rule?.item_code_prefixes) ? [...rule.item_code_prefixes] : [],
+    item_groups: Array.isArray(rule?.item_groups) ? [...rule.item_groups] : [],
+  })).filter(row => row.key);
+}
+
+function adminParseRuleList(value) {
+  const raw = Array.isArray(value) ? value : String(value || '').split(/[,;\n]/);
+  return [...new Set(raw.map(v => String(v || '').trim().toUpperCase()).filter(Boolean))];
+}
+
+function adminNormalizeRuleMap(rowsOrMap) {
+  const rows = Array.isArray(rowsOrMap) ? rowsOrMap : adminSkuRuleListFromMap(rowsOrMap);
+  return rows.reduce((out, row) => {
+    const key = String(row?.key || '').trim().toUpperCase();
+    if (!key) return out;
+    const rule = {
+      item_codes: adminParseRuleList(row.item_codes),
+      item_code_prefixes: adminParseRuleList(row.item_code_prefixes),
+      item_groups: adminParseRuleList(row.item_groups),
+    };
+    Object.keys(rule).forEach(field => {
+      if (!rule[field].length) delete rule[field];
+    });
+    out[key] = rule;
+    return out;
+  }, {});
+}
+
+function adminEditableSkuRules() {
+  if (!CONFIG || typeof CONFIG !== 'object') CONFIG = {};
+  const source = CONFIG.sku_rules
+    || CONFIG.sku_rules_snapshot
+    || DASH_DATA?.config?.sku_rules_snapshot
+    || DASH_DATA?.sku_rules_snapshot
+    || { version: 2, updated_at: new Date().toISOString().slice(0, 10), new_sku_groups: {} };
+  const rules = JSON.parse(JSON.stringify(source));
+  rules.version = rules.version || 2;
+  rules.updated_at = rules.updated_at || new Date().toISOString().slice(0, 10);
+  rules.new_sku_groups = adminNormalizeRuleMap(rules.new_sku_groups || {});
+  CONFIG.sku_rules = rules;
+  return rules;
+}
+
+function syncNewSkuRulesToConfig(rows) {
+  const base = adminEditableSkuRules();
+  const next = {
+    ...base,
+    updated_at: new Date().toISOString().slice(0, 10),
+    new_sku_groups: adminNormalizeRuleMap(rows),
+  };
+  CONFIG.sku_rules = next;
+  CONFIG.sku_rules_snapshot = next;
+  return next;
+}
+
+function renderNewSkuRulesEditor() {
+  const el = document.getElementById('new-sku-rules-editor');
+  if (!el) return;
+  const rules = adminEditableSkuRules();
+  const rows = adminSkuRuleListFromMap(rules.new_sku_groups);
+  if (!rows.length) {
+    el.innerHTML = '<div class="ap-empty">No New SKU rules yet. Add a SKU group to start.</div>';
+    return;
+  }
+  el.innerHTML = `
+    <div class="sku-trace-row" style="grid-template-columns:130px 1fr 1fr 1fr 34px;font-family:var(--mono);font-size:9px;color:var(--ink3);">
+      <div>Group</div>
+      <div>Item Codes</div>
+      <div>Code Prefixes</div>
+      <div>Item Groups</div>
+      <div></div>
+    </div>
+    ${rows.map((row, idx) => `
+      <div class="sku-trace-row" style="grid-template-columns:130px 1fr 1fr 1fr 34px;">
+        <input value="${kpiAdminEscape(row.key)}" oninput="updateNewSkuRuleField(${idx}, 'key', this.value)" placeholder="CMX">
+        <input value="${kpiAdminEscape((row.item_codes || []).join(', '))}" oninput="updateNewSkuRuleField(${idx}, 'item_codes', this.value)" placeholder="CMX, CMP">
+        <input value="${kpiAdminEscape((row.item_code_prefixes || []).join(', '))}" oninput="updateNewSkuRuleField(${idx}, 'item_code_prefixes', this.value)" placeholder="TR20, SKN">
+        <input value="${kpiAdminEscape((row.item_groups || []).join(', '))}" oninput="updateNewSkuRuleField(${idx}, 'item_groups', this.value)" placeholder="BISON-R">
+        <button class="sku-trace-remove" type="button" onclick="removeNewSkuRule(${idx})" title="Remove">x</button>
+      </div>
+    `).join('')}
+  `;
+}
+
+function updateNewSkuRuleField(idx, field, value) {
+  const rows = adminSkuRuleListFromMap(adminEditableSkuRules().new_sku_groups);
+  if (!rows[idx]) return;
+  if (field === 'key') rows[idx].key = String(value || '').trim().toUpperCase();
+  else if (['item_codes', 'item_code_prefixes', 'item_groups'].includes(field)) rows[idx][field] = adminParseRuleList(value);
+  syncNewSkuRulesToConfig(rows);
+  renderSkuRulesPreview();
+  updateRawJSON();
+}
+
+function addNewSkuRuleRow() {
+  const rows = adminSkuRuleListFromMap(adminEditableSkuRules().new_sku_groups);
+  let suffix = rows.length + 1;
+  let key = `NEW SKU ${suffix}`;
+  const keys = new Set(rows.map(row => row.key));
+  while (keys.has(key)) {
+    suffix += 1;
+    key = `NEW SKU ${suffix}`;
+  }
+  rows.push({ key, item_codes: [], item_code_prefixes: [], item_groups: [] });
+  syncNewSkuRulesToConfig(rows);
+  renderNewSkuRulesEditor();
+  renderSkuRulesPreview();
+  updateRawJSON();
+}
+
+function removeNewSkuRule(idx) {
+  const rows = adminSkuRuleListFromMap(adminEditableSkuRules().new_sku_groups);
+  if (!rows[idx]) return;
+  rows.splice(idx, 1);
+  syncNewSkuRulesToConfig(rows);
+  renderNewSkuRulesEditor();
+  renderSkuRulesPreview();
+  updateRawJSON();
+}
+
+function downloadSkuRulesConfig() {
+  const rules = adminEditableSkuRules();
+  const blob = new Blob([JSON.stringify(rules, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  a.href = url;
+  a.download = 'sku_rules.json';
+  a.click();
+  if (typeof URL.revokeObjectURL === 'function') setTimeout(() => URL.revokeObjectURL(url), 500);
 }
 
 function updateSkuTraceField(idx, field, value) {
@@ -3997,11 +4210,37 @@ function handleKpiNumeratorChange(scope, changed) {
   const boxes = Array.from(document.querySelectorAll(`input[data-kpi-numerator-scope="${scope}"]`));
   if (changed.value === 'none' || changed.value === 'linked_conversion_repeat') {
     boxes.forEach(box => { box.checked = box === changed; });
+    syncLinkedKpiNumeratorMechanism(scope, changed);
     return;
   }
   boxes.forEach(box => {
     if (box.value === 'none' || box.value === 'linked_conversion_repeat') box.checked = false;
   });
+  syncLinkedKpiNumeratorMechanism(scope, changed);
+}
+
+function defaultCampaignMechanismForType(type) {
+  const value = String(type || '').trim();
+  if (value.startsWith('conversion_')) return 'conversion';
+  if (['free_sample', 'festive_gift', 'birthday_gift'].includes(value)) return 'delivery_gift';
+  return 'manual_claim';
+}
+
+function syncLinkedKpiNumeratorMechanism(scope, changed) {
+  const mechanism = document.getElementById(_campScopeId(scope, 'mechanism-type'));
+  if (!mechanism) return;
+  const type = (scope === 'new-camp')
+    ? (document.getElementById('new-camp-type')?.value || '')
+    : '';
+  if (changed?.checked && changed.value === 'linked_conversion_repeat') {
+    mechanism.value = 'linked_conversion_repeat';
+    toggleCampaignMechanismSections(scope, type);
+    return;
+  }
+  if (changed?.checked && mechanism.value === 'linked_conversion_repeat') {
+    mechanism.value = defaultCampaignMechanismForType(type);
+    toggleCampaignMechanismSections(scope, type);
+  }
 }
 
 function setKpiNumeratorsForScope(scope, selected) {
@@ -4941,7 +5180,7 @@ async function saveAllToSupabase() {
 
   // ── 6. STATIC CONFIG (JSON blobs) ─────────────────────
   const staticKeys = ['brand_config', 'group_brand_config', 'inhouse_codes',
-                      'kpi_weights', 'newbie_scheme', 'sku_trace_config'];
+                      'kpi_weights', 'newbie_scheme', 'sku_trace_config', 'sku_rules'];
   const staticRows = [];
   staticKeys.forEach(key => {
     if (CONFIG[key] !== undefined) {
@@ -8782,7 +9021,7 @@ async function _fetchExistingClaims(month, campId, agents, codes) {
   // Query: all delivered claims for this month+camp where agent IN (...) AND debtor_code IN (...)
   const agentsFilter = agents.map(a => `"${a}"`).join(',');
   const codesFilter  = codes.map(c => `"${c.toUpperCase()}"`).join(',');
-  const url = `${SUPABASE_URL}/rest/v1/claims?select=agent,camp_id,debtor_code,status&month=eq.${encodeURIComponent(month)}&agent=in.(${agentsFilter})&debtor_code=in.(${codesFilter})`;
+  const url = `${SUPABASE_URL}/rest/v1/claims?select=agent,camp_id,debtor_code,status,stage&month=eq.${encodeURIComponent(month)}&agent=in.(${agentsFilter})&debtor_code=in.(${codesFilter})&stage=eq.1`;
   try {
     const r = await fetch(url, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
@@ -8984,6 +9223,7 @@ async function confirmBulkMark() {
     bulk: true,
     actor: 'admin',
     camp_type: pending.campType || null,
+    stage: 1,
     ts
   }));
 
@@ -8991,7 +9231,7 @@ async function confirmBulkMark() {
   resultEl.textContent = `⏳ Saving ${rows.length} claims to Supabase...`;
 
   try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/claims?on_conflict=month,agent,camp_id,debtor_code`, {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/claims?on_conflict=month,agent,camp_id,debtor_code,stage`, {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_KEY,
@@ -9017,7 +9257,7 @@ async function confirmBulkMark() {
   const monthSlug = pending.month.replace(' ', '');
   rows.forEach(row => {
     const key = `camp_claim_${monthSlug}_${row.agent}_${row.camp_id}_${row.debtor_code}`;
-    localStorage.setItem(key, JSON.stringify({ ts: row.ts, remark: row.remark, count: 1, bulk: true, campType: row.camp_type }));
+    localStorage.setItem(key, JSON.stringify({ ts: row.ts, remark: row.remark, count: 1, bulk: true, campType: row.camp_type, stage: 1 }));
   });
 
   resultEl.style.color = 'var(--green, #3ddc84)';
@@ -9169,6 +9409,36 @@ const GistSync = (() => {
     localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
   }
 
+  function _claimStage(stage) {
+    const n = Number(stage || 1);
+    return n === 2 ? 2 : 1;
+  }
+
+  function _claimStageSuffix(stage) {
+    return _claimStage(stage) === 2 ? '__stage2' : '';
+  }
+
+  function _claimCompKey(agent, campId, debtorCode, stage) {
+    return `${agent}_${campId}_${debtorCode}${_claimStageSuffix(stage)}`;
+  }
+
+  function _parseClaimCompKey(compKey, claimData) {
+    let cleanKey = String(compKey || '');
+    let stage = _claimStage(claimData && claimData.stage);
+    const suffixMatch = cleanKey.match(/__stage(\d+)$/);
+    if (suffixMatch) {
+      stage = _claimStage(suffixMatch[1]);
+      cleanKey = cleanKey.slice(0, suffixMatch.index);
+    }
+    const parts = cleanKey.split('_');
+    return {
+      agent: parts[0] || '',
+      debtorCode: parts[parts.length - 1] || '',
+      campId: parts.slice(1, -1).join('_'),
+      stage
+    };
+  }
+
   // ── Low-level pull/push (back-compat shims for admin.html + audit) ───
   // Old callers: GistSync.pull('claims_Apr26') → returns object keyed by "{agent}_{campId}_{debtorCode}"
   async function pull(fileKey) {
@@ -9180,13 +9450,15 @@ const GistSync = (() => {
       if (!r.ok) return null;
       const out = {};
       (r.data||[]).forEach(row => {
-        const k = `${row.agent}_${row.camp_id}_${row.debtor_code}`;
+        const stage = _claimStage(row.stage);
+        const k = _claimCompKey(row.agent, row.camp_id, row.debtor_code, stage);
         out[k] = {
           ts     : row.ts,
           remark : row.remark || '',
           bulk   : !!row.bulk,
           status : row.status || 'delivered',
-          actor  : row.actor || 'agent'
+          actor  : row.actor || 'agent',
+          stage
         };
       });
       _setCacheBucket(fileKey, out);
@@ -9231,12 +9503,13 @@ const GistSync = (() => {
     if (fileKey.startsWith('claims_')) {
       const month = _monthFromSlug(fileKey.replace('claims_',''));
       const rows = Object.entries(data || {}).map(([compKey, v]) => {
-        const parts = compKey.split('_');
-        const agent = parts[0];
-        const debtorCode = parts[parts.length - 1];
-        const campId = parts.slice(1, -1).join('_');
+        const parsed = _parseClaimCompKey(compKey, v || {});
         return {
-          month, agent, camp_id: campId, debtor_code: debtorCode,
+          month,
+          agent: parsed.agent,
+          camp_id: parsed.campId,
+          debtor_code: parsed.debtorCode,
+          stage: parsed.stage,
           status: v.status || 'delivered',
           remark: v.remark || '',
           bulk  : !!v.bulk,
@@ -9245,7 +9518,7 @@ const GistSync = (() => {
         };
       });
       if (!rows.length) return true;
-      const r = await _rest('claims?on_conflict=month,agent,camp_id,debtor_code', {
+      const r = await _rest('claims?on_conflict=month,agent,camp_id,debtor_code,stage', {
         method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates' }, body: rows
       });
       _setCacheBucket(fileKey, data);
@@ -9291,24 +9564,27 @@ const GistSync = (() => {
   }
 
   // ── Single-claim upsert (sales_dashboard.html main path) ─────────────
-  async function saveClaim(month, agent, campId, debtorCode, claimData) {
+  async function saveClaim(month, agent, campId, debtorCode, claimData, stage) {
     const slug  = _slug(month);
-    const key   = `${agent}_${campId}_${debtorCode}`;
+    const cleanStage = _claimStage(stage || (claimData && claimData.stage));
+    const payload = { ...(claimData || {}), stage: cleanStage };
+    const key   = _claimCompKey(agent, campId, debtorCode, cleanStage);
     const lsKey = `camp_claim_${slug}_${key}`;
 
     // Fire-and-forget localStorage first (instant UX)
-    localStorage.setItem(lsKey, JSON.stringify(claimData));
+    localStorage.setItem(lsKey, JSON.stringify(payload));
 
     // Upsert to Supabase
     const row = {
       month, agent, camp_id: campId, debtor_code: debtorCode,
-      status: claimData.status || 'submitted',
-      remark: claimData.remark || '',
-      bulk  : !!claimData.bulk,
-      actor : claimData.actor || 'agent',
-      ts    : claimData.ts || new Date().toISOString()
+      stage : cleanStage,
+      status: payload.status || 'submitted',
+      remark: payload.remark || '',
+      bulk  : !!payload.bulk,
+      actor : payload.actor || 'agent',
+      ts    : payload.ts || new Date().toISOString()
     };
-    _rest('claims?on_conflict=month,agent,camp_id,debtor_code', {
+    _rest('claims?on_conflict=month,agent,camp_id,debtor_code,stage', {
       method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body:[row]
     }).catch(()=>{});
 
@@ -9316,16 +9592,17 @@ const GistSync = (() => {
     const cache = getCache();
     const fk = `claims_${slug}`;
     if (!cache[fk]) cache[fk] = {};
-    cache[fk][key] = claimData;
+    cache[fk][key] = payload;
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch {}
   }
 
-  async function removeClaim(month, agent, campId, debtorCode) {
+  async function removeClaim(month, agent, campId, debtorCode, stage) {
     const slug = _slug(month);
-    const key  = `${agent}_${campId}_${debtorCode}`;
+    const cleanStage = _claimStage(stage);
+    const key  = _claimCompKey(agent, campId, debtorCode, cleanStage);
     localStorage.removeItem(`camp_claim_${slug}_${key}`);
 
-    _rest(`claims?month=eq.${encodeURIComponent(month)}&agent=eq.${encodeURIComponent(agent)}&camp_id=eq.${encodeURIComponent(campId)}&debtor_code=eq.${encodeURIComponent(debtorCode)}`, {
+    _rest(`claims?month=eq.${encodeURIComponent(month)}&agent=eq.${encodeURIComponent(agent)}&camp_id=eq.${encodeURIComponent(campId)}&debtor_code=eq.${encodeURIComponent(debtorCode)}&stage=eq.${cleanStage}`, {
       method: 'DELETE'
     }).catch(()=>{});
 
@@ -9402,14 +9679,16 @@ const GistSync = (() => {
       let claimCount = 0;
       const claimsObj = {};
       (claimsRes.data || []).forEach(row => {
-        const compKey = `${row.agent}_${row.camp_id}_${row.debtor_code}`;
+        const stage = _claimStage(row.stage);
+        const compKey = _claimCompKey(row.agent, row.camp_id, row.debtor_code, stage);
         const lsKey   = `camp_claim_${slug}_${compKey}`;
         const val = {
           ts     : row.ts,
           remark : row.remark || '',
           bulk   : !!row.bulk,
           status : row.status || 'delivered',
-          actor  : row.actor || 'agent'
+          actor  : row.actor || 'agent',
+          stage
         };
         localStorage.setItem(lsKey, JSON.stringify(val));
         claimsObj[compKey] = val;

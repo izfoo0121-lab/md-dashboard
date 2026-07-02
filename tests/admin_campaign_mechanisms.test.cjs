@@ -31,5 +31,8 @@ assert(html.includes('new-camp-stage1-target-pct'), 'Create form should expose S
 assert(html.includes('new-camp-stage2-target-pct'), 'Create form should expose Stage 2 repeat target percentage');
 assert(html.includes('[1ST OD]'), 'Create form should include default Stage 1 FOC note');
 assert(html.includes('[RP OD]'), 'Create form should include default Stage 2 FOC note');
+assert(html.includes('function syncLinkedKpiNumeratorMechanism'), 'Admin should sync linked KPI numerator with linked campaign mechanism');
+assert(html.includes("mechanism.value = 'linked_conversion_repeat'"), 'Linked KPI numerator should switch the mechanism selector to linked conversion + repeat');
+assert(html.includes("toggleCampaignMechanismSections(scope, type)"), 'Linked KPI sync should refresh mechanism sections so Stage 2 becomes visible');
 
 console.log('admin_campaign_mechanisms.test.cjs passed');

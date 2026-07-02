@@ -167,7 +167,7 @@ def fetch_campaign_deliveries(cur_month):
     try:
         month_q = urllib.parse.quote(str(cur_month), safe="")
         rows = _supabase_get(f"campaign_deliveries?select=campaign_id,debtor_code,agent&month=eq.{month_q}")
-        claim_rows = _supabase_get(f"claims?select=camp_id,debtor_code,agent,actor,status&month=eq.{month_q}")
+        claim_rows = _supabase_get(f"claims?select=camp_id,debtor_code,agent,actor,status,stage&month=eq.{month_q}")
         claim_keys = set()
         for r in claim_rows or []:
             actor = (r.get("actor") or "agent").lower()
@@ -321,6 +321,7 @@ SALES_FILE      = BASE_DIR / "MD Sales Report.xlsx"
 DEBTOR_FILE     = BASE_DIR / "Debtor Maintenance.xlsx"
 TARGETS_FILE    = BASE_DIR / "targets.json"
 CAMPAIGNS_FILE  = BASE_DIR / "campaigns.json"
+SKU_RULES_FILE  = BASE_DIR / "config" / "sku_rules.json"
 OUTPUT_FILE     = BASE_DIR / "dashboard_data.json"
 DEBTOR_ANALYSIS_FILE = BASE_DIR / "debtor_analysis_data.json"
 
@@ -430,6 +431,27 @@ DEFAULT_SKU_TRACE_CONFIG = [
     {"label": "CMX Sales", "item_codes": ["CMX"], "commission_rate": 0},
     {"label": "CMP Sales", "item_codes": ["CMP"], "commission_rate": 0},
 ]
+
+DEFAULT_NEW_SKU_GROUPS = {
+    "SUKUN": {"item_code_prefixes": ["SKN"], "item_groups": ["SUKUN"]},
+    "EVO": {"item_codes": ["EVO"], "item_groups": ["EVO"]},
+    "CM": {"item_codes": ["CM-002"]},
+    "CMP": {"item_codes": ["CMP"], "item_groups": ["CMP"]},
+    "CMX": {"item_codes": ["CMX"], "item_groups": ["CMX"]},
+    "IMP": {"item_code_prefixes": ["IMP"]},
+    "LF": {"item_code_prefixes": ["LF"]},
+    "TR12": {"item_code_prefixes": ["TR-002", "TR12"]},
+    "TR20": {"item_code_prefixes": ["TR20"]},
+    "BISON-R": {"item_codes": ["BISON-R", "BISON R"], "item_groups": ["BISON-R", "BISON R"]},
+    "BISON-M": {"item_codes": ["BISON-M", "BISON M"], "item_groups": ["BISON-M", "BISON M"]},
+}
+
+DEFAULT_SKU_RULES = {
+    "version": 2,
+    "updated_at": "2026-07-02",
+    "new_sku_groups": DEFAULT_NEW_SKU_GROUPS,
+    "sku_trace_defaults": DEFAULT_SKU_TRACE_CONFIG,
+}
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -997,12 +1019,22 @@ def sync_targets_to_supabase(targets):
         log(f"⚠  Supabase sync failed ({e}) — file is still current source")
 
 
+MONTH_SCOPED_AGENT_JSON_KEYS = (
+    "sales_progression",
+    "brand_commission",
+    "kpi_targets",
+    "kpi_overrides",
+)
+
+
 def get_monthly_targets(targets, cur_month):
-    # Return agent targets for the given month, falling back to current targets
-    monthly = targets.get("monthly_targets", {})
+    """Return agent targets for cur_month without borrowing stale months."""
+    monthly = (targets or {}).get("monthly_targets", {}) or {}
     if cur_month and cur_month in monthly:
-        return monthly[cur_month]
-    return targets.get("agents", {})
+        return monthly[cur_month] or {}
+    if monthly:
+        return {}
+    return (targets or {}).get("agents", {}) or {}
 
 
 def merge_agent_config(targets, cur_month, agent):
@@ -1017,11 +1049,14 @@ def merge_agent_config(targets, cur_month, agent):
 
     Returns merged dict that can be used as ag_cfg/ag_tgts.
     """
-    general = targets.get("agents", {}).get(agent, {})
-    monthly = get_monthly_targets(targets, cur_month).get(agent, {})
+    targets = targets or {}
+    general = targets.get("agents", {}).get(agent, {}) or {}
+    monthly_table = targets.get("monthly_targets", {}) or {}
+    has_monthly_table = bool(monthly_table)
+    monthly = get_monthly_targets(targets, cur_month).get(agent, {}) or {}
 
-    # If no monthly entry exists, just return general
-    if not monthly:
+    # Legacy file-only target shape has no monthly table, so general remains source.
+    if not has_monthly_table and not monthly:
         return general
 
     # Start with general, overlay monthly's non-empty fields
@@ -1032,9 +1067,13 @@ def merge_agent_config(targets, cur_month, agent):
         if k in monthly:
             merged[k] = monthly[k]
 
+    if has_monthly_table:
+        for jsonb_key in MONTH_SCOPED_AGENT_JSON_KEYS:
+            merged[jsonb_key] = dict(monthly.get(jsonb_key, {}) or {})
+        return merged
+
     # Deep-merge JSONB fields: keep general's keys, overlay monthly's non-empty ones
-    for jsonb_key in ("sales_progression", "brand_commission",
-                      "kpi_targets", "kpi_overrides"):
+    for jsonb_key in MONTH_SCOPED_AGENT_JSON_KEYS:
         general_sub = general.get(jsonb_key, {}) or {}
         monthly_sub = monthly.get(jsonb_key, {}) or {}
         # Merge: general first, monthly overrides per-key
@@ -1326,6 +1365,115 @@ def _num2(value):
 
 def _norm_code(value):
     return str(value or "").strip().upper()
+
+
+def _clean_rule_list(value):
+    if isinstance(value, (list, tuple, set)):
+        raw = value
+    else:
+        raw = str(value or "").replace(";", ",").replace("\n", ",").split(",")
+    out = []
+    seen = set()
+    for item in raw:
+        code = _norm_code(item)
+        if code and code not in seen:
+            out.append(code)
+            seen.add(code)
+    return out
+
+
+def _normalise_sku_rule(rule):
+    if isinstance(rule, dict):
+        normalized = {
+            "item_codes": _clean_rule_list(rule.get("item_codes")),
+            "item_code_prefixes": _clean_rule_list(rule.get("item_code_prefixes")),
+            "item_groups": _clean_rule_list(rule.get("item_groups")),
+            "item_group_prefixes": _clean_rule_list(rule.get("item_group_prefixes")),
+        }
+    else:
+        normalized = {
+            "item_codes": _clean_rule_list(rule),
+            "item_code_prefixes": [],
+            "item_groups": [],
+            "item_group_prefixes": [],
+        }
+    return {key: values for key, values in normalized.items() if values}
+
+
+def normalise_new_sku_groups(rule_map):
+    return {
+        _norm_code(key): _normalise_sku_rule(rule)
+        for key, rule in (rule_map or {}).items()
+        if _norm_code(key)
+    }
+
+
+def normalise_sku_rules_config(config):
+    source = config if isinstance(config, dict) else {}
+    rules = dict(source or {})
+    rules["version"] = rules.get("version") or DEFAULT_SKU_RULES["version"]
+    rules["updated_at"] = rules.get("updated_at") or DEFAULT_SKU_RULES["updated_at"]
+    group_source = rules.get("new_sku_groups") if "new_sku_groups" in rules else DEFAULT_SKU_RULES["new_sku_groups"]
+    rules["new_sku_groups"] = normalise_new_sku_groups(group_source or {})
+    if "sku_trace_defaults" not in rules:
+        rules["sku_trace_defaults"] = DEFAULT_SKU_TRACE_CONFIG
+    return rules
+
+
+def load_sku_rules_config(targets=None):
+    """Resolve SKU rules from Admin config, local config file, then fallback defaults."""
+    target_sources = []
+    if isinstance(targets, dict):
+        target_sources.extend([
+            targets.get("sku_rules"),
+            targets.get("sku_rules_snapshot"),
+            (targets.get("config") or {}).get("sku_rules_snapshot") if isinstance(targets.get("config"), dict) else None,
+        ])
+    for source in target_sources:
+        if isinstance(source, dict) and "new_sku_groups" in source:
+            return normalise_sku_rules_config(source)
+
+    if SKU_RULES_FILE.exists():
+        try:
+            with open(SKU_RULES_FILE, "r", encoding="utf-8") as f:
+                return normalise_sku_rules_config(json.load(f))
+        except Exception as e:
+            log(f"WARNING: Could not load {SKU_RULES_FILE}: {e}")
+
+    return normalise_sku_rules_config(DEFAULT_SKU_RULES)
+
+
+def _series_norm(rows, column):
+    if column not in rows.columns:
+        return pd.Series([""] * len(rows), index=rows.index)
+    return rows[column].map(_norm_code)
+
+
+def _starts_with_any(value, prefixes):
+    return any(str(value or "").startswith(prefix) for prefix in prefixes)
+
+
+def _new_sku_rule_mask(rows, rule):
+    if rows.empty:
+        return pd.Series(False, index=rows.index)
+    rule = _normalise_sku_rule(rule)
+    item_codes = set(rule.get("item_codes") or [])
+    item_groups = set(rule.get("item_groups") or [])
+    item_code_prefixes = rule.get("item_code_prefixes") or []
+    item_group_prefixes = rule.get("item_group_prefixes") or []
+
+    code_series = _series_norm(rows, "item_code")
+    group_series = _series_norm(rows, "item_group")
+    mask = pd.Series(False, index=rows.index)
+    if item_codes:
+        mask = mask | code_series.isin(item_codes)
+    if item_code_prefixes:
+        mask = mask | code_series.map(lambda value: _starts_with_any(value, item_code_prefixes))
+    if item_groups:
+        mask = mask | group_series.isin(item_groups)
+    if item_group_prefixes:
+        mask = mask | group_series.map(lambda value: _starts_with_any(value, item_group_prefixes))
+    return mask
 
 
 LINKED_CAMPAIGN_NUMERATOR = "linked_conversion_repeat"
@@ -3036,7 +3184,7 @@ def build_debtor_info(debtor_df):
     return debtor_info
 
 
-def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_groups=None):
+def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_groups=None, new_sku_groups_config=None):
     """
     Preserve existing Phase 1 debtor card logic:
     - Activation status per debtor (Active / Pending / Need Reactivation)
@@ -3108,17 +3256,12 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
         "LAM+LWM": ["LAM", "LWM"],
     }
 
-    # 新增SKU groups — separate from display SKU dots
-    # Logic: didn't buy last 3 months BUT bought this month = +1
-    new_sku_groups = {
-        "SUKUN": ["SKNW", "SKNR"],
-        "EVO":   ["EVO"],
-        "CM":    ["CM-002"],
-        "IMP":   ["IMP-001"],
-        "LF":    ["LF-002"],
-        "TR12":  ["TR-002"],
-        "TR20":  ["TR20"],
-    }
+    # New SKU groups are config-driven. Admin can save targets.sku_rules,
+    # and local runs can use config/sku_rules.json as a fallback.
+    if isinstance(new_sku_groups_config, dict) and "new_sku_groups" in new_sku_groups_config:
+        new_sku_groups = normalise_sku_rules_config(new_sku_groups_config)["new_sku_groups"]
+    else:
+        new_sku_groups = normalise_new_sku_groups(new_sku_groups_config or DEFAULT_NEW_SKU_GROUPS)
 
     result = {}
     active_agent_names = {str(a).strip().upper() for a in agents}
@@ -3395,8 +3538,8 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             # 新增SKU — count groups where didn't buy last 3 months but bought this month
             new_sku_status = {}
             new_sku_count  = 0
-            for grp, codes in new_sku_groups.items():
-                grp_rows = _history_rows[_history_rows["item_code"].isin(codes)]
+            for grp, rule in new_sku_groups.items():
+                grp_rows = _history_rows[_new_sku_rule_mask(_history_rows, rule)]
                 bought_this  = cur_m in grp_rows[_inv_col].values
                 bought_past  = any(m in grp_rows[_inv_col].values for m in [prev1_m, prev2_m, prev3_m])
                 if bought_this and not bought_past:
@@ -4171,15 +4314,15 @@ def calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month, df=Non
     log("Calculating team summary...")
 
     team_targets = targets.get("team", {})
-    # Use monthly targets for correct month
-    monthly_agents = get_monthly_targets(targets, cur_month)
+    def _sales_targets_for(agent):
+        return (merge_agent_config(targets, cur_month, agent).get("sales_progression") or {})
 
     # Check for group-level override (stored as _group_override key in monthly_targets[month])
     _month_cfg = (targets.get("monthly_targets") or {}).get(cur_month) or {}
     _group_override = _month_cfg.get("_group_override") or {}
 
     t1_total = sum(
-        (monthly_agents.get(a) or targets.get("agents", {}).get(a, {})).get("sales_progression", {}).get("normal_t1", 0) or 0
+        _sales_targets_for(a).get("normal_t1", 0) or 0
         for a in agents
     )
 
@@ -4192,15 +4335,15 @@ def calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month, df=Non
 
     # T2/GA/MA total targets from monthly targets
     t2_total = sum(
-        (monthly_agents.get(a) or targets.get("agents", {}).get(a, {})).get("sales_progression", {}).get("normal_t2", 0) or 0
+        _sales_targets_for(a).get("normal_t2", 0) or 0
         for a in agents
     )
     ga_total = sum(
-        (monthly_agents.get(a) or targets.get("agents", {}).get(a, {})).get("sales_progression", {}).get("ga", 0) or 0
+        _sales_targets_for(a).get("ga", 0) or 0
         for a in agents
     )
     ma_total = sum(
-        (monthly_agents.get(a) or targets.get("agents", {}).get(a, {})).get("sales_progression", {}).get("ma", 0) or 0
+        _sales_targets_for(a).get("ma", 0) or 0
         for a in agents
     )
 
@@ -4247,8 +4390,7 @@ def calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month, df=Non
     leaderboard = []
     for agent in agents:
         sp = sales_prog.get(agent, {})
-        t1_tgt = targets.get("agents", {}).get(agent, {}).get(
-            "sales_progression", {}).get("normal_t1")
+        t1_tgt = _sales_targets_for(agent).get("normal_t1")
         t1_pct = pct(sp.get("normal_ctn", 0), t1_tgt) if t1_tgt else None
         brands_earned = sum(
             1 for brand in DEFAULT_BRAND_CONFIG
@@ -5196,6 +5338,7 @@ def main():
     # ── Brand config (from targets.json or default) ─────────────────
     brand_config = targets.get("brand_config", DEFAULT_BRAND_CONFIG)
     group_brand_config = targets.get("group_brand_config", DEFAULT_GROUP_BRAND_CONFIG)
+    sku_rules_config = load_sku_rules_config(targets)
     sku_trace_config = _clean_sku_trace_config(targets.get("sku_trace_config", DEFAULT_SKU_TRACE_CONFIG))
 
     # ── Agent list ─────────────────────────────────────────────────
@@ -5370,7 +5513,7 @@ def main():
     brand_comm  = calc_brand_commission(df, targets, all_agents, cur_month, prev_months, brand_config, debtor_info=debtor_info_shared)
     newbie      = calc_newbie_scheme(df, targets, agents, cur_month, debtor_info=debtor_info_shared, manual_overrides=_sb_kpi)
     aging       = calc_aging(df, all_agents, cur_month)
-    debtor_cards = calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map, area_groups)
+    debtor_cards = calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map, area_groups, sku_rules_config)
     sku_trace   = calc_sku_trace(df, sku_trace_config, all_agents, cur_month)
 
     # ── Save month-start snapshot + auto-calc KPI targets ───────────────────
@@ -5625,6 +5768,7 @@ def main():
             "brand_config":       brand_config,
             "group_brand_config": group_brand_config,
             "sku_trace_config":   sku_trace_config,
+            "sku_rules_snapshot": sku_rules_config,
             "inhouse_codes":      targets.get("inhouse_codes", DEFAULT_INHOUSE_CODES),
             "scope":              SCOPE_AREA,
             "group_incentive":    targets.get("team", {}).get("incentive", None),

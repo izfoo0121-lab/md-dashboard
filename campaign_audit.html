@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
   <script src="admin_context.js"></script>
   <meta http-equiv="Cache-Control" content="no-cache,no-store,must-revalidate">
-  <title>Campaign Audit — MIRACLE-奇迹 MD</title>
+  <title>Campaign Audit â€” MIRACLE-å¥‡è¿¹ MD</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root{
@@ -216,12 +216,12 @@ window.addEventListener('DOMContentLoaded', () => {
   <div class="hdr-top">
     <div>
       <div class="hdr-title">CAMPAIGN AUDIT</div>
-      <div class="hdr-sub">Management View — Review & Verify Agent Claims</div>
+      <div class="hdr-sub">Management View â€” Review & Verify Agent Claims</div>
     </div>
     <div class="nav-pills">
-      <a href="sales_dashboard.html" class="nav-pill">👥 Agent</a>
-      <a href="management.html" class="nav-pill">📊 Management</a>
-      <a href="admin.html" class="nav-pill">⚙️ Admin</a>
+      <a href="sales_dashboard.html" class="nav-pill">ðŸ‘¥ Agent</a>
+      <a href="management.html" class="nav-pill">ðŸ“Š Management</a>
+      <a href="admin.html" class="nav-pill">âš™ï¸ Admin</a>
     </div>
   </div>
 </div>
@@ -235,31 +235,31 @@ window.addEventListener('DOMContentLoaded', () => {
   <select id="agent-select" onchange="renderAudit()">
     <option value="ALL">All Agents</option>
   </select>
-  <button class="export-btn" onclick="exportAuditCSV()">⬇ Export CSV</button>
-  <button class="export-btn" onclick="window.location.href='admin.html'" style="background:rgba(61,220,132,.15);border-color:rgba(61,220,132,.4);color:var(--green);" title="Use admin.html's bulk-mark with pre-validation">📥 Bulk Mark (admin)</button>
-  <button class="audit-mini-btn" onclick="setAllAgentSections(false)">▸ Collapse All</button>
-  <button class="audit-mini-btn" onclick="setAllAgentSections(true)">▾ Expand All</button>
+  <button class="export-btn" onclick="exportAuditCSV()">â¬‡ Export CSV</button>
+  <button class="export-btn" onclick="window.location.href='admin.html'" style="background:rgba(61,220,132,.15);border-color:rgba(61,220,132,.4);color:var(--green);" title="Use admin.html's bulk-mark with pre-validation">ðŸ“¥ Bulk Mark (admin)</button>
+  <button class="audit-mini-btn" onclick="setAllAgentSections(false)">â–¸ Collapse All</button>
+  <button class="audit-mini-btn" onclick="setAllAgentSections(true)">â–¾ Expand All</button>
   <input type="file" id="claims-restore-input" accept=".json" style="display:none;" onchange="doRestoreClaims(this)">
 </div>
 
 <!-- Campaign type tabs -->
 <div style="display:flex;justify-content:flex-end;gap:6px;padding:6px 14px;background:var(--surface);border-bottom:1px solid var(--border);">
-  <button onclick="exportAuditExcel()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);border-radius:6px;color:var(--green);cursor:pointer;">📊 Export Excel</button>
-  <button onclick="exportAuditPDF()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:6px;color:var(--accent);cursor:pointer;">🖨️ Print / PDF</button>
+  <button onclick="exportAuditExcel()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);border-radius:6px;color:var(--green);cursor:pointer;">ðŸ“Š Export Excel</button>
+  <button onclick="exportAuditPDF()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:6px;color:var(--accent);cursor:pointer;">ðŸ–¨ï¸ Print / PDF</button>
 </div>
 <div class="camp-tabs" id="camp-tabs"></div>
 
 <!-- Bulk approve panel -->
 <div id="bulk-approve-panel" style="background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;">
   <div style="max-width:900px;margin:0 auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-    <span style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">⚡ Bulk Actions:</span>
+    <span style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">âš¡ Bulk Actions:</span>
     <button onclick="bulkApproveAllPending()"
       style="background:rgba(77,166,255,.15);border:1px solid rgba(77,166,255,.4);color:var(--blue);font-family:var(--mono);font-size:10px;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;">
-      ✓ APPROVE ALL PENDING (in current view)
+      âœ“ APPROVE ALL PENDING (in current view)
     </button>
     <button onclick="bulkApproveByCampaign()"
       style="background:rgba(61,220,132,.1);border:1px solid rgba(61,220,132,.3);color:var(--green);font-family:var(--mono);font-size:10px;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;">
-      ✓ APPROVE BY CAMPAIGN
+      âœ“ APPROVE BY CAMPAIGN
     </button>
     <button onclick="showBulkMarkPanel('delivered')"
       style="background:rgba(61,220,132,.1);border:1px solid rgba(61,220,132,.3);color:var(--green);font-family:var(--mono);font-size:10px;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;">
@@ -283,7 +283,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 <script>
 const AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','XIAN','YI'];
-const CAMP_EMOJI = {free_sample:'🎁',foc_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',voucher:'🎟️',conversion_tiered:'🎯',conversion_simple:'🎯',other:'📋'};
+const CAMP_EMOJI = {free_sample:'ðŸŽ',foc_sample:'ðŸŽ',birthday_gift:'ðŸŽ‚',promotion:'ðŸ“¢',festive_gift:'ðŸ§§',voucher:'ðŸŽŸï¸',conversion_tiered:'ðŸŽ¯',conversion_simple:'ðŸŽ¯',other:'ðŸ“‹'};
 const CAMP_LABEL = {free_sample:'FOC Sample',foc_sample:'FOC Sample',birthday_gift:'Birthday Gift',promotion:'Brand Promo',festive_gift:'Festive Gift',conversion_tiered:'Conversion',conversion_simple:'Conversion',other:'Other'};
 
 let DASH_DATA  = null;   // current month data
@@ -398,9 +398,9 @@ if (document.readyState === 'loading') {
   populateAuditMonthDropdown();
 }
 
-// ── Supabase fetch helpers ─────────────────────────────────────────────────
+// â”€â”€ Supabase fetch helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function fetchAllClaimsForMonth(month) {
-  // Fetch paginated — up to 5000 rows total (plenty for one month)
+  // Fetch paginated â€” up to 5000 rows total (plenty for one month)
   const all = [];
   let offset = 0;
   while (offset < 5000) {
@@ -633,21 +633,42 @@ function auditCampaignEntryFromDebtor(camp, record) {
 }
 
 // Populate CLAIMS_CACHE and AUDIT_CACHE from Supabase rows
+function normalizeAuditClaimStage(stage) {
+  const n = Number(stage || 1);
+  return n === 2 ? 2 : 1;
+}
+
+function auditClaimStageLabel(stage) {
+  return normalizeAuditClaimStage(stage) === 2 ? 'RP OD' : '1ST OD';
+}
+
+function parseAuditClaimKey(key) {
+  const parts = String(key || '').split('|');
+  return {
+    agent: parts[0] || '',
+    campId: parts[1] || '',
+    debtorCode: parts[2] || '',
+    stage: normalizeAuditClaimStage(parts[3])
+  };
+}
+
 function indexSupabaseRows(rows) {
   CLAIMS_CACHE = {};
   AUDIT_CACHE = {};
   rows.forEach(r => {
-    const key = `${r.agent}|${r.camp_id}|${(r.debtor_code||'').toUpperCase()}`;
+    const stage = normalizeAuditClaimStage(r.stage);
+    const key = getClaimKey('', r.agent, r.camp_id, r.debtor_code, stage);
     // Claim shape used by rest of this file
     CLAIMS_CACHE[key] = {
       ts: r.ts,
       count: 1,
       remark: r.remark || '',
       bulk: !!r.bulk,
-      status: r.status,                      // raw status — needed for excluded filtering
+      status: r.status,                      // raw status â€” needed for excluded filtering
       reason: r.reason || '',                // exclusion reason
       actor: r.actor || 'agent',
       campType: r.camp_type || null,
+      stage
     };
     // Audit shape derived from status
     if (r.status === 'verified' || r.status === 'processed') {
@@ -656,22 +677,22 @@ function indexSupabaseRows(rows) {
       AUDIT_CACHE[key] = { status: 'rejected', ts: r.audit_ts || r.ts, by: r.audit_by || 'management', reason: r.audit_reason || '' };
     }
     // status === 'submitted' / legacy delivered / claimed -> pending request (no audit entry)
-    // status === 'excluded' → agent-initiated exclusion, not a thing admin audits
+    // status === 'excluded' â†’ agent-initiated exclusion, not a thing admin audits
   });
 }
 
-// ── Storage helpers (now backed by Supabase cache, not localStorage) ───────
-function getClaimKey(month, agent, campId, debtorCode) {
-  return `${agent}|${campId}|${(debtorCode||'').toUpperCase()}`;
+// â”€â”€ Storage helpers (now backed by Supabase cache, not localStorage) â”€â”€â”€â”€â”€â”€â”€
+function getClaimKey(month, agent, campId, debtorCode, stage = 1) {
+  return `${agent}|${campId}|${(debtorCode||'').toUpperCase()}|${normalizeAuditClaimStage(stage)}`;
 }
-function getClaim(month, agent, campId, debtorCode) {
-  return CLAIMS_CACHE[getClaimKey(month, agent, campId, debtorCode)] || null;
+function getClaim(month, agent, campId, debtorCode, stage = 1) {
+  return CLAIMS_CACHE[getClaimKey(month, agent, campId, debtorCode, stage)] || null;
 }
-function getAuditKey(month, agent, campId, debtorCode) {
-  return `${agent}|${campId}|${(debtorCode||'').toUpperCase()}`;
+function getAuditKey(month, agent, campId, debtorCode, stage = 1) {
+  return `${agent}|${campId}|${(debtorCode||'').toUpperCase()}|${normalizeAuditClaimStage(stage)}`;
 }
-function getAudit(month, agent, campId, debtorCode) {
-  return AUDIT_CACHE[getAuditKey(month, agent, campId, debtorCode)] || null;
+function getAudit(month, agent, campId, debtorCode, stage = 1) {
+  return AUDIT_CACHE[getAuditKey(month, agent, campId, debtorCode, stage)] || null;
 }
 
 function auditClaimCategory(claim, audit) {
@@ -782,8 +803,9 @@ function campaignAuditBulkCodeKeys(code) {
 }
 
 // Persist an audit decision to Supabase (UPDATE claims.status)
-async function saveAudit(month, agent, campId, debtorCode, auditData) {
-  const key = `${agent}|${campId}|${(debtorCode||'').toUpperCase()}`;
+async function saveAudit(month, agent, campId, debtorCode, auditData, stage = 1) {
+  const cleanStage = normalizeAuditClaimStage(stage || auditData?.stage);
+  const key = getAuditKey(month, agent, campId, debtorCode, cleanStage);
 
   // Update in-memory caches immediately (optimistic UI)
   if (auditData.status === 'undo' || auditData.status === null) {
@@ -799,7 +821,7 @@ async function saveAudit(month, agent, campId, debtorCode, auditData) {
   else if (auditData.status === 'rejected') newStatus = 'rejected';
   else newStatus = 'submitted';
 
-  // Build body — only send columns that are certain to exist.
+  // Build body â€” only send columns that are certain to exist.
   // Audit metadata is optional (column may not exist yet).
   // Core signal: status. Always include.
   const body = { status: newStatus };
@@ -812,7 +834,8 @@ async function saveAudit(month, agent, campId, debtorCode, auditData) {
     + `?month=eq.${encodeURIComponent(month)}`
     + `&agent=eq.${encodeURIComponent(agent)}`
     + `&camp_id=eq.${encodeURIComponent(campId)}`
-    + `&debtor_code=eq.${encodeURIComponent(debtorCode)}`;
+    + `&debtor_code=eq.${encodeURIComponent(debtorCode)}`
+    + `&stage=eq.${cleanStage}`;
 
   try {
     let r = await fetch(url, {
@@ -842,25 +865,25 @@ async function saveAudit(month, agent, campId, debtorCode, auditData) {
     if (!r.ok) {
       const err = await r.text();
       console.warn('[audit] Supabase update failed', r.status, err);
-      showToast(`✗ Save failed: ${r.status}`);
+      showToast(`âœ— Save failed: ${r.status}`);
       return false;
     }
     return true;
   } catch(e) {
     console.warn('[audit] Supabase error', e);
-    showToast('✗ Network error');
+    showToast('âœ— Network error');
     return false;
   }
 }
 
-// ── Load data ─────────────────────────────────────────────────────────────
+// â”€â”€ Load data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function loadAuditData() {
   const month = document.getElementById('month-select').value;
   if (window.MDAdminContext && month) MDAdminContext.setWorkingMonth(month, { silent: true });
   const slug  = month.toLowerCase().replace(' ','');
 
   // Show loading state
-  document.getElementById('audit-content').innerHTML = '<div class="empty">⏳ Loading from Supabase...</div>';
+  document.getElementById('audit-content').innerHTML = '<div class="empty">â³ Loading from Supabase...</div>';
 
   try {
     const r = await fetch(`data_${slug}.json?v=${Date.now()}`);
@@ -924,7 +947,7 @@ async function loadAuditData() {
   renderAudit();
 }
 
-// ── Campaign tabs ──────────────────────────────────────────────────────────
+// â”€â”€ Campaign tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function buildCampTabs() {
   const currentMonth = document.getElementById('month-select')?.value || '';
   const camps = (CAMP_DATA?.campaigns || [])
@@ -932,10 +955,10 @@ function buildCampTabs() {
     .filter(c => isCampaignActiveInMonth(c, currentMonth));
   const tabs  = document.getElementById('camp-tabs');
   tabs.innerHTML = `<button class="camp-tab ${activeCampId==='ALL'?'active':''}" onclick="switchCamp('ALL',this)">ALL</button>`
-    + `<button class="camp-tab ${activeCampId==='BDAY_LIST'?'active':''}" onclick="switchCamp('BDAY_LIST',this)">🎂 Birthday List</button>`
-    + camps.map(c => `<button class="camp-tab ${activeCampId===c.id?'active':''}" onclick="switchCamp('${c.id}',this)">${CAMP_EMOJI[c.type]||'📋'} ${c.name}</button>`).join('');
+    + `<button class="camp-tab ${activeCampId==='BDAY_LIST'?'active':''}" onclick="switchCamp('BDAY_LIST',this)">ðŸŽ‚ Birthday List</button>`
+    + camps.map(c => `<button class="camp-tab ${activeCampId===c.id?'active':''}" onclick="switchCamp('${c.id}',this)">${CAMP_EMOJI[c.type]||'ðŸ“‹'} ${c.name}</button>`).join('');
   tabs.insertAdjacentHTML('beforeend',
-    `<button class="camp-tab ${activeCampId==='FLAGS_LIST'?'active':''}" onclick="switchCamp('FLAGS_LIST',this)">⚑ Flags ${FLAGS_CACHE.length ? '(' + FLAGS_CACHE.length + ')' : ''}</button>`);
+    `<button class="camp-tab ${activeCampId==='FLAGS_LIST'?'active':''}" onclick="switchCamp('FLAGS_LIST',this)">âš‘ Flags ${FLAGS_CACHE.length ? '(' + FLAGS_CACHE.length + ')' : ''}</button>`);
 }
 
 function switchCamp(id, btn) {
@@ -945,7 +968,7 @@ function switchCamp(id, btn) {
   renderAudit();
 }
 
-// ── Main render ────────────────────────────────────────────────────────────
+// â”€â”€ Main render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Driven by Supabase claims (CLAIMS_CACHE). Shows ALL claims that exist,
 // including bulk-imported ones, not just pre-assigned campaign entries.
 function renderFlagAudit() {
@@ -1023,18 +1046,18 @@ function renderFlagAudit() {
       const name = debtor.company_name || code;
       const type = debtor.debtor_type || '';
       const note = row.note || row.remark || '';
-      const date = row.ts ? new Date(row.ts).toLocaleString('en-MY') : '—';
-      const ownerNote = owner && owner !== agent ? ` · owner: ${auditHtml(owner)}` : '';
+      const date = row.ts ? new Date(row.ts).toLocaleString('en-MY') : 'â€”';
+      const ownerNote = owner && owner !== agent ? ` Â· owner: ${auditHtml(owner)}` : '';
       return `<div class="flag-row">
         <div class="claim-info">
           <div class="claim-name">${auditHtml(name)}</div>
-          <div class="claim-code">${auditHtml(code)}${type ? ' · ' + auditHtml(type) : ''}${ownerNote}</div>
-          <div class="flag-reason">⚑ ${auditHtml(reasonLabels[row.reason] || row.reason || 'Flagged')}</div>
+          <div class="claim-code">${auditHtml(code)}${type ? ' Â· ' + auditHtml(type) : ''}${ownerNote}</div>
+          <div class="flag-reason">âš‘ ${auditHtml(reasonLabels[row.reason] || row.reason || 'Flagged')}</div>
           ${note ? `<div class="flag-meta">"${auditHtml(note)}"</div>` : ''}
           <div class="flag-meta">Flagged: ${auditHtml(date)}</div>
         </div>
         <div class="claim-actions">
-          <button class="audit-btn verify" onclick="resolveAuditFlag('${auditJs(month)}','${auditJs(agent)}','${auditJs(code)}')">✓ Resolve</button>
+          <button class="audit-btn verify" onclick="resolveAuditFlag('${auditJs(month)}','${auditJs(agent)}','${auditJs(code)}')">âœ“ Resolve</button>
         </div>
       </div>`;
     }).join('');
@@ -1043,7 +1066,7 @@ function renderFlagAudit() {
         <div class="agent-name">${auditHtml(agent)}</div>
         <div class="agent-stats">
           <span class="stat-chip pending">${flags.length} open flag${flags.length === 1 ? '' : 's'}</span>
-          <span class="agent-toggle">▸</span>
+          <span class="agent-toggle">â–¸</span>
         </div>
       </div>
       <div class="claims-body">${flagRows}</div>
@@ -1066,11 +1089,11 @@ async function resolveAuditFlag(month, agent, debtorCode) {
     FLAGS_CACHE = (FLAGS_CACHE || []).filter(f =>
       !(f.month === month && f.agent === agent && String(f.debtor_code || '').toUpperCase() === debtorCode)
     );
-    showToast('✓ Flag resolved');
+    showToast('âœ“ Flag resolved');
     renderAudit();
   } catch(e) {
     console.warn('[audit-flags] resolve failed', e);
-    showToast('✗ Resolve failed');
+    showToast('âœ— Resolve failed');
   }
 }
 
@@ -1093,7 +1116,7 @@ function renderAudit() {
     return;
   }
 
-  // Build a lookup of debtor_code → debtor object (per agent)
+  // Build a lookup of debtor_code â†’ debtor object (per agent)
   // so we can show company names
   const debtorByAgentCode = {};
   AGENTS.forEach(a => {
@@ -1119,10 +1142,10 @@ function renderAudit() {
   const records = [];
   const seen = new Set();
   Object.entries(CLAIMS_CACHE).forEach(([key, claim]) => {
-    const [agent, campId, debtorCode] = key.split('|');
+    const { agent, campId, debtorCode, stage } = parseAuditClaimKey(key);
     if (agentSel !== 'ALL' && agent !== agentSel) return;
     if (activeCampId !== 'ALL' && campId !== activeCampId) return;
-    seen.add(`${agent}|${campId}|${debtorCode}`);
+    seen.add(`${agent}|${campId}|${debtorCode}|${stage}`);
 
     const camp = allCamps.find(c => c.id === campId)
       || (campId === 'birthday_gift_auto'
@@ -1137,8 +1160,8 @@ function renderAudit() {
     // campEntry is the one entry in debtor.campaigns that matches this campId (for CAT info)
     const campEntry = (debtor.campaigns||[]).find(c => c.id === campId) || auditCampaignEntryFromDebtor(camp, liveRecord) || {};
 
-    const audit = getAudit(month, agent, campId, debtorCode);
-    records.push({ camp, agent, debtor, campEntry, claim, audit });
+    const audit = getAudit(month, agent, campId, debtorCode, stage);
+    records.push({ camp, agent, debtor, campEntry, claim, audit, stage });
   });
 
   // Show full entitlement/enrollment lists, even before agents mark claimed.
@@ -1153,7 +1176,7 @@ function renderAudit() {
       const debtorCode = String(debtorCodeRaw || '').toUpperCase();
       if (!agent || !debtorCode) return;
       if (agentSel !== 'ALL' && agent !== agentSel) return;
-      const recordKey = `${agent}|${selectedCamp.id}|${debtorCode}`;
+      const recordKey = `${agent}|${selectedCamp.id}|${debtorCode}|1`;
       if (seen.has(recordKey)) return;
       const debtor = debtorRaw || { debtor_code: debtorCode, company_name: debtorCode, campaigns: [] };
       records.push({
@@ -1162,7 +1185,8 @@ function renderAudit() {
         debtor,
         campEntry: campEntryRaw || {},
         claim: null,
-        audit: null
+        audit: null,
+        stage: 1
       });
       seen.add(recordKey);
     };
@@ -1192,6 +1216,7 @@ function renderAudit() {
     const cb = isConversionCamp(b.camp) && b.campEntry?.converted ? 0 : 1;
     return (a.agent || 'ZZZ').localeCompare(b.agent || 'ZZZ') ||
       (ca - cb) ||
+      (normalizeAuditClaimStage(a.stage) - normalizeAuditClaimStage(b.stage)) ||
       (ra - rb) ||
       String(a.debtor?.company_name || '').localeCompare(String(b.debtor?.company_name || '')) ||
       String(a.debtor?.debtor_code || '').localeCompare(String(b.debtor?.debtor_code || ''));
@@ -1216,6 +1241,7 @@ function renderAudit() {
     return {
       camp_id: r.camp.id || '',
       camp_name: r.camp.name || r.camp.id || '',
+      stage: auditClaimStageLabel(r.stage),
       debtor_code: r.debtor.debtor_code || '',
       debtor_name: r.debtor.company_name || r.debtor.debtor_code || '',
       agent: r.agent || '',
@@ -1238,8 +1264,8 @@ function renderAudit() {
   document.getElementById('summary-row').innerHTML = `
     <div class="sum-card"><div class="sum-val b">${total}</div><div class="sum-lbl">${activeCampId === 'ALL' ? 'Total Records' : 'Entitled'}</div></div>
     <div class="sum-card"><div class="sum-val g">${showConvertedSummary ? converted : claimed}</div><div class="sum-lbl">${showConvertedSummary ? 'Converted' : 'Submitted'}</div></div>
-    <div class="sum-card"><div class="sum-val b">${verified}</div><div class="sum-lbl">Processed ✓</div></div>
-    <div class="sum-card"><div class="sum-val r">${rejected}</div><div class="sum-lbl">Rejected ✗</div></div>
+    <div class="sum-card"><div class="sum-val b">${verified}</div><div class="sum-lbl">Processed âœ“</div></div>
+    <div class="sum-card"><div class="sum-val r">${rejected}</div><div class="sum-lbl">Rejected âœ—</div></div>
     <div class="sum-card"><div class="sum-val a">${showConvertedSummary ? total - converted : (activeCampId === 'ALL' ? pending : unclaimed)}</div><div class="sum-lbl">${showConvertedSummary ? 'Not Converted' : (activeCampId === 'ALL' ? 'Pending Requests' : 'Not Requested')}</div></div>`;
 
   if (!records.length) {
@@ -1279,53 +1305,55 @@ function renderAudit() {
       const requestLabel = claimCategory === 'unclaimed'
                          ? 'Not requested'
                          : isExcluded
-                           ? '🚫 Excluded'
+                           ? 'ðŸš« Excluded'
                             : claimCategory === 'verified'
                              ? 'Processed'
                               : claimCategory === 'rejected'
                                ? 'Rejected'
                                 : 'Request sent';
       const displayRequestLabel = isExcluded ? (isManagerOff ? 'Manager Off' : 'Excluded') : requestLabel;
-      const conversionLabel = isConverted ? '✓ Paid converted' : 'No paid order yet';
-      const statusLabel = isConversion ? `${conversionLabel} · ${requestLabel}` : requestLabel;
+      const conversionLabel = isConverted ? 'âœ“ Paid converted' : 'No paid order yet';
+      const statusLabel = isConversion ? `${conversionLabel} Â· ${requestLabel}` : requestLabel;
       const auditStatusLabel = isConversion ? `${conversionLabel} - ${displayRequestLabel}` : displayRequestLabel;
       const statusClass = isConversion ? (isConverted ? 'claimed' : 'unclaimed') : (claimCategory === 'pending' ? 'pending' : claimCategory);
       const isFOC = r.camp.type==='foc_sample'||r.camp.type==='festive_gift'||r.camp.type==='birthday_gift';
       const actionLabel = claimCategory === 'unclaimed' ? 'Not requested' : (isExcluded ? (isManagerOff ? 'Manager removed' : 'Unable to deliver') : displayRequestLabel);
-      const conversionMeta = isConversion ? `Feb-Apr: ${r.campEntry?.lookback_ctn ?? 0} CTN · May: ${r.campEntry?.current_ctn ?? 0} CTN` : '';
+      const conversionMeta = isConversion ? `Feb-Apr: ${r.campEntry?.lookback_ctn ?? 0} CTN Â· May: ${r.campEntry?.current_ctn ?? 0} CTN` : '';
+      const stage = normalizeAuditClaimStage(r.stage);
+      const stageLabel = auditClaimStageLabel(stage);
       // Reason label lookup (same as sales_dashboard)
       const reasonMap = {closed:'Shop Closed',unreachable:'Unreachable',moved:'Moved',refused:'Refused',other:'Other'};
       const reasonText = isExcluded ? (isManagerOff ? campaignAuditBulkReasonLabel(r.claim?.reason) : (reasonMap[r.claim?.reason] || r.claim?.reason || 'No reason')) : '';
-      const claimTimeText = claimCategory === 'unclaimed' ? '' : (r.claim?.ts || 'â€”');
+      const claimTimeText = claimCategory === 'unclaimed' ? '' : (r.claim?.ts || 'Ã¢â‚¬â€');
       const rowActionHtml = claimCategory === 'pending'
-        ? `<button class="audit-btn verify" onclick="auditClaim('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}','verified')">✓</button>
-           <button class="audit-btn reject" onclick="promptReject('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}')">×</button>`
+        ? `<button class="audit-btn verify" onclick="auditClaim('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}','verified',${stage})">âœ“</button>
+           <button class="audit-btn reject" onclick="promptReject('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}',${stage})">Ã—</button>`
         : (claimCategory === 'verified' || claimCategory === 'rejected')
-          ? `<button class="audit-btn undo" onclick="auditClaim('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}','undo')">Undo</button>`
+          ? `<button class="audit-btn undo" onclick="auditClaim('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}','undo',${stage})">Undo</button>`
           : isManagerOff
-            ? `<button class="audit-btn undo" onclick="undoManagerOff('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}')">Undo Off</button>`
+            ? `<button class="audit-btn undo" onclick="undoManagerOff('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}',${stage})">Undo Off</button>`
             : '';
       const managerOffActionHtml = isManagerOff
-        ? `<button class="audit-btn undo" onclick="undoManagerOff('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}')">Undo Off</button>`
+        ? `<button class="audit-btn undo" onclick="undoManagerOff('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}',${stage})">Undo Off</button>`
         : '';
 
       return `<div class="claim-row ${statusClass}" id="row-${agent}-${r.camp.id}-${r.debtor.debtor_code}">
         <div class="claim-info">
           <div class="claim-name">${r.debtor.company_name||r.debtor.debtor_code}</div>
-          <div class="claim-code">${r.debtor.debtor_code} · ${CAMP_EMOJI[r.camp.type]||'📋'} ${r.camp.name}${r.campEntry.cat?' · CAT '+r.campEntry.cat:''}${r.claim?.bulk?' · 📥 Bulk':''}</div>
+          <div class="claim-code">${r.debtor.debtor_code} Â· ${stageLabel} Â· ${CAMP_EMOJI[r.camp.type]||'ðŸ“‹'} ${r.camp.name}${r.campEntry.cat?' Â· CAT '+r.campEntry.cat:''}${r.claim?.bulk?' Â· ðŸ“¥ Bulk':''}</div>
           <div class="claim-meta">
-            ${isConversion ? `${conversionMeta} · Claim: ${requestLabel}` : `${actionLabel}: ${r.claim?.ts||'—'}`}${isExcluded ? ` · <span style="color:#ff8866;">${reasonText}</span>` : ''}${r.claim?.remark?' · "'+r.claim.remark+'"':''}
-            ${r.audit?.status==='verified'?` · ✓ Processed ${r.audit.ts||''}`:r.audit?.status==='rejected'?` · ✗ Rejected: ${r.audit.reason||''}${r.audit.ts?' · '+r.audit.ts:''}` : ''}
+            ${isConversion ? `${conversionMeta} Â· Claim: ${requestLabel}` : `${actionLabel}: ${r.claim?.ts||'â€”'}`}${isExcluded ? ` Â· <span style="color:#ff8866;">${reasonText}</span>` : ''}${r.claim?.remark?' Â· "'+r.claim.remark+'"':''}
+            ${r.audit?.status==='verified'?` Â· âœ“ Processed ${r.audit.ts||''}`:r.audit?.status==='rejected'?` Â· âœ— Rejected: ${r.audit.reason||''}${r.audit.ts?' Â· '+r.audit.ts:''}` : ''}
           </div>
         </div>
         <div class="claim-actions">
           <span class="claim-status ${statusClass}">${auditStatusLabel}</span>
           ${managerOffActionHtml}
           ${!r.claim || isExcluded ? '' : (!r.audit ? `
-            <button class="audit-btn verify" onclick="auditClaim('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}','verified')">✓</button>
-            <button class="audit-btn reject" onclick="promptReject('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}')">✗</button>
+            <button class="audit-btn verify" onclick="auditClaim('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}','verified',${stage})">âœ“</button>
+            <button class="audit-btn reject" onclick="promptReject('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}',${stage})">âœ—</button>
           ` : `
-            <button class="audit-btn undo" onclick="auditClaim('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}','undo')">Undo</button>
+            <button class="audit-btn undo" onclick="auditClaim('${month}','${agent}','${r.camp.id}','${r.debtor.debtor_code}','undo',${stage})">Undo</button>
           `)}
         </div>
       </div>`;
@@ -1340,14 +1368,14 @@ function renderAudit() {
           ${!agentShowsConversion && agentPending>0?`<span class="stat-chip pending">${agentPending} pending</span>`:''}
           ${agentShowsConversion && recs.length-agentConverted>0?`<span class="stat-chip pending">${recs.length-agentConverted} not converted</span>`:''}
           ${!agentShowsConversion && agentUnclaimed>0?`<span class="stat-chip pending">${agentUnclaimed} not requested</span>`:''}
-          ${agentVerified>0?`<span style="font-family:var(--mono);font-size:9px;color:var(--blue);">✓${agentVerified}</span>`:''}
-          ${agentRejected>0?`<span style="font-family:var(--mono);font-size:9px;color:var(--red);">✗${agentRejected}</span>`:''}
-          ${agentExcluded>0?`<span style="font-family:var(--mono);font-size:9px;color:#ff8866;">🚫${agentExcluded}</span>`:''}
+          ${agentVerified>0?`<span style="font-family:var(--mono);font-size:9px;color:var(--blue);">âœ“${agentVerified}</span>`:''}
+          ${agentRejected>0?`<span style="font-family:var(--mono);font-size:9px;color:var(--red);">âœ—${agentRejected}</span>`:''}
+          ${agentExcluded>0?`<span style="font-family:var(--mono);font-size:9px;color:#ff8866;">ðŸš«${agentExcluded}</span>`:''}
           <button onclick="event.stopPropagation();bulkApproveAgent('${agent}')"
             style="background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.3);color:var(--green);font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;margin-left:6px;">
-            ✓ Approve all ${agent}
+            âœ“ Approve all ${agent}
           </button>
-          <span class="agent-toggle">▸</span>
+          <span class="agent-toggle">â–¸</span>
         </div>
       </div>
       <div class="prog-bar"><div class="prog-fill" style="width:${agentShowsConversion ? conversionPct : agentPct}%;background:${agentShowsConversion ? 'var(--green)' : progColor};"></div></div>
@@ -1356,7 +1384,7 @@ function renderAudit() {
   }).join('');
 }
 
-// ── Birthday debtor list management ────────────────────────────────────────
+// â”€â”€ Birthday debtor list management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function auditMonthToIso(month) {
   const [mon, yy] = String(month || '').split(' ');
   const idx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(mon);
@@ -1608,7 +1636,7 @@ async function birthdayAuditApplyApproved(month) {
 async function renderBirthdayDebtorList(month, agentSel) {
   const contentEl = document.getElementById('audit-content');
   const summaryEl = document.getElementById('summary-row');
-  contentEl.innerHTML = '<div class="empty">⏳ Loading birthday list...</div>';
+  contentEl.innerHTML = '<div class="empty">â³ Loading birthday list...</div>';
 
   const overrides = await fetchBirthdayOverridesForMonth(month);
   const lookup = buildAuditDebtorLookup();
@@ -1649,7 +1677,7 @@ async function renderBirthdayDebtorList(month, agentSel) {
   function birthdayClaimFor(d) {
     const exact = getClaim(month, d.agent || '', birthdayCampId, d.code);
     if (exact) return { claim: exact, keyAgent: d.agent || '' };
-    const suffix = `|${birthdayCampId}|${(d.code || '').toUpperCase()}`;
+    const suffix = `|${birthdayCampId}|${(d.code || '').toUpperCase()}|1`;
     const foundKey = Object.keys(CLAIMS_CACHE).find(k => k.endsWith(suffix));
     if (!foundKey) return { claim: null, keyAgent: d.agent || '' };
     return { claim: CLAIMS_CACHE[foundKey], keyAgent: foundKey.split('|')[0] || d.agent || '' };
@@ -1780,67 +1808,72 @@ function toggleAgentSection(hdr) {
   if (!section) return;
   const collapsed = section.classList.toggle('is-collapsed');
   const icon = section.querySelector('.agent-toggle');
-  if (icon) icon.textContent = collapsed ? '▸' : '▾';
+  if (icon) icon.textContent = collapsed ? 'â–¸' : 'â–¾';
 }
 
 function setAllAgentSections(expand) {
   document.querySelectorAll('.agent-section').forEach(section => {
     section.classList.toggle('is-collapsed', !expand);
     const icon = section.querySelector('.agent-toggle');
-    if (icon) icon.textContent = expand ? '▾' : '▸';
+    if (icon) icon.textContent = expand ? 'â–¾' : 'â–¸';
   });
 }
 
-// ── Audit actions ──────────────────────────────────────────────────────────
-async function auditClaim(month, agent, campId, debtorCode, action) {
+// â”€â”€ Audit actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function auditClaim(month, agent, campId, debtorCode, action, stage = 1) {
+  const cleanStage = normalizeAuditClaimStage(stage);
   const now = new Date();
   const ts  = now.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
   if (action === 'undo') {
-    await saveAudit(month, agent, campId, debtorCode, {status:'undo', ts, by:'management'});
+    await saveAudit(month, agent, campId, debtorCode, {status:'undo', ts, by:'management', stage: cleanStage}, cleanStage);
   } else {
-    await saveAudit(month, agent, campId, debtorCode, {status:action, ts, by:'management'});
+    await saveAudit(month, agent, campId, debtorCode, {status:action, ts, by:'management', stage: cleanStage}, cleanStage);
   }
-  showToast(action==='verified'?'✓ Verified':action==='undo'?'Undo done':'✗ Rejected');
+  showToast(action==='verified'?'âœ“ Verified':action==='undo'?'Undo done':'âœ— Rejected');
   renderAudit();
 }
 
-async function undoManagerOff(month, agent, campId, debtorCode) {
+async function undoManagerOff(month, agent, campId, debtorCode, stage = 1) {
   if (!confirm(`Undo manager off for ${debtorCode}?`)) return;
+  const cleanStage = normalizeAuditClaimStage(stage);
   const code = String(debtorCode || '').toUpperCase();
-  const key = `${agent}|${campId}|${code}`;
+  const key = getClaimKey(month, agent, campId, code, cleanStage);
   const slug = String(month || '').replace(' ', '');
+  const storageSuffix = cleanStage === 2 ? '__stage2' : '';
 
-  localStorage.removeItem(`camp_claim_${slug}_${agent}_${campId}_${code}`);
+  localStorage.removeItem(`camp_claim_${slug}_${agent}_${campId}_${code}${storageSuffix}`);
   delete CLAIMS_CACHE[key];
   delete AUDIT_CACHE[key];
 
   if (typeof GistSync !== 'undefined' && GistSync.removeClaim) {
-    await GistSync.removeClaim(month, agent, campId, code);
+    await GistSync.removeClaim(month, agent, campId, code, cleanStage);
   }
   if (typeof GistSync !== 'undefined' && GistSync.logAudit) {
     GistSync.logAudit('management', 'campaign_audit_bulk_remove_undo', month, {
       agent,
       camp_id: campId,
-      debtor_code: code
+      debtor_code: code,
+      stage: cleanStage
     });
   }
   showToast('Manager off undone');
   renderAudit();
 }
 
-function promptReject(month, agent, campId, debtorCode) {
+function promptReject(month, agent, campId, debtorCode, stage = 1) {
+  const cleanStage = normalizeAuditClaimStage(stage);
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
   overlay.innerHTML = `
     <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;">
-      <div style="font-family:var(--display);font-size:20px;color:var(--red);margin-bottom:12px;">✗ Reject Claim</div>
+      <div style="font-family:var(--display);font-size:20px;color:var(--red);margin-bottom:12px;">âœ— Reject Claim</div>
       <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Reason (required)</div>
       <input type="text" id="reject-reason" placeholder="e.g. No photo proof, wrong quantity, duplicate"
         style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--body);font-size:13px;padding:11px 12px;margin-bottom:14px;">
       <div style="display:flex;gap:10px;">
-        <button onclick="confirmReject('${month}','${agent}','${campId}','${debtorCode}',this)"
+        <button onclick="confirmReject('${month}','${agent}','${campId}','${debtorCode}',this,${cleanStage})"
           style="flex:1;background:rgba(255,95,95,.2);border:1px solid rgba(255,95,95,.4);color:var(--red);font-family:var(--mono);font-size:12px;font-weight:700;padding:12px;border-radius:10px;cursor:pointer;">
-          ✗ CONFIRM REJECT
+          âœ— CONFIRM REJECT
         </button>
         <button onclick="this.closest('div[style*=fixed]').remove()"
           style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:12px;border-radius:10px;cursor:pointer;">
@@ -1853,21 +1886,22 @@ function promptReject(month, agent, campId, debtorCode) {
   setTimeout(()=>document.getElementById('reject-reason')?.focus(),100);
 }
 
-async function confirmReject(month, agent, campId, debtorCode, btn) {
+async function confirmReject(month, agent, campId, debtorCode, btn, stage = 1) {
+  const cleanStage = normalizeAuditClaimStage(stage);
   const reason = document.getElementById('reject-reason')?.value?.trim();
   if (!reason) { document.getElementById('reject-reason').style.borderColor='var(--red)'; return; }
   const now = new Date();
   const ts  = now.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-  await saveAudit(month, agent, campId, debtorCode, {status:'rejected', reason, ts, by:'management'});
+  await saveAudit(month, agent, campId, debtorCode, {status:'rejected', reason, ts, by:'management', stage: cleanStage}, cleanStage);
   btn.closest('div[style*=fixed]').remove();
-  showToast('✗ Claim rejected');
+  showToast('âœ— Claim rejected');
   renderAudit();
 }
 
-// ── Bulk approve ───────────────────────────────────────────────────────────
+// â”€â”€ Bulk approve â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Batch UPDATE in Supabase: mark many pending claims as verified at once.
 async function _bulkVerifyInSupabase(month, claimFilters) {
-  // claimFilters: array of { agent, camp_id, debtor_code }
+  // claimFilters: array of { agent, camp_id, debtor_code, stage }
   if (!claimFilters.length) return { ok:0, fail:0 };
 
   const now = new Date();
@@ -1877,13 +1911,13 @@ async function _bulkVerifyInSupabase(month, claimFilters) {
   const bodyMin  = { status:'verified' };
 
   let ok = 0, fail = 0;
-  const BATCH = 50;  // PATCH via or() filter — keep URL manageable
+  const BATCH = 50;  // PATCH via or() filter â€” keep URL manageable
   for (let i = 0; i < claimFilters.length; i += BATCH) {
     const slice = claimFilters.slice(i, i + BATCH);
     const conditions = slice.map(cf =>
-      `and(agent.eq.${encodeURIComponent(cf.agent)},camp_id.eq.${encodeURIComponent(cf.camp_id)},debtor_code.eq.${encodeURIComponent(cf.debtor_code)})`
+      `and(agent.eq.${encodeURIComponent(cf.agent)},camp_id.eq.${encodeURIComponent(cf.camp_id)},debtor_code.eq.${encodeURIComponent(cf.debtor_code)},stage.eq.${normalizeAuditClaimStage(cf.stage)})`
     ).join(',');
-    const url = `${SUPABASE_URL}/rest/v1/claims?month=eq.${encodeURIComponent(month)}&status=eq.delivered&or=(${conditions})`;
+    const url = `${SUPABASE_URL}/rest/v1/claims?month=eq.${encodeURIComponent(month)}&or=(${conditions})`;
 
     try {
       let r = await fetch(url, {
@@ -1913,7 +1947,7 @@ async function _bulkVerifyInSupabase(month, claimFilters) {
         ok += slice.length;
         // Update in-memory cache
         slice.forEach(cf => {
-          const key = `${cf.agent}|${cf.camp_id}|${cf.debtor_code.toUpperCase()}`;
+          const key = getAuditKey(month, cf.agent, cf.camp_id, cf.debtor_code, cf.stage);
           AUDIT_CACHE[key] = { status:'verified', ts, by:'management' };
         });
       } else {
@@ -1939,12 +1973,12 @@ async function bulkApproveAllPending() {
   // Find all pending in the currently filtered view
   const pending = [];
   Object.keys(CLAIMS_CACHE).forEach(key => {
-    const [agent, campId, debtorCode] = key.split('|');
+    const { agent, campId, debtorCode, stage } = parseAuditClaimKey(key);
     if (agentSel !== 'ALL' && agent !== agentSel) return;
     if (activeCampId !== 'ALL' && campId !== activeCampId) return;
     if (AUDIT_CACHE[key]) return;  // already audited
     if (CLAIMS_CACHE[key]?.status === 'excluded') return;  // agent-excluded, not admin's to approve
-    pending.push({ agent, camp_id:campId, debtor_code:debtorCode });
+    pending.push({ agent, camp_id:campId, debtor_code:debtorCode, stage });
   });
 
   if (!pending.length) {
@@ -1955,11 +1989,11 @@ async function bulkApproveAllPending() {
 
   if (!confirm(`Approve ALL ${pending.length} pending claims in current view?\n\nFilter: ${activeCampId==='ALL'?'All campaigns':activeCampId}, ${agentSel==='ALL'?'All agents':agentSel}\n\nThis will set status to "verified" in Supabase.`)) return;
 
-  statusEl.textContent = `⏳ Approving ${pending.length} claims...`;
+  statusEl.textContent = `â³ Approving ${pending.length} claims...`;
   statusEl.style.color = 'var(--accent)';
 
   const { ok, fail } = await _bulkVerifyInSupabase(month, pending);
-  statusEl.textContent = `✓ ${ok} approved${fail?` · ✗ ${fail} failed`:''}`;
+  statusEl.textContent = `âœ“ ${ok} approved${fail?` Â· âœ— ${fail} failed`:''}`;
   statusEl.style.color = fail ? 'var(--red)' : 'var(--green)';
   renderAudit();
 }
@@ -1971,12 +2005,12 @@ async function bulkApproveAgent(agent) {
 
   const pending = [];
   Object.keys(CLAIMS_CACHE).forEach(key => {
-    const [a, campId, debtorCode] = key.split('|');
+    const { agent: a, campId, debtorCode, stage } = parseAuditClaimKey(key);
     if (a !== agent) return;
     if (activeCampId !== 'ALL' && campId !== activeCampId) return;
     if (AUDIT_CACHE[key]) return;
     if (CLAIMS_CACHE[key]?.status === 'excluded') return;  // skip agent-excluded
-    pending.push({ agent:a, camp_id:campId, debtor_code:debtorCode });
+    pending.push({ agent:a, camp_id:campId, debtor_code:debtorCode, stage });
   });
 
   if (!pending.length) {
@@ -1987,11 +2021,11 @@ async function bulkApproveAgent(agent) {
 
   if (!confirm(`Approve ${pending.length} pending claims for ${agent}?`)) return;
 
-  statusEl.textContent = `⏳ ${agent}: approving ${pending.length}...`;
+  statusEl.textContent = `â³ ${agent}: approving ${pending.length}...`;
   statusEl.style.color = 'var(--accent)';
 
   const { ok, fail } = await _bulkVerifyInSupabase(month, pending);
-  statusEl.textContent = `✓ ${agent}: ${ok} approved${fail?` · ✗ ${fail} failed`:''}`;
+  statusEl.textContent = `âœ“ ${agent}: ${ok} approved${fail?` Â· âœ— ${fail} failed`:''}`;
   statusEl.style.color = fail ? 'var(--red)' : 'var(--green)';
   renderAudit();
 }
@@ -2005,7 +2039,7 @@ async function bulkApproveByCampaign() {
   // Build picker
   const campOptions = camps.map(c => {
     const cnt = Object.keys(CLAIMS_CACHE).filter(k => {
-      const [,campId] = k.split('|');
+      const { campId } = parseAuditClaimKey(k);
       return campId === c.id && !AUDIT_CACHE[k] && CLAIMS_CACHE[k]?.status !== 'excluded';
     }).length;
     return { id: c.id, name: c.name, pending: cnt };
@@ -2030,29 +2064,29 @@ async function bulkApproveByCampaign() {
 
   const pending = [];
   Object.keys(CLAIMS_CACHE).forEach(key => {
-    const [agent, campId, debtorCode] = key.split('|');
+    const { agent, campId, debtorCode, stage } = parseAuditClaimKey(key);
     if (campId !== chosen.id) return;
     if (AUDIT_CACHE[key]) return;
     if (CLAIMS_CACHE[key]?.status === 'excluded') return;
-    pending.push({ agent, camp_id:campId, debtor_code:debtorCode });
+    pending.push({ agent, camp_id:campId, debtor_code:debtorCode, stage });
   });
 
-  statusEl.textContent = `⏳ Approving ${pending.length} for ${chosen.name}...`;
+  statusEl.textContent = `â³ Approving ${pending.length} for ${chosen.name}...`;
   statusEl.style.color = 'var(--accent)';
 
   const { ok, fail } = await _bulkVerifyInSupabase(month, pending);
-  statusEl.textContent = `✓ ${chosen.name}: ${ok} approved${fail?` · ✗ ${fail} failed`:''}`;
+  statusEl.textContent = `âœ“ ${chosen.name}: ${ok} approved${fail?` Â· âœ— ${fail} failed`:''}`;
   statusEl.style.color = fail ? 'var(--red)' : 'var(--green)';
   renderAudit();
 }
 
-// ── Export CSV ─────────────────────────────────────────────────────────────
+// â”€â”€ Export CSV â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Iterates CLAIMS_CACHE (Supabase) so bulk-imported claims are included
 function exportAuditCSV() {
   const month    = document.getElementById('month-select').value;
   const agentSel = document.getElementById('agent-select').value;
   const allCamps = CAMP_DATA?.campaigns||[];
-  const rows     = [['Month','Agent','Debtor Code','Debtor Name','Campaign','Type','CAT','Claim Status','Claim Time','Bulk','Remark','Audit Status','Audit Time','Reject Reason']];
+  const rows     = [['Month','Agent','Stage','Debtor Code','Debtor Name','Campaign','Type','CAT','Claim Status','Claim Time','Bulk','Remark','Audit Status','Audit Time','Reject Reason']];
 
   // Build debtor lookup for company names
   const debtorByAgentCode = {};
@@ -2062,17 +2096,17 @@ function exportAuditCSV() {
   });
 
   Object.entries(CLAIMS_CACHE).forEach(([key, claim]) => {
-    const [agent, campId, debtorCode] = key.split('|');
+    const { agent, campId, debtorCode, stage } = parseAuditClaimKey(key);
     if (agentSel !== 'ALL' && agent !== agentSel) return;
     if (activeCampId !== 'ALL' && campId !== activeCampId) return;
 
     const camp = allCamps.find(c => c.id === campId) || { name: campId, type: 'other' };
     const debtor = debtorByAgentCode[`${agent}|${debtorCode}`] || { debtor_code: debtorCode, company_name: debtorCode, campaigns: [] };
     const campEntry = (debtor.campaigns||[]).find(c => c.id === campId) || {};
-    const audit = getAudit(month, agent, campId, debtorCode);
+    const audit = getAudit(month, agent, campId, debtorCode, stage);
 
     rows.push([
-      month, agent,
+      month, agent, auditClaimStageLabel(stage),
       debtorCode, (debtor.company_name||'').replace(/,/g,''),
       (camp.name||'').replace(/,/g,''),
       CAMP_LABEL[camp.type] || camp.type || '',
@@ -2095,7 +2129,7 @@ function exportAuditCSV() {
   a.click();
 }
 
-// ── Bulk Mark Delivered ────────────────────────────────────────────────────
+// â”€â”€ Bulk Mark Delivered â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function exportAuditExcel() {
   if (typeof XLSX === 'undefined') {
     alert('Excel export library not loaded yet. Try again in a moment.');
@@ -2170,7 +2204,7 @@ function showBulkMarkPanel() {
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
   overlay.innerHTML = `
     <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;">
-      <div style="font-family:var(--display);font-size:22px;margin-bottom:4px;">📥 Bulk Mark Delivered</div>
+      <div style="font-family:var(--display);font-size:22px;margin-bottom:4px;">ðŸ“¥ Bulk Mark Delivered</div>
       <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px;">For past deliveries that weren't recorded</div>
 
       <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Campaign</div>
@@ -2180,14 +2214,14 @@ function showBulkMarkPanel() {
 
       <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Agent</div>
       <select id="bulk-agent-sel" onchange="loadBulkDebtors()" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;margin-bottom:12px;">
-        <option value="">— Select Agent —</option>
+        <option value="">â€” Select Agent â€”</option>
         ${AGENTS.map(a=>`<option value="${a}">${a}</option>`).join('')}
       </select>
 
       <!-- Excel/CSV Upload option -->
       <div style="margin-bottom:12px;">
         <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">
-          OR — Upload Excel/CSV with debtor codes
+          OR â€” Upload Excel/CSV with debtor codes
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
           <input type="file" id="bulk-file-input" accept=".xlsx,.csv" onchange="handleBulkFile(this)"
@@ -2202,7 +2236,7 @@ function showBulkMarkPanel() {
       <div style="display:flex;gap:10px;">
         <button onclick="confirmBulkMark('${month}')" 
           style="flex:1;background:var(--green);border:none;color:#000;font-family:var(--mono);font-size:12px;font-weight:800;padding:13px;border-radius:10px;cursor:pointer;box-shadow:0 0 14px rgba(61,220,132,.4);">
-          ✓ MARK ALL SELECTED
+          âœ“ MARK ALL SELECTED
         </button>
         <button onclick="this.closest('div[style*=fixed]').remove()"
           style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:13px;border-radius:10px;cursor:pointer;">
@@ -2251,7 +2285,7 @@ function loadBulkDebtors() {
         <input type="checkbox" class="bulk-check" value="${d.debtor_code}" ${alreadyClaimed?'disabled':''} style="width:16px;height:16px;">
         <div>
           <div style="font-family:var(--mono);font-size:11px;font-weight:500;">${d.company_name||d.debtor_code}</div>
-          <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">${d.debtor_code}${alreadyClaimed?' · ✓ Already marked':''}</div>
+          <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">${d.debtor_code}${alreadyClaimed?' Â· âœ“ Already marked':''}</div>
         </div>
       </label>`;
     }).join('')}`;
@@ -2278,11 +2312,11 @@ function confirmBulkMark(month) {
   });
 
   document.querySelector('div[style*=fixed]')?.remove();
-  showToast(`✓ ${checked.length} debtors marked as delivered`);
+  showToast(`âœ“ ${checked.length} debtors marked as delivered`);
   renderAudit();
 }
 
-// ── Claims Backup / Restore ────────────────────────────────────────────────
+// â”€â”€ Claims Backup / Restore â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Mode-aware bulk tool. Later declarations intentionally override the legacy
 // delivered-only functions above while preserving handleBulkFile/toggleAllBulk.
 function showBulkMarkPanel(mode) {
@@ -2463,11 +2497,12 @@ async function confirmBulkMark(month) {
       batchId,
       campType: camp?.type || null
     });
+    claimData.stage = 1;
     const code = String(entry.debtorCode || '').toUpperCase();
     const rowAgent = entry.agent;
     const key = `camp_claim_${month.replace(' ','')}_${rowAgent}_${campId}_${code}`;
     localStorage.setItem(key, JSON.stringify(claimData));
-    const cacheKey = `${rowAgent}|${campId}|${code}`;
+    const cacheKey = getClaimKey(month, rowAgent, campId, code, 1);
     CLAIMS_CACHE[cacheKey] = claimData;
     if (mode === 'remove') {
       delete AUDIT_CACHE[cacheKey];
@@ -2475,7 +2510,7 @@ async function confirmBulkMark(month) {
       AUDIT_CACHE[cacheKey] = { status:'verified', ts, by:'management' };
     }
     if (typeof GistSync !== 'undefined' && GistSync.saveClaim) {
-      return GistSync.saveClaim(month, rowAgent, campId, code, claimData);
+      return GistSync.saveClaim(month, rowAgent, campId, code, claimData, 1);
     }
     return Promise.resolve();
   }));
@@ -2511,7 +2546,7 @@ function exportClaimsBackup() {
   a.href     = URL.createObjectURL(blob);
   a.download = `claims_backup_${slug}_${new Date().toISOString().slice(0,10)}.json`;
   a.click();
-  showToast(`💾 ${Object.keys(claims).length} claims backed up`);
+  showToast(`ðŸ’¾ ${Object.keys(claims).length} claims backed up`);
 }
 
 function importClaimsBackup() {
@@ -2532,10 +2567,10 @@ function doRestoreClaims(input) {
           count++;
         }
       });
-      showToast(`✓ ${count} claims restored`);
+      showToast(`âœ“ ${count} claims restored`);
       renderAudit();
     } catch(err) {
-      showToast('❌ Invalid backup file');
+      showToast('âŒ Invalid backup file');
     }
   };
   reader.readAsText(file);
@@ -2553,7 +2588,7 @@ function handleBulkFile(input) {
       const lines = e.target.result.split('\n');
       const header = lines[0].toLowerCase().split(',');
       const codeCol = header.findIndex(h => h.includes('code') || h.includes('debtor'));
-      if (codeCol < 0) { statusEl.textContent = '❌ No "Code" or "Debtor Code" column found'; statusEl.style.color='var(--red)'; statusEl.style.display='block'; return; }
+      if (codeCol < 0) { statusEl.textContent = 'âŒ No "Code" or "Debtor Code" column found'; statusEl.style.color='var(--red)'; statusEl.style.display='block'; return; }
       const codes = lines.slice(1).map(l => l.split(',')[codeCol]?.trim()).filter(Boolean);
       applyBulkCodes(codes, file.name, statusEl);
     };
@@ -2567,13 +2602,13 @@ function handleBulkFile(input) {
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
         const codeKey = Object.keys(rows[0]||{}).find(k => k.toLowerCase().includes('code') || k.toLowerCase().includes('debtor'));
-        if (!codeKey) { statusEl.textContent = '❌ No "Code" or "Debtor Code" column found'; statusEl.style.color='var(--red)'; statusEl.style.display='block'; return; }
+        if (!codeKey) { statusEl.textContent = 'âŒ No "Code" or "Debtor Code" column found'; statusEl.style.color='var(--red)'; statusEl.style.display='block'; return; }
         const codes = rows.map(r => String(r[codeKey]||'').trim()).filter(Boolean);
         applyBulkCodes(codes, file.name, statusEl);
       };
       reader.readAsBinaryString(file);
     } else {
-      statusEl.textContent = '⚠ SheetJS not loaded — use CSV format instead';
+      statusEl.textContent = 'âš  SheetJS not loaded â€” use CSV format instead';
       statusEl.style.color = 'var(--gold)';
       statusEl.style.display = 'block';
     }
@@ -2592,7 +2627,7 @@ function applyBulkCodes(codes, filename, statusEl) {
       matched++;
     }
   });
-  statusEl.textContent = `✓ ${filename}: ${codes.length} codes loaded, ${matched} matched and selected`;
+  statusEl.textContent = `âœ“ ${filename}: ${codes.length} codes loaded, ${matched} matched and selected`;
   statusEl.style.color = matched > 0 ? 'var(--green)' : 'var(--gold)';
   statusEl.style.display = 'block';
 }
@@ -2604,7 +2639,7 @@ function showToast(msg) {
   setTimeout(()=>t.classList.remove('show'),2000);
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────
+// â”€â”€ Init â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 document.addEventListener('DOMContentLoaded', () => {
   // Populate agent dropdown
   const sel = document.getElementById('agent-select');
@@ -2612,12 +2647,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // loadAuditData() is called by auditLogin() after password check
   // (or auto-called if already authenticated this session)
 });
-// Note: loadAuditData is defined earlier — reads directly from Supabase.
-// No wrapper needed (old Gist sync wrapper removed — was causing recursion).
+// Note: loadAuditData is defined earlier â€” reads directly from Supabase.
+// No wrapper needed (old Gist sync wrapper removed â€” was causing recursion).
 
-// ── GistSync Module (Supabase-backed) ─────────────────────────────────
+// â”€â”€ GistSync Module (Supabase-backed) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 /**
- * MIRACLE-奇迹 MD Dashboard — Data Sync Module
+ * MIRACLE-å¥‡è¿¹ MD Dashboard â€” Data Sync Module
  *
  * NOTE ON NAME: This module is still called "GistSync" for backwards
  * compatibility with ~40+ call sites across 4 HTML files. The Gist
@@ -2629,11 +2664,11 @@ document.addEventListener('DOMContentLoaded', () => {
  * Tables:  claims, flags, kpi_scores, kpi_manual, audit_log
  *
  * Public API (all files):
- *   isConfigured()  → boolean (always true now)
- *   getConfig()     → {gist_id, token, backend}
- *   getCache()      → object (localStorage cache)
- *   getCacheAge()   → seconds since last sync
- *   syncToLocal(m)  → pulls month data from Supabase into localStorage
+ *   isConfigured()  â†’ boolean (always true now)
+ *   getConfig()     â†’ {gist_id, token, backend}
+ *   getCache()      â†’ object (localStorage cache)
+ *   getCacheAge()   â†’ seconds since last sync
+ *   syncToLocal(m)  â†’ pulls month data from Supabase into localStorage
  *
  * Claims (sales_dashboard.html, management.html):
  *   saveClaim(month, agent, campId, debtorCode, claimData)
@@ -2646,22 +2681,22 @@ document.addEventListener('DOMContentLoaded', () => {
  *   saveKPIScores(month, scoresObj)
  *
  * Low-level (admin.html + management.html):
- *   pull(fileKey)  → object      e.g. pull('claims_Apr26')
- *   push(fileKey, data) → bool   e.g. push('flags_Apr26', {...})
+ *   pull(fileKey)  â†’ object      e.g. pull('claims_Apr26')
+ *   push(fileKey, data) â†’ bool   e.g. push('flags_Apr26', {...})
  *
- * Also: setup(), createGist(), saveConfig() — all no-op shims for
+ * Also: setup(), createGist(), saveConfig() â€” all no-op shims for
  * back-compat with old admin.html setup flows.
  */
 const GistSync = (() => {
 
-  // ── Configuration ────────────────────────────────────────────────────
+  // â”€â”€ Configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
 
   const CACHE_KEY    = 'md_gist_cache';     // kept same key name for back-compat
   const CACHE_TS_KEY = 'md_gist_cache_ts';
 
-  // ── Helpers ──────────────────────────────────────────────────────────
+  // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function _headers(extra) {
     return Object.assign({
       'apikey': SUPABASE_KEY,
@@ -2683,9 +2718,9 @@ const GistSync = (() => {
     if (!ts) return new Date().toISOString();
     if (ts instanceof Date) return ts.toISOString();
     if (typeof ts !== 'string') return new Date().toISOString();
-    // Already ISO? (crude but effective — ISO starts with YYYY-MM-DD)
+    // Already ISO? (crude but effective â€” ISO starts with YYYY-MM-DD)
     if (/^\d{4}-\d{2}-\d{2}T/.test(ts)) return ts;
-    // Human format "24 Apr 14:32" — check BEFORE native Date parse, because
+    // Human format "24 Apr 14:32" â€” check BEFORE native Date parse, because
     // native Date.parse() mis-interprets this as year 2001 in many engines.
     const m = /^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{1,2}):(\d{2})$/.exec(ts.trim());
     if (m) {
@@ -2725,7 +2760,7 @@ const GistSync = (() => {
         body: opts.body ? JSON.stringify(opts.body) : undefined
       });
       if (!r.ok) {
-        console.warn(`[SupabaseSync] ${opts.method||'GET'} ${path} → ${r.status}`);
+        console.warn(`[SupabaseSync] ${opts.method||'GET'} ${path} â†’ ${r.status}`);
         return { ok:false, status:r.status };
       }
       if (r.status === 204) return { ok:true, data:null };
@@ -2765,7 +2800,7 @@ const GistSync = (() => {
           })
         });
         if (!r.ok) {
-          console.warn(`[SupabaseSync] paged GET ${path} page ${page} → ${r.status}`);
+          console.warn(`[SupabaseSync] paged GET ${path} page ${page} â†’ ${r.status}`);
           break;
         }
         const chunk = await r.json();
@@ -2780,16 +2815,16 @@ const GistSync = (() => {
     return { ok:true, data: all };
   }
 
-  // ── Public: always "configured" — no token rotation needed ───────────
+  // â”€â”€ Public: always "configured" â€” no token rotation needed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function isConfigured() { return true; }
 
   function getConfig() {
     return { gist_id: 'supabase', token: 'supabase', backend: 'supabase' };
   }
 
-  function saveConfig() { /* no-op — kept for back-compat */ }
+  function saveConfig() { /* no-op â€” kept for back-compat */ }
 
-  // ── Cache helpers (kept so existing UI code works) ───────────────────
+  // â”€â”€ Cache helpers (kept so existing UI code works) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function getCache() {
     try { return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}'); }
     catch { return {}; }
@@ -2807,7 +2842,37 @@ const GistSync = (() => {
     localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
   }
 
-  // ── Low-level pull/push (admin.html + management.html) ───────────────
+  function _claimStage(stage) {
+    const n = Number(stage || 1);
+    return n === 2 ? 2 : 1;
+  }
+
+  function _claimStageSuffix(stage) {
+    return _claimStage(stage) === 2 ? '__stage2' : '';
+  }
+
+  function _claimCompKey(agent, campId, debtorCode, stage) {
+    return `${agent}_${campId}_${debtorCode}${_claimStageSuffix(stage)}`;
+  }
+
+  function _parseClaimCompKey(compKey, claimData) {
+    let cleanKey = String(compKey || '');
+    let stage = _claimStage(claimData && claimData.stage);
+    const suffixMatch = cleanKey.match(/__stage(\d+)$/);
+    if (suffixMatch) {
+      stage = _claimStage(suffixMatch[1]);
+      cleanKey = cleanKey.slice(0, suffixMatch.index);
+    }
+    const parts = cleanKey.split('_');
+    return {
+      agent: parts[0] || '',
+      debtorCode: parts[parts.length - 1] || '',
+      campId: parts.slice(1, -1).join('_'),
+      stage
+    };
+  }
+
+  // â”€â”€ Low-level pull/push (admin.html + management.html) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Keeps Gist-style file keys like "claims_Apr26", "flags_Apr26", "kpi_scores"
   async function pull(fileKey) {
     if (!fileKey) return null;
@@ -2818,7 +2883,8 @@ const GistSync = (() => {
       if (!r.ok) return null;
       const out = {};
       (r.data||[]).forEach(row => {
-        const k = `${row.agent}_${row.camp_id}_${row.debtor_code}`;
+        const stage = _claimStage(row.stage);
+        const k = _claimCompKey(row.agent, row.camp_id, row.debtor_code, stage);
         out[k] = {
           ts      : row.ts,
           remark  : row.remark || '',
@@ -2826,7 +2892,8 @@ const GistSync = (() => {
           status  : row.status || 'delivered',
           actor   : row.actor || 'agent',
           count   : (row.count != null) ? row.count : 1,
-          campType: row.camp_type || null
+          campType: row.camp_type || null,
+          stage
         };
       });
       _setCacheBucket(fileKey, out);
@@ -2870,12 +2937,13 @@ const GistSync = (() => {
     if (fileKey.startsWith('claims_')) {
       const month = _monthFromSlug(fileKey.replace('claims_',''));
       const rows = Object.entries(data || {}).map(([compKey, v]) => {
-        const parts = compKey.split('_');
-        const agent = parts[0];
-        const debtorCode = parts[parts.length - 1];
-        const campId = parts.slice(1, -1).join('_');
+        const parsed = _parseClaimCompKey(compKey, v || {});
         return {
-          month, agent, camp_id: campId, debtor_code: debtorCode,
+          month,
+          agent: parsed.agent,
+          camp_id: parsed.campId,
+          debtor_code: parsed.debtorCode,
+          stage: parsed.stage,
           status   : v.status || 'delivered',
           remark   : v.remark || '',
           bulk     : !!v.bulk,
@@ -2886,7 +2954,7 @@ const GistSync = (() => {
         };
       });
       if (!rows.length) return true;
-      const r = await _rest('claims?on_conflict=month,agent,camp_id,debtor_code', {
+      const r = await _rest('claims?on_conflict=month,agent,camp_id,debtor_code,stage', {
         method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates' }, body: rows
       });
       _setCacheBucket(fileKey, data);
@@ -2931,16 +2999,18 @@ const GistSync = (() => {
     return false;
   }
 
-  // ── Single-claim upsert (sales_dashboard.html main path) ─────────────
-  async function saveClaim(month, agent, campId, debtorCode, claimData) {
+  // â”€â”€ Single-claim upsert (sales_dashboard.html main path) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  async function saveClaim(month, agent, campId, debtorCode, claimData, stage) {
     const slug  = _slug(month);
-    const key   = `${agent}_${campId}_${debtorCode}`;
+    const cleanStage = _claimStage(stage || (claimData && claimData.stage));
+    const payload = { ...(claimData || {}), stage: cleanStage };
+    const key   = _claimCompKey(agent, campId, debtorCode, cleanStage);
     const lsKey = `camp_claim_${slug}_${key}`;
 
     // Fire-and-forget localStorage first (instant UX).
-    // We store the FULL claimData locally — UI reads extra fields like
+    // We store the FULL claimData locally â€” UI reads extra fields like
     // `count` directly from here, so don't trim it.
-    localStorage.setItem(lsKey, JSON.stringify(claimData));
+    localStorage.setItem(lsKey, JSON.stringify(payload));
 
     // Upsert to Supabase. Schema-aware payload:
     //   - ts is normalized to ISO (UI may pass "24 Apr 14:32")
@@ -2948,15 +3018,16 @@ const GistSync = (() => {
     //   - camp_type is snake_case on the wire but campType in JS
     const row = {
       month, agent, camp_id: campId, debtor_code: debtorCode,
-      status   : claimData.status || 'submitted',
-      remark   : claimData.remark || '',
-      bulk     : !!claimData.bulk,
-      actor    : claimData.actor || 'agent',
-      ts       : _normalizeTs(claimData.ts),
-      count    : Number.isFinite(claimData.count) ? claimData.count : 1,
-      camp_type: claimData.campType || claimData.camp_type || null
+      stage    : cleanStage,
+      status   : payload.status || 'submitted',
+      remark   : payload.remark || '',
+      bulk     : !!payload.bulk,
+      actor    : payload.actor || 'agent',
+      ts       : _normalizeTs(payload.ts),
+      count    : Number.isFinite(payload.count) ? payload.count : 1,
+      camp_type: payload.campType || payload.camp_type || null
     };
-    _rest('claims?on_conflict=month,agent,camp_id,debtor_code', {
+    _rest('claims?on_conflict=month,agent,camp_id,debtor_code,stage', {
       method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body:[row]
     }).catch(()=>{});
 
@@ -2964,16 +3035,17 @@ const GistSync = (() => {
     const cache = getCache();
     const fk = `claims_${slug}`;
     if (!cache[fk]) cache[fk] = {};
-    cache[fk][key] = claimData;
+    cache[fk][key] = payload;
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch {}
   }
 
-  async function removeClaim(month, agent, campId, debtorCode) {
+  async function removeClaim(month, agent, campId, debtorCode, stage) {
     const slug = _slug(month);
-    const key  = `${agent}_${campId}_${debtorCode}`;
+    const cleanStage = _claimStage(stage);
+    const key  = _claimCompKey(agent, campId, debtorCode, cleanStage);
     localStorage.removeItem(`camp_claim_${slug}_${key}`);
 
-    _rest(`claims?month=eq.${encodeURIComponent(month)}&agent=eq.${encodeURIComponent(agent)}&camp_id=eq.${encodeURIComponent(campId)}&debtor_code=eq.${encodeURIComponent(debtorCode)}`, {
+    _rest(`claims?month=eq.${encodeURIComponent(month)}&agent=eq.${encodeURIComponent(agent)}&camp_id=eq.${encodeURIComponent(campId)}&debtor_code=eq.${encodeURIComponent(debtorCode)}&stage=eq.${cleanStage}`, {
       method: 'DELETE'
     }).catch(()=>{});
 
@@ -2985,7 +3057,7 @@ const GistSync = (() => {
     }
   }
 
-  // ── Flags (per-agent bulk write) ─────────────────────────────────────
+  // â”€â”€ Flags (per-agent bulk write) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function saveFlags(month, agent, flags) {
     const slug = _slug(month);
     localStorage.setItem(`touro_debtor_flags_${agent}`, JSON.stringify(flags));
@@ -3009,13 +3081,13 @@ const GistSync = (() => {
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch {}
   }
 
-  // ── KPI scores (by month + agent) ────────────────────────────────────
+  // â”€â”€ KPI scores (by month + agent) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function saveKPIScores(month, scores) {
     const slug = _slug(month);
     localStorage.setItem(`md_scores_${slug}`, JSON.stringify(scores));
 
     // scores can be either { AGENT: {...}, AGENT2: {...}, ... } (multi-agent)
-    // or { scoreKey: value, ... } (single agent — accounts.html pattern)
+    // or { scoreKey: value, ... } (single agent â€” accounts.html pattern)
     // Detect shape: if values are objects, it's multi-agent; otherwise single.
     const entries = Object.entries(scores || {});
     const isMultiAgent = entries.length > 0 &&
@@ -3027,7 +3099,7 @@ const GistSync = (() => {
         month, agent, scores: s || {}, updated_at: new Date().toISOString()
       }));
     } else {
-      // Single-agent shape — caller didn't wrap by agent.
+      // Single-agent shape â€” caller didn't wrap by agent.
       // This path shouldn't trigger in current code; log for visibility.
       console.warn('[SupabaseSync] saveKPIScores called with non-multi-agent shape; skipping upsert', scores);
       rows = [];
@@ -3037,7 +3109,7 @@ const GistSync = (() => {
       const r = await _rest('kpi_scores?on_conflict=month,agent', {
         method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body: rows
       });
-      if (r.ok) console.log(`[SupabaseSync] KPI scores for ${month} saved ✓`);
+      if (r.ok) console.log(`[SupabaseSync] KPI scores for ${month} saved âœ“`);
     }
 
     const cache = getCache();
@@ -3046,7 +3118,7 @@ const GistSync = (() => {
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch {}
   }
 
-  // ── Bulk sync from Supabase → localStorage (called on page load) ─────
+  // â”€â”€ Bulk sync from Supabase â†’ localStorage (called on page load) â”€â”€â”€â”€â”€
   async function syncToLocal(month, opts) {
     opts = opts || {};
     const slug = _slug(month);
@@ -3065,7 +3137,8 @@ const GistSync = (() => {
       let claimCount = 0;
       const claimsObj = {};
       (claimsRes.data || []).forEach(row => {
-        const compKey = `${row.agent}_${row.camp_id}_${row.debtor_code}`;
+        const stage = _claimStage(row.stage);
+        const compKey = _claimCompKey(row.agent, row.camp_id, row.debtor_code, stage);
         const lsKey   = `camp_claim_${slug}_${compKey}`;
         const val = {
           ts      : row.ts,
@@ -3074,7 +3147,8 @@ const GistSync = (() => {
           status  : row.status || 'delivered',
           actor   : row.actor || 'agent',
           count   : (row.count != null) ? row.count : 1,
-          campType: row.camp_type || null
+          campType: row.camp_type || null,
+          stage
         };
         localStorage.setItem(lsKey, JSON.stringify(val));
         claimsObj[compKey] = val;
@@ -3122,11 +3196,11 @@ const GistSync = (() => {
     }
   }
 
-  // ── Back-compat: setup/createGist are no-ops now ─────────────────────
+  // â”€â”€ Back-compat: setup/createGist are no-ops now â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function setup() { return { ok:true, gist_id:'supabase', backend:'supabase' }; }
   async function createGist() { return { ok:true, gist_id:'supabase', url:SUPABASE_URL }; }
 
-  // ── Realtime subscription (optional, caller opts in) ─────────────────
+  // â”€â”€ Realtime subscription (optional, caller opts in) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Returns an unsubscribe fn. Requires supabase-js CDN loaded on the page.
   let _realtimeClient = null;
   function subscribeClaims(month, cb) {
@@ -3152,7 +3226,7 @@ const GistSync = (() => {
     }
   }
 
-  // ── Audit log (fire-and-forget) ──────────────────────────────────────
+  // â”€â”€ Audit log (fire-and-forget) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function logAudit(actor, action, month, details) {
     _rest('audit_log', {
       method:'POST',
@@ -3160,7 +3234,7 @@ const GistSync = (() => {
     }).catch(()=>{});
   }
 
-  // ── Public API (same shape as original GistSync) ─────────────────────
+  // â”€â”€ Public API (same shape as original GistSync) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return {
     isConfigured, getConfig, saveConfig, setup, createGist,
     pull, push,

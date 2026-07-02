@@ -2240,7 +2240,7 @@ const SupabaseKpiSync = (() => {
   async function fetch_birthday_claims(month, birthdayRows) {
     if (!month) return {};
     const listCodes = new Set((birthdayRows || []).map(d => String(d.code || d.debtor_code || '').toUpperCase()).filter(Boolean));
-    const url = `${SUPABASE_URL}/rest/v1/claims?select=agent,status,debtor_code&month=eq.${encodeURIComponent(month)}&camp_id=eq.birthday_gift_auto`;
+    const url = `${SUPABASE_URL}/rest/v1/claims?select=agent,status,debtor_code,stage&month=eq.${encodeURIComponent(month)}&camp_id=eq.birthday_gift_auto&stage=eq.1`;
     try {
       const r = await fetch(url, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } });
       if (!r.ok) { console.warn(`[SupabaseKpiSync] birthday claims fetch failed: HTTP ${r.status}`); return {}; }
@@ -2420,7 +2420,7 @@ async function fetchCampClaimsForMonth(month) {
     for (let page = 0; page < maxPages; page++) {
       const from = page * pageSize;
       const to   = from + pageSize - 1;
-      const url = `${SUPABASE_URL}/rest/v1/claims?select=agent,camp_id,debtor_code,status&month=eq.${encodeURIComponent(month)}&order=ts.desc`;
+      const url = `${SUPABASE_URL}/rest/v1/claims?select=agent,camp_id,debtor_code,status,stage,actor,remark,ts&month=eq.${encodeURIComponent(month)}&order=ts.desc`;
       const r = await fetch(url, {
         headers: {
           apikey: SUPABASE_KEY,
@@ -2612,14 +2612,15 @@ function renderOverview() {
     }
     if (detailEl) detailEl.textContent = detail;
   };
-  const t1pct = teamT1Target > 0 ? teamNormalCtn/teamT1Target*100 : 0;
-  const gap   = teamNormalCtn - teamT1Target;
+  const hasTeamT1Target = teamT1Target > 0;
+  const t1pct = hasTeamT1Target ? teamNormalCtn/teamT1Target*100 : null;
+  const gap   = hasTeamT1Target ? teamNormalCtn - teamT1Target : null;
 
   document.getElementById('kpi-pct').textContent=fp(t1pct);
-  document.getElementById('kpi-pct').className=`kpi-val ${t1pct>=80?'g':t1pct>=50?'w':'r'}`;
+  document.getElementById('kpi-pct').className=`kpi-val ${t1pct==null?'':t1pct>=80?'g':t1pct>=50?'w':'r'}`;
   document.getElementById('kpi-ctn').textContent=fi(teamNormalCtn);
-  document.getElementById('kpi-gap').textContent=(gap>=0?'+':'')+fi(gap);
-  document.getElementById('kpi-gap').className=`kpi-val ${gap>=0?'g':'r'}`;
+  document.getElementById('kpi-gap').textContent=gap==null?'—':(gap>=0?'+':'')+fi(gap);
+  document.getElementById('kpi-gap').className=`kpi-val ${gap==null?'':gap>=0?'g':'r'}`;
   document.getElementById('kpi-rate').textContent=avgRate+'%';
 
   document.getElementById('ov-pct').textContent=fp(t1pct);
@@ -2645,6 +2646,15 @@ function renderOverview() {
   document.getElementById('ov-bar').style.background=bc(t1pct);
   document.getElementById('ov-bar-mid').textContent=`应达 ${wd.theoretical_pct||0}%`;
   document.getElementById('ov-bar-max').textContent=fn(teamT1Target);
+  if (!hasTeamT1Target) {
+    document.getElementById('ov-meta').textContent = `${fn(teamNormalCtn)} 条 / 目标 —`;
+    gE.textContent = '目标未设';
+    gE.style.color = 'rgba(255,255,255,.55)';
+    document.getElementById('ov-bar').style.width = '0%';
+    document.getElementById('ov-bar').style.background = 'rgba(255,255,255,.25)';
+    document.getElementById('ov-bar-mid').textContent = '目标未设';
+    document.getElementById('ov-bar-max').textContent = '—';
+  }
   document.getElementById('ov-days').textContent=`Day ${wd.elapsed_working_days||'?'} / ${wd.total_working_days||'?'}`;
   document.getElementById('ov-normal').textContent=fi(teamNormalCtn);
   document.getElementById('ov-normal-target').textContent=targetLine(teamNormalCtn, teamT1Target);
@@ -2860,10 +2870,11 @@ async function renderMonthlySummary() {
     return p >= 70 ? '#c8860a' : '#c8381a';
   };
   const atCell = (act, tgt, isPct=false, paceSensitive=false) => {
-    const p    = tgt > 0 ? Math.round(act / tgt * 100) : null;
+    const hasTarget = Number(tgt) > 0;
+    const p    = hasTarget ? Math.round(act / tgt * 100) : null;
     const col  = progressColor(act, tgt, paceSensitive);
     const actStr = isPct ? act+'%' : fi(act);
-    const tgtStr = isPct ? tgt+'%' : fi(tgt);
+    const tgtStr = hasTarget ? (isPct ? tgt+'%' : fi(tgt)) : '—';
     const pctStr = p !== null ? `<span style="color:${col};font-size:8px;"> ${p}%</span>` : '';
     return `<div style="font-family:var(--mono);font-size:10px;padding:5px 6px;text-align:center;
       border-right:1px solid var(--border);border-bottom:1px solid var(--border);line-height:1.4;">
@@ -3652,6 +3663,36 @@ const GistSync = (() => {
     localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
   }
 
+  function _claimStage(stage) {
+    const n = Number(stage || 1);
+    return n === 2 ? 2 : 1;
+  }
+
+  function _claimStageSuffix(stage) {
+    return _claimStage(stage) === 2 ? '__stage2' : '';
+  }
+
+  function _claimCompKey(agent, campId, debtorCode, stage) {
+    return `${agent}_${campId}_${debtorCode}${_claimStageSuffix(stage)}`;
+  }
+
+  function _parseClaimCompKey(compKey, claimData) {
+    let cleanKey = String(compKey || '');
+    let stage = _claimStage(claimData && claimData.stage);
+    const suffixMatch = cleanKey.match(/__stage(\d+)$/);
+    if (suffixMatch) {
+      stage = _claimStage(suffixMatch[1]);
+      cleanKey = cleanKey.slice(0, suffixMatch.index);
+    }
+    const parts = cleanKey.split('_');
+    return {
+      agent: parts[0] || '',
+      debtorCode: parts[parts.length - 1] || '',
+      campId: parts.slice(1, -1).join('_'),
+      stage
+    };
+  }
+
   // ── Low-level pull/push (admin.html + management.html) ───────────────
   // Keeps Gist-style file keys like "claims_Apr26", "flags_Apr26", "kpi_scores"
   async function pull(fileKey) {
@@ -3663,7 +3704,8 @@ const GistSync = (() => {
       if (!r.ok) return null;
       const out = {};
       (r.data||[]).forEach(row => {
-        const k = `${row.agent}_${row.camp_id}_${row.debtor_code}`;
+        const stage = _claimStage(row.stage);
+        const k = _claimCompKey(row.agent, row.camp_id, row.debtor_code, stage);
         out[k] = {
           ts      : row.ts,
           remark  : row.remark || '',
@@ -3671,7 +3713,8 @@ const GistSync = (() => {
           status  : row.status || 'delivered',
           actor   : row.actor || 'agent',
           count   : (row.count != null) ? row.count : 1,
-          campType: row.camp_type || null
+          campType: row.camp_type || null,
+          stage
         };
       });
       _setCacheBucket(fileKey, out);
@@ -3716,12 +3759,13 @@ const GistSync = (() => {
     if (fileKey.startsWith('claims_')) {
       const month = _monthFromSlug(fileKey.replace('claims_',''));
       const rows = Object.entries(data || {}).map(([compKey, v]) => {
-        const parts = compKey.split('_');
-        const agent = parts[0];
-        const debtorCode = parts[parts.length - 1];
-        const campId = parts.slice(1, -1).join('_');
+        const parsed = _parseClaimCompKey(compKey, v || {});
         return {
-          month, agent, camp_id: campId, debtor_code: debtorCode,
+          month,
+          agent: parsed.agent,
+          camp_id: parsed.campId,
+          debtor_code: parsed.debtorCode,
+          stage: parsed.stage,
           status   : v.status || 'delivered',
           remark   : v.remark || '',
           bulk     : !!v.bulk,
@@ -3732,7 +3776,7 @@ const GistSync = (() => {
         };
       });
       if (!rows.length) return true;
-      const r = await _rest('claims?on_conflict=month,agent,camp_id,debtor_code', {
+      const r = await _rest('claims?on_conflict=month,agent,camp_id,debtor_code,stage', {
         method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates' }, body: rows
       });
       _setCacheBucket(fileKey, data);
@@ -3778,15 +3822,17 @@ const GistSync = (() => {
   }
 
   // ── Single-claim upsert (sales_dashboard.html main path) ─────────────
-  async function saveClaim(month, agent, campId, debtorCode, claimData) {
+  async function saveClaim(month, agent, campId, debtorCode, claimData, stage) {
     const slug  = _slug(month);
-    const key   = `${agent}_${campId}_${debtorCode}`;
+    const cleanStage = _claimStage(stage || (claimData && claimData.stage));
+    const payload = { ...(claimData || {}), stage: cleanStage };
+    const key   = _claimCompKey(agent, campId, debtorCode, cleanStage);
     const lsKey = `camp_claim_${slug}_${key}`;
 
     // Fire-and-forget localStorage first (instant UX).
     // We store the FULL claimData locally — UI reads extra fields like
     // `count` directly from here, so don't trim it.
-    localStorage.setItem(lsKey, JSON.stringify(claimData));
+    localStorage.setItem(lsKey, JSON.stringify(payload));
 
     // Upsert to Supabase. Schema-aware payload:
     //   - ts is normalized to ISO (UI may pass "24 Apr 14:32")
@@ -3794,15 +3840,16 @@ const GistSync = (() => {
     //   - camp_type is snake_case on the wire but campType in JS
     const row = {
       month, agent, camp_id: campId, debtor_code: debtorCode,
-      status   : claimData.status || 'delivered',
-      remark   : claimData.remark || '',
-      bulk     : !!claimData.bulk,
-      actor    : claimData.actor || 'agent',
-      ts       : _normalizeTs(claimData.ts),
-      count    : Number.isFinite(claimData.count) ? claimData.count : 1,
-      camp_type: claimData.campType || claimData.camp_type || null
+      stage    : cleanStage,
+      status   : payload.status || 'delivered',
+      remark   : payload.remark || '',
+      bulk     : !!payload.bulk,
+      actor    : payload.actor || 'agent',
+      ts       : _normalizeTs(payload.ts),
+      count    : Number.isFinite(payload.count) ? payload.count : 1,
+      camp_type: payload.campType || payload.camp_type || null
     };
-    _rest('claims?on_conflict=month,agent,camp_id,debtor_code', {
+    _rest('claims?on_conflict=month,agent,camp_id,debtor_code,stage', {
       method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body:[row]
     }).catch(()=>{});
 
@@ -3810,16 +3857,17 @@ const GistSync = (() => {
     const cache = getCache();
     const fk = `claims_${slug}`;
     if (!cache[fk]) cache[fk] = {};
-    cache[fk][key] = claimData;
+    cache[fk][key] = payload;
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch {}
   }
 
-  async function removeClaim(month, agent, campId, debtorCode) {
+  async function removeClaim(month, agent, campId, debtorCode, stage) {
     const slug = _slug(month);
-    const key  = `${agent}_${campId}_${debtorCode}`;
+    const cleanStage = _claimStage(stage);
+    const key  = _claimCompKey(agent, campId, debtorCode, cleanStage);
     localStorage.removeItem(`camp_claim_${slug}_${key}`);
 
-    _rest(`claims?month=eq.${encodeURIComponent(month)}&agent=eq.${encodeURIComponent(agent)}&camp_id=eq.${encodeURIComponent(campId)}&debtor_code=eq.${encodeURIComponent(debtorCode)}`, {
+    _rest(`claims?month=eq.${encodeURIComponent(month)}&agent=eq.${encodeURIComponent(agent)}&camp_id=eq.${encodeURIComponent(campId)}&debtor_code=eq.${encodeURIComponent(debtorCode)}&stage=eq.${cleanStage}`, {
       method: 'DELETE'
     }).catch(()=>{});
 
@@ -3911,7 +3959,8 @@ const GistSync = (() => {
       let claimCount = 0;
       const claimsObj = {};
       (claimsRes.data || []).forEach(row => {
-        const compKey = `${row.agent}_${row.camp_id}_${row.debtor_code}`;
+        const stage = _claimStage(row.stage);
+        const compKey = _claimCompKey(row.agent, row.camp_id, row.debtor_code, stage);
         const lsKey   = `camp_claim_${slug}_${compKey}`;
         const val = {
           ts      : row.ts,
@@ -3920,7 +3969,8 @@ const GistSync = (() => {
           status  : row.status || 'delivered',
           actor   : row.actor || 'agent',
           count   : (row.count != null) ? row.count : 1,
-          campType: row.camp_type || null
+          campType: row.camp_type || null,
+          stage
         };
         localStorage.setItem(lsKey, JSON.stringify(val));
         claimsObj[compKey] = val;
@@ -4158,8 +4208,15 @@ function renderCampaignsMgmt() {
   }
 
   const DELIV_STATUSES = new Set(['claimed','delivered','verified']);
+  const CLAIM_STATUSES = new Set(['submitted','claimed','delivered','verified','processed']);
+  const VERIFIED_CLAIM_STATUSES = new Set(['delivered','verified','processed']);
   const isConversionCamp = camp => camp?.type === 'conversion_simple' || camp?.type === 'conversion_tiered';
   const isFollowupMode = campaignMgmtIsFollowupMode(CAMPAIGN_MGMT_MODE);
+
+  function mgmtClaimStage(stage) {
+    const n = Number(stage || 1);
+    return n === 2 ? 2 : 1;
+  }
 
   function getCampaignClaims(camp) {
     const months = campaignMgmtClaimMonths(camp, VIEW_DATA.current_month || '');
@@ -4168,13 +4225,30 @@ function renderCampaignsMgmt() {
     months.forEach(month => {
       (CAMP_CLAIMS_BY_MONTH[month] || []).forEach(row => {
         if (row.camp_id !== camp.id) return;
-        const key = `${month}|${row.agent || ''}|${row.camp_id || ''}|${row.debtor_code || ''}|${row.status || ''}`;
+        const key = `${month}|${row.agent || ''}|${row.camp_id || ''}|${row.debtor_code || ''}|${mgmtClaimStage(row.stage)}|${row.status || ''}`;
         if (seen.has(key)) return;
         seen.add(key);
         rows.push(row);
       });
     });
     return rows;
+  }
+
+  function campaignClaimStageTotals(camp, stage, agent) {
+    const cleanStage = mgmtClaimStage(stage);
+    const filterAgent = String(agent || '').trim().toUpperCase();
+    const rows = getCampaignClaims(camp).filter(row => {
+      if (mgmtClaimStage(row.stage) !== cleanStage) return false;
+      if (filterAgent && String(row.agent || '').trim().toUpperCase() !== filterAgent) return false;
+      return true;
+    });
+    const totals = { claimed: 0, verified: 0 };
+    rows.forEach(row => {
+      const status = String(row.status || '').toLowerCase();
+      if (CLAIM_STATUSES.has(status)) totals.claimed++;
+      if (VERIFIED_CLAIM_STATUSES.has(status)) totals.verified++;
+    });
+    return totals;
   }
 
   function _monthIndex(label) {
@@ -4360,11 +4434,15 @@ function renderCampaignsMgmt() {
 
     if (isConversion) {
       const linkedCampaign = mgmtIsLinkedCampaign(camp) || AGENTS.some(ag => mgmtIsLinkedCampaign(VIEW_DATA?.agents?.[ag]?.conversion_campaigns?.[camp.id] || {}));
+      const linkedStage1Claims = linkedCampaign ? campaignClaimStageTotals(camp, 1) : { claimed: 0, verified: 0 };
+      const linkedStage2Claims = linkedCampaign ? campaignClaimStageTotals(camp, 2) : { claimed: 0, verified: 0 };
       const perAgent = {};
       AGENTS.forEach(ag => {
         const rollup = VIEW_DATA?.agents?.[ag]?.conversion_campaigns?.[camp.id] || {};
         const linkedRollup = linkedCampaign ? (rollup.linked_progress || {}) : {};
         if (linkedCampaign) {
+          const stage1Claims = campaignClaimStageTotals(camp, 1, ag);
+          const stage2Claims = campaignClaimStageTotals(camp, 2, ag);
           const eligible = Number(linkedRollup.eligible_base ?? rollup.enrolled_count ?? rollup.total_enrolled ?? 0);
           const conversionActual = Number(linkedRollup.conversion_actual ?? rollup.converted_count ?? 0);
           const conversionTarget = Number(linkedRollup.conversion_target ?? rollup.target_count ?? 0);
@@ -4391,6 +4469,10 @@ function renderCampaignsMgmt() {
             repeatActual,
             repeatTarget,
             campaignActual: score,
+            stage1Claimed: stage1Claims.claimed,
+            stage1Verified: stage1Claims.verified,
+            stage2Claimed: stage2Claims.claimed,
+            stage2Verified: stage2Claims.verified,
           };
           return;
         }
@@ -4437,6 +4519,10 @@ function renderCampaignsMgmt() {
         totalOnList: delivered, totalOffList: 0, allOffListCodes: [],
         effPool, delivered, totalYet, pct, convertedCtn,
         linkedConversionTarget, linkedRepeatActual, linkedRepeatTarget, linkedCampaignActual,
+        linkedStage1Claimed: linkedStage1Claims.claimed,
+        linkedStage1Verified: linkedStage1Claims.verified,
+        linkedStage2Claimed: linkedStage2Claims.claimed,
+        linkedStage2Verified: linkedStage2Claims.verified,
       };
     }
     const pool   = getCampaignPool(camp);
@@ -4714,7 +4800,8 @@ function renderCampaignsMgmt() {
     const { camp, isBday, isConversion, linkedCampaign, perAgent, totalPoolCount, totalExcluded,
             totalOnList, totalOffList, allOffListCodes,
             effPool, delivered, totalYet, pct, convertedCtn,
-            linkedConversionTarget, linkedRepeatActual, linkedRepeatTarget, linkedCampaignActual } = stats;
+            linkedConversionTarget, linkedRepeatActual, linkedRepeatTarget, linkedCampaignActual,
+            linkedStage1Claimed, linkedStage1Verified, linkedStage2Claimed, linkedStage2Verified } = stats;
     const accentCol = TYPE_COLORS[camp.type] || 'var(--accent)';
     const pctCol    = barColor(pct);
     const cardId    = `camp-card-${camp.id}`;
@@ -4726,7 +4813,7 @@ function renderCampaignsMgmt() {
       else if (stats.unavailable) breakdown = ` <span style="color:var(--ink3);">· ${stats.purchaseMonths || stats.followMonth} not available yet</span>`;
       else breakdown = ` <span style="color:var(--ink3);">· ${fi(convertedCtn || 0)} CTN in ${stats.purchaseMonths || stats.followMonth}</span>`;
     } else if (linkedCampaign) {
-      breakdown = ` <span style="color:var(--ink3);"> - 1ST target ${fi(linkedConversionTarget || 0)} - RP ${fi(linkedRepeatActual || 0)}/${fi(linkedRepeatTarget || 0)} - score ${fn(linkedCampaignActual || 0)}/50 - ${fi(convertedCtn || 0)} CTN</span>`;
+      breakdown = ` <span style="color:var(--ink3);"> - 1ST target ${fi(linkedConversionTarget || 0)} - RP ${fi(linkedRepeatActual || 0)}/${fi(linkedRepeatTarget || 0)} - score ${fn(linkedCampaignActual || 0)}/50 - ${fi(convertedCtn || 0)} CTN - 1ST claims ${fi(linkedStage1Claimed || 0)}/${fi(linkedStage1Verified || 0)} verified - RP claims ${fi(linkedStage2Claimed || 0)}/${fi(linkedStage2Verified || 0)} verified</span>`;
     } else if (isConversion) {
       breakdown = ` <span style="color:var(--ink3);">· ${fi(convertedCtn || 0)} CTN</span>`;
     } else if (isBday) {
@@ -4754,7 +4841,7 @@ function renderCampaignsMgmt() {
           ? ` · <span style="color:var(--purple);">+${a.offListDelivered} off-list</span>` : '';
         const ctnTxt = (isConversion || stats.isFollowup) ? ` · ${fi(a.convertedCtn || 0)} CTN` : '';
         const linkedTxt = linkedCampaign
-          ? ` - RP ${fi(a.repeatActual || 0)}/${fi(a.repeatTarget || 0)} - score ${fn(a.campaignActual || 0)}/50`
+          ? ` - RP ${fi(a.repeatActual || 0)}/${fi(a.repeatTarget || 0)} - score ${fn(a.campaignActual || 0)}/50 - claims 1ST ${fi(a.stage1Claimed || 0)}/${fi(a.stage1Verified || 0)} RP ${fi(a.stage2Claimed || 0)}/${fi(a.stage2Verified || 0)}`
           : '';
         const tierTxt = isConversion && a.tier
           ? ` · <span style="color:var(--green);">${a.tier}</span>`
