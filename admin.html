@@ -567,12 +567,14 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
       <div class="sec-header">🏷️ Brand Penetration Status</div>
       <div class="sec-sub">Non-buyers vs penetration target per agent per brand. Auto-calculated targets shown in blue.</div>
 
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-family:var(--mono);font-size:9px;color:var(--ink3);">
-        <b style="color:var(--blue);">⚡ Auto (5% of non-buyers):</b> iFACE · SUKUN · BISON · TR20
-        &nbsp;&nbsp;
-        <b style="color:var(--accent);">🟠 Manual:</b> EVO · LAM+LWM
-        <br><br>
-        To override a target: go to <b>Agent Targets tab → Brand Commission Targets → edit Penetration target</b>
+      <div id="brand-sku-behavior-summary" style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-family:var(--mono);font-size:9px;color:var(--ink3);"></div>
+
+      <div class="admin-card" style="margin-bottom:12px;">
+        <div style="font-family:var(--display);font-size:16px;letter-spacing:.04em;margin-bottom:6px;">Brand Behavior Config</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);margin-bottom:10px;">
+          Control which Brand Target brands auto-calculate penetration target, and which brands appear in Management ZLB.
+        </div>
+        <div id="brand-behavior-config"></div>
       </div>
 
       <div style="overflow-x:auto;">
@@ -1376,8 +1378,54 @@ let CONFIG = null;
 let DASH_DATA = {};
 let LAST_TARGETS_IMPORT = null;
 
-const BRANDS = ['iFACE','SUKUN','EVO','BISON','TR20','LAM+LWM'];
+const DEFAULT_BRAND_CONFIG = {
+  iFACE: ['IFACE B','IFACE M','IFACE R','IFACE DB'],
+  SUKUN: ['SKNR','SKNW'],
+  CMP: ['CMP'],
+  EVO: ['EVO'],
+  BISON: ['BISON-G','BISON-R','BISON-M'],
+  TR20: ['TR20'],
+  'LAM+LWM': ['LAM','LWM'],
+};
+const DEFAULT_BRANDS = Object.keys(DEFAULT_BRAND_CONFIG);
+const BRANDS = DEFAULT_BRANDS;
+const DEFAULT_PENETRATION_AUTO_BRANDS = ['iFACE','CMP','BISON','TR20'];
+const DEFAULT_ZLB_BRANDS = ['SUKUN','EVO','BISON','LAM+LWM'];
 const AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','YI'];
+const MD_ADMIN_GROUP = 'grp2a';
+const ADMIN_AGENT_GROUPS = Object.freeze(Object.fromEntries(AGENTS.map(agent => [agent, MD_ADMIN_GROUP])));
+
+function normalizeAdminGroup(value) {
+  const raw = String(value || '').trim().toLowerCase().replace(/[()/+]/g, ' ').replace(/\s+/g, ' ');
+  if (!raw || raw === 'all') return 'all';
+  if (raw === 'grp1' || raw === 'grp 1') return 'grp1';
+  if (raw === 'grp2a' || raw === 'grp 2a') return 'grp2a';
+  if (raw === 'grp3' || raw === 'grp 3' || raw === 'grp3a' || raw === 'grp 3a' || raw === 'grp3_3a' || raw === 'grp 3 3a') return 'grp3_3a';
+  if (raw === 'grp4' || raw === 'grp 4' || raw === 'grp4a' || raw === 'grp 4a' || raw === 'grp4_4a' || raw === 'grp 4 4a') return 'grp4_4a';
+  return raw.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+function getMdAdminAgentGroup(agent, cfg = CONFIG?.agents?.[agent]) {
+  const code = String(agent || '').trim().toUpperCase();
+  if (!code || code === 'GT138888') return 'all';
+  const configured = cfg?.default_group || cfg?.group || '';
+  return configured ? normalizeAdminGroup(configured) : (ADMIN_AGENT_GROUPS[code] || '');
+}
+
+function isMdAdminScopedAgent(agent, cfg = CONFIG?.agents?.[agent]) {
+  return getMdAdminAgentGroup(agent, cfg) === MD_ADMIN_GROUP;
+}
+
+function getMdAdminScopedAgents(agentList, opts = {}) {
+  const source = Array.isArray(agentList) ? agentList : Object.keys(CONFIG?.agents || {});
+  return source
+    .map(agent => String(agent || '').trim())
+    .filter(Boolean)
+    .filter(agent => opts.includeArchived || !CONFIG?.agents?.[agent]?.archived)
+    .filter(agent => opts.includeInactive || CONFIG?.agents?.[agent]?.active !== false)
+    .filter(agent => isMdAdminScopedAgent(agent, CONFIG?.agents?.[agent]))
+    .sort((a, b) => a.localeCompare(b));
+}
 const BRAND_PEN_GROUP_MAP_KEY = 'md_brand_penetration_agent_group_map';
 const BULK_TARGET_KPI_KEYS = ['new_accounts','vip_count','reactivation','new_sku','activation_rate','event'];
 const DEFAULT_SKU_TRACE_CONFIG = [
@@ -1794,10 +1842,8 @@ async function loadKpiManual() {
 
   statusEl.textContent = 'Loading...';
 
-  // Fetch all agents from CONFIG
-  const agents = Object.keys(CONFIG.agents || {}).filter(a =>
-    !CONFIG.agents[a]?.archived        // skip archived
-  ).sort();
+  // Fetch md-dashboard scoped agents from CONFIG.
+  const agents = getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}), { includeInactive: true });
   if (!agents.length) {
     form.innerHTML = '<div style="color:var(--muted);font-family:var(--mono);font-size:11px;">No agents configured. Add agents in Agent Targets tab first.</div>';
     statusEl.textContent = '';
@@ -1876,9 +1922,7 @@ async function loadKpiManualOverrides(month) {
 }
 
 function getKpiManualOverrideAgents() {
-  return Object.keys(CONFIG?.agents || {})
-    .filter(agent => !CONFIG.agents[agent]?.archived && CONFIG.agents[agent]?.active !== false)
-    .sort((a, b) => a.localeCompare(b));
+  return getMdAdminScopedAgents(Object.keys(CONFIG?.agents || {}));
 }
 
 function getKpiManualNumeratorLabel(num) {
@@ -2016,7 +2060,7 @@ async function saveKpiManual() {
   const month = document.getElementById('kpi-manual-month').value;
   if (!month) { alert('Select a month first'); return; }
 
-  const agents = Object.keys(CONFIG.agents || {}).filter(a => !CONFIG.agents[a]?.archived);
+  const agents = getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}), { includeInactive: true });
   const payload = agents.map(agent => {
     const newAccInput = document.getElementById(`kpi_m_new_${agent}`);
     const vipInput    = document.getElementById(`kpi_m_vip_${agent}`);
@@ -2094,7 +2138,7 @@ async function renderPinForm() {
 
   // Merge: Supabase (live) > CONFIG.agent_pins (targets.json) > DEFAULT
   const saved = Object.assign({}, DEFAULT_AGENT_PINS, CONFIG.agent_pins || {}, pinsFromSupabase || {});
-  const agents = Object.keys(CONFIG.agents || {}).sort();
+  const agents = getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}), { includeInactive: true });
   const allAgents = [...agents, 'GT138888'];
 
   container.innerHTML = `
@@ -2120,7 +2164,7 @@ async function renderPinForm() {
 }
 
 async function savePins() {
-  const agents = [...Object.keys(CONFIG.agents || {}), 'GT138888'];
+  const agents = [...getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}), { includeInactive: true }), 'GT138888'];
   const pins = {};
   agents.forEach(agent => {
     const el = document.getElementById('pin_' + agent);
@@ -2218,6 +2262,7 @@ async function initAdmin() {
       CONFIG = buildDefaultConfig();
     }
   }
+  normalizeAdminConfigDefaults();
   // Load dashboard data for non-buyer stats
   try {
     const rd = await fetch('dashboard_data.json?v='+Date.now());
@@ -2252,9 +2297,102 @@ async function initAdmin() {
   document.getElementById('new-camp-deadline').value = lastDay.toISOString().split('T')[0];
 }
 
+function adminBrandKey(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const upper = raw.toUpperCase();
+  return upper === 'IFACE' ? 'iFACE' : upper;
+}
+
+function adminBrandDomId(value) {
+  return adminBrandKey(value).replace(/[^A-Za-z0-9_-]/g, '_');
+}
+
+function adminBrandListFromValue(value, fallback = []) {
+  const source = Array.isArray(value)
+    ? value
+    : (typeof value === 'string' ? value.split(',') : fallback);
+  const seen = new Set();
+  const out = [];
+  source.forEach(item => {
+    const key = adminBrandKey(item);
+    const norm = key.toUpperCase();
+    if (key && !seen.has(norm)) {
+      seen.add(norm);
+      out.push(key);
+    }
+  });
+  return out;
+}
+
+function adminDefaultBrandConfig() {
+  return Object.fromEntries(Object.entries(DEFAULT_BRAND_CONFIG).map(([brand, codes]) => [brand, [...codes]]));
+}
+
+function adminConfiguredBrandList(key, fallback) {
+  const defaultList = Array.isArray(fallback)
+    ? fallback
+    : (key === 'zlb_brands' ? DEFAULT_ZLB_BRANDS : DEFAULT_PENETRATION_AUTO_BRANDS);
+  return adminBrandListFromValue(CONFIG?.[key], defaultList);
+}
+
+function adminBrandSortKey(brand) {
+  const key = adminBrandKey(brand).toUpperCase();
+  const idx = DEFAULT_BRANDS.findIndex(item => adminBrandKey(item).toUpperCase() === key);
+  return idx >= 0 ? idx : 100 + key.charCodeAt(0);
+}
+
+function adminSortBrandKeys(values) {
+  return adminBrandListFromValue(values, [])
+    .sort((a, b) => adminBrandSortKey(a) - adminBrandSortKey(b) || String(a).localeCompare(String(b)));
+}
+
+function adminBrandKeys(opts = {}) {
+  const keys = [];
+  const configured = Object.keys(CONFIG?.brand_config || {});
+  keys.push(...(configured.length ? configured : DEFAULT_BRANDS));
+  keys.push(...adminConfiguredBrandList('penetration_auto_brands', DEFAULT_PENETRATION_AUTO_BRANDS));
+  keys.push(...adminConfiguredBrandList('zlb_brands', DEFAULT_ZLB_BRANDS));
+  if (opts.includeAgentTargets) {
+    Object.values(CONFIG?.agents || {}).forEach(agent => {
+      keys.push(...Object.keys(agent?.brand_commission || {}));
+    });
+  }
+  return adminSortBrandKeys(keys);
+}
+
+function normalizeAdminConfigDefaults() {
+  if (!CONFIG) return;
+  CONFIG.brand_config = CONFIG.brand_config || {};
+  if (!Object.keys(CONFIG.brand_config).length) {
+    CONFIG.brand_config = adminDefaultBrandConfig();
+  }
+  if (!Array.isArray(CONFIG.penetration_auto_brands)) {
+    CONFIG.penetration_auto_brands = [...DEFAULT_PENETRATION_AUTO_BRANDS];
+  } else {
+    CONFIG.penetration_auto_brands = adminBrandListFromValue(CONFIG.penetration_auto_brands, []);
+  }
+  if (!Array.isArray(CONFIG.zlb_brands)) {
+    CONFIG.zlb_brands = [...DEFAULT_ZLB_BRANDS];
+  } else {
+    CONFIG.zlb_brands = adminBrandListFromValue(CONFIG.zlb_brands, []);
+  }
+  [...CONFIG.penetration_auto_brands, ...CONFIG.zlb_brands].forEach(brand => {
+    if (!CONFIG.brand_config[brand] && DEFAULT_BRAND_CONFIG[brand]) {
+      CONFIG.brand_config[brand] = [...DEFAULT_BRAND_CONFIG[brand]];
+    }
+  });
+  Object.entries(CONFIG.agents || {}).forEach(([agent, cfg]) => {
+    const code = String(agent || '').trim().toUpperCase();
+    if (cfg && !cfg.default_group && ADMIN_AGENT_GROUPS[code]) cfg.default_group = MD_ADMIN_GROUP;
+  });
+}
+
 function buildDefaultConfig() {
   const cfg = {
-    brand_config: {},
+    brand_config: adminDefaultBrandConfig(),
+    penetration_auto_brands: [...DEFAULT_PENETRATION_AUTO_BRANDS],
+    zlb_brands: [...DEFAULT_ZLB_BRANDS],
     inhouse_codes: [],
     sku_trace_config: DEFAULT_SKU_TRACE_CONFIG.map(x => ({...x, item_codes: [...x.item_codes]})),
     newbie_scheme: {
@@ -2271,14 +2409,14 @@ function buildDefaultConfig() {
     },
     agents: {}
   };
-  BRANDS.forEach(b => { cfg.brand_config[b] = []; });
   AGENTS.forEach(a => {
     cfg.agents[a] = {
+      default_group: MD_ADMIN_GROUP,
       is_newbie: false,
       sales_progression: {normal_t1:null,normal_t2:null,ga:null,ma:null},
       brand_commission: {}
     };
-    BRANDS.forEach(b => { cfg.agents[a].brand_commission[b] = {penetration_target:0,ctn_target:0}; });
+    DEFAULT_BRANDS.forEach(b => { cfg.agents[a].brand_commission[b] = {penetration_target:0,ctn_target:0}; });
   });
   return cfg;
 }
@@ -2309,10 +2447,10 @@ function addAgent() {
   if (CONFIG.agents[code]) { alert(`Agent "${code}" already exists.`); return; }
 
   // Create blank agent entry
-  const BRANDS = ['iFACE','SUKUN','EVO','BISON','TR20','LAM+LWM'];
   const bc = {};
-  BRANDS.forEach(b => { bc[b] = {penetration_target:0, ctn_target:0}; });
+  adminBrandKeys().forEach(b => { bc[b] = {penetration_target:0, ctn_target:0}; });
   CONFIG.agents[code] = {
+    default_group: MD_ADMIN_GROUP,
     is_newbie: false,
     active: true,
     sales_progression: {},
@@ -2362,10 +2500,10 @@ function isAgentActiveForMonth(agent, month = getAdminWorkingMonth()) {
 function getMinimizedAgentCards() {
   try {
     const saved = localStorage.getItem(ADMIN_AGENT_CARD_MIN_KEY);
-    if (saved === null) return new Set(Object.keys(CONFIG?.agents || {}));
+    if (saved === null) return new Set(getMdAdminScopedAgents(Object.keys(CONFIG?.agents || {}), { includeArchived: true, includeInactive: true }));
     return new Set(JSON.parse(saved || '[]'));
   }
-  catch (_) { return new Set(Object.keys(CONFIG?.agents || {})); }
+  catch (_) { return new Set(getMdAdminScopedAgents(Object.keys(CONFIG?.agents || {}), { includeArchived: true, includeInactive: true })); }
 }
 
 function saveMinimizedAgentCards(set) {
@@ -2385,7 +2523,7 @@ function toggleAgentCardMinimized(agent) {
 }
 
 function setAllAgentCardsMinimized(minimized) {
-  const set = minimized ? new Set(Object.keys(CONFIG.agents || {})) : new Set();
+  const set = minimized ? new Set(getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}), { includeArchived: true, includeInactive: true })) : new Set();
   saveMinimizedAgentCards(set);
   renderAgentForms();
 }
@@ -2444,7 +2582,7 @@ function toggleAgentActive(agent, active, month = getAdminWorkingMonth()) {
 function renderAgentForms() {
   const container = document.getElementById('agent-forms');
   renderBulkImportSection();
-  const agents = Object.keys(CONFIG.agents || {}).sort();
+  const agents = getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}), { includeArchived: true, includeInactive: true });
   const selectedMonth = document.getElementById('kpi-month-select')?.value || (function() {
     return getAdminWorkingMonth();
   })();
@@ -2456,7 +2594,7 @@ function renderAgentForms() {
     const bc = a.brand_commission || {};
     const monthCfg = getAgentMonthConfig(agent, selectedMonth);
 
-    const brandRows = BRANDS.map(b => {
+    const brandRows = adminBrandKeys({includeAgentTargets:true}).map(b => {
       const bval = bc[b] || {};
       // Get non-buyer stats from dashboard_data
       const agentDash = DASH_DATA?.agents?.[agent]?.brand_commission?.[b] || {};
@@ -2878,7 +3016,7 @@ function getBulkTargetWideColumns(month) {
   add('is_newbie', 'flag', 'is_newbie', 'Newbie');
   ['normal_t1','normal_t2','ga','ma'].forEach(key => add(key, 'sales_prog', key));
 
-  BRANDS.forEach(brand => {
+  adminBrandKeys({includeAgentTargets:true}).forEach(brand => {
     const slug = bulkTargetBrandSlug(brand);
     add(`${slug}_pen_target`, 'brand_comm', `${brand}:penetration_target`, `${brand} penetration target`);
     add(`${slug}_ctn_target`, 'brand_comm', `${brand}:ctn_target`, `${brand} CTN target`);
@@ -2954,7 +3092,8 @@ function parseTargetsWideCsv(lines, rawHeader, delimiter = ',') {
   const colMap = getBulkTargetWideColumnMap(month);
   const columnDefs = rawHeader.map((header, idx) => idx === agentIdx ? null : colMap.get(normalizedHeader[idx]) || null);
   const unknownHeaders = new Set();
-  const knownAgents = new Set(Object.keys(CONFIG?.agents || {}).map(a => a.toUpperCase()));
+  const scopedAgents = getMdAdminScopedAgents(Object.keys(CONFIG?.agents || {}), { includeArchived: true, includeInactive: true });
+  const knownAgents = new Set(scopedAgents.map(a => a.toUpperCase()));
 
   lines.slice(1).forEach((line, idx) => {
     const lineNo = idx + 2;
@@ -2963,7 +3102,7 @@ function parseTargetsWideCsv(lines, rawHeader, delimiter = ',') {
     result.total++;
 
     const agentInput = normalizeImportAgent(cols[agentIdx]);
-    const agent = Object.keys(CONFIG.agents || {}).find(a => a.toUpperCase() === agentInput);
+    const agent = scopedAgents.find(a => a.toUpperCase() === agentInput);
     if (!agent || !knownAgents.has(agentInput)) {
       result.errors.push(`Line ${lineNo}: unknown agent "${cols[agentIdx]}".`);
       return;
@@ -3024,9 +3163,11 @@ function parseTargetsCsv(text) {
   const campaignKeys = getBulkImportCampaignKeys(getBulkImportMonth());
   const activeCampKeys = new Set(campaignKeys.map(c => c.key));
   const activeCampLegacyKeys = new Set(campaignKeys.map(c => c.legacyKey));
-  const knownAgents = new Set(Object.keys(CONFIG?.agents || {}).map(a => a.toUpperCase()));
+  const scopedAgents = getMdAdminScopedAgents(Object.keys(CONFIG?.agents || {}), { includeArchived: true, includeInactive: true });
+  const knownAgents = new Set(scopedAgents.map(a => a.toUpperCase()));
   const knownKpi = new Set(BULK_TARGET_KPI_KEYS);
-  const knownBrands = new Set(BRANDS);
+  const bulkBrands = adminBrandKeys({includeAgentTargets:true});
+  const knownBrands = new Set(bulkBrands);
   const salesProgKeys = new Set(['normal_t1','normal_t2','ga','ma']);
   const validFieldTypes = new Set(['kpi','campaign','sales_prog','brand_comm','newbie_ctn','newbie_acc','flag']);
   const inactiveCampWarnings = new Set();
@@ -3041,7 +3182,7 @@ function parseTargetsCsv(text) {
     }
 
     const agentInput = normalizeImportAgent(cols[0]);
-    const agent = Object.keys(CONFIG.agents || {}).find(a => a.toUpperCase() === agentInput);
+    const agent = scopedAgents.find(a => a.toUpperCase() === agentInput);
     const fieldType = String(cols[1] || '').trim().toLowerCase();
     let fieldKey = String(cols[2] || '').trim();
     const rawValue = String(cols[3] ?? '').trim();
@@ -3081,7 +3222,7 @@ function parseTargetsCsv(text) {
         return;
       }
       if (!knownBrands.has(parts[0])) {
-        result.errors.push(`Line ${lineNo}: unknown brand "${parts[0]}"; expected one of ${BRANDS.join(', ')}.`);
+        result.errors.push(`Line ${lineNo}: unknown brand "${parts[0]}"; expected one of ${bulkBrands.join(', ')}.`);
         return;
       }
     }
@@ -3245,7 +3386,7 @@ function downloadTargetsTemplate() {
   const rows = [['agent','field_type','field_key','value']];
   agents.forEach(agent => {
     ['normal_t1','normal_t2','ga','ma'].forEach(key => rows.push([agent, 'sales_prog', key, '']));
-    BRANDS.forEach(brand => {
+    adminBrandKeys({includeAgentTargets:true}).forEach(brand => {
       rows.push([agent, 'brand_comm', `${brand}:penetration_target`, '']);
       rows.push([agent, 'brand_comm', `${brand}:ctn_target`, '']);
     });
@@ -3302,9 +3443,10 @@ function renderNewbieForms() {
   const nb      = CONFIG.newbie_scheme || {};
   const accTiers = nb.account_tiers || [];
   const agents   = CONFIG.agents || {};
+  const scopedAgentNames = getMdAdminScopedAgents(Object.keys(agents), { includeArchived: true, includeInactive: true });
 
   // Per-agent newbie CTN tiers
-  const newbieAgents = Object.entries(agents).filter(([,a]) => a.is_newbie);
+  const newbieAgents = scopedAgentNames.map(agent => [agent, agents[agent]]).filter(([,a]) => a?.is_newbie);
   const container = document.getElementById('newbie-per-agent-form');
 
   if (!newbieAgents.length) {
@@ -3642,18 +3784,30 @@ function refreshArchiveList() {
 // ── SKU Forms ──────────────────────────────────────────────────────────────
 function renderSKUForms() {
   const bc = CONFIG.brand_config || {};
+  const brandKeys = adminSortBrandKeys(Object.keys(bc).length ? Object.keys(bc) : DEFAULT_BRANDS);
 
-  document.getElementById('brand-sku-forms').innerHTML = BRANDS.map(brand => {
+  document.getElementById('brand-sku-forms').innerHTML = `
+    <div class="admin-card" style="margin-bottom:10px;">
+      <div style="font-family:var(--display);font-size:16px;letter-spacing:.05em;margin-bottom:6px;">Add Brand Mapping</div>
+      <div class="sku-add-row">
+        <input class="sku-add-input" id="brand-new-key" placeholder="Brand key e.g. CMP" style="text-transform:uppercase;">
+        <button class="sku-add-btn" type="button" onclick="addBrandConfig()">Add Brand</button>
+      </div>
+    </div>
+    ${brandKeys.map(brand => {
     const codes = bc[brand] || [];
     return `<div class="admin-card" style="margin-bottom:10px;">
-      <div style="font-family:var(--display);font-size:16px;letter-spacing:.05em;margin-bottom:6px;">${brand}</div>
-      <div class="sku-list" id="sku-${brand.replace('+','_')}">${codes.map(c => skuChip(c, brand)).join('')}</div>
+      <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;margin-bottom:6px;">
+        <div style="font-family:var(--display);font-size:16px;letter-spacing:.05em;">${kpiAdminEscape(brand)}</div>
+        <button class="small-btn" type="button" onclick="removeBrandConfig(${kpiAdminEventArg(brand)})" style="font-size:9px;padding:4px 8px;">Remove</button>
+      </div>
+      <div class="sku-list" id="sku-${adminBrandDomId(brand)}">${codes.map(c => skuChip(c, brand)).join('')}</div>
       <div class="sku-add-row">
-        <input class="sku-add-input" id="sku-new-${brand.replace('+','_')}" placeholder="Add item code...">
-        <button class="sku-add-btn" onclick="addSKU('${brand}')">Add</button>
+        <input class="sku-add-input" id="sku-new-${adminBrandDomId(brand)}" placeholder="Add item code...">
+        <button class="sku-add-btn" onclick="addSKU(${kpiAdminEventArg(brand)})">Add</button>
       </div>
     </div>`;
-  }).join('');
+  }).join('')}`;
 
   renderInhouseCodes();
   renderSkuTraceConfig();
@@ -3663,11 +3817,11 @@ function renderSKUForms() {
 
 function skuChip(code, brand) {
   const brandId = brand ? brand.replace('+','_') : 'inhouse';
-  return `<div class="sku-chip">${code}<button onclick="removeSKU('${brand}','${code}')" title="Remove">×</button></div>`;
+  return `<div class="sku-chip">${kpiAdminEscape(code)}<button onclick="removeSKU(${kpiAdminEventArg(brand)},${kpiAdminEventArg(code)})" title="Remove">×</button></div>`;
 }
 
 function addSKU(brand) {
-  const inp = document.getElementById(`sku-new-${brand.replace('+','_')}`);
+  const inp = document.getElementById(`sku-new-${adminBrandDomId(brand)}`);
   const code = inp.value.trim().toUpperCase();
   if (!code) return;
   if (!CONFIG.brand_config[brand]) CONFIG.brand_config[brand] = [];
@@ -3686,10 +3840,40 @@ function removeSKU(brand, code) {
   updateRawJSON();
 }
 
+function addBrandConfig() {
+  const inp = document.getElementById('brand-new-key');
+  const brand = adminBrandKey(inp?.value || '');
+  if (!brand) return;
+  CONFIG.brand_config = CONFIG.brand_config || {};
+  if (!CONFIG.brand_config[brand]) {
+    CONFIG.brand_config[brand] = DEFAULT_BRAND_CONFIG[brand] ? [...DEFAULT_BRAND_CONFIG[brand]] : [];
+  }
+  if (inp) inp.value = '';
+  renderSKUForms();
+  renderAgentForms();
+  renderAdminBrandSKU();
+  updateRawJSON();
+}
+
+function removeBrandConfig(brand) {
+  const key = adminBrandKey(brand);
+  if (!key || !CONFIG.brand_config?.[key]) return;
+  if (!confirm(`Remove brand mapping "${key}"? Existing agent targets are kept in raw JSON until edited.`)) return;
+  delete CONFIG.brand_config[key];
+  CONFIG.penetration_auto_brands = adminConfiguredBrandList('penetration_auto_brands', DEFAULT_PENETRATION_AUTO_BRANDS)
+    .filter(item => adminBrandKey(item).toUpperCase() !== key.toUpperCase());
+  CONFIG.zlb_brands = adminConfiguredBrandList('zlb_brands', DEFAULT_ZLB_BRANDS)
+    .filter(item => adminBrandKey(item).toUpperCase() !== key.toUpperCase());
+  renderSKUForms();
+  renderAgentForms();
+  renderAdminBrandSKU();
+  updateRawJSON();
+}
+
 function renderInhouseCodes() {
   const codes = CONFIG.inhouse_codes || [];
   document.getElementById('inhouse-list').innerHTML =
-    codes.map(c => `<div class="sku-chip">${c}<button onclick="removeInhouse('${c}')">×</button></div>`).join('');
+    codes.map(c => `<div class="sku-chip">${kpiAdminEscape(c)}<button onclick="removeInhouse(${kpiAdminEventArg(c)})">×</button></div>`).join('');
 }
 
 function addInhouse() {
@@ -4048,6 +4232,10 @@ function kpiAdminJsLiteral(value) {
     .replace(/</g, '\\u003c')
     .replace(/>/g, '\\u003e')
     .replace(/&/g, '\\u0026');
+}
+
+function kpiAdminEventArg(value) {
+  return kpiAdminEscape(kpiAdminJsLiteral(value));
 }
 
 function getGeneratedKpiCampaignsForMonth(monthLabel) {
@@ -5013,6 +5201,7 @@ ${sources.join(' / ')}`);
 }
 
 async function saveAll() {
+  normalizeAdminConfigDefaults();
   // Sync DOM -> CONFIG for sections whose form inputs aren't auto-bound to CONFIG.
   // KPI Weights specifically needs this because renderKPIWeights renders inputs
   // from a fallback when the month doesn't exist in CONFIG, but no oninput
@@ -5152,7 +5341,9 @@ async function saveAllToSupabase() {
   };
 
   // ── 1. AGENTS ─────────────────────────────────────────
-  const agents = CONFIG.agents || {};
+  const scopedAgentNames = getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}), { includeArchived: true, includeInactive: true });
+  const scopedAgentSet = new Set(scopedAgentNames);
+  const agents = Object.fromEntries(scopedAgentNames.map(agent => [agent, CONFIG.agents[agent]]).filter(([, cfg]) => !!cfg));
   const agentRows = Object.entries(agents).map(([agent, cfg]) => ({
     agent,
     is_newbie: !!cfg.is_newbie,
@@ -5176,6 +5367,7 @@ async function saveAllToSupabase() {
     Object.entries(monthAgents || {}).forEach(([agent, cfg]) => {
       // Skip special keys (start with _) — handled separately below
       if (agent.startsWith('_')) return;
+      if (!scopedAgentSet.has(agent)) return;
       monthlyRows.push({
         month, agent,
         is_newbie: cfg.is_newbie ?? !!agents[agent]?.is_newbie,
@@ -5246,7 +5438,7 @@ async function saveAllToSupabase() {
   await upsert('targets_group_brand', gbtRows, 'brand');
 
   // ── 6. STATIC CONFIG (JSON blobs) ─────────────────────
-  const staticKeys = ['brand_config', 'group_brand_config', 'inhouse_codes',
+  const staticKeys = ['brand_config', 'group_brand_config', 'penetration_auto_brands', 'zlb_brands', 'inhouse_codes',
                       'kpi_weights', 'newbie_scheme', 'sku_trace_config', 'sku_rules'];
   const staticRows = [];
   staticKeys.forEach(key => {
@@ -5332,10 +5524,12 @@ async function loadConfigFromSupabase() {
     agents.forEach(r => {
       const c = { is_newbie: r.is_newbie, active: r.active, is_new_this_month: r.is_new_this_month };
       ['sales_progression', 'brand_commission', 'kpi_targets', 'campaign_targets', 'kpi_auto_base',
-       'newbie_tiers', 'newbie_account_tiers'].forEach(k => {
+       'newbie_tiers', 'newbie_account_tiers', 'default_group', 'group'].forEach(k => {
         if (r[k] !== null && r[k] !== undefined) c[k] = r[k];
       });
-      cfg.agents[r.agent] = c;
+      const code = String(r.agent || '').trim().toUpperCase();
+      if (!c.default_group && ADMIN_AGENT_GROUPS[code]) c.default_group = MD_ADMIN_GROUP;
+      if (isMdAdminScopedAgent(r.agent, c)) cfg.agents[r.agent] = c;
     });
 
     // 2. Monthly targets
@@ -5349,6 +5543,7 @@ async function loadConfigFromSupabase() {
         }
         return;
       }
+      if (!cfg.agents[r.agent]) return;
       const c = { is_newbie: r.is_newbie, active: r.active };
       ['sales_progression', 'brand_commission', 'kpi_targets', 'kpi_overrides'].forEach(k => {
         if (r[k] !== null && r[k] !== undefined) c[k] = r[k];
@@ -5358,7 +5553,9 @@ async function loadConfigFromSupabase() {
 
     // 3. Agent pins
     cfg.agent_pins = {};
-    pins.forEach(r => { cfg.agent_pins[r.agent] = r.pin; });
+    pins.forEach(r => {
+      if (r.agent === 'GT138888' || cfg.agents[r.agent]) cfg.agent_pins[r.agent] = r.pin;
+    });
 
     // 4. Birthday overrides
     cfg.birthday_overrides = {};
@@ -5401,12 +5598,14 @@ function importJSON(input) {
   reader.onload = e => {
     try {
       CONFIG = JSON.parse(e.target.result);
+      normalizeAdminConfigDefaults();
       renderAgentForms();
       renderNewbieForms();
       renderGroupBrandForms();
       _populateGroupSpMonths();
       loadGroupSpOverride();
       renderSKUForms();
+      renderAdminBrandSKU();
       updateRawJSON();
       alert('✓ targets.json imported successfully');
     } catch(err) {
@@ -6074,13 +6273,68 @@ function saveTargetsJSON() {
 }
 
 // ── Brand SKU Status (Admin) ───────────────────────────────────────────────
+function renderBrandSkuBehaviorSummary() {
+  const el = document.getElementById('brand-sku-behavior-summary');
+  if (!el) return;
+  const autoBrands = adminConfiguredBrandList('penetration_auto_brands', DEFAULT_PENETRATION_AUTO_BRANDS);
+  const autoSet = new Set(autoBrands.map(b => adminBrandKey(b).toUpperCase()));
+  const manualBrands = adminBrandKeys({includeAgentTargets:true})
+    .filter(brand => !autoSet.has(adminBrandKey(brand).toUpperCase()));
+  el.innerHTML = `
+    <b style="color:var(--blue);">Auto (5% of non-buyers):</b> ${autoBrands.map(kpiAdminEscape).join(' · ') || 'None'}
+    &nbsp;&nbsp;
+    <b style="color:var(--accent);">Manual:</b> ${manualBrands.map(kpiAdminEscape).join(' · ') || 'None'}
+    <br><br>
+    To override a target: go to <b>Agent Targets tab → Brand Commission Targets → edit Penetration target</b>
+  `;
+}
+
+function renderBrandBehaviorConfig() {
+  const el = document.getElementById('brand-behavior-config');
+  if (!el) return;
+  const autoBrands = adminConfiguredBrandList('penetration_auto_brands', DEFAULT_PENETRATION_AUTO_BRANDS);
+  const zlbBrands = adminConfiguredBrandList('zlb_brands', DEFAULT_ZLB_BRANDS);
+  el.innerHTML = `
+    <div class="input-row">
+      <div class="field-wrap">
+        <div class="field-lbl">Brand Target Auto Brands</div>
+        <input type="text" id="brand-auto-list-input" value="${kpiAdminEscape(autoBrands.join(', '))}"
+          onchange="updateBrandBehaviorList('penetration_auto_brands', this.value)"
+          placeholder="iFACE, CMP, BISON, TR20" style="text-transform:uppercase;">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:4px;">Auto target = 5% of non-buyers. Brands not listed here stay Manual.</div>
+      </div>
+      <div class="field-wrap">
+        <div class="field-lbl">Management ZLB Brands</div>
+        <input type="text" id="brand-zlb-list-input" value="${kpiAdminEscape(zlbBrands.join(', '))}"
+          onchange="updateBrandBehaviorList('zlb_brands', this.value)"
+          placeholder="SUKUN, EVO, BISON, LAM+LWM" style="text-transform:uppercase;">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:4px;">Controls ZLB brand chips/order in Management. Leave iFACE out to hide it.</div>
+      </div>
+    </div>
+  `;
+}
+
+function updateBrandBehaviorList(key, value) {
+  if (!['penetration_auto_brands', 'zlb_brands'].includes(key)) return;
+  CONFIG[key] = adminBrandListFromValue(value, []);
+  normalizeAdminConfigDefaults();
+  renderBrandBehaviorConfig();
+  renderBrandSkuBehaviorSummary();
+  renderAdminBrandSKU();
+  updateRawJSON();
+}
+
 function renderAdminBrandSKU() {
   const el = document.getElementById('admin-brand-sku-status');
   if (!el) return;
 
-  const BRANDS   = ['iFACE','SUKUN','EVO','BISON','TR20','LAM+LWM'];
-  const AUTO_B   = new Set(['iFACE','SUKUN','BISON','TR20']);
-  const agents   = Object.keys(CONFIG.agents || {}).sort();
+  renderBrandSkuBehaviorSummary();
+  renderBrandBehaviorConfig();
+
+  const brands   = adminBrandKeys({includeAgentTargets:true});
+  const autoSet  = new Set(adminConfiguredBrandList('penetration_auto_brands', DEFAULT_PENETRATION_AUTO_BRANDS)
+    .map(brand => adminBrandKey(brand).toUpperCase()));
+  const agents   = getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}), { includeInactive: true });
 
   // Get latest penetration snapshot
   const snaps    = CONFIG.penetration_snapshots || {};
@@ -6095,15 +6349,18 @@ function renderAdminBrandSKU() {
     <thead>
       <tr style="background:var(--surface);">
         <th style="padding:8px 10px;text-align:left;font-size:9px;color:var(--ink3);border-bottom:1px solid var(--border);">Agent</th>
-        ${BRANDS.map(b => `
+        ${brands.map(b => {
+          const isAutoBrand = autoSet.has(adminBrandKey(b).toUpperCase());
+          return `
           <th colspan="3" style="padding:6px 8px;text-align:center;border-bottom:1px solid var(--border);border-left:1px solid var(--border);">
-            <span style="${AUTO_B.has(b)?'color:var(--blue)':'color:var(--ink3);'}">${b}</span>
-            <span style="display:block;font-size:7px;color:var(--ink3);">${AUTO_B.has(b)?'⚡Auto':'🟠Manual'}</span>
-          </th>`).join('')}
+            <span style="${isAutoBrand?'color:var(--blue)':'color:var(--ink3);'}">${kpiAdminEscape(b)}</span>
+            <span style="display:block;font-size:7px;color:var(--ink3);">${isAutoBrand?'Auto':'Manual'}</span>
+          </th>`;
+        }).join('')}
       </tr>
       <tr style="background:var(--bg);">
         <th style="padding:4px 10px;border-bottom:1px solid var(--border);"></th>
-        ${BRANDS.map(() => `
+        ${brands.map(() => `
           <th style="padding:4px 6px;text-align:center;font-size:8px;color:var(--ink3);border-left:1px solid var(--border);">Not Bought</th>
           <th style="padding:4px 6px;text-align:center;font-size:8px;color:var(--ink3);">Target</th>
           <th style="padding:4px 6px;text-align:center;font-size:8px;color:var(--ink3);">Auto?</th>`).join('')}
@@ -6117,11 +6374,11 @@ function renderAdminBrandSKU() {
     const bg      = ri % 2 === 0 ? 'transparent' : 'rgba(0,0,0,.04)';
     html += `<tr style="background:${bg};border-bottom:1px solid var(--border);">
       <td style="padding:7px 10px;font-weight:600;">${agent}</td>
-      ${BRANDS.map(brand => {
+      ${brands.map(brand => {
         const nonBuyers = agSnap[brand] ?? '—';
         const tgt       = bc[brand]?.penetration_target ?? '—';
         const isAuto    = bc[brand]?.pen_auto;
-        const col       = AUTO_B.has(brand) ? 'var(--blue)' : 'var(--ink3)';
+        const col       = autoSet.has(adminBrandKey(brand).toUpperCase()) ? 'var(--blue)' : 'var(--ink3)';
         return `
           <td style="padding:6px 8px;text-align:center;color:var(--accent);border-left:1px solid rgba(0,0,0,.08);">${nonBuyers}</td>
           <td style="padding:6px 8px;text-align:center;font-weight:600;color:${col};">${tgt}</td>
@@ -8200,6 +8457,31 @@ function prepareCampaignDebtorForSave(d, opts) {
   };
 }
 
+function validateCampaignDebtorAgents(rows, label = 'Campaign debtor list') {
+  const activeAgents = new Set(Object.entries(CONFIG?.agents || {})
+    .filter(([, info]) => info?.active !== false && !info?.archived)
+    .map(([agent]) => String(agent || '').trim().toUpperCase())
+    .filter(Boolean));
+  const missing = [];
+  const unknown = [];
+  (rows || []).forEach((row, idx) => {
+    const code = campaignDebtorCode(row) || `row ${idx + 1}`;
+    const agent = String(row?.agent || '').trim().toUpperCase();
+    if (!agent) {
+      missing.push(code);
+    } else if (activeAgents.size && !activeAgents.has(agent)) {
+      unknown.push(`${code} -> ${agent}`);
+    }
+  });
+  if (!missing.length && !unknown.length) return true;
+  const lines = [`${label} has debtor rows that no active agent can claim.`];
+  if (missing.length) lines.push(`Missing agent: ${missing.slice(0, 8).join(', ')}${missing.length > 8 ? ` +${missing.length - 8} more` : ''}`);
+  if (unknown.length) lines.push(`Unknown/inactive agent: ${unknown.slice(0, 8).join(', ')}${unknown.length > 8 ? ` +${unknown.length - 8} more` : ''}`);
+  lines.push('Fix the agent column, then upload/save again.');
+  alert(lines.join('\n'));
+  return false;
+}
+
 function validateCampaignMechanismBeforeSave(scope, type) {
   const get = field => document.getElementById(_campScopeId(scope, field));
   const mechanism = get('mechanism-type')?.value || 'manual_claim';
@@ -8265,6 +8547,8 @@ async function createCampaign() {
     groupMap: brandPenGroupMap,
     defaultGroup: brandPenDefaultGroup,
   }));
+  if (!validateCampaignDebtorAgents(preparedDebtors, 'Campaign debtor list')) return;
+  const startDate = _adminCurrentMonthDate();
 
   const camp = {
     id:'camp_'+Date.now(), name, type, description:desc,
@@ -8279,6 +8563,7 @@ async function createCampaign() {
     kpi_numerators:    kpiNumerators,
     notes:             readCampaignMechanism('new-camp', type),
     created_at:new Date().toISOString().split('T')[0],
+    start_date:startDate,
     deadline, active:true, debtors:preparedDebtors,
   };
 
@@ -8836,6 +9121,7 @@ async function saveCampListingEdit(id) {
     groupMap: brandPenGroupMap,
     defaultGroup: brandPenDefaultGroup,
   }));
+  if (!validateCampaignDebtorAgents(prepared, 'Campaign listing upload')) return;
   const stats = campaignListingPreviewStats(camp.debtors || [], prepared, mode);
   if (mode === 'replace') {
     const msg = `Replace "${camp.name}" listing with ${stats.uploaded} uploaded debtor(s)?\n\nThis will remove ${stats.remove} debtor(s) not in the upload. Existing claim/delivery history remains in Supabase, but removed debtors will no longer appear in Sales Dashboard for this campaign.`;
@@ -9918,7 +10204,8 @@ function openArchiveModal(agent) {
   // Populate successor dropdown with all OTHER active agents
   const sel = document.getElementById('archive-successor');
   sel.innerHTML = '<option value="">— Select existing agent —</option>';
-  Object.entries(CONFIG.agents || {}).forEach(([name, cfg]) => {
+  getMdAdminScopedAgents(Object.keys(CONFIG.agents || {})).forEach(name => {
+    const cfg = CONFIG.agents[name] || {};
     if (name === agent) return;
     if (cfg.archived) return;
     const opt = document.createElement('option');

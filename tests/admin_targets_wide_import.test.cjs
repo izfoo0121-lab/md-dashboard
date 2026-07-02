@@ -8,19 +8,27 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
 function extractFunction(name) {
   const start = html.indexOf(`function ${name}`);
   assert(start >= 0, `${name} should exist`);
+  const bodyStart = html.indexOf('{', html.indexOf(')', start));
+  assert(bodyStart >= 0, `${name} should have a function body`);
   let depth = 0;
-  let seenBody = false;
-  for (let i = start; i < html.length; i += 1) {
+  for (let i = bodyStart; i < html.length; i += 1) {
     const ch = html[i];
     if (ch === '{') {
       depth += 1;
-      seenBody = true;
     } else if (ch === '}') {
       depth -= 1;
-      if (seenBody && depth === 0) return html.slice(start, i + 1);
+      if (depth === 0) return html.slice(start, i + 1);
     }
   }
   throw new Error(`Could not extract ${name}`);
+}
+
+function extractBlock(startMarker, endMarker) {
+  const start = html.indexOf(startMarker);
+  assert(start >= 0, `${startMarker} should exist`);
+  const end = html.indexOf(endMarker, start);
+  assert(end > start, `${endMarker} should appear after ${startMarker}`);
+  return html.slice(start, end);
 }
 
 assert(html.includes('Download Row Template'), 'Admin should expose a human-friendly row target template');
@@ -55,8 +63,21 @@ var CONFIG = {
 };
 var LAST_TARGETS_IMPORT = null;
 var DASH_DATA = {};
-const BRANDS = ['iFACE','SUKUN','EVO','BISON','TR20','LAM+LWM'];
+const DEFAULT_BRAND_CONFIG = {
+  iFACE: ['IFACE B','IFACE M','IFACE R','IFACE DB'],
+  SUKUN: ['SKNR','SKNW'],
+  CMP: ['CMP'],
+  EVO: ['EVO'],
+  BISON: ['BISON-G','BISON-R','BISON-M'],
+  TR20: ['TR20'],
+  'LAM+LWM': ['LAM','LWM'],
+};
+const DEFAULT_BRANDS = Object.keys(DEFAULT_BRAND_CONFIG);
+const DEFAULT_PENETRATION_AUTO_BRANDS = ['iFACE','CMP','BISON','TR20'];
+const DEFAULT_ZLB_BRANDS = ['SUKUN','EVO','BISON','LAM+LWM'];
 const BULK_TARGET_KPI_KEYS = ['new_accounts','vip_count','reactivation','new_sku','activation_rate','event'];
+const AGENTS = ['BEN','CJ'];
+${extractBlock('const MD_ADMIN_GROUP', 'const BRAND_PEN_GROUP_MAP_KEY')}
 function getBulkImportMonth() { return 'Jun 26'; }
 function getBulkImportCampaignKeys() { return [{ key: 'camp_iface_count', legacyKey: 'iface', label: 'IFACE count' }]; }
 function getCampaignMetricValue(obj, metricKey) { return obj ? obj[metricKey] : undefined; }
@@ -77,6 +98,12 @@ ${extractFunction('getTargetsImportPath')}
 ${extractFunction('getTargetsImportCurrent')}
 ${extractFunction('ensureTargetTierArray')}
 ${extractFunction('bulkTargetBrandSlug')}
+${extractFunction('adminBrandKey')}
+${extractFunction('adminBrandListFromValue')}
+${extractFunction('adminBrandSortKey')}
+${extractFunction('adminSortBrandKeys')}
+${extractFunction('adminConfiguredBrandList')}
+${extractFunction('adminBrandKeys')}
 ${extractFunction('normalizeTargetsWideHeader')}
 ${extractFunction('getBulkTargetWideColumns')}
 ${extractFunction('getBulkTargetWideColumnMap')}
