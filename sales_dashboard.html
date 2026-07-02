@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -11,7 +11,7 @@ const SALES_DASHBOARD_BUILD = '20260621-03';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>ðŸŽ¯</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
 <title>Touro MD Sales Dashboard</title>
 <style>
 :root {
@@ -34,7 +34,7 @@ const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;padding-bottom:80px;}
 
-/* â”€â”€ Header â”€â”€ */
+/* ── Header ── */
 .header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px 10px;position:sticky;top:0;z-index:100;}
 .header-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
 .header-title{font-family:var(--display);font-size:26px;letter-spacing:.05em;color:var(--text);}
@@ -45,7 +45,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 /* Agent selector */
 .agent-select{width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);font-family:var(--body);font-size:14px;padding:8px 12px;border-radius:10px;appearance:none;-webkit-appearance:none;}
 
-/* â”€â”€ Bottom Nav â”€â”€ */
+/* ── Bottom Nav ── */
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--nav-bg);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 0 12px;z-index:100;}
 .nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;opacity:.4;transition:opacity .2s;min-width:50px;}
 @media(max-width:640px){
@@ -58,11 +58,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .nav-label{font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
 .nav-item.active .nav-label{color:var(--accent);}
 
-/* â”€â”€ Views â”€â”€ */
+/* ── Views ── */
 .view{display:none;padding:12px 14px;}
 .view.active{display:block;}
 
-/* â”€â”€ Shared Components â”€â”€ */
+/* ── Shared Components ── */
 .sec-label{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.15em;padding:4px 0 6px;border-top:1px solid var(--border);margin:14px 0 8px;}
 .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;}
 .card-accent-top::before{content:'';display:block;height:3px;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:3px 3px 0 0;margin:-14px -16px 12px;}
@@ -81,7 +81,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .stat-label{font-size:11px;color:var(--muted);}
 .stat-val{font-family:var(--mono);font-size:13px;font-weight:500;}
 
-/* â”€â”€ View 1: Debtors (Phase 1) â”€â”€ */
+/* ── View 1: Debtors (Phase 1) ── */
 .summary-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:6px;}
 .summary-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:7px 6px;text-align:center;}
 .summary-box .val{font-family:var(--display);font-size:20px;letter-spacing:.03em;line-height:1;}
@@ -102,7 +102,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 /* SKU tooltip popup */
 .sku-tooltip{position:fixed;background:var(--ink);color:#fff;font-family:var(--mono);font-size:11px;padding:8px 12px;border-radius:8px;z-index:9999;pointer-events:none;border:1px solid rgba(255,255,255,.15);box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:200px;line-height:1.5;}
 
-/* â”€â”€ CTN Breakdown Tooltip â”€â”€ */
+/* ── CTN Breakdown Tooltip ── */
 .ctn-col{cursor:pointer;transition:background .15s;border-radius:6px;padding:4px 2px;}
 .ctn-col:active{background:rgba(255,255,255,.06);}
 .ctn-tooltip-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center;}
@@ -240,7 +240,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
   .camp-debtor-claim{grid-column:2 / 4;grid-row:4;justify-self:start;margin-top:2px;}
 }
 
-/* â”€â”€ View 2: Sales Progression â”€â”€ */
+/* ── View 2: Sales Progression ── */
 .prog-hero{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px;position:relative;overflow:hidden;}
 .prog-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--green));}
 .prog-main-pct{font-family:var(--display);font-size:54px;letter-spacing:.02em;color:var(--accent);line-height:1;}
@@ -263,7 +263,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .eightcom-strip{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
 .eightcom-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;}
 
-/* â”€â”€ View 3: Brand Commission â”€â”€ */
+/* ── View 3: Brand Commission ── */
 .brand-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;}
 .brand-card.both-hit{border-color:var(--green);background:#1a2820;}
 .brand-card.one-hit{border-color:var(--orange);}
@@ -294,7 +294,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .pen-ctn{font-family:var(--mono);font-size:15px;color:var(--green);text-align:right;white-space:nowrap;}
 .pen-empty{padding:12px 10px;font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;}
 
-/* â”€â”€ View 4: Newbie Scheme â”€â”€ */
+/* ── View 4: Newbie Scheme ── */
 .newbie-hero{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px;position:relative;overflow:hidden;}
 .newbie-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--purple),var(--blue));}
 .tier-steps{display:flex;gap:6px;margin:12px 0;}
@@ -311,7 +311,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .acc-tier-box{background:var(--surface);border-radius:10px;padding:8px;text-align:center;border:1px solid var(--border);}
 .acc-tier-box.hit{border-color:var(--green);}
 
-/* â”€â”€ View 5: Aging â”€â”€ */
+/* ── View 5: Aging ── */
 .aging-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
 .aging-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;}
 .aging-box.alert{border-color:var(--red);}
@@ -332,7 +332,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .inv-days{font-family:var(--mono);font-size:13px;text-align:right;}
 .inv-ctn{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:right;margin-top:2px;}
 
-/* â”€â”€ View 6: Group Brand Targets â”€â”€ */
+/* ── View 6: Group Brand Targets ── */
 .group-hero{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px;position:relative;overflow:hidden;}
 .group-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--blue),var(--purple));}
 .group-brand-row{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;}
@@ -404,43 +404,43 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 <body>
 
 <div id="future-view-banner" style="display:none;padding:12px 16px;background:rgba(240,192,64,.15);border-bottom:2px solid var(--accent);font-family:var(--mono);font-size:12px;color:var(--accent);text-align:center;">
-  ðŸ“… Future view â€” <span id="future-view-month"></span> data not yet available. Forward-looking items only (campaigns, birthdays). Campaign claim requests are allowed; sales-only actions disabled.
+  📅 Future view — <span id="future-view-month"></span> data not yet available. Forward-looking items only (campaigns, birthdays). Campaign claim requests are allowed; sales-only actions disabled.
 </div>
 
-<!-- â”€â”€ Header â”€â”€ -->
-<!-- â”€â”€ Cross-page Nav â”€â”€ -->
+<!-- ── Header ── -->
+<!-- ── Cross-page Nav ── -->
 <div style="background:rgba(255,255,255,.04);border-bottom:1px solid var(--border);padding:6px 16px;display:flex;gap:10px;align-items:center;overflow-x:auto;">
   <span style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;">Go to:</span>
-  <a href="management.html" style="font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;padding:3px 8px;border:1px solid rgba(77,166,255,.3);border-radius:6px;white-space:nowrap;">ðŸ“Š Management</a>
+  <a href="management.html" style="font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;padding:3px 8px;border:1px solid rgba(77,166,255,.3);border-radius:6px;white-space:nowrap;">📊 Management</a>
   <a href="debtor_analysis.html?report=sku-strength" style="font-family:var(--mono);font-size:9px;color:var(--accent);text-decoration:none;padding:3px 8px;border:1px solid rgba(240,192,64,.35);border-radius:6px;white-space:nowrap;">SKU Strength</a>
-  <a href="admin.html" style="font-family:var(--mono);font-size:9px;color:var(--accent);text-decoration:none;padding:3px 8px;border:1px solid rgba(240,192,64,.3);border-radius:6px;white-space:nowrap;">âš™ Admin</a>
-  <a href="campaign_audit.html" style="font-family:var(--mono);font-size:9px;color:#a78bfa;text-decoration:none;padding:3px 8px;border:1px solid rgba(167,139,250,.3);border-radius:6px;white-space:nowrap;">ðŸ” Audit</a>
-  <a href="accounts.html" style="font-family:var(--mono);font-size:9px;color:#ff8c5a;text-decoration:none;padding:3px 8px;border:1px solid rgba(200,90,26,.3);border-radius:6px;white-space:nowrap;">ðŸ¦ Accounts</a>
+  <a href="admin.html" style="font-family:var(--mono);font-size:9px;color:var(--accent);text-decoration:none;padding:3px 8px;border:1px solid rgba(240,192,64,.3);border-radius:6px;white-space:nowrap;">⚙ Admin</a>
+  <a href="campaign_audit.html" style="font-family:var(--mono);font-size:9px;color:#a78bfa;text-decoration:none;padding:3px 8px;border:1px solid rgba(167,139,250,.3);border-radius:6px;white-space:nowrap;">🔍 Audit</a>
+  <a href="accounts.html" style="font-family:var(--mono);font-size:9px;color:#ff8c5a;text-decoration:none;padding:3px 8px;border:1px solid rgba(200,90,26,.3);border-radius:6px;white-space:nowrap;">🏦 Accounts</a>
 </div>
 
 <div class="header">
   <div class="header-top">
     <div>
-      <div class="header-title">Miracle-å¥‡è¿¹ MD</div>
+      <div class="header-title">Miracle-奇迹 MD</div>
       <div class="header-sub">Sales Dashboard</div>
     </div>
     <div>
       <div style="text-align:right;">
         <div class="month-badge" id="month-badge">MAR 2026</div>
-        <div class="day-prog" id="day-prog">Day â€” of â€”</div>
-        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:2px;" id="last-update">Updated: â€”</div>
+        <div class="day-prog" id="day-prog">Day — of —</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:2px;" id="last-update">Updated: —</div>
 
         <!-- Sync / Logout toolbar -->
         <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:6px;align-items:center;">
-          <span id="sync-status" style="font-family:var(--mono);font-size:8px;color:var(--muted);">â€”</span>
+          <span id="sync-status" style="font-family:var(--mono);font-size:8px;color:var(--muted);">—</span>
           <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark theme"
-            style="background:rgba(255,255,255,.08);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:8px;padding:3px 6px;border-radius:6px;cursor:pointer;">â˜¾ Dark</button>
+            style="background:rgba(255,255,255,.08);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:8px;padding:3px 6px;border-radius:6px;cursor:pointer;">☾ Dark</button>
           <button id="content-size-toggle" onclick="cycleContentSize()" title="Adjust dashboard content size"
             style="background:rgba(255,255,255,.08);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:8px;padding:3px 6px;border-radius:6px;cursor:pointer;">A Normal</button>
           <button id="btn-manual-sync" onclick="manualSync()" title="Re-sync from Gist and Supabase"
-            style="background:rgba(77,166,255,.1);border:1px solid rgba(77,166,255,.3);color:var(--blue);font-family:var(--mono);font-size:8px;padding:3px 6px;border-radius:6px;cursor:pointer;">ðŸ”ƒ Sync</button>
+            style="background:rgba(77,166,255,.1);border:1px solid rgba(77,166,255,.3);color:var(--blue);font-family:var(--mono);font-size:8px;padding:3px 6px;border-radius:6px;cursor:pointer;">🔃 Sync</button>
           <button onclick="doAgentLogout()" title="Log out (return to PIN gate)"
-            style="background:rgba(255,95,95,.1);border:1px solid rgba(255,95,95,.3);color:var(--red);font-family:var(--mono);font-size:8px;padding:3px 6px;border-radius:6px;cursor:pointer;">â†ª Log out</button>
+            style="background:rgba(255,95,95,.1);border:1px solid rgba(255,95,95,.3);color:var(--red);font-family:var(--mono);font-size:8px;padding:3px 6px;border-radius:6px;cursor:pointer;">↪ Log out</button>
         </div>
 
         <select id="month-selector-agent" onchange="switchMonth(this.value)"
@@ -451,18 +451,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
     </div>
   </div>
   <select class="agent-select" id="agent-select" onchange="selectAgent(this.value)">
-    <option value="">â€” Select Agent â€”</option>
+    <option value="">— Select Agent —</option>
   </select>
 </div>
 
-<!-- â”€â”€ View 1: Debtors â”€â”€ -->
-<!-- â”€â”€ Agent PIN Login â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!-- ── View 1: Debtors ── -->
+<!-- ── Agent PIN Login ─────────────────────────────────────────────── -->
 <div id="pin-gate" style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;">
   <div style="width:100%;max-width:360px;">
     <!-- Logo -->
     <div style="text-align:center;margin-bottom:32px;">
       <div style="font-family:var(--display);font-size:48px;letter-spacing:.06em;color:var(--accent);">MIRACLE</div>
-      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-top:2px;">å¥‡è¿¹ Â· GRP 2A Â· Sales Dashboard</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-top:2px;">奇迹 · GRP 2A · Sales Dashboard</div>
     </div>
 
     <!-- PIN display -->
@@ -489,7 +489,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
       <button class="pin-btn" onclick="pinPress('9')">9</button>
       <div></div>
       <button class="pin-btn" onclick="pinPress('0')">0</button>
-      <button class="pin-btn" onclick="pinPress('âŒ«')">âŒ«</button>
+      <button class="pin-btn" onclick="pinPress('⌫')">⌫</button>
     </div>
   </div>
 </div>
@@ -504,7 +504,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 </style>
 
 <script>
-// â”€â”€ Agent PINs â€” set via Admin â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Agent PINs — set via Admin ─────────────────────────────────────────
 // Format: { AGENT_NAME: '4-digit-pin' }
 // Admin manages these in targets.json under 'agent_pins'
 const AGENT_PINS = (()=>{
@@ -904,7 +904,7 @@ async function restoreAgentSession(agent) {
 
 function pinPress(k) {
   if (_pinLocked) return;
-  if (k === 'âŒ«') {
+  if (k === '⌫') {
     _pin = _pin.slice(0,-1);
   } else if (_pin.length < 4) {
     _pin += k;
@@ -984,7 +984,7 @@ async function checkPin() {
       const d = document.getElementById('pd'+i);
       d.className='pin-dot err';
     }
-    document.getElementById('pin-err').textContent = 'Wrong PIN â€” try again';
+    document.getElementById('pin-err').textContent = 'Wrong PIN — try again';
     setTimeout(()=>{
       _pin=''; _pinLocked=false; updatePinDisplay();
     }, 1000);
@@ -1009,7 +1009,7 @@ function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', next);
   try { localStorage.setItem('md_dashboard_theme', next); } catch {}
   const btn = document.getElementById('theme-toggle');
-  if (btn) btn.textContent = next === 'light' ? 'â˜€ Light' : 'â˜¾ Dark';
+  if (btn) btn.textContent = next === 'light' ? '☀ Light' : '☾ Dark';
 }
 
 function toggleTheme() {
@@ -1060,7 +1060,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   }
 });
 
-// â”€â”€ Logout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Logout ────────────────────────────────────────────────────────────────
 // Clears session + reloads page. PIN gate will show on reload.
 function doAgentLogout() {
   sessionStorage.removeItem('md_auth');
@@ -1068,14 +1068,14 @@ function doAgentLogout() {
   location.reload();
 }
 
-// â”€â”€ Manual Sync â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Manual Sync ───────────────────────────────────────────────────────────
 // Re-fetches kpi_manual from Supabase + claims/flags from Gist.
 // Used when admin changes values and agent wants fresh data without F5.
 async function manualSync() {
   const btn = document.getElementById('btn-manual-sync');
   const stat = document.getElementById('sync-status');
   if (btn) btn.disabled = true;
-  if (stat) stat.textContent = 'syncingâ€¦';
+  if (stat) stat.textContent = 'syncing…';
 
   try {
     // Re-fetch kpi_manual overrides
@@ -1105,7 +1105,7 @@ async function manualSync() {
   }
 }
 
-// â”€â”€ Sync Status Indicator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Sync Status Indicator ─────────────────────────────────────────────────
 // Shows count of locally-cached claims as quick health check.
 function updateSyncStatus() {
   const stat = document.getElementById('sync-status');
@@ -1117,7 +1117,7 @@ function updateSyncStatus() {
       if (k.startsWith(`camp_claim_${month}_`)) count++;
     });
   } catch {}
-  stat.textContent = `âœ“ Synced ${count}`;
+  stat.textContent = `✓ Synced ${count}`;
   stat.style.color = count > 0 ? 'var(--green)' : 'var(--muted)';
 }
 </script>
@@ -1125,57 +1125,57 @@ function updateSyncStatus() {
 <div id="view-debtors" class="view active">
   <div class="summary-strip" id="summary-strip">
     <div class="summary-box">
-      <div class="val" id="sum-total">â€”</div>
-      <div class="lbl">æ€»æˆ·å£</div>
+      <div class="val" id="sum-total">—</div>
+      <div class="lbl">总户口</div>
     </div>
     <div class="summary-box">
-      <div class="val" style="color:var(--green)" id="sum-active">â€”</div>
-      <div class="lbl">å·²æ¿€æ´»</div>
+      <div class="val" style="color:var(--green)" id="sum-active">—</div>
+      <div class="lbl">已激活</div>
     </div>
     <div class="summary-box">
-      <div class="val" style="color:var(--orange)" id="sum-reactiv">â€”</div>
-      <div class="lbl">å¾…æ¿€æ´»</div>
+      <div class="val" style="color:var(--orange)" id="sum-reactiv">—</div>
+      <div class="lbl">待激活</div>
     </div>
     <div class="summary-box">
-      <div class="val" style="color:var(--blue)" id="sum-rate">â€”</div>
-      <div class="sub" id="sum-rate-detail">â€”</div>
-      <div class="lbl">æŒç»­å…‰é¡¾çŽ‡*</div>
+      <div class="val" style="color:var(--blue)" id="sum-rate">—</div>
+      <div class="sub" id="sum-rate-detail">—</div>
+      <div class="lbl">持续光顾率*</div>
     </div>
     <div class="summary-box" style="cursor:pointer;" onclick="setSpecialFilter('flagged', document.querySelector('[data-val=\\'flagged\\']'))">
       <div class="val" style="color:var(--red)" id="sum-flags">0</div>
-      <div class="lbl">âš‘ Flagged</div>
+      <div class="lbl">⚑ Flagged</div>
     </div>
   </div>
-  <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:2px 2px 6px;"> * æŒç»­å…‰é¡¾çŽ‡ excludes P-Personal â€” denominator frozen at month start</div>
+  <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:2px 2px 6px;"> * 持续光顾率 excludes P-Personal — denominator frozen at month start</div>
   <div style="position:relative;">
     <input class="search-bar" id="debtor-search"
       placeholder="Search debtor name, code, or phone across all agents..."
       oninput="onSearchInput()"
       style="padding-right:36px;">
     <button onclick="clearSearch()" id="search-clear-btn"
-      style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;line-height:1;">âœ•</button>
+      style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;line-height:1;">✕</button>
   </div>
   <div class="filter-row" id="status-filter-row">
-    <button class="filter-chip active" data-val="all" onclick="setFilter('status','all',this)">å…¨éƒ¨ All</button>
-    <button class="filter-chip" data-val="active" onclick="setFilter('status','active',this)">å·²æ¿€æ´»</button>
-    <button class="filter-chip" data-val="pending" onclick="setFilter('status','pending',this)">å½“æœˆæœªå¼€å•</button>
-    <button class="filter-chip" data-val="pending_activation" onclick="setFilter('pending_activation','true',this)">å¾…æ¿€æ´»</button>
-    <button class="filter-chip" data-val="no_ccom" data-special-filter="true" onclick="setSpecialFilter('no_ccom',this)">CCOM æœªæ‹¿</button>
-    <button class="filter-chip" data-val="no3m" data-special-filter="true" onclick="setSpecialFilter('no3m',this)">ä¸‰ä¸ªæœˆæœªå¼€å•</button>
+    <button class="filter-chip active" data-val="all" onclick="setFilter('status','all',this)">全部 All</button>
+    <button class="filter-chip" data-val="active" onclick="setFilter('status','active',this)">已激活</button>
+    <button class="filter-chip" data-val="pending" onclick="setFilter('status','pending',this)">当月未开单</button>
+    <button class="filter-chip" data-val="pending_activation" onclick="setFilter('pending_activation','true',this)">待激活</button>
+    <button class="filter-chip" data-val="no_ccom" data-special-filter="true" onclick="setSpecialFilter('no_ccom',this)">CCOM 未拿</button>
+    <button class="filter-chip" data-val="no3m" data-special-filter="true" onclick="setSpecialFilter('no3m',this)">三个月未开单</button>
   </div>
   <div class="filter-row" id="special-filter-row">
-    <button class="filter-chip" data-val="vip" onclick="setSpecialFilter('vip',this)">â­ VIP</button>
-    <button class="filter-chip" data-val="new" onclick="setSpecialFilter('new',this)">ðŸ†• New</button>
-    <button class="filter-chip" data-val="birthday" onclick="setSpecialFilter('birthday',this)">ðŸŽ‚ Birthday</button>
-    <button class="filter-chip" data-val="drop" onclick="setSpecialFilter('drop',this)">ðŸ“‰ Drop</button>
-    <button class="filter-chip" data-val="gain" onclick="setSpecialFilter('gain',this)" style="border-color:rgba(61,220,132,.4);color:var(--green);">ðŸ“ˆ Gain</button>
-    <button class="filter-chip" data-val="unpurchased" onclick="setSpecialFilter('unpurchased',this)">ðŸŽ¯ æœªè´­ä¹°</button>
-    <button class="filter-chip" data-val="nonvip" onclick="setSpecialFilter('nonvip',this)">â­ éžVIP</button>
-    <button class="filter-chip" data-val="newsku" onclick="setSpecialFilter('newsku',this)">âœ¨ æ–°å¢žSKU</button>
-    <button class="filter-chip" data-val="flagged" onclick="setSpecialFilter('flagged',this)" style="border-color:rgba(255,95,95,.4);color:var(--red);">âš‘ Flagged</button>
-    <button class="filter-chip" data-val="campaign" onclick="setSpecialFilter('campaign',this)" style="border-color:rgba(61,220,132,.4);color:var(--green);">ðŸŽ Campaign</button>
-    <button class="filter-chip" data-val="overdue" onclick="setSpecialFilter('overdue',this)" style="border-color:rgba(200,56,26,.4);color:var(--red);">ðŸ’° Overdue</button>
-    <button class="filter-chip" data-val="neartarget" onclick="setSpecialFilter('neartarget',this)" style="border-color:rgba(240,192,64,.4);color:var(--accent);">ðŸŽ¯ Near Target</button>
+    <button class="filter-chip" data-val="vip" onclick="setSpecialFilter('vip',this)">⭐ VIP</button>
+    <button class="filter-chip" data-val="new" onclick="setSpecialFilter('new',this)">🆕 New</button>
+    <button class="filter-chip" data-val="birthday" onclick="setSpecialFilter('birthday',this)">🎂 Birthday</button>
+    <button class="filter-chip" data-val="drop" onclick="setSpecialFilter('drop',this)">📉 Drop</button>
+    <button class="filter-chip" data-val="gain" onclick="setSpecialFilter('gain',this)" style="border-color:rgba(61,220,132,.4);color:var(--green);">📈 Gain</button>
+    <button class="filter-chip" data-val="unpurchased" onclick="setSpecialFilter('unpurchased',this)">🎯 未购买</button>
+    <button class="filter-chip" data-val="nonvip" onclick="setSpecialFilter('nonvip',this)">⭐ 非VIP</button>
+    <button class="filter-chip" data-val="newsku" onclick="setSpecialFilter('newsku',this)">✨ 新增SKU</button>
+    <button class="filter-chip" data-val="flagged" onclick="setSpecialFilter('flagged',this)" style="border-color:rgba(255,95,95,.4);color:var(--red);">⚑ Flagged</button>
+    <button class="filter-chip" data-val="campaign" onclick="setSpecialFilter('campaign',this)" style="border-color:rgba(61,220,132,.4);color:var(--green);">🎁 Campaign</button>
+    <button class="filter-chip" data-val="overdue" onclick="setSpecialFilter('overdue',this)" style="border-color:rgba(200,56,26,.4);color:var(--red);">💰 Overdue</button>
+    <button class="filter-chip" data-val="neartarget" onclick="setSpecialFilter('neartarget',this)" style="border-color:rgba(240,192,64,.4);color:var(--accent);">🎯 Near Target</button>
   </div>
   <div class="filter-row" id="type-filter-row">
     <span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">Type:</span>
@@ -1186,59 +1186,59 @@ function updateSyncStatus() {
   </div>
   <div id="debtor-list"></div>
   <div class="pagination">
-    <button class="page-btn" id="btn-prev" onclick="changePage(-1)">â† Prev</button>
+    <button class="page-btn" id="btn-prev" onclick="changePage(-1)">← Prev</button>
     <span class="page-info" id="page-info"></span>
-    <button class="page-btn" id="btn-next" onclick="changePage(1)">Next â†’</button>
+    <button class="page-btn" id="btn-next" onclick="changePage(1)">Next →</button>
   </div>
 </div>
 
-<!-- â”€â”€ View 2: Sales Progression â”€â”€ -->
+<!-- ── View 2: Sales Progression ── -->
 <div id="view-sales" class="view">
   <div class="prog-hero card-accent-top" id="prog-hero">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;">
       <div>
         <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">Normal T1 Achievement</div>
-        <div class="prog-main-pct" id="prog-main-pct">â€”<sup>%</sup></div>
+        <div class="prog-main-pct" id="prog-main-pct">—<sup>%</sup></div>
         <div class="prog-meta" id="prog-meta">Select an agent</div>
       </div>
       <div style="text-align:right;">
-        <div style="font-family:var(--mono);font-size:20px;" id="prog-ctn">â€”</div>
+        <div style="font-family:var(--mono);font-size:20px;" id="prog-ctn">—</div>
         <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">Canggih CTN</div>
-        <div style="font-family:var(--mono);font-size:11px;color:var(--red);margin-top:4px;" id="prog-gap">â€”</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--red);margin-top:4px;" id="prog-gap">—</div>
       </div>
     </div>
     <div class="bar-wrap" style="margin-top:14px;height:8px;"><div class="bar-fill" id="prog-main-bar" style="width:0%"></div></div>
     <div class="prog-totals">
-      <div class="prog-total-box"><div class="prog-total-val" id="tot-paid" style="color:var(--accent)">â€”</div><div class="prog-total-lbl">Total Canggih</div></div>
-      <div class="prog-total-box"><div class="prog-total-val" id="tot-ga" style="color:var(--muted)">â€”</div><div class="prog-total-lbl">GA CTN</div></div>
-      <div class="prog-total-box"><div class="prog-total-val" id="tot-ma" style="color:var(--muted)">â€”</div><div class="prog-total-lbl">MA CTN</div></div>
+      <div class="prog-total-box"><div class="prog-total-val" id="tot-paid" style="color:var(--accent)">—</div><div class="prog-total-lbl">Total Canggih</div></div>
+      <div class="prog-total-box"><div class="prog-total-val" id="tot-ga" style="color:var(--muted)">—</div><div class="prog-total-lbl">GA CTN</div></div>
+      <div class="prog-total-box"><div class="prog-total-val" id="tot-ma" style="color:var(--muted)">—</div><div class="prog-total-lbl">MA CTN</div></div>
     </div>
   </div>
   <div id="tier-cards"></div>
 
   <!-- Monthly Personal Summary Card -->
-  <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);padding:4px 0 6px;border-top:1px solid var(--border);margin:10px 0 8px;">ðŸ“Š Monthly Summary</div>
+  <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);padding:4px 0 6px;border-top:1px solid var(--border);margin:10px 0 8px;">📊 Monthly Summary</div>
   <div id="monthly-personal-card"></div>
 
   <!-- SKU Trend Table -->
-  <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);padding:4px 0 6px;border-top:1px solid var(--border);margin:10px 0 8px;">ðŸ“¦ SKU Trend (4 Months)</div>
+  <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);padding:4px 0 6px;border-top:1px solid var(--border);margin:10px 0 8px;">📦 SKU Trend (4 Months)</div>
   <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
     <div id="sku-trend-table"></div>
   </div>
 
   <div class="sec-label">8COM (Non-Canggih)</div>
   <div class="eightcom-strip">
-    <div class="eightcom-box"><div style="font-family:var(--mono);font-size:18px;" id="8com-paid">â€”</div><div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px;">PAID CTN</div></div>
-    <div class="eightcom-box"><div style="font-family:var(--mono);font-size:18px;color:var(--orange);" id="8com-unpaid">â€”</div><div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px;">UNPAID CTN</div></div>
+    <div class="eightcom-box"><div style="font-family:var(--mono);font-size:18px;" id="8com-paid">—</div><div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px;">PAID CTN</div></div>
+    <div class="eightcom-box"><div style="font-family:var(--mono);font-size:18px;color:var(--orange);" id="8com-unpaid">—</div><div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px;">UNPAID CTN</div></div>
   </div>
 </div>
 
-<!-- â”€â”€ View 3: Brand Commission â”€â”€ -->
+<!-- ── View 3: Brand Commission ── -->
 <div id="view-brand" class="view">
   <div class="card" style="margin-bottom:10px;">
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <div>
-        <div style="font-family:var(--display);font-size:20px;letter-spacing:.05em;">ä¸­ä¸¤è¾¹ ZLB</div>
+        <div style="font-family:var(--display);font-size:20px;letter-spacing:.05em;">中两边 ZLB</div>
         <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:1px;">Brand Commission Target</div>
       </div>
       <div style="font-family:var(--mono);font-size:20px;color:var(--green);" id="total-comm">RM 0.00</div>
@@ -1248,79 +1248,79 @@ function updateSyncStatus() {
   <div id="brand-cards"></div>
 </div>
 
-<!-- â”€â”€ View 4: Newbie Scheme â”€â”€ -->
+<!-- ── View 4: Newbie Scheme ── -->
 <div id="view-newbie" class="view">
   <div id="newbie-content">
     <div class="card" style="text-align:center;padding:30px;">
-      <div style="font-size:32px;margin-bottom:8px;">ðŸŽ“</div>
+      <div style="font-size:32px;margin-bottom:8px;">🎓</div>
       <div style="font-family:var(--mono);font-size:11px;color:var(--muted);">Select an agent to view incentive scheme</div>
     </div>
   </div>
 </div>
 
-<!-- â”€â”€ View 5: Aging â”€â”€ -->
+<!-- ── View 5: Aging ── -->
 <div id="view-aging" class="view">
   <div id="aging-content">
     <div class="card" style="text-align:center;padding:30px;">
-      <div style="font-size:32px;margin-bottom:8px;">ðŸ“‹</div>
+      <div style="font-size:32px;margin-bottom:8px;">📋</div>
       <div style="font-family:var(--mono);font-size:11px;color:var(--muted);">Select an agent to view aging</div>
     </div>
   </div>
 </div>
 
-<!-- â”€â”€ View 6: Group Brand Targets â”€â”€ -->
+<!-- ── View 6: Group Brand Targets ── -->
 <div id="view-group" class="view">
   <div id="group-content">
     <div class="card" style="text-align:center;padding:30px;">
-      <div style="font-size:32px;margin-bottom:8px;">ðŸ¢</div>
+      <div style="font-size:32px;margin-bottom:8px;">🏢</div>
       <div style="font-family:var(--mono);font-size:11px;color:var(--muted);">Loading group targets...</div>
     </div>
   </div>
 </div>
 
-<!-- â”€â”€ View 7: KPI â”€â”€ -->
+<!-- ── View 7: KPI ── -->
 <div id="view-kpi" class="view">
   <div id="kpi-content">
     <div style="text-align:center;padding:30px;font-family:var(--mono);font-size:11px;color:var(--muted);">Select an agent to view KPI</div>
   </div>
 </div>
 
-<!-- â”€â”€ Campaigns View â”€â”€ -->
+<!-- ── Campaigns View ── -->
 <div id="view-camps" class="view">
-  <!-- Campaign filter â€” chips populated dynamically per agent's running campaigns -->
+  <!-- Campaign filter — chips populated dynamically per agent's running campaigns -->
   <div id="camps-filter-bar" style="display:none;padding:10px 14px 4px;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;white-space:nowrap;">
     <span style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-right:8px;">Filter:</span>
   </div>
   <div id="camps-export-bar" style="display:none;padding:6px 14px 8px;background:var(--surface);border-bottom:1px solid var(--border);text-align:right;">
-    <button onclick="exportCampsExcel()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);border-radius:6px;color:var(--green);cursor:pointer;margin-left:6px;">ðŸ“Š Export Excel</button>
-    <button onclick="exportCampsPDF()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:6px;color:var(--accent);cursor:pointer;margin-left:6px;">ðŸ–¨ï¸ Print / PDF</button>
+    <button onclick="exportCampsExcel()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);border-radius:6px;color:var(--green);cursor:pointer;margin-left:6px;">📊 Export Excel</button>
+    <button onclick="exportCampsPDF()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:6px;color:var(--accent);cursor:pointer;margin-left:6px;">🖨️ Print / PDF</button>
   </div>
   <div id="camps-content">
     <div style="text-align:center;padding:30px;font-family:var(--mono);font-size:11px;color:var(--muted);">Select an agent to view campaigns</div>
   </div>
 </div>
 
-<!-- â”€â”€ Flag Bottom Sheet â”€â”€ -->
+<!-- ── Flag Bottom Sheet ── -->
 <div class="sheet-overlay" id="flag-sheet-overlay" onclick="closeFlagSheet(event)">
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
-    <div class="sheet-title">âš‘ Flag Debtor</div>
-    <div class="sheet-sub" id="sheet-debtor-name">â€”</div>
+    <div class="sheet-title">⚑ Flag Debtor</div>
+    <div class="sheet-sub" id="sheet-debtor-name">—</div>
     <div class="flag-options">
       <div class="flag-option" data-reason="cant_contact" onclick="selectFlagReason(this)">
-        <div class="flag-opt-icon">ðŸ“µ</div>
+        <div class="flag-opt-icon">📵</div>
         <div><div class="flag-opt-lbl">Can't Contact</div><div class="flag-opt-sub">Unable to reach debtor</div></div>
       </div>
       <div class="flag-option" data-reason="close_account" onclick="selectFlagReason(this)">
-        <div class="flag-opt-icon">âŒ</div>
+        <div class="flag-opt-icon">❌</div>
         <div><div class="flag-opt-lbl">Close Account Request</div><div class="flag-opt-sub">Debtor requested to close account</div></div>
       </div>
       <div class="flag-option" data-reason="transfer" onclick="selectFlagReason(this)">
-        <div class="flag-opt-icon">ðŸ”„</div>
+        <div class="flag-opt-icon">🔄</div>
         <div><div class="flag-opt-lbl">Transfer / Area Change</div><div class="flag-opt-sub">Debtor moved or changed area</div></div>
       </div>
       <div class="flag-option" data-reason="other" onclick="selectFlagReason(this)">
-        <div class="flag-opt-icon">ðŸ“</div>
+        <div class="flag-opt-icon">📝</div>
         <div><div class="flag-opt-lbl">Other</div><div class="flag-opt-sub">Add a note below</div></div>
       </div>
     </div>
@@ -1330,7 +1330,7 @@ function updateSyncStatus() {
   </div>
 </div>
 
-<!-- â”€â”€ Campaign Detail Sheet â”€â”€ -->
+<!-- ── Campaign Detail Sheet ── -->
 <div class="sheet-overlay" id="camp-detail-overlay" onclick="closeCampDetail(event)">
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
@@ -1341,43 +1341,43 @@ function updateSyncStatus() {
   </div>
 </div>
 
-<!-- â”€â”€ CTN Breakdown Tooltip â”€â”€ -->
+<!-- ── CTN Breakdown Tooltip ── -->
 <div class="ctn-tooltip-overlay" id="ctn-tooltip-overlay" style="display:none;" onclick="closeCtnTooltip()">
   <div class="ctn-tooltip-box" onclick="event.stopPropagation()">
     <div class="ctn-tooltip-handle"></div>
-    <div class="ctn-tooltip-title" id="ctn-tt-title">â€”</div>
-    <div class="ctn-tooltip-sub" id="ctn-tt-sub">â€”</div>
+    <div class="ctn-tooltip-title" id="ctn-tt-title">—</div>
+    <div class="ctn-tooltip-sub" id="ctn-tt-sub">—</div>
     <div id="ctn-tt-items"></div>
   </div>
 </div>
 
-<!-- â”€â”€ Birthday Gift Entry Sheet â”€â”€ -->
+<!-- ── Birthday Gift Entry Sheet ── -->
 <div class="sheet-overlay" id="bday-sheet-overlay" onclick="closeBdaySheet(event)">
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
-    <div class="sheet-title">ðŸŽ‚ Birthday Gift</div>
+    <div class="sheet-title">🎂 Birthday Gift</div>
     <div class="sheet-sub">How many birthday gifts delivered this month?</div>
     <div style="background:rgba(77,166,255,.08);border:1px solid rgba(77,166,255,.2);border-radius:10px;padding:10px 12px;margin-bottom:14px;">
       <div style="font-family:var(--mono);font-size:9px;color:var(--blue);margin-bottom:4px;">TARGET THIS MONTH</div>
-      <div style="font-family:var(--display);font-size:28px;color:var(--blue);" id="bday-target-display">â€”</div>
+      <div style="font-family:var(--display);font-size:28px;color:var(--blue);" id="bday-target-display">—</div>
       <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">VIP debtors with birthday (excl personal)</div>
     </div>
-    <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:6px;">Gifts delivered (self-report â€” management will audit):</div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:6px;">Gifts delivered (self-report — management will audit):</div>
     <input type="number" id="bday-actual-input" min="0" placeholder="0"
       style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);padding:12px;border-radius:10px;font-family:var(--display);font-size:28px;text-align:center;margin-bottom:12px;">
     <div style="font-family:var(--mono);font-size:9px;color:rgba(255,154,60,.8);margin-bottom:14px;">
-      âš ï¸ Management will verify against actual delivery records
+      ⚠️ Management will verify against actual delivery records
     </div>
     <button class="sheet-confirm" onclick="saveBdayActual()">SAVE</button>
     <button class="sheet-cancel" onclick="closeBdaySheet()">Cancel</button>
   </div>
 </div>
 
-<!-- â”€â”€ Event Input Sheet â”€â”€ -->
+<!-- ── Event Input Sheet ── -->
 <div class="sheet-overlay" id="event-sheet-overlay" onclick="closeEventSheet(event)">
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
-    <div class="sheet-title">ðŸ“± Event / PSR</div>
+    <div class="sheet-title">📱 Event / PSR</div>
     <div class="sheet-sub">Enter total phone numbers collected this month</div>
     <div style="margin-bottom:16px;">
       <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Phone Numbers Collected</div>
@@ -1391,19 +1391,19 @@ function updateSyncStatus() {
 </div>
 
 <nav class="bottom-nav">
-  <div class="nav-item active" onclick="switchView('debtors',this)"><div class="nav-icon">ðŸ‘¥</div><div class="nav-label">Debtors</div></div>
-  <div class="nav-item" onclick="switchView('sales',this)"><div class="nav-icon">ðŸ“ˆ</div><div class="nav-label">Sales</div></div>
-  <div class="nav-item" onclick="switchView('brand',this)"><div class="nav-icon">ðŸ·ï¸</div><div class="nav-label" style="font-size:7px;">ä¸­ä¸¤è¾¹ ZLB</div></div>
-  <div class="nav-item" onclick="switchView('group',this)"><div class="nav-icon">ðŸ¢</div><div class="nav-label">Group</div></div>
-  <div class="nav-item" onclick="switchView('kpi',this)"><div class="nav-icon">ðŸŽ¯</div><div class="nav-label">KPI</div></div>
-  <div class="nav-item" onclick="switchView('camps',this)"><div class="nav-icon">ðŸŽ</div><div class="nav-label">Camps</div></div>
-  <div class="nav-item" onclick="switchView('newbie',this)"><div class="nav-icon">ðŸŽ“</div><div class="nav-label">Newbie</div></div>
-  <div class="nav-item" onclick="switchView('aging',this)"><div class="nav-icon">ðŸ“‹</div><div class="nav-label">Aging</div></div>
-  <a class="nav-item" href="debtor_map.html" style="text-decoration:none;color:inherit;"><div class="nav-icon">ðŸ“</div><div class="nav-label">Map</div></a>
+  <div class="nav-item active" onclick="switchView('debtors',this)"><div class="nav-icon">👥</div><div class="nav-label">Debtors</div></div>
+  <div class="nav-item" onclick="switchView('sales',this)"><div class="nav-icon">📈</div><div class="nav-label">Sales</div></div>
+  <div class="nav-item" onclick="switchView('brand',this)"><div class="nav-icon">🏷️</div><div class="nav-label" style="font-size:7px;">中两边 ZLB</div></div>
+  <div class="nav-item" onclick="switchView('group',this)"><div class="nav-icon">🏢</div><div class="nav-label">Group</div></div>
+  <div class="nav-item" onclick="switchView('kpi',this)"><div class="nav-icon">🎯</div><div class="nav-label">KPI</div></div>
+  <div class="nav-item" onclick="switchView('camps',this)"><div class="nav-icon">🎁</div><div class="nav-label">Camps</div></div>
+  <div class="nav-item" onclick="switchView('newbie',this)"><div class="nav-icon">🎓</div><div class="nav-label">Newbie</div></div>
+  <div class="nav-item" onclick="switchView('aging',this)"><div class="nav-icon">📋</div><div class="nav-label">Aging</div></div>
+  <a class="nav-item" href="debtor_map.html" style="text-decoration:none;color:inherit;"><div class="nav-icon">📍</div><div class="nav-label">Map</div></a>
 </nav>
 
 <script>
-// â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── State ──────────────────────────────────────────────────────────────────
 let DATA = null;
 let currentAgent = null;
 let currentView = 'debtors';
@@ -1604,7 +1604,7 @@ function blockFutureViewAction(options) {
   const allowCampaignClaim = options === 'campaign_claim' || options.allowCampaignClaim === true;
   if (DATA?.is_future_view) {
     if (allowCampaignClaim) return false;
-    alert('Read-only future view â€” actions disabled until ' + (DATA.current_month||'this month') + ' data is loaded.');
+    alert('Read-only future view — actions disabled until ' + (DATA.current_month||'this month') + ' data is loaded.');
     return true;
   }
   return false;
@@ -1657,7 +1657,7 @@ function futureDebtorPlanningCopy(debtor = {}) {
   };
 }
 
-// â”€â”€ Month Selector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Month Selector ─────────────────────────────────────────────────────────
 let CURRENT_MONTH_FILE = 'dashboard_data.json'; // default
 let CURRENT_MONTH_SLUG = 'current'; // tracks selected month slug
 let DEBTOR_ANALYSIS_CACHE = undefined;
@@ -1864,7 +1864,7 @@ async function loadMonthIndex(preloadedMonths) {
     const currentSlug = CURRENT_MONTH_SLUG || monthSlug(DATA?.current_month||'');
     sel.innerHTML = months.slice().reverse().map(m => {
       const slug = monthSlug(m);
-      return `<option value="${slug}">${m.toUpperCase()}${slug===currentSlug?' â—€':''}</option>`;
+      return `<option value="${slug}">${m.toUpperCase()}${slug===currentSlug?' ◀':''}</option>`;
     }).join('');
     sel.value = currentSlug;
     sel.style.display = 'block';
@@ -1898,7 +1898,7 @@ async function switchMonth(slug) {
     applyBirthdayTargetsToAgentKpi();
 
     document.getElementById('month-badge').textContent = (DATA.current_month||'').toUpperCase();
-    document.getElementById('day-prog').textContent = 'Future view Â· data pending';
+    document.getElementById('day-prog').textContent = 'Future view · data pending';
     const mSel = document.getElementById('month-selector-agent');
     if (mSel) mSel.value = CURRENT_MONTH_SLUG;
 
@@ -1943,7 +1943,7 @@ async function switchMonth(slug) {
 
     // Rebuild agent dropdown, restore previous selection
     if (agSel) {
-      agSel.innerHTML = '<option value="">â€” Select Agent â€”</option>';
+      agSel.innerHTML = '<option value="">— Select Agent —</option>';
       Object.keys(DATA.agents || {}).sort().forEach(a => {
         const opt = document.createElement('option');
         opt.value = a; opt.textContent = a;
@@ -1956,7 +1956,7 @@ async function switchMonth(slug) {
     const wd = DATA.working_days || {};
     document.getElementById('month-badge').textContent = (DATA.current_month||'').toUpperCase();
     document.getElementById('day-prog').textContent =
-      `Day ${wd.elapsed_working_days||'?'} of ${wd.total_working_days||'?'} Â· ${wd.theoretical_pct||0}% elapsed`;
+      `Day ${wd.elapsed_working_days||'?'} of ${wd.total_working_days||'?'} · ${wd.theoretical_pct||0}% elapsed`;
     renderGroupBrandTargets();
     // Update month selector to reflect new selection without rebuilding
     const mSel = document.getElementById('month-selector-agent');
@@ -1990,7 +1990,7 @@ async function switchMonth(slug) {
   }
 }
 
-// â”€â”€ Load Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Load Data ──────────────────────────────────────────────────────────────
 async function loadData() {
   try {
     if (await refreshIfStaleDashboardVersion()) return;
@@ -2029,18 +2029,18 @@ async function loadData() {
     init();
     if (DATA.is_future_view) {
       const dayProg = document.getElementById('day-prog');
-      if (dayProg) dayProg.textContent = 'Future view Â· data pending';
+      if (dayProg) dayProg.textContent = 'Future view · data pending';
     }
     loadMonthIndex(months); // load month dropdown after data ready
   } catch(e) {
     document.body.innerHTML = `<div style="padding:40px;text-align:center;font-family:monospace;color:#ff5f5f;">
-      âŒ Could not load dashboard data<br>
+      ❌ Could not load dashboard data<br>
       <small style="color:#7070a0;">${e.message}</small>
     </div>`;
   }
 }
 
-// â”€â”€ SupabaseKpiSync Module â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── SupabaseKpiSync Module ───────────────────────────────────────────────────
 // Fetches admin-entered kpi_manual values (new_accounts, vip_count, event_count, campaign_pct)
 // from Supabase and overrides DATA.agents[*].kpi.items[*].actual + recomputes
 // pct / score / section totals / grand totals.
@@ -2049,7 +2049,7 @@ const SupabaseKpiSync = (() => {
   const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
 
-  // Mapping: Supabase column â†’ kpi.items key
+  // Mapping: Supabase column → kpi.items key
   const FIELD_MAP = {
     'new_accounts': 'new_accounts',
     'vip_count':    'vip_count',
@@ -2154,7 +2154,7 @@ const SupabaseKpiSync = (() => {
       delete item.needs_supabase_fetch;
     });
 
-    // â”€â”€ Also override Newbie Scheme new_accounts (admin value is authoritative) â”€â”€
+    // ── Also override Newbie Scheme new_accounts (admin value is authoritative) ──
     // Recompute acc_tier_hit + acc_reward + total_incentive.
     const birthdayItem = items.birthday_campaign;
     if (birthdayItem && row.birthday_count !== null && row.birthday_count !== undefined) {
@@ -2300,7 +2300,7 @@ function init() {
   const wd = DATA.working_days || {};
   document.getElementById('month-badge').textContent = (DATA.current_month || '').toUpperCase();
   document.getElementById('day-prog').textContent =
-    `Day ${wd.elapsed_working_days||'?'} of ${wd.total_working_days||'?'} Â· ${wd.theoretical_pct||0}% elapsed${wd.public_holidays_this_month>0?' ('+wd.public_holidays_this_month+' PH)':''}`;
+    `Day ${wd.elapsed_working_days||'?'} of ${wd.total_working_days||'?'} · ${wd.theoretical_pct||0}% elapsed${wd.public_holidays_this_month>0?' ('+wd.public_holidays_this_month+' PH)':''}`;
   // Colour the theoretical pct in day-prog
   const dpEl = document.getElementById('day-prog');
   if (dpEl) {
@@ -2354,7 +2354,7 @@ function init() {
   applyInitialViewFromUrl();
 }
 
-// â”€â”€ Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Navigation ─────────────────────────────────────────────────────────────
 function saveLastAgentSelection(agent) {
   try {
     if (agent && DATA?.agents?.[agent]) localStorage.setItem(LAST_AGENT_KEY, agent);
@@ -2416,7 +2416,7 @@ function applyInitialViewFromUrl() {
   if (view) switchView(view);
 }
 
-// â”€â”€ Agent Selection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Agent Selection ────────────────────────────────────────────────────────
 function clearSearch() {
   const inp = document.getElementById('debtor-search');
   if (inp) inp.value = '';
@@ -2489,7 +2489,7 @@ function renderGlobalSearch(query) {
       ${results.length} result${results.length!==1?'s':''} across all agents
     </div>
     ${results.slice(0, 50).map(d => {
-      const stMap = { active:'å·²æ¿€æ´»', need_reactivation:'å¾…æ¿€æ´»', pending:'å½“æœˆæœªå¼€å•' };
+      const stMap = { active:'已激活', need_reactivation:'待激活', pending:'当月未开单' };
       const stCls = { active:'status-active', need_reactivation:'status-reactiv', pending:'status-pending' };
       const stTxt = stMap[d.status] || d.status || '';
       const phone = (d.phone||'').replace(/\s/g,'');
@@ -2500,23 +2500,23 @@ function renderGlobalSearch(query) {
             <div class="dc-meta">
               <span class="dc-code">${d.debtor_code}</span>
               ${d.debtor_type ? `<span class="dc-type">${d.debtor_type}</span>` : ''}
-              <span style="font-family:var(--mono);font-size:9px;background:rgba(255,255,255,.08);color:var(--muted);padding:1px 6px;border-radius:6px;margin-left:4px;">ðŸ‘¤ ${d._agent}</span>
+              <span style="font-family:var(--mono);font-size:9px;background:rgba(255,255,255,.08);color:var(--muted);padding:1px 6px;border-radius:6px;margin-left:4px;">👤 ${d._agent}</span>
             </div>
           </div>
           <div class="dc-right">
-            ${phone ? `<a href="tel:${phone}" class="dc-phone" onclick="event.stopPropagation()">ðŸ“ž ${phone}</a>` : ''}
+            ${phone ? `<a href="tel:${phone}" class="dc-phone" onclick="event.stopPropagation()">📞 ${phone}</a>` : ''}
             <div class="dc-badges">
               <span class="status-inline ${stCls[d.status]||''}">${stTxt}</span>
-              ${d.vip ? `<span class="status-inline" style="background:rgba(240,192,64,.2);color:var(--accent)">â­ VIP</span>` : ''}
+              ${d.vip ? `<span class="status-inline" style="background:rgba(240,192,64,.2);color:var(--accent)">⭐ VIP</span>` : ''}
             </div>
           </div>
         </div>
         <div style="font-family:var(--mono);font-size:9px;color:var(--blue);text-align:center;padding:4px 0 2px;">
-          Tap to go to ${d._agent}'s list â†’
+          Tap to go to ${d._agent}'s list →
         </div>
       </div>`;
     }).join('')}
-    ${results.length > 50 ? `<div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-align:center;padding:8px;">Showing 50 of ${results.length} results â€” type more to narrow down</div>` : ''}
+    ${results.length > 50 ? `<div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-align:center;padding:8px;">Showing 50 of ${results.length} results — type more to narrow down</div>` : ''}
   `;
 }
 
@@ -2638,15 +2638,15 @@ function renderAll() {
   renderCamps();
 }
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Helpers ────────────────────────────────────────────────────────────────
 function colorClass(color) {
   return color === 'green' ? 'bar-green' : color === 'amber' ? 'bar-amber' : 'bar-red';
 }
 function colorHex(color) {
   return color === 'green' ? 'var(--green)' : color === 'amber' ? 'var(--accent)' : 'var(--red)';
 }
-function fmtNum(n) { return n == null ? 'â€”' : parseFloat(n).toLocaleString('en-MY', {minimumFractionDigits:0, maximumFractionDigits:2}); }
-function fmtPct(p) { return p == null ? 'â€”' : p.toFixed(1) + '%'; }
+function fmtNum(n) { return n == null ? '—' : parseFloat(n).toLocaleString('en-MY', {minimumFractionDigits:0, maximumFractionDigits:2}); }
+function fmtPct(p) { return p == null ? '—' : p.toFixed(1) + '%'; }
 function fmtRM(n) { return 'RM ' + parseFloat(n||0).toFixed(2); }
 function fmtRM0(n) { return 'RM ' + parseFloat(n||0).toLocaleString('en-MY', {minimumFractionDigits:0, maximumFractionDigits:0}); }
 
@@ -2698,7 +2698,7 @@ function formatLinkedStagePackage(c = {}, stage = 1) {
   const note = pkg.note || notes[`stage${stage}_foc_note`] || (stage === 2 ? '[RP OD]' : '[1ST OD]');
   const q = Number(qty || 0);
   const qText = q ? (Number.isInteger(q) ? String(q) : String(Number(q.toFixed(3)))) : '';
-  return `FOC: ${String(item || '').toUpperCase()}${qText ? ` x ${qText}` : ''} ${normalizeFocUnitDisplay(unit)}${note ? ` Â· Note: ${note}` : ''}`;
+  return `FOC: ${String(item || '').toUpperCase()}${qText ? ` x ${qText}` : ''} ${normalizeFocUnitDisplay(unit)}${note ? ` · Note: ${note}` : ''}`;
 }
 
 function isIfaceCampaign(c = {}) {
@@ -2763,14 +2763,14 @@ function renderIfaceMissionSummary(c = {}, stats = {}) {
       </div>
       <div style="border:1px solid rgba(255,204,102,.28);background:rgba(255,204,102,.08);border-radius:10px;padding:9px 10px;">
         <div style="font-family:var(--display);font-size:20px;color:var(--accent);">${fmtNum(stats.convertedCtn || 0)}</div>
-        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">IFACE paid CTN${awaiting ? ` Â· ${fmtNum(awaiting)} unpaid` : ''}</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">IFACE paid CTN${awaiting ? ` · ${fmtNum(awaiting)} unpaid` : ''}</div>
       </div>
       <div style="border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.045);border-radius:10px;padding:9px 10px;">
         <div style="font-family:var(--display);font-size:20px;color:var(--text);">${claimed}/${debtors.length}</div>
-        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">FOC claimed Â· delivered ${delivered}</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">FOC claimed · delivered ${delivered}</div>
       </div>
     </div>
-    <div style="font-family:var(--mono);font-size:9px;color:var(--accent);margin-top:8px;">FOC: SUKUN x 4 packs Â· Note: IFACE PEN Â· one FOC claim per debtor</div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--accent);margin-top:8px;">FOC: SUKUN x 4 packs · Note: IFACE PEN · one FOC claim per debtor</div>
   </div>`;
 }
 
@@ -2794,19 +2794,19 @@ function renderLinkedCampaignSummary(c = {}, linked = {}) {
       </div>
       <div style="border:1px solid rgba(61,220,132,.28);background:rgba(61,220,132,.08);border-radius:10px;padding:9px 10px;">
         <div style="font-family:var(--display);font-size:20px;color:var(--green);">${fmtNum(conversionActual)} / ${fmtNum(conversionTarget)}</div>
-        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">1ST OD converted Â· ${convPct}%</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">1ST OD converted · ${convPct}%</div>
       </div>
       <div style="border:1px solid rgba(255,204,102,.28);background:rgba(255,204,102,.08);border-radius:10px;padding:9px 10px;">
         <div style="font-family:var(--display);font-size:20px;color:var(--accent);">${fmtNum(repeatActual)} / ${fmtNum(repeatTarget)}</div>
-        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">RP OD repeat Â· ${repeatPct}%</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">RP OD repeat · ${repeatPct}%</div>
       </div>
       <div style="border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.045);border-radius:10px;padding:9px 10px;">
         <div style="font-family:var(--display);font-size:20px;color:var(--text);">${fmtNum(score)} / ${fmtNum(scoreTarget)}</div>
         <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">KPI internal</div>
       </div>
     </div>
-    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:8px;">Claims: 1ST ${stage1Claims.claimed}/${stage1Claims.verified} verified Â· RP ${stage2Claims.claimed}/${stage2Claims.verified} verified</div>
-    <div style="font-family:var(--mono);font-size:9px;color:var(--accent);margin-top:8px;">${formatLinkedStagePackage(c, 1)} Â· ${formatLinkedStagePackage(c, 2).replace(/^FOC: /, 'RP: ')}</div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:8px;">Claims: 1ST ${stage1Claims.claimed}/${stage1Claims.verified} verified · RP ${stage2Claims.claimed}/${stage2Claims.verified} verified</div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--accent);margin-top:8px;">${formatLinkedStagePackage(c, 1)} · ${formatLinkedStagePackage(c, 2).replace(/^FOC: /, 'RP: ')}</div>
   </div>`;
 }
 
@@ -2833,7 +2833,7 @@ function conversionCampaignStatus(c = {}) {
         paid,
         unpaid,
         invoice,
-        currentText: `${fmtNum(paid)} CTN paid Â· ${fmtNum(c.linked_repeat_ctn || 0)} repeat`,
+        currentText: `${fmtNum(paid)} CTN paid · ${fmtNum(c.linked_repeat_ctn || 0)} repeat`,
         claimable: true,
         linkedStage: 2
       };
@@ -3051,7 +3051,7 @@ function buildTypeChipRow(typeCounts, totalCount, activeType) {
      }).join('')}`;
 }
 
-// â”€â”€ View 1: Debtors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── View 1: Debtors ────────────────────────────────────────────────────────
 function setFilter(type, val, el) {
   document.querySelectorAll('#status-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
@@ -3303,17 +3303,17 @@ function renderSkuRecencyExtraHtml(summary, mode) {
   const prevMonths = summary.prev3Months.join(', ');
   return `<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:8px 0 4px;">
     <div style="padding:8px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,.03);">
-      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;">å‰ä¸‰ä¸ªæœˆ CTN</div>
+      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;">前三个月 CTN</div>
       <div style="font-family:var(--display);font-size:20px;color:${summary.prev3Ctn > 0 ? 'var(--green)' : 'var(--red)'};">${fmtNum(summary.prev3Ctn)}</div>
       <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">${campEsc(prevMonths)}</div>
     </div>
     <div style="padding:8px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,.03);">
-      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;">æœ¬æœˆ CTN</div>
+      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;">本月 CTN</div>
       <div style="font-family:var(--display);font-size:20px;color:${summary.currentCtn > 0 ? 'var(--green)' : 'var(--red)'};">${fmtNum(summary.currentCtn)}</div>
       <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">${campEsc(summary.currentMonth)}</div>
     </div>
     <div style="padding:8px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,.03);">
-      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;">æœ€åŽè´­ä¹°æœˆä»½</div>
+      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;">最后购买月份</div>
       <div style="font-family:var(--display);font-size:20px;color:${modeColor};">${campEsc(last)}</div>
       <div style="font-family:var(--mono);font-size:8px;color:var(--muted);">${campEsc(summary.sku)}</div>
     </div>
@@ -3827,9 +3827,9 @@ function renderDropMode(debtors) {
           `<span style="font-size:11px;padding:2px 7px;border-radius:4px;background:rgba(255,193,7,.15);color:var(--accent);border:0.5px solid rgba(255,193,7,.3);">${s}</span>`
         ).join('');
         const stoppedHtml = stopped.length
-          ? `<span style="font-size:10px;color:var(--red);margin-right:3px;">åœè´­:</span>${stoppedPills}` : '';
+          ? `<span style="font-size:10px;color:var(--red);margin-right:3px;">停购:</span>${stoppedPills}` : '';
         const reducedHtml = reduced.length
-          ? `<span style="font-size:10px;color:var(--accent);margin-left:${stopped.length?'8px':'0'};margin-right:3px;">å‡å°‘:</span>${reducedPills}` : '';
+          ? `<span style="font-size:10px;color:var(--accent);margin-left:${stopped.length?'8px':'0'};margin-right:3px;">减少:</span>${reducedPills}` : '';
         if (stopped.length || reduced.length) {
           skuPillsHtml = `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:6px;">${stoppedHtml}${reducedHtml}</div>`;
         }
@@ -3849,12 +3849,12 @@ function renderDropMode(debtors) {
 
   document.getElementById('debtor-list').innerHTML = `
     <div style="margin:8px 0 10px;">
-      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">æ¡æ•°ä¸‹é™:</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">条数下降:</div>
       <div id="drop-sku-filter-row" class="filter-row" style="display:flex;overflow-x:auto;gap:8px;white-space:nowrap;padding-bottom:4px;margin-bottom:8px;">${skuButtons}</div>
       <div id="drop-ctn-filter-row" class="filter-row" style="display:flex;overflow-x:auto;gap:8px;white-space:nowrap;padding-bottom:4px;">
         <button class="filter-chip ${dropCtnFilter === 'all' ? 'active' : ''}" onclick="setDropCtnFilter('all',this)">ALL</button>
         <button class="filter-chip ${dropCtnFilter === 'stopped' ? 'active' : ''}" onclick="setDropCtnFilter('stopped',this)">STOPPED BUYING</button>
-        <button class="filter-chip ${dropCtnFilter === 'reduced30' ? 'active' : ''}" onclick="setDropCtnFilter('reduced30',this)">REDUCED â‰¥30%</button>
+        <button class="filter-chip ${dropCtnFilter === 'reduced30' ? 'active' : ''}" onclick="setDropCtnFilter('reduced30',this)">REDUCED ≥30%</button>
       </div>
     </div>
     ${dropHtml}`;
@@ -3971,8 +3971,8 @@ function renderGainMode(debtors) {
         const incPills = increased.map(s =>
           `<span style="font-size:11px;padding:2px 7px;border-radius:4px;background:rgba(77,166,255,.15);color:var(--blue);border:0.5px solid rgba(77,166,255,.3);">${s}</span>`
         ).join('');
-        const newHtml = newsku.length ? `<span style="font-size:10px;color:var(--green);margin-right:3px;">æ–°å¢ž:</span>${newPills}` : '';
-        const incHtml = increased.length ? `<span style="font-size:10px;color:var(--blue);margin-left:${newsku.length?'8px':'0'};margin-right:3px;">å¢žåŠ :</span>${incPills}` : '';
+        const newHtml = newsku.length ? `<span style="font-size:10px;color:var(--green);margin-right:3px;">新增:</span>${newPills}` : '';
+        const incHtml = increased.length ? `<span style="font-size:10px;color:var(--blue);margin-left:${newsku.length?'8px':'0'};margin-right:3px;">增加:</span>${incPills}` : '';
         if (newsku.length || increased.length) {
           skuPillsHtml = `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:6px;">${newHtml}${incHtml}</div>`;
         }
@@ -3992,12 +3992,12 @@ function renderGainMode(debtors) {
 
   document.getElementById('debtor-list').innerHTML = `
     <div style="margin:8px 0 10px;">
-      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">æ¡æ•°ä¸Šå‡:</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">条数上升:</div>
       <div id="gain-sku-filter-row" class="filter-row" style="display:flex;overflow-x:auto;gap:8px;white-space:nowrap;padding-bottom:4px;margin-bottom:8px;">${skuButtons}</div>
       <div id="gain-ctn-filter-row" class="filter-row" style="display:flex;overflow-x:auto;gap:8px;white-space:nowrap;padding-bottom:4px;">
         <button class="filter-chip ${gainCtnFilter === 'all' ? 'active' : ''}" onclick="setGainCtnFilter('all',this)">ALL</button>
         <button class="filter-chip ${gainCtnFilter === 'newonly' ? 'active' : ''}" onclick="setGainCtnFilter('newonly',this)">NEW SKU ONLY</button>
-        <button class="filter-chip ${gainCtnFilter === 'increased30' ? 'active' : ''}" onclick="setGainCtnFilter('increased30',this)">INCREASED â‰¥30%</button>
+        <button class="filter-chip ${gainCtnFilter === 'increased30' ? 'active' : ''}" onclick="setGainCtnFilter('increased30',this)">INCREASED ≥30%</button>
       </div>
     </div>
     ${gainHtml}`;
@@ -4026,7 +4026,7 @@ function renderSpecialFilterExtra(d) {
           <span class="status-inline" style="background:rgba(255,95,95,.15);color:var(--red);">excl. Personal</span>
         </div>
         <div class="movement-summary-right">
-          <span style="font-family:var(--mono);font-size:11px;color:var(--text);white-space:nowrap;">${fmtNum(canggihCtn(d, 'prev2'))} â†’ ${fmtNum(canggihCtn(d, 'prev1'))} â†’ ${fmtNum(canggihCtn(d, 'cur'))} CTN</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--text);white-space:nowrap;">${fmtNum(canggihCtn(d, 'prev2'))} → ${fmtNum(canggihCtn(d, 'prev1'))} → ${fmtNum(canggihCtn(d, 'cur'))} CTN</span>
           ${eightcomCtn(d, 'cur') > 0 ? `<span class="status-inline" style="background:rgba(77,166,255,.15);color:var(--blue);">8COM ${fmtNum(eightcomCtn(d, 'cur'))} CTN</span>` : ''}
         </div>
       </div>
@@ -4110,7 +4110,7 @@ function legacyRenderUnpurchasedMode(debtors) {
     ? pageItems.map((d, idx) => renderDebtorCard(d, start + idx + 1)).join('')
     : `<div class="empty-state">No debtors for ${unpurchasedBrandFilter}${search ? ` matching "${search}"` : ''}</div>`;
 
-  document.getElementById('page-info').textContent = `${startDisplay}â€“${endDisplay} of ${totalShown}`;
+  document.getElementById('page-info').textContent = `${startDisplay}–${endDisplay} of ${totalShown}`;
   document.getElementById('btn-prev').disabled = unpurchasedPage <= 1;
   document.getElementById('btn-next').disabled = unpurchasedPage >= pages;
   document.getElementById('btn-prev').onclick = () => changeUnpurchasedPage(-1);
@@ -4118,23 +4118,23 @@ function legacyRenderUnpurchasedMode(debtors) {
 
   document.getElementById('debtor-list').innerHTML = `
     <div style="display:flex;gap:6px;margin-bottom:10px;justify-content:flex-end;">
-      <button onclick="exportUnpurchasedExcel()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);border-radius:6px;color:var(--green);cursor:pointer;">ðŸ“Š Export Excel</button>
-      <button onclick="exportUnpurchasedPDF()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:6px;color:var(--accent);cursor:pointer;">ðŸ–¨ï¸ Print / PDF</button>
+      <button onclick="exportUnpurchasedExcel()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);border-radius:6px;color:var(--green);cursor:pointer;">📊 Export Excel</button>
+      <button onclick="exportUnpurchasedPDF()" style="font-family:var(--mono);font-size:10px;padding:6px 10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:6px;color:var(--accent);cursor:pointer;">🖨️ Print / PDF</button>
     </div>
     <div style="margin-bottom:10px;">
-      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">ä¸­ä¸¤è¾¹ ZLB</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">中两边 ZLB</div>
       <div style="display:flex;gap:6px;overflow-x:auto;white-space:nowrap;padding-bottom:4px;">
         ${brandButtons}
       </div>
     </div>
     <div style="margin-bottom:10px;">
-      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">TYPE Â· æœªè´­ä¹° ${unpurchasedBrandFilter}</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">TYPE · 未购买 ${unpurchasedBrandFilter}</div>
       <div style="display:flex;gap:6px;overflow-x:auto;white-space:nowrap;padding-bottom:4px;">
         ${typeButtons}
       </div>
     </div>
     <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:10px;padding:4px 8px;background:rgba(255,255,255,.03);border-radius:6px;border-left:2px solid var(--green);">
-      ${selectedDebtors.length} ä¸ªå®¢æˆ·ä»Žæœªè´­ä¹° ${unpurchasedBrandFilter} Â· è¿‘4ä¸ªæœˆ Â· ä¸å«Personal
+      ${selectedDebtors.length} 个客户从未购买 ${unpurchasedBrandFilter} · 近4个月 · 不含Personal
     </div>
     ${debtorHtml}`;
 }
@@ -4161,7 +4161,7 @@ function changeUnpurchasedPage(dir) {
   renderUnpurchasedMode(debtors);
 }
 
-// Export the currently-displayed æœªè´­ä¹° debtor list to Excel.
+// Export the currently-displayed 未购买 debtor list to Excel.
 // Uses the global selectedDebtors that renderUnpurchasedMode populated.
 function setUnpurchasedSku(sku) {
   unpurchasedSkuFilter = normalizeSkuItemCode(sku);
@@ -4200,12 +4200,12 @@ function renderUnpurchasedMode(debtors) {
   }
 
   const modeLabels = {
-    not_bought: 'SKU æœªè´­ä¹°',
-    bought_3m: 'ä¸‰ä¸ªæœˆå†…è´­ä¹°'
+    not_bought: 'SKU 未购买',
+    bought_3m: '三个月内购买'
   };
   const modeHelp = {
-    not_bought: 'å‰ä¸‰ä¸ªæœˆ + æœ¬æœˆéƒ½æ²¡æœ‰è´­ä¹°',
-    bought_3m: 'å‰ä¸‰ä¸ªæœˆæœ‰è´­ä¹°ï¼›æœ¬æœˆå¦å¤–æ˜¾ç¤º'
+    not_bought: '前三个月 + 本月都没有购买',
+    bought_3m: '前三个月有购买；本月另外显示'
   };
   const modeCounts = {
     not_bought: eligible.filter(d => matchesSkuRecencyMode(d, unpurchasedSkuFilter, 'not_bought', DATA?.current_month || '')).length,
@@ -4257,7 +4257,7 @@ function renderUnpurchasedMode(debtors) {
     agent: currentAgent,
     sku: unpurchasedSkuFilter,
     mode: unpurchasedRecencyMode,
-    modeLabel: modeLabels[unpurchasedRecencyMode] || 'SKU æœªè´­ä¹°',
+    modeLabel: modeLabels[unpurchasedRecencyMode] || 'SKU 未购买',
     monthLabel: DATA?.current_month || '',
     debtors: shown,
   };
@@ -4292,17 +4292,17 @@ function renderUnpurchasedMode(debtors) {
         </div>
       </div>
       <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:5px;">
-        ${modeHelp[unpurchasedRecencyMode] || ''} Â· Exact SKU item matching only
+        ${modeHelp[unpurchasedRecencyMode] || ''} · Exact SKU item matching only
       </div>
     </div>
     <div style="margin-bottom:10px;">
-      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">TYPE Â· ${modeLabels[unpurchasedRecencyMode] || 'SKU æœªè´­ä¹°'} ${campEsc(unpurchasedSkuFilter)}</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">TYPE · ${modeLabels[unpurchasedRecencyMode] || 'SKU 未购买'} ${campEsc(unpurchasedSkuFilter)}</div>
       <div style="display:flex;gap:6px;overflow-x:auto;white-space:nowrap;padding-bottom:4px;">
         ${typeButtons}
       </div>
     </div>
     <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:10px;padding:4px 8px;background:rgba(255,255,255,.03);border-radius:6px;border-left:2px solid var(--green);">
-      ${selectedDebtors.length} ä¸ªå®¢æˆ· Â· ${modeLabels[unpurchasedRecencyMode] || 'SKU æœªè´­ä¹°'} ${campEsc(unpurchasedSkuFilter)} Â· ${DATA?.current_month || ''} Â· ä¸å«Personal
+      ${selectedDebtors.length} 个客户 · ${modeLabels[unpurchasedRecencyMode] || 'SKU 未购买'} ${campEsc(unpurchasedSkuFilter)} · ${DATA?.current_month || ''} · 不含Personal
     </div>
     ${debtorHtml}`;
 }
@@ -4314,7 +4314,7 @@ function legacyExportUnpurchasedExcel() {
     return;
   }
   if (!_lastUnpurchasedExport || !_lastUnpurchasedExport.debtors || !_lastUnpurchasedExport.debtors.length) {
-    alert('No debtors to export. Make sure æœªè´­ä¹° filter is active and a brand is selected.');
+    alert('No debtors to export. Make sure 未购买 filter is active and a brand is selected.');
     return;
   }
 
@@ -4339,23 +4339,23 @@ function legacyExportUnpurchasedExcel() {
   ];
 
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, `æœªè´­ä¹° ${brand}`);
+  XLSX.utils.book_append_sheet(wb, ws, `未购买 ${brand}`);
 
-  // Filename: agent_æœªè´­ä¹°_brand_yyyy-mm-dd.xlsx
+  // Filename: agent_未购买_brand_yyyy-mm-dd.xlsx
   const today = new Date().toISOString().slice(0,10);
   const safeAgent = (agent || 'all').replace(/[^a-zA-Z0-9_-]/g, '_');
   const safeBrand = brand.replace(/[^a-zA-Z0-9_-]/g, '_');
-  const filename = `${safeAgent}_æœªè´­ä¹°_${safeBrand}_${today}.xlsx`;
+  const filename = `${safeAgent}_未购买_${safeBrand}_${today}.xlsx`;
 
   XLSX.writeFile(wb, filename);
 }
 
-// Print the currently-displayed æœªè´­ä¹° debtor list. CSS @media print
+// Print the currently-displayed 未购买 debtor list. CSS @media print
 // hides everything except the #debtor-list section.
 function legacyExportUnpurchasedPDF() {
   return exportUnpurchasedPDF();
   if (!_lastUnpurchasedExport || !_lastUnpurchasedExport.debtors || !_lastUnpurchasedExport.debtors.length) {
-    alert('No debtors to print. Make sure æœªè´­ä¹° filter is active and a brand is selected.');
+    alert('No debtors to print. Make sure 未购买 filter is active and a brand is selected.');
     return;
   }
   document.body.classList.add('print-mode-unpurchased');
@@ -4711,7 +4711,7 @@ function renderNonVipMode(debtors) {
     ? pageItems.map((d, idx) => renderDebtorCard(d, start + idx + 1)).join('')
     : `<div class="empty-state">No non-VIP debtors</div>`;
 
-  document.getElementById('page-info').textContent = `${startDisplay}â€“${endDisplay} of ${totalShown}`;
+  document.getElementById('page-info').textContent = `${startDisplay}–${endDisplay} of ${totalShown}`;
   document.getElementById('btn-prev').disabled = nonvipPage <= 1;
   document.getElementById('btn-next').disabled = nonvipPage >= pages;
   document.getElementById('btn-prev').onclick = () => changeNonVipPage(-1);
@@ -4725,7 +4725,7 @@ function renderNonVipMode(debtors) {
       </div>
     </div>
     <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:10px;padding:4px 8px;background:rgba(255,255,255,.03);border-radius:6px;border-left:2px solid var(--accent);">
-      ${eligible.length} ä¸ªéžVIPå®¢æˆ· Â· æŒ‰CTNæŽ’åº Â· ä¸å«Personal
+      ${eligible.length} 个非VIP客户 · 按CTN排序 · 不含Personal
     </div>
     ${debtorHtml}`;
 }
@@ -4744,34 +4744,34 @@ function changeNonVipPage(dir) {
 }
 
 function renderDebtorCard(d, runNo, extraHtml = '') {
-    // Status label â€” Chinese
+    // Status label — Chinese
     // Chip rules:
     //   is_pending_activation -> pending activation (new strict definition)
     //   status==='active' -> active
     //   status==='pending' -> no order this month
     //   anything else -> no chip (displaced need_reactivation cards that bought recently)
     let stCls = '', stTxt = '';
-    if (d.is_pending_activation)         { stCls = 'si-reactiv'; stTxt = 'å¾…æ¿€æ´»'; }
-    else if (d.status === 'active')      { stCls = 'si-active';  stTxt = 'å·²æ¿€æ´»'; }
-    else if (d.status === 'pending')     { stCls = 'si-pending'; stTxt = 'å½“æœˆæœªå¼€å•'; }
+    if (d.is_pending_activation)         { stCls = 'si-reactiv'; stTxt = '待激活'; }
+    else if (d.status === 'active')      { stCls = 'si-active';  stTxt = '已激活'; }
+    else if (d.status === 'pending')     { stCls = 'si-pending'; stTxt = '当月未开单'; }
 
     // Badges
-    // Campaign badges â€” show category-specific promo if available
-    const campEmoji = {free_sample:'ðŸŽ',foc_sample:'ðŸŽ',birthday_gift:'ðŸŽ‚',promotion:'ðŸ“¢',festive_gift:'ðŸ§§',voucher:'ðŸŽŸï¸',conversion_tiered:'ðŸŽ¯',conversion_simple:'ðŸŽ¯',other:'ðŸ“‹'};
+    // Campaign badges — show category-specific promo if available
+    const campEmoji = {free_sample:'🎁',foc_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',voucher:'🎟️',conversion_tiered:'🎯',conversion_simple:'🎯',other:'📋'};
     const campBadges = visibleDebtorCampaigns(d).map(c => {
       const promoText  = c.promo_detail || c.name;
 
-      // â”€â”€ conversion_tiered: conversion status + lookback context â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── conversion_tiered: conversion status + lookback context ──────────
       // Tier is agent-level; debtor chips only show whether this debtor converted.
       if (c.type === 'conversion_tiered' || c.type === 'conversion_simple') {
         const conv = conversionCampaignStatus(c);
         const lookbackCtn = conv.lookback;
 
-        // Lookback summary line: e.g. "Feb-Apr: 0 CTN" or "Feb-Apr: 0 CTN  â†’  May: 5 CTN"
+        // Lookback summary line: e.g. "Feb-Apr: 0 CTN" or "Feb-Apr: 0 CTN  →  May: 5 CTN"
         // Derive month label from the campaign notes lookback_months for accuracy
         const lbMonths = (c.notes && c.notes.lookback_months) || [];
         const lbLabel  = lbMonths.length >= 2 ? `${lbMonths[0]}-${lbMonths[lbMonths.length-1]}` : (lbMonths[0] || 'Lookback');
-        const summaryLine = `${lbLabel}: ${fmtNum(lookbackCtn)} CTN Â· ${conv.currentText}`;
+        const summaryLine = `${lbLabel}: ${fmtNum(lookbackCtn)} CTN · ${conv.currentText}`;
         const isLinkedClaimCampaign = isLinkedConversionRepeatCampaign(c);
         const focPackageText = isLinkedClaimCampaign
           ? ''
@@ -4796,7 +4796,7 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
         return `<div style="margin-top:4px;background:${conv.bg};border:1px solid ${conv.border};border-radius:8px;padding:6px 10px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
-              <span style="font-family:var(--mono);font-size:10px;color:var(--green);font-weight:600;">ðŸŽ¯ ${c.name}</span>
+              <span style="font-family:var(--mono);font-size:10px;color:var(--green);font-weight:600;">🎯 ${c.name}</span>
             </div>
             ${convertedChip}
           </div>
@@ -4809,7 +4809,7 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
           ${claimHtml}
         </div>`;
       }
-      // â”€â”€ end conversion_tiered branch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── end conversion_tiered branch ─────────────────────────────────────
 
       const minCtn     = c.min_order_ctn || 0;
       const curCtn     = c.ctn_this_month ?? 0;
@@ -4823,7 +4823,7 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
       const catLabel   = c.cat ? `CAT ${c.cat}` : '';
       const groupLabel = c.group ? `[${c.group}]` : '';
       const approvalFlag = c.approval_required
-        ? `<span style="font-family:var(--mono);font-size:8px;color:var(--accent);margin-left:4px;">âš  Case-by-case</span>`
+        ? `<span style="font-family:var(--mono);font-size:8px;color:var(--accent);margin-left:4px;">⚠ Case-by-case</span>`
         : '';
 
       // Progress bar
@@ -4834,19 +4834,19 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
       let statusLine = '';
       if (rType === 'voucher') {
         const vAmt = c.voucher_amount || 0;
-        if (qualified) statusLine = `âœ… RM${vAmt} Voucher claimable`;
-        else statusLine = `${curCtn}/${minCtn} CTN â†’ RM${vAmt} Voucher`;
+        if (qualified) statusLine = `✅ RM${vAmt} Voucher claimable`;
+        else statusLine = `${curCtn}/${minCtn} CTN → RM${vAmt} Voucher`;
       } else if (accum === 'accumulate') {
         const rUnit = c.redemption_unit === 'pack' ? 'packs' : 'CTN';
         const cap   = rLimit > 0 ? `/${rLimit}` : '';
-        statusLine  = `${curCtn} CTN â†’ ${focEarned}${cap} ${rUnit} ${focItem} FOC`;
+        statusLine  = `${curCtn} CTN → ${focEarned}${cap} ${rUnit} ${focItem} FOC`;
       } else if (accum === 'per_transaction') {
-        statusLine  = `${curCtn} CTN total Â· ${focEarned} ${focItem} FOC earned`;
+        statusLine  = `${curCtn} CTN total · ${focEarned} ${focItem} FOC earned`;
       } else {
-        statusLine  = qualified ? `âœ… Qualified` : `${curCtn}/${minCtn} CTN`;
+        statusLine  = qualified ? `✅ Qualified` : `${curCtn}/${minCtn} CTN`;
       }
 
-      // Claim button â€” shown for all campaign types.
+      // Claim button — shown for all campaign types.
       const showBtn    = true; // always show button for all campaign types
       const claimButton = claimButtonHtml({
         debtorCode: d.debtor_code,
@@ -4868,7 +4868,7 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
       return `<div style="margin-top:4px;background:${bgCol};border:1px solid ${borderCol};border-radius:8px;padding:6px 10px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
           <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
-            <span style="font-family:var(--mono);font-size:10px;color:var(--green);font-weight:600;">${campEmoji[c.type]||'ðŸ“‹'} ${c.name}</span>
+            <span style="font-family:var(--mono);font-size:10px;color:var(--green);font-weight:600;">${campEmoji[c.type]||'📋'} ${c.name}</span>
             ${catLabel ? `<span style="font-family:var(--mono);font-size:9px;color:var(--accent);background:rgba(240,192,64,.15);padding:1px 5px;border-radius:4px;">${catLabel}</span>` : ''}
             ${groupLabel ? `<span style="font-family:var(--mono);font-size:8px;color:var(--muted);">${groupLabel}</span>` : ''}
             ${approvalFlag}
@@ -4894,21 +4894,21 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
     const brandTierBadges = Object.entries(d.brand_camp_tiers||{}).map(([brand, data]) =>
       `<span class="status-inline" style="background:${tierColors[data.tier]||'rgba(255,255,255,.1)'};color:${tierTextColors[data.tier]||'var(--text)'};cursor:pointer;"
         onclick="showBrandTierDetail(event,'${d.debtor_code}','${(d.company_name||'').replace(/'/g,"\\'")}')"
-        >ðŸ”¥ ${brand} ${data.promo}</span>`
+        >🔥 ${brand} ${data.promo}</span>`
     ).join('');
 
     const badges = [
       stTxt ? `<span class="status-inline ${stCls}">${stTxt}</span>` : '',
-      d.vip             ? `<span class="status-inline" style="background:rgba(240,192,64,.2);color:var(--accent)">â­ VIP</span>` : '',
-      d.is_new          ? `<span class="status-inline" style="background:rgba(77,166,255,.15);color:var(--blue)">ðŸ†• New</span>` : '',
+      d.vip             ? `<span class="status-inline" style="background:rgba(240,192,64,.2);color:var(--accent)">⭐ VIP</span>` : '',
+      d.is_new          ? `<span class="status-inline" style="background:rgba(77,166,255,.15);color:var(--blue)">🆕 New</span>` : '',
       (() => {
         if (!birthdayCodeSetForCurrentAgent().has(String(d.debtor_code || '').toUpperCase())) return '';
         const giftSent = !!birthdayGiftClaimFor(currentAgent, d.debtor_code);
         const BDAY_MTHS = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         const bdayLabel = d.birth_day ? `${String(d.birth_day).padStart(2,'0')} ${BDAY_MTHS[d.birth_month]||''}` : '';
-        return `<span class="status-inline" style="background:${giftSent?'rgba(61,220,132,.25)':'rgba(167,139,250,.25)'};color:${giftSent?'#3ddc84':'#c4a0ff'};cursor:pointer;border:1px solid ${giftSent?'rgba(61,220,132,.5)':'rgba(167,139,250,.6)'};padding:4px 10px;font-size:11px;font-weight:700;" onclick="toggleBdayGift('${d.debtor_code}','${(d.company_name||'').replace(/'/g,'')}',event)">ðŸŽ‚ ${giftSent?'âœ“ Gift Sent':'ðŸŽ Send Gift'+(bdayLabel?' '+bdayLabel:'')}</span>`;
+        return `<span class="status-inline" style="background:${giftSent?'rgba(61,220,132,.25)':'rgba(167,139,250,.25)'};color:${giftSent?'#3ddc84':'#c4a0ff'};cursor:pointer;border:1px solid ${giftSent?'rgba(61,220,132,.5)':'rgba(167,139,250,.6)'};padding:4px 10px;font-size:11px;font-weight:700;" onclick="toggleBdayGift('${d.debtor_code}','${(d.company_name||'').replace(/'/g,'')}',event)">🎂 ${giftSent?'✓ Gift Sent':'🎁 Send Gift'+(bdayLabel?' '+bdayLabel:'')}</span>`;
       })(),
-      d.volume_drop_pct ? `<span class="status-inline" style="background:rgba(255,95,95,.15);color:var(--red)">ðŸ“‰ -${d.volume_drop_pct}%</span>` : '',
+      d.volume_drop_pct ? `<span class="status-inline" style="background:rgba(255,95,95,.15);color:var(--red)">📉 -${d.volume_drop_pct}%</span>` : '',
     ].filter(Boolean).join('');
 
     // Store month breakdown in global lookup to avoid JSON escaping issues in onclick
@@ -4921,10 +4921,10 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
     const prevTile = monthTiles[monthTiles.length - 2] || { ctn: d.ctn_prev1 || 0 };
     const ctn1 = Number(prevTile.ctn || 0);
     const ctn2 = Number(currentTile.ctn || 0);
-    const trendIcon  = ctn2 > ctn1 ? 'â–²' : ctn2 < ctn1 ? 'â–¼' : 'â†’';
+    const trendIcon  = ctn2 > ctn1 ? '▲' : ctn2 < ctn1 ? '▼' : '→';
     const trendColor = ctn2 > ctn1 ? 'var(--green)' : ctn2 < ctn1 ? 'var(--red)' : 'var(--muted)';
 
-    // SKU dots â€” with sales type tooltip on tap
+    // SKU dots — with sales type tooltip on tap
     const skuSalesType = d.sku_sales_type || {};
     const tierShort = {
       'Target': 'Target',
@@ -4948,8 +4948,8 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
       const tier = skuSalesType[grp] || '';
       const tierLbl = tierShort[tier] || '';
       const tcolor  = tierColor[tier] || 'var(--muted)';
-      const statusTip = st==='new_penetration' ? 'å½“æœˆè´­ä¹°' : st==='regular' ? '3ä¸ªæœˆå†…è´­ä¹°' : 'è¿˜æœªè´­ä¹°';
-      const fullTip = tier ? `${statusTip} Â· ${tier}` : statusTip;
+      const statusTip = st==='new_penetration' ? '当月购买' : st==='regular' ? '3个月内购买' : '还未购买';
+      const fullTip = tier ? `${statusTip} · ${tier}` : statusTip;
       // Show tier label inside dot if purchased this month
       return `<div class="sku-dot ${cls}" title="${fullTip}" style="position:relative;cursor:pointer;"
         onclick="showSkuTip(this, '${grp}', '${statusTip}', '${tier}')">
@@ -4958,7 +4958,7 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
       </div>`;
     }).join('');
 
-    // Phone â€” clean null/nan
+    // Phone — clean null/nan
     const phone = d.phone && d.phone !== 'nan' && d.phone !== 'None' && d.phone.trim() !== '' ? d.phone.trim() : '';
     const debtorName = (d.company_name && d.company_name.trim() !== '')
       ? d.company_name : d.debtor_code;
@@ -4970,7 +4970,7 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
           <div class="dc-meta">
             <span class="dc-code">${d.debtor_code}</span>
             ${d.debtor_type ? `<span class="dc-type">${d.debtor_type}</span>` : ''}
-            ${d.has_overdue ? `<span style="font-family:var(--mono);font-size:8px;background:rgba(200,56,26,.2);color:var(--red);padding:1px 6px;border-radius:4px;margin-left:4px;">ðŸ’° Overdue</span>` : ''}
+            ${d.has_overdue ? `<span style="font-family:var(--mono);font-size:8px;background:rgba(200,56,26,.2);color:var(--red);padding:1px 6px;border-radius:4px;margin-left:4px;">💰 Overdue</span>` : ''}
           </div>
           ${(() => {
             const avg = d.avg_ctn_3m || 0;
@@ -4989,7 +4989,7 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
           })()}
         </div>
         <div class="dc-right">
-          ${phone ? `<a href="tel:${phone}" class="dc-phone" onclick="event.stopPropagation()">ðŸ“ž ${phone}</a>` : ''}
+          ${phone ? `<a href="tel:${phone}" class="dc-phone" onclick="event.stopPropagation()">📞 ${phone}</a>` : ''}
           <div class="dc-badges">${badges}</div>
           ${campBadges ? `<div class="dc-badges" style="margin-top:2px;">${campBadges}</div>` : ''}
           ${brandTierBadges ? `<div class="dc-badges" style="margin-top:2px;">${brandTierBadges}</div>` : ''}
@@ -5015,10 +5015,10 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
         </div>
 
         <div class="sku-section">
-          <div class="sku-section-lbl">SKU Â· Last: ${d.last_purchase_date||'â€”'} &nbsp;
-            <span style="color:var(--green)">â—</span>å½“æœˆè´­ä¹°
-            <span style="color:var(--accent)">â—</span>3ä¸ªæœˆå†…è´­ä¹°
-            <span style="color:var(--red)">â—</span>è¿˜æœªè´­ä¹°
+          <div class="sku-section-lbl">SKU · Last: ${d.last_purchase_date||'—'} &nbsp;
+            <span style="color:var(--green)">●</span>当月购买
+            <span style="color:var(--accent)">●</span>3个月内购买
+            <span style="color:var(--red)">●</span>还未购买
           </div>
           <div class="sku-row">${skuHtml}</div>
         </div>
@@ -5029,7 +5029,7 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
             .map(([grp]) => grp);
           return `<div style="margin-top:8px;padding:7px 10px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
             <div>
-              <div style="font-family:var(--mono);font-size:8px;color:var(--purple);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">âœ¨ æ–°å¢žSKU æœ¬æœˆ</div>
+              <div style="font-family:var(--mono);font-size:8px;color:var(--purple);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">✨ 新增SKU 本月</div>
               <div style="display:flex;gap:4px;flex-wrap:wrap;">${addedSkus.map(s =>
                 `<span style="font-family:var(--mono);font-size:10px;background:rgba(167,139,250,.2);color:var(--purple);padding:2px 8px;border-radius:10px;font-weight:500;">${s}</span>`
               ).join('')}</div>
@@ -5040,26 +5040,26 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
 
         ${(() => {
           const flag = getFlag(currentAgent, d.debtor_code);
-          const flagLabel = {cant_contact:'ðŸ“µ Can\'t Contact', close_account:'âŒ Close Account', transfer:'ðŸ”„ Transfer', other:'ðŸ“ Flagged'}[flag?.reason] || '';
+          const flagLabel = {cant_contact:'📵 Can\'t Contact', close_account:'❌ Close Account', transfer:'🔄 Transfer', other:'📝 Flagged'}[flag?.reason] || '';
           return flag
             ? `<div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;background:rgba(255,95,95,.15);border:1px solid rgba(255,95,95,.5);border-radius:8px;padding:6px 10px;">
                 <span style="font-family:var(--mono);font-size:10px;color:var(--red);font-weight:500;">${flagLabel}</span>
                 <div style="display:flex;gap:6px;">
                   <button onclick="openFlagSheet('${d.debtor_code}','${(d.company_name||'').replace(/'/g,"\\'")}',true)" style="background:none;border:none;font-family:var(--mono);font-size:9px;color:var(--muted);cursor:pointer;text-transform:uppercase;padding:2px 6px;">Edit</button>
-                  <button onclick="resolveFlag('${currentAgent}','${d.debtor_code}')" style="background:rgba(255,95,95,.2);border:1px solid rgba(255,95,95,.4);font-family:var(--mono);font-size:9px;color:var(--red);cursor:pointer;padding:3px 8px;border-radius:6px;">âœ• Undo</button>
+                  <button onclick="resolveFlag('${currentAgent}','${d.debtor_code}')" style="background:rgba(255,95,95,.2);border:1px solid rgba(255,95,95,.4);font-family:var(--mono);font-size:9px;color:var(--red);cursor:pointer;padding:3px 8px;border-radius:6px;">✕ Undo</button>
                 </div>
               </div>`
             : `<div style="margin-top:8px;">
                 <button onclick="openFlagSheet('${d.debtor_code}','${(d.company_name||'').replace(/'/g,"\\'")}',false)"
                   style="background:rgba(255,154,60,.12);border:1px solid rgba(255,154,60,.4);color:var(--orange);font-family:var(--mono);font-size:9px;padding:5px 12px;border-radius:8px;cursor:pointer;text-transform:uppercase;letter-spacing:.06em;width:100%;">
-                  âš‘ Flag Debtor
+                  ⚑ Flag Debtor
                 </button>
               </div>`;
         })()}
       </div>
 
       <button class="dc-expand-btn" onclick="toggleCard('${mbKey}')" id="dc-btn-${mbKey}">
-        <span id="dc-btn-lbl-${mbKey}">â–¼ Details</span>
+        <span id="dc-btn-lbl-${mbKey}">▼ Details</span>
       </button>
     </div>`;
 }
@@ -5069,7 +5069,7 @@ function renderDebtors() {
   if (DATA.is_future_view && false) {
     ['sum-total','sum-active','sum-reactiv','sum-rate','sum-flags'].forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.textContent = id === 'sum-flags' ? '0' : 'â€”';
+      if (el) el.textContent = id === 'sum-flags' ? '0' : '—';
     });
     const deltaEl = document.getElementById('sum-total-delta');
     if (deltaEl) deltaEl.style.display = 'none';
@@ -5084,7 +5084,7 @@ function renderDebtors() {
     : (agData.debtors || []);
   const birthdayCodeSet = birthdayCodeSetForCurrentAgent();
 
-  // Summary strip â€” activation rate (excl. Personal) + å¾…æ¿€æ´»
+  // Summary strip — activation rate (excl. Personal) + 待激活
   const futureStats = DATA.is_future_view ? futureDebtorSummaryStats(agData, debtors) : null;
   const total   = futureStats ? futureStats.total : (agData.total_debtors || 0);
   const active  = futureStats ? futureStats.active : (agData.active_count || 0);
@@ -5110,7 +5110,7 @@ function renderDebtors() {
     sumTotalEl.parentNode.appendChild(deltaEl);
   }
   if (openedThisMonth > 0) {
-    deltaEl.textContent = `+${openedThisMonth} æ–°å¢ž`;
+    deltaEl.textContent = `+${openedThisMonth} 新增`;
     deltaEl.style.color = 'var(--green)';
     deltaEl.style.display = '';
   } else if (isBaselinePending) {
@@ -5123,13 +5123,13 @@ function renderDebtors() {
   const sumTotalBox = sumTotalEl.closest('.summary-box');
   if (sumTotalBox) {
     sumTotalBox.title = isFrozen && snapDate
-      ? `Live non-Personal account count. +æ–°å¢ž uses Open Acct in the current month. Activation KPI denominator remains ${npTotalFrozen} from ${snapDate}.`
+      ? `Live non-Personal account count. +新增 uses Open Acct in the current month. Activation KPI denominator remains ${npTotalFrozen} from ${snapDate}.`
       : isBaselinePending
         ? `Live non-Personal account count. Baseline will be locked on next business day.`
-        : `Live non-Personal account count. +æ–°å¢ž uses Open Acct in the current month.`;
+        : `Live non-Personal account count. +新增 uses Open Acct in the current month.`;
   }
   document.getElementById('sum-active').textContent  = active;
-  document.getElementById('sum-reactiv').textContent = inactive;  // show å¾…æ¿€æ´» count
+  document.getElementById('sum-reactiv').textContent = inactive;  // show 待激活 count
   const rateEl = document.getElementById('sum-rate');
   rateEl.textContent = rate + '%';
   const baseLabel = isFrozen && snapDate ? `frozen baseline ${snapDate}` : 'live count';
@@ -5140,7 +5140,7 @@ function renderDebtors() {
   }
   const rateBox = rateEl.closest('.summary-box');
   if (rateBox) rateBox.title = `${npActive} / ${npTotalFrozen} (${baseLabel}, excl. Personal)`;
-  document.getElementById('sum-newsku') && (document.getElementById('sum-newsku').textContent = DATA.is_future_view ? 0 : (agData.total_new_sku ?? 'â€”'));
+  document.getElementById('sum-newsku') && (document.getElementById('sum-newsku').textContent = DATA.is_future_view ? 0 : (agData.total_new_sku ?? '—'));
   // Flag count
   const flagCount = getAgentFlagCount(currentAgent);
   document.getElementById('sum-flags').textContent = flagCount;
@@ -5222,27 +5222,27 @@ function renderDebtors() {
     bannerEl.style.display = 'flex';
     bannerEl.style.background = 'rgba(167,139,250,.1)';
     bannerEl.style.borderColor = 'rgba(167,139,250,.3)';
-    bannerEl.innerHTML = `<span style="font-family:var(--mono);font-size:11px;color:var(--purple);">âœ¨ æ–°å¢žSKU æœ¬æœˆ â€” ${filtered.length} æˆ·å£</span>
-      <button class="brand-banner-close" onclick="setSpecialFilter('newsku',document.querySelector('[data-val=\\'newsku\\']'))">Ã—</button>`;
+    bannerEl.innerHTML = `<span style="font-family:var(--mono);font-size:11px;color:var(--purple);">✨ 新增SKU 本月 — ${filtered.length} 户口</span>
+      <button class="brand-banner-close" onclick="setSpecialFilter('newsku',document.querySelector('[data-val=\\'newsku\\']'))">×</button>`;
   } else if (filters.special === 'no_ccom') {
     bannerEl.style.display = 'flex';
     bannerEl.style.background = 'rgba(255,154,60,.08)';
     bannerEl.style.borderColor = 'rgba(255,154,60,.28)';
-    bannerEl.innerHTML = `<span style="font-family:var(--mono);font-size:11px;color:var(--orange);">CCOM æœªæ‹¿ â€” ${filtered.length} æˆ·è¿‘3ä¸ªæœˆåªä¹° 8COM / æ²¡ä¹° CCOM</span>
-      <button class="brand-banner-close" onclick="setSpecialFilter('no_ccom',document.querySelector('[data-val=\\'no_ccom\\']'))">Ã—</button>`;
+    bannerEl.innerHTML = `<span style="font-family:var(--mono);font-size:11px;color:var(--orange);">CCOM 未拿 — ${filtered.length} 户近3个月只买 8COM / 没买 CCOM</span>
+      <button class="brand-banner-close" onclick="setSpecialFilter('no_ccom',document.querySelector('[data-val=\\'no_ccom\\']'))">×</button>`;
   } else if (filters.special === 'no3m') {
     bannerEl.style.display = 'flex';
     bannerEl.style.background = 'rgba(255,95,95,.08)';
     bannerEl.style.borderColor = 'rgba(255,95,95,.25)';
-    bannerEl.innerHTML = `<span style="font-family:var(--mono);font-size:11px;color:var(--red);">ä¸‰ä¸ªæœˆæœªå¼€å• â€” ${filtered.length} æˆ·ï¼Œå·²æŽ’é™¤ P-Personal</span>
-      <button class="brand-banner-close" onclick="setSpecialFilter('no3m',document.querySelector('[data-val=\\'no3m\\']'))">Ã—</button>`;
+    bannerEl.innerHTML = `<span style="font-family:var(--mono);font-size:11px;color:var(--red);">三个月未开单 — ${filtered.length} 户，已排除 P-Personal</span>
+      <button class="brand-banner-close" onclick="setSpecialFilter('no3m',document.querySelector('[data-val=\\'no3m\\']'))">×</button>`;
   } else {
     bannerEl.style.display = 'none';
     bannerEl.style.background = '';
     bannerEl.style.borderColor = '';
   }
 
-  // Sort â€” if drop filter active, sort by CTN drop (M-1 minus this month) highest first
+  // Sort — if drop filter active, sort by CTN drop (M-1 minus this month) highest first
   if (filters.special === 'drop') {
     filtered.sort((a, b) => {
       const dropA = (a.ctn_prev1 || 0) - (a.ctn_cur || 0);
@@ -5272,7 +5272,7 @@ function renderDebtors() {
   // Compute type counts as if the type filter weren't applied.
   // This gives users meaningful "if I switched type to this" counts even when
   // a type filter is currently active. Predicates mirror the filter logic
-  // above EXCEPT for the final type check â€” keep in sync if filters change.
+  // above EXCEPT for the final type check — keep in sync if filters change.
   const allDebtors = DATA.agents[currentAgent]?.debtor_cards?.debtors || [];
   const typeCountsDynamic = {};
   let typeAllTotal = 0;
@@ -5320,7 +5320,7 @@ function renderDebtors() {
       });
       if (!hasNearTarget && !hasBrandNear) continue;
     }
-    // NOTE: type filter intentionally omitted â€” that's the dimension we're counting across.
+    // NOTE: type filter intentionally omitted — that's the dimension we're counting across.
 
     typeAllTotal++;
     const t = (d.debtor_type||'').trim();
@@ -5335,7 +5335,7 @@ function renderDebtors() {
   const start  = (currentPage - 1) * PAGE_SIZE;
   const items  = filtered.slice(start, start + PAGE_SIZE);
 
-  document.getElementById('page-info').textContent  = `${start+1}â€“${Math.min(start+PAGE_SIZE,totalF)} of ${totalF}`;
+  document.getElementById('page-info').textContent  = `${start+1}–${Math.min(start+PAGE_SIZE,totalF)} of ${totalF}`;
   document.getElementById('btn-prev').disabled = currentPage <= 1;
   document.getElementById('btn-next').disabled = currentPage >= pages;
   document.getElementById('btn-prev').onclick = () => changePage(-1);
@@ -5353,7 +5353,7 @@ function renderDebtors() {
 
 function changePage(dir) { currentPage += dir; renderDebtors(); }
 
-// â”€â”€ Card Expand/Collapse â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Card Expand/Collapse ───────────────────────────────────────────────────
 function toggleCard(key) {
   const body = document.getElementById(`dc-body-${key}`);
   const lbl  = document.getElementById(`dc-btn-lbl-${key}`);
@@ -5361,10 +5361,10 @@ function toggleCard(key) {
   const isCollapsed = body.classList.contains('collapsed');
   body.classList.toggle('collapsed', !isCollapsed);
   body.classList.toggle('expanded', isCollapsed);
-  if (lbl) lbl.textContent = isCollapsed ? 'â–² Close' : 'â–¼ Details';
+  if (lbl) lbl.textContent = isCollapsed ? '▲ Close' : '▼ Details';
 }
 
-// â”€â”€ View 2: Sales Progression â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── View 2: Sales Progression ──────────────────────────────────────────────
 function renderSalesProgression() {
   if (!currentAgent || !DATA) return;
   if (DATA.is_future_view) {
@@ -5372,8 +5372,8 @@ function renderSalesProgression() {
     const meta = document.getElementById('prog-meta');
     const gap = document.getElementById('prog-gap');
     const tiers = document.getElementById('tier-cards');
-    if (pct) pct.innerHTML = `â€”<sup style="font-family:var(--mono);font-size:14px;color:var(--muted)"></sup>`;
-    if (meta) meta.textContent = 'Future view â€” sales progression pending data';
+    if (pct) pct.innerHTML = `—<sup style="font-family:var(--mono);font-size:14px;color:var(--muted)"></sup>`;
+    if (meta) meta.textContent = 'Future view — sales progression pending data';
     if (gap) gap.textContent = '';
     if (tiers) tiers.innerHTML = futureViewEmptyHtml('Sales progression');
     return;
@@ -5386,27 +5386,27 @@ function renderSalesProgression() {
   document.getElementById('prog-meta').textContent = t1.target
     ? `${fmtNum(t1.actual)} of ${fmtNum(t1.target)} CTN (Normal T1)`
     : `${fmtNum(t1.actual)} CTN (Normal T1 target pending)`;
-  // Smart gap display â€” show correct message based on achievement
+  // Smart gap display — show correct message based on achievement
   const gapEl = document.getElementById('prog-gap');
   const t2    = tiers.normal_t2 || {};
   if (t1.gap != null) {
     if (t1.gap >= 0) {
-      // Exceeded T1 â€” show gap to T2 if T2 exists
+      // Exceeded T1 — show gap to T2 if T2 exists
       if (t2 && t2.target && t2.gap != null) {
         if (t2.gap >= 0) {
-          gapEl.textContent = `âœ“ T1 hit Â· âœ“ T2 hit (+${Math.abs(t2.gap).toLocaleString()})`;
+          gapEl.textContent = `✓ T1 hit · ✓ T2 hit (+${Math.abs(t2.gap).toLocaleString()})`;
           gapEl.style.color = 'var(--green)';
         } else {
-          gapEl.textContent = `âœ“ T1 hit Â· â–¼ ${Math.abs(t2.gap).toLocaleString()} to T2`;
+          gapEl.textContent = `✓ T1 hit · ▼ ${Math.abs(t2.gap).toLocaleString()} to T2`;
           gapEl.style.color = 'var(--gold)';
         }
       } else {
-        gapEl.textContent = `âœ“ +${Math.abs(t1.gap).toLocaleString()} above T1`;
+        gapEl.textContent = `✓ +${Math.abs(t1.gap).toLocaleString()} above T1`;
         gapEl.style.color = 'var(--green)';
       }
     } else {
       // Below T1
-      gapEl.textContent = `â–¼ ${Math.abs(t1.gap).toLocaleString()} to T1`;
+      gapEl.textContent = `▼ ${Math.abs(t1.gap).toLocaleString()} to T1`;
       gapEl.style.color = 'var(--red)';
     }
   } else {
@@ -5424,8 +5424,8 @@ function renderSalesProgression() {
 
   // Tier cards
   const tierDefs = [
-    { key: 'normal_t1', label: 'Normal â€” Tier 1', color: '#f0c040' },
-    { key: 'normal_t2', label: 'Normal â€” Tier 2', color: '#ff9a3c' },
+    { key: 'normal_t1', label: 'Normal — Tier 1', color: '#f0c040' },
+    { key: 'normal_t2', label: 'Normal — Tier 2', color: '#ff9a3c' },
     { key: 'ga',        label: 'Grey Area (GA)',   color: '#4da6ff' },
     { key: 'ma',        label: 'Master Agent (MA)', color: '#a78bfa' },
   ];
@@ -5443,8 +5443,8 @@ function renderSalesProgression() {
       <div class="bar-wrap"><div class="bar-fill ${barClass}" style="width:${p}%"></div></div>
       <div class="tier-detail">
         <div class="tier-stat"><div class="tier-stat-val" style="color:${colorHex(t.color)}">${fmtNum(t.actual)}</div><div class="tier-stat-lbl">Actual</div></div>
-        <div class="tier-stat"><div class="tier-stat-val">${t.target ? fmtNum(t.target) : 'â€”'}</div><div class="tier-stat-lbl">Target</div></div>
-        <div class="tier-stat"><div class="tier-stat-val" style="color:${t.gap >= 0 ? 'var(--green)' : 'var(--red)'}">${t.gap != null ? (t.gap >= 0 ? '+' : '') + fmtNum(t.gap) : 'â€”'}</div><div class="tier-stat-lbl">Gap</div></div>
+        <div class="tier-stat"><div class="tier-stat-val">${t.target ? fmtNum(t.target) : '—'}</div><div class="tier-stat-lbl">Target</div></div>
+        <div class="tier-stat"><div class="tier-stat-val" style="color:${t.gap >= 0 ? 'var(--green)' : 'var(--red)'}">${t.gap != null ? (t.gap >= 0 ? '+' : '') + fmtNum(t.gap) : '—'}</div><div class="tier-stat-lbl">Gap</div></div>
       </div>
     </div>`;
   }).join('');
@@ -5485,17 +5485,17 @@ function renderMonthlyPersonalCard(sp) {
 
   const stats = [
     {lbl:'Normal CTN',   val:fmtNum(sp.normal_ctn),  sub:hasT1Target ? `Target ${fmtNum(t1Target)}` : 'Target pending', color:hasT1Target ? pctToColor(sp.tiers?.normal_t1?.pct) : 'var(--text)'},
-    {lbl:'ðŸ“ˆ Projected',  val:fmtNum(projected),      sub:`End-of-month estimate`,                  color:projColor},
+    {lbl:'📈 Projected',  val:fmtNum(projected),      sub:`End-of-month estimate`,                  color:projColor},
     {lbl:'GA CTN',       val:fmtNum(sp.ga_ctn),      sub:Number(sp.tiers?.ga?.target||0) > 0 ? `Target ${fmtNum(sp.tiers?.ga?.target)}` : 'Target pending', color:'var(--blue)'},
     {lbl:'MA CTN',       val:fmtNum(sp.ma_ctn),      sub:Number(sp.tiers?.ma?.target||0) > 0 ? `Target ${fmtNum(sp.tiers?.ma?.target)}` : 'Target pending', color:'var(--purple)'},
-    {lbl:'äº¤æ˜“æ¬¡æ•°',      val:sp.txn_count||0,         sub:`${elapsed} of ${total_wd} working days`,  color:'var(--text)'},
-    {lbl:'å¹³å‡/å¤©',       val:(sp.avg_txn_per_day||0).toFixed(1), sub:'CTN per working day',           color:'var(--accent)'},
-    {lbl:'ðŸ† Ranking',    val:`#${rank}`,              sub:`of ${rankTotal} agents (Normal CTN)`,    color:rank<=3?'var(--gold)':rank<=6?'var(--green)':'var(--muted)'},
-    {lbl:'å¼€æ–°æˆ·å£',      val:(dc.opened_this_month ?? (dc.debtors?.filter(d=>d.is_new&&d.debtor_type!=='P-Personal').length || 0)), sub:'new accounts (Open Acct)', color:'var(--green)'},
+    {lbl:'交易次数',      val:sp.txn_count||0,         sub:`${elapsed} of ${total_wd} working days`,  color:'var(--text)'},
+    {lbl:'平均/天',       val:(sp.avg_txn_per_day||0).toFixed(1), sub:'CTN per working day',           color:'var(--accent)'},
+    {lbl:'🏆 Ranking',    val:`#${rank}`,              sub:`of ${rankTotal} agents (Normal CTN)`,    color:rank<=3?'var(--gold)':rank<=6?'var(--green)':'var(--muted)'},
+    {lbl:'开新户口',      val:(dc.opened_this_month ?? (dc.debtors?.filter(d=>d.is_new&&d.debtor_type!=='P-Personal').length || 0)), sub:'new accounts (Open Acct)', color:'var(--green)'},
     {lbl:'VIP',          val:dc.debtors?.filter(d=>d.vip).length||0, sub:'VIP debtors',              color:'var(--accent)'},
-    {lbl:'æ¿€æ´»æˆ·å£',      val:dc.reactivation_count||0, sub:'reactivated this month',                color:'var(--orange)'},
-    {lbl:'åŠ SKU',        val:dc.total_new_sku||0,     sub:'new SKU debtors',                         color:'var(--purple)'},
-    {lbl:'å…‰é¡¾çŽ‡',        val:(dc.activation_rate||0)+'%', sub: dc.activation_base_frozen ? `${dcActivationActive}/${dcActivationBase} (frozen)` : `${dcActivationActive}/${dcActivationBase} (live)`, color:pctToColor(dc.activation_rate)},
+    {lbl:'激活户口',      val:dc.reactivation_count||0, sub:'reactivated this month',                color:'var(--orange)'},
+    {lbl:'加SKU',        val:dc.total_new_sku||0,     sub:'new SKU debtors',                         color:'var(--purple)'},
+    {lbl:'光顾率',        val:(dc.activation_rate||0)+'%', sub: dc.activation_base_frozen ? `${dcActivationActive}/${dcActivationBase} (frozen)` : `${dcActivationActive}/${dcActivationBase} (live)`, color:pctToColor(dc.activation_rate)},
   ];
 
   // New account override display
@@ -5515,8 +5515,8 @@ function renderMonthlyPersonalCard(sp) {
         valDisplay = `${auto} + ${delta} = ${override}`;
         subDisplay = 'auto + admin override';
       } else {
-        valDisplay = `${auto} âˆ’ ${Math.abs(delta)} = ${override}`;
-        subDisplay = 'âš  admin override below auto';
+        valDisplay = `${auto} − ${Math.abs(delta)} = ${override}`;
+        subDisplay = '⚠ admin override below auto';
       }
     } else {
       valDisplay = String(auto);
@@ -5530,7 +5530,7 @@ function renderMonthlyPersonalCard(sp) {
     };
   }
 
-  // KPI scores â€” all sections
+  // KPI scores — all sections
   const kpiItems = kpi.items || {};
   const secScores = kpi.section_scores || {};
   const grandTotal = kpi.grand_total ?? kpi.total_abc ?? null;
@@ -5557,7 +5557,7 @@ function renderMonthlyPersonalCard(sp) {
             const score = s.score ?? 0;
             const max   = s.max_score ?? 0;
             const pct_  = max > 0 ? Math.round(score/max*100) : 0;
-            const secLabels = {A:'Sales',B:'Pen/Svc',C:'Promo',D:'Admin',E:'å…¶ä»–'};
+            const secLabels = {A:'Sales',B:'Pen/Svc',C:'Promo',D:'Admin',E:'其他'};
             const secColors = {A:'#1a3a6f',B:'#1e5c35',C:'#9a6a08',D:'#c85a1a',E:'#4a1a6a'};
             return `<div style="background:${secColors[sec]}22;border:1px solid ${secColors[sec]}44;border-radius:8px;padding:7px;text-align:center;">
               <div style="font-family:var(--mono);font-size:7px;color:var(--muted);text-transform:uppercase;">${secLabels[sec]||sec}</div>
@@ -5597,11 +5597,11 @@ function renderSKUTrendTable(sp) {
     <div style="display:grid;grid-template-columns:${colW};gap:0;border-bottom:2px solid var(--border);">
       <div style="font-family:var(--mono);font-size:8px;color:var(--muted);padding:5px 8px;border-right:1px solid var(--border);">SKU</div>
       ${months.flatMap(m=>[
-        `<div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-align:center;padding:5px 2px;border-right:1px solid var(--border);">${m}<br>é¡¾å®¢</div>`,
+        `<div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-align:center;padding:5px 2px;border-right:1px solid var(--border);">${m}<br>顾客</div>`,
         `<div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-align:center;padding:5px 2px;border-right:1px solid var(--border);">${m}<br>CTN</div>`,
       ]).join('')}
-      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-align:center;padding:5px 2px;border-right:1px solid var(--border);">â–³CTN</div>
-      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-align:center;padding:5px 2px;">â–³é¡¾å®¢</div>
+      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-align:center;padding:5px 2px;border-right:1px solid var(--border);">△CTN</div>
+      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-align:center;padding:5px 2px;">△顾客</div>
     </div>`;
 
   // Filter out SKUs with zero across all months
@@ -5623,8 +5623,8 @@ function renderSKUTrendTable(sp) {
     const ctnCol  = diffCtn  > 0 ? 'var(--green)' : diffCtn  < 0 ? 'var(--red)' : 'var(--muted)';
     const debCol  = diffDebtors > 0 ? 'var(--green)' : diffDebtors < 0 ? 'var(--red)' : 'var(--muted)';
 
-    const ctnArrow  = diffCtn  > 0 ? 'â–²' : diffCtn  < 0 ? 'â–¼' : '';
-    const debArrow  = diffDebtors > 0 ? 'â–²' : diffDebtors < 0 ? 'â–¼' : '';
+    const ctnArrow  = diffCtn  > 0 ? '▲' : diffCtn  < 0 ? '▼' : '';
+    const debArrow  = diffDebtors > 0 ? '▲' : diffDebtors < 0 ? '▼' : '';
 
     html += `<div style="display:grid;grid-template-columns:${colW};gap:0;${bg}border-bottom:1px solid var(--border);">
       <div style="font-family:var(--mono);font-size:10px;font-weight:500;padding:6px 8px;border-right:1px solid var(--border);">${sku}</div>
@@ -5634,12 +5634,12 @@ function renderSKUTrendTable(sp) {
         const isLatest = m === curM;
         const isPrev   = m === prevM;
         return [
-          `<div style="font-family:var(--mono);font-size:10px;text-align:center;padding:6px 2px;border-right:1px solid var(--border);color:${d>0?(isLatest?'var(--text)':'var(--muted)'):'rgba(255,255,255,.15)'};">${d||'â€”'}</div>`,
-          `<div style="font-family:var(--mono);font-size:10px;text-align:center;padding:6px 2px;border-right:1px solid var(--border);color:${c>0?(isLatest?'var(--text)':'var(--muted)'):'rgba(255,255,255,.15)'};">${c||'â€”'}</div>`,
+          `<div style="font-family:var(--mono);font-size:10px;text-align:center;padding:6px 2px;border-right:1px solid var(--border);color:${d>0?(isLatest?'var(--text)':'var(--muted)'):'rgba(255,255,255,.15)'};">${d||'—'}</div>`,
+          `<div style="font-family:var(--mono);font-size:10px;text-align:center;padding:6px 2px;border-right:1px solid var(--border);color:${c>0?(isLatest?'var(--text)':'var(--muted)'):'rgba(255,255,255,.15)'};">${c||'—'}</div>`,
         ];
       }).join('')}
-      <div style="font-family:var(--mono);font-size:10px;text-align:center;padding:6px 2px;color:${ctnCol};border-right:1px solid var(--border);">${ctnArrow}${Math.abs(diffCtn)||'â€”'}</div>
-      <div style="font-family:var(--mono);font-size:10px;text-align:center;padding:6px 2px;color:${debCol};">${debArrow}${Math.abs(diffDebtors)||'â€”'}</div>
+      <div style="font-family:var(--mono);font-size:10px;text-align:center;padding:6px 2px;color:${ctnCol};border-right:1px solid var(--border);">${ctnArrow}${Math.abs(diffCtn)||'—'}</div>
+      <div style="font-family:var(--mono);font-size:10px;text-align:center;padding:6px 2px;color:${debCol};">${debArrow}${Math.abs(diffDebtors)||'—'}</div>
     </div>`;
   });
 
@@ -5654,20 +5654,20 @@ function renderSKUTrendTable(sp) {
   const activeCtnCol  = diffActiveCtn > 0 ? 'var(--green)' : diffActiveCtn < 0 ? 'var(--red)' : 'var(--blue)';
 
   html += `<div style="display:grid;grid-template-columns:${colW};gap:0;background:rgba(77,166,255,.08);border-top:2px solid var(--border);">
-    <div style="font-family:var(--mono);font-size:10px;font-weight:600;padding:7px 8px;color:var(--blue);border-right:1px solid var(--border);">æ´»è·ƒé¡¾å®¢</div>
+    <div style="font-family:var(--mono);font-size:10px;font-weight:600;padding:7px 8px;color:var(--blue);border-right:1px solid var(--border);">活跃顾客</div>
     ${months.flatMap(m=>[
       `<div style="font-family:var(--mono);font-size:10px;text-align:center;padding:7px 2px;font-weight:500;color:var(--blue);border-right:1px solid var(--border);">${active[m]?.debtors||0}<span style="font-size:8px;color:var(--muted)">/${sp.total_debtors_all||0}</span></div>`,
       `<div style="font-family:var(--mono);font-size:10px;text-align:center;padding:7px 2px;font-weight:500;color:var(--blue);border-right:1px solid var(--border);">${active[m]?.ctn||0}</div>`,
     ]).join('')}
-    <div style="font-family:var(--mono);font-size:10px;text-align:center;padding:7px 2px;color:${activeCtnCol};border-right:1px solid var(--border);">${diffActiveCtn>0?'â–²':'â–¼'}${Math.abs(diffActiveCtn)||'â€”'}</div>
-    <div style="font-family:var(--mono);font-size:10px;text-align:center;padding:7px 2px;color:${activeDebCol};">${diffActiveDeb>0?'â–²':'â–¼'}${Math.abs(diffActiveDeb)||'â€”'}</div>
+    <div style="font-family:var(--mono);font-size:10px;text-align:center;padding:7px 2px;color:${activeCtnCol};border-right:1px solid var(--border);">${diffActiveCtn>0?'▲':'▼'}${Math.abs(diffActiveCtn)||'—'}</div>
+    <div style="font-family:var(--mono);font-size:10px;text-align:center;padding:7px 2px;color:${activeDebCol};">${diffActiveDeb>0?'▲':'▼'}${Math.abs(diffActiveDeb)||'—'}</div>
   </div>`;
 
   html += `</div>`;
   el.innerHTML = html;
 }
 
-// â”€â”€ View 3: Brand Commission â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── View 3: Brand Commission ───────────────────────────────────────────────
 function brandCodesFor(brand) {
   const configured = DATA?.config?.brand_config?.[brand];
   if (Array.isArray(configured) && configured.length) return configured;
@@ -5735,13 +5735,13 @@ function renderBrandPenetrationDetail(brand, data) {
   const body = rows.length ? rows.map(row => {
     const items = Array.isArray(row.items) ? row.items : [];
     const itemText = items.length
-      ? items.map(item => `${campEsc(item.item)} ${fmtNum(item.ctn)} CTN`).join(' Â· ')
+      ? items.map(item => `${campEsc(item.item)} ${fmtNum(item.ctn)} CTN`).join(' · ')
       : 'No item breakdown';
-    const dateText = row.last_invoice_date ? ` Â· ${campEsc(row.last_invoice_date)}` : '';
+    const dateText = row.last_invoice_date ? ` · ${campEsc(row.last_invoice_date)}` : '';
     return `<div class="pen-row">
       <div style="min-width:0;">
         <div class="pen-name">${campEsc(row.company_name || row.debtor_code || 'Unknown debtor')}</div>
-        <div class="pen-meta">${campEsc(row.debtor_code || '')}${row.debtor_type ? ` Â· ${campEsc(row.debtor_type)}` : ''}${dateText}</div>
+        <div class="pen-meta">${campEsc(row.debtor_code || '')}${row.debtor_type ? ` · ${campEsc(row.debtor_type)}` : ''}${dateText}</div>
         <div class="pen-meta">${itemText}</div>
       </div>
       <div>
@@ -5809,7 +5809,7 @@ function renderBrandCommission() {
 
     const cardClass  = status === 'both_hit' ? 'both-hit' : status === 'one_hit' ? 'one-hit' : '';
     const badgeClass = status === 'both_hit' ? 'comm-earned' : status === 'one_hit' ? 'comm-pending' : 'comm-locked';
-    const badgeText  = status === 'both_hit' ? fmtRM(data.comm_earned) : status === 'one_hit' ? 'âš  1 of 2' : 'âœ— Not earned';
+    const badgeText  = status === 'both_hit' ? fmtRM(data.comm_earned) : status === 'one_hit' ? '⚠ 1 of 2' : '✗ Not earned';
 
     const pen = data.penetration || {};
     const ctn = data.ctn || {};
@@ -5832,15 +5832,15 @@ function renderBrandCommission() {
       </div>
       <div class="criteria-grid">
         <div class="crit-box drillable ${penHit ? 'hit' : 'miss'}" data-brand="${campEsc(brand)}" role="button" tabindex="0" aria-expanded="${penOpen ? 'true' : 'false'}">
-          <div class="crit-caret">${penOpen ? 'â–²' : 'â–¼'}</div>
+          <div class="crit-caret">${penOpen ? '▲' : '▼'}</div>
           <div class="crit-lbl">Penetration</div>
           <div class="crit-val" style="color:${penHit ? 'var(--green)' : 'var(--red)'}">${penCount} <span style="font-size:11px">cust</span></div>
-          <div class="crit-sub">Target ${penTarget} Â· <span style="color:${penHit ? 'var(--green)' : 'var(--red)'}">${penHit ? 'âœ“ Hit' : `${penCount}/${penTarget}`}</span></div>
+          <div class="crit-sub">Target ${penTarget} · <span style="color:${penHit ? 'var(--green)' : 'var(--red)'}">${penHit ? '✓ Hit' : `${penCount}/${penTarget}`}</span></div>
         </div>
         <div class="crit-box ${ctnHit ? 'hit' : 'miss'}">
           <div class="crit-lbl">CTN Sold</div>
           <div class="crit-val" style="color:${ctnHit ? 'var(--green)' : 'var(--red)'}">${fmtNum(ctnSold)}</div>
-          <div class="crit-sub">Target ${fmtNum(ctnTarget)} Â· <span style="color:${ctnHit ? 'var(--green)' : 'var(--red)'}">${ctnHit ? 'âœ“ Hit' : fmtPct(ctnPct)}</span></div>
+          <div class="crit-sub">Target ${fmtNum(ctnTarget)} · <span style="color:${ctnHit ? 'var(--green)' : 'var(--red)'}">${ctnHit ? '✓ Hit' : fmtPct(ctnPct)}</span></div>
         </div>
       </div>
       ${penDetail}
@@ -5849,13 +5849,13 @@ function renderBrandCommission() {
 
   document.getElementById('total-comm').textContent = fmtRM(totalComm);
   document.getElementById('brands-status').textContent =
-    `${bothCount} brands earned Â· ${oneCount} at 1/2 Â· ${6 - bothCount - oneCount} not earned`;
+    `${bothCount} brands earned · ${oneCount} at 1/2 · ${6 - bothCount - oneCount} not earned`;
   document.getElementById('brand-cards').innerHTML = html ||
     '<div style="padding:20px;text-align:center;font-family:var(--mono);color:var(--muted);">No data</div>';
   bindBrandPenetrationDrills();
 }
 
-// â”€â”€ View 4: Newbie Scheme â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── View 4: Newbie Scheme ──────────────────────────────────────────────────
 function renderNewbie() {
   if (!currentAgent || !DATA) return;
   const nb = DATA.agents[currentAgent]?.newbie_scheme;
@@ -5867,7 +5867,7 @@ function renderNewbie() {
 
   if (!nb) {
     el.innerHTML = `<div class="card" style="text-align:center;padding:30px;">
-      <div style="font-size:32px;margin-bottom:8px;">â€”</div>
+      <div style="font-size:32px;margin-bottom:8px;">—</div>
       <div style="font-family:var(--mono);font-size:11px;color:var(--muted);">${currentAgent} is not on the Newbie Scheme</div>
     </div>`;
     return;
@@ -5879,7 +5879,7 @@ function renderNewbie() {
     const active = nb.ctn_tier_hit === t.threshold;
     const cls = done ? 'done' : active ? 'active' : '';
     return `<div class="tier-step ${cls}">
-      ${done ? '<div class="tier-check">âœ“</div>' : ''}
+      ${done ? '<div class="tier-check">✓</div>' : ''}
       <div class="rm">RM${(t.reward/1000).toFixed(1)}K</div>
       <div class="ctn">${fmtNum(t.threshold)} CTN</div>
     </div>`;
@@ -5924,7 +5924,7 @@ function renderNewbie() {
           <div class="bar-wrap" style="height:6px"><div class="bar-fill bar-purple" style="width:${progressPct}%"></div></div>
           <div style="font-family:var(--mono);font-size:10px;color:var(--orange);text-align:center;margin-top:5px">Need ${fmtNum(nextTier.threshold - nb.normal_ctn)} more CTN</div>
         </div>
-      ` : '<div style="font-family:var(--mono);font-size:11px;color:var(--green);text-align:center;margin-top:8px">ðŸŽ‰ All CTN tiers achieved!</div>'}
+      ` : '<div style="font-family:var(--mono);font-size:11px;color:var(--green);text-align:center;margin-top:8px">🎉 All CTN tiers achieved!</div>'}
     </div>
     <div class="sec-label">New Account Bonus</div>
     <div class="card">
@@ -5933,11 +5933,11 @@ function renderNewbie() {
         <div style="font-family:var(--display);font-size:24px;color:var(--blue)">${nb.new_accounts}</div>
       </div>
       <div class="acc-bonus-grid">${accHtml}</div>
-      ${nb.acc_reward ? `<div style="font-family:var(--mono);font-size:11px;color:var(--green);text-align:center;margin-top:10px">âœ“ Account bonus earned: RM${nb.acc_reward}</div>` : ''}
+      ${nb.acc_reward ? `<div style="font-family:var(--mono);font-size:11px;color:var(--green);text-align:center;margin-top:10px">✓ Account bonus earned: RM${nb.acc_reward}</div>` : ''}
     </div>`;
 }
 
-// â”€â”€ View 5: Aging â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── View 5: Aging ──────────────────────────────────────────────────────────
 function renderAging() {
   if (!currentAgent || !DATA) return;
   const ag = DATA.agents[currentAgent]?.aging || {};
@@ -5952,7 +5952,7 @@ function renderAging() {
   const totalUnpaidAmount = ag.canggih_unpaid_amount || debtorList.reduce((s, d) => s + Number(d.total_amount || 0), 0);
   const overdueCount   = ag.overdue_count || 0;
 
-  // â”€â”€ Summary strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Summary strip ──────────────────────────────────────────────
   const summaryHtml = `
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px;">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
@@ -5965,7 +5965,7 @@ function renderAging() {
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
         <div style="font-family:var(--display);font-size:22px;color:${overdueCount>0?'var(--red)':'var(--green)'};">${overdueCount}</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">Overdue â‰¥60d</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">Overdue ≥60d</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
         <div style="font-family:var(--display);font-size:22px;color:var(--text);">${debtorList.length}</div>
@@ -5973,11 +5973,11 @@ function renderAging() {
       </div>
     </div>`;
 
-  // â”€â”€ Debtor outstanding list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Debtor outstanding list ─────────────────────────────────────
   if (!debtorList.length) {
     el.innerHTML = summaryHtml + `
       <div style="text-align:center;padding:30px;background:var(--surface);border:1px solid var(--border);border-radius:14px;">
-        <div style="font-size:28px;margin-bottom:8px;">âœ“</div>
+        <div style="font-size:28px;margin-bottom:8px;">✓</div>
         <div style="font-family:var(--mono);font-size:11px;color:var(--green);">No outstanding invoices</div>
       </div>`;
     return;
@@ -6029,12 +6029,12 @@ function renderAging() {
           </div>
           <div class="aging-inv-meta">
             <span>${inv.invoice_date}</span>
-            <span>Â·</span>
+            <span>·</span>
             <span>${campEsc(inv.item_code || '')}</span>
-            <span>Â·</span>
+            <span>·</span>
             <span>${inv.days_outstanding}d</span>
             ${groupChip}${typeChip}
-            ${inv.overdue?'<span style="color:var(--red);"> âš  OVERDUE</span>':''}
+            ${inv.overdue?'<span style="color:var(--red);"> ⚠ OVERDUE</span>':''}
           </div>
         </div>
         <div style="text-align:right;">
@@ -6051,17 +6051,17 @@ function renderAging() {
     return `
       <div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid ${borderCol};
                   border-radius:12px;margin-bottom:8px;overflow:hidden;">
-        <!-- Debtor header â€” tap to expand -->
+        <!-- Debtor header — tap to expand -->
         <div onclick="toggleOutstanding('${d.debtor_code}')"
              style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer;">
           <div style="flex:1;min-width:0;">
             <div style="font-family:var(--body);font-size:13px;font-weight:600;
                         white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.company_name}</div>
             <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;">
-              ${d.debtor_code} &nbsp;Â·&nbsp;
+              ${d.debtor_code} &nbsp;·&nbsp;
               <span style="color:${daysCol};">oldest: ${d.oldest_days}d</span>
-              &nbsp;Â·&nbsp; ${d.invoice_count} invoice${d.invoice_count!==1?'s':''}
-              ${d.overdue_count>0?`&nbsp;Â·&nbsp; <span style="color:var(--red);">${d.overdue_count} overdue</span>`:''}
+              &nbsp;·&nbsp; ${d.invoice_count} invoice${d.invoice_count!==1?'s':''}
+              ${d.overdue_count>0?`&nbsp;·&nbsp; <span style="color:var(--red);">${d.overdue_count} overdue</span>`:''}
             </div>
             ${agingChipRow}
           </div>
@@ -6073,10 +6073,10 @@ function renderAging() {
               ${fmtRM0(d.total_amount)}
             </div>
             ${phoneClean ? `<a href="tel:${phoneClean}" onclick="event.stopPropagation()"
-              style="font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;">ðŸ“ž Call</a>` : ''}
+              style="font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;">📞 Call</a>` : ''}
           </div>
           <div style="margin-left:10px;font-family:var(--mono);font-size:10px;color:var(--muted);"
-               id="toggle-icon-${d.debtor_code}">â–¼</div>
+               id="toggle-icon-${d.debtor_code}">▼</div>
         </div>
         <!-- Invoice drill-down (collapsed by default) -->
         <div id="outstanding-${d.debtor_code}"
@@ -6088,7 +6088,7 @@ function renderAging() {
 
   el.innerHTML = summaryHtml +
     `<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:8px;">
-      Tap debtor to see invoice details &nbsp;Â·&nbsp; Sorted by oldest first
+      Tap debtor to see invoice details &nbsp;·&nbsp; Sorted by oldest first
     </div>` + debtorHtml;
 }
 
@@ -6098,10 +6098,10 @@ function toggleOutstanding(debtorCode) {
   if (!el) return;
   const isHidden = el.style.display === 'none';
   el.style.display   = isHidden ? 'block' : 'none';
-  if (icon) icon.textContent = isHidden ? 'â–²' : 'â–¼';
+  if (icon) icon.textContent = isHidden ? '▲' : '▼';
 }
 
-// â”€â”€ View 6: Group Brand Targets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── View 6: Group Brand Targets ───────────────────────────────────────────
 function renderGroupBrandTargets() {
   const el = document.getElementById('group-content');
   if (!DATA) return;
@@ -6114,27 +6114,27 @@ function renderGroupBrandTargets() {
   const wd   = DATA.working_days || {};
   const team = DATA.team || {};
 
-  // â”€â”€ Working days header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Working days header ───────────────────────────────────────────────
   const wdHtml = `
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:10px;display:flex;gap:20px;flex-wrap:wrap;">
       <div style="font-family:var(--mono);font-size:10px;">
-        <span style="color:var(--muted);">æ€»å…±å·¥ä½œæ—¥: </span><span style="color:var(--text);font-weight:600;">${wd.total_working_days||0}</span>
+        <span style="color:var(--muted);">总共工作日: </span><span style="color:var(--text);font-weight:600;">${wd.total_working_days||0}</span>
       </div>
       <div style="font-family:var(--mono);font-size:10px;">
-        <span style="color:var(--muted);">ç¬¬å‡ ä¸ªå·¥ä½œæ—¥: </span><span style="color:var(--text);font-weight:600;">${wd.elapsed_working_days||0}</span>
+        <span style="color:var(--muted);">第几个工作日: </span><span style="color:var(--text);font-weight:600;">${wd.elapsed_working_days||0}</span>
       </div>
       <div style="font-family:var(--mono);font-size:10px;">
-        <span style="color:var(--muted);">ç†åº”è¾¾æ ‡çŽ‡: </span>
+        <span style="color:var(--muted);">理应达标率: </span>
         <span style="color:var(--blue);font-weight:600;text-decoration:underline;">${wd.theoretical_pct||0}%</span>
         ${(() => { const t1pct = team.t1_pct||0; const theo = wd.theoretical_pct||0;
           return t1pct >= theo
-            ? `<span style="font-family:var(--mono);font-size:9px;color:var(--green);margin-left:8px;">âœ“ On track (${t1pct.toFixed(1)}%)</span>`
-            : `<span style="font-family:var(--mono);font-size:9px;color:var(--red);margin-left:8px;">â–¼ Behind (${t1pct.toFixed(1)}%)</span>`;
+            ? `<span style="font-family:var(--mono);font-size:9px;color:var(--green);margin-left:8px;">✓ On track (${t1pct.toFixed(1)}%)</span>`
+            : `<span style="font-family:var(--mono);font-size:9px;color:var(--red);margin-left:8px;">▼ Behind (${t1pct.toFixed(1)}%)</span>`;
         })()}
       </div>
     </div>`;
 
-  // â”€â”€ SP Tier Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── SP Tier Table ─────────────────────────────────────────────────────
   const tierRows = [
     {
       label: 'RM0.80 / RM1.25',
@@ -6189,10 +6189,10 @@ function renderGroupBrandTargets() {
       <!-- Header -->
       <div style="display:grid;grid-template-columns:1fr 100px 100px 90px 80px;gap:0;background:var(--card);border-bottom:1px solid var(--border);">
         <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 12px;">TIER / RATE</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">${DATA.current_month||''}<br>ç›®æ ‡</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">æ€»å…±æ¡æ•°<br>å·²ä»˜æ¬¾</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">è·ç¦»ç›®æ ‡</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">è¾¾æ ‡çŽ‡%</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">${DATA.current_month||''}<br>目标</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">总共条数<br>已付款</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">距离目标</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">达标率%</div>
       </div>
       ${tierRows.map((r,i) => {
         const pctVal  = r.hasTarget ? (r.pct || 0) : null;
@@ -6203,19 +6203,19 @@ function renderGroupBrandTargets() {
         const rowBg   = isMa && gapVal < 0 ? 'background:rgba(255,95,95,.06);' : i%2===0?'':'background:rgba(255,255,255,.02);';
         return `<div style="display:grid;grid-template-columns:1fr 100px 100px 90px 80px;gap:0;${rowBg}border-bottom:1px solid rgba(255,255,255,.04);">
           <div style="font-family:var(--mono);font-size:10px;padding:8px 12px;color:var(--text);">${r.label}</div>
-          <div style="font-family:var(--mono);font-size:10px;padding:8px 6px;text-align:center;color:var(--muted);">${r.hasTarget ? fmtNum(r.target) : 'â€”'}</div>
+          <div style="font-family:var(--mono);font-size:10px;padding:8px 6px;text-align:center;color:var(--muted);">${r.hasTarget ? fmtNum(r.target) : '—'}</div>
           <div style="font-family:var(--mono);font-size:10px;padding:8px 6px;text-align:center;color:var(--text);">${fmtNum(r.actual)}</div>
-          <div style="font-family:var(--mono);font-size:11px;padding:8px 6px;text-align:center;font-weight:600;color:${gapCol};">${gapVal == null ? 'â€”' : (gapVal>=0?'+':'')+fmtNum(gapVal)}</div>
-          <div style="font-family:var(--mono);font-size:11px;padding:8px 6px;text-align:center;font-weight:700;color:${pctCol};">${pctVal == null ? 'â€”' : fmtPct(pctVal)}</div>
+          <div style="font-family:var(--mono);font-size:11px;padding:8px 6px;text-align:center;font-weight:600;color:${gapCol};">${gapVal == null ? '—' : (gapVal>=0?'+':'')+fmtNum(gapVal)}</div>
+          <div style="font-family:var(--mono);font-size:11px;padding:8px 6px;text-align:center;font-weight:700;color:${pctCol};">${pctVal == null ? '—' : fmtPct(pctVal)}</div>
         </div>`;
       }).join('')}
       <!-- Total row -->
       <div style="display:grid;grid-template-columns:1fr 100px 100px 90px 80px;gap:0;background:rgba(255,255,255,.05);border-top:2px solid var(--border);">
         <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:9px 12px;color:var(--text);">TOTAL</div>
-        <div style="font-family:var(--mono);font-size:10px;padding:9px 6px;text-align:center;color:var(--muted);">${totalHasTarget ? fmtNum(totalTarget) : 'â€”'}</div>
+        <div style="font-family:var(--mono);font-size:10px;padding:9px 6px;text-align:center;color:var(--muted);">${totalHasTarget ? fmtNum(totalTarget) : '—'}</div>
         <div style="font-family:var(--mono);font-size:10px;padding:9px 6px;text-align:center;font-weight:700;">${fmtNum(totalActual)}</div>
-        <div style="font-family:var(--mono);font-size:11px;padding:9px 6px;text-align:center;font-weight:700;color:${!totalHasTarget?'var(--muted)':totalGap>=0?'var(--green)':'var(--red)'};">${totalGap == null ? 'â€”' : (totalGap>=0?'+':'')+fmtNum(totalGap)}</div>
-        <div style="font-family:var(--mono);font-size:11px;padding:9px 6px;text-align:center;font-weight:700;color:${!totalHasTarget?'var(--muted)':parseFloat(totalPct)>=100?'var(--green)':parseFloat(totalPct)>=80?'var(--text)':'var(--red)'};">${totalPct == null ? 'â€”' : totalPct + '%'}</div>
+        <div style="font-family:var(--mono);font-size:11px;padding:9px 6px;text-align:center;font-weight:700;color:${!totalHasTarget?'var(--muted)':totalGap>=0?'var(--green)':'var(--red)'};">${totalGap == null ? '—' : (totalGap>=0?'+':'')+fmtNum(totalGap)}</div>
+        <div style="font-family:var(--mono);font-size:11px;padding:9px 6px;text-align:center;font-weight:700;color:${!totalHasTarget?'var(--muted)':parseFloat(totalPct)>=100?'var(--green)':parseFloat(totalPct)>=80?'var(--text)':'var(--red)'};">${totalPct == null ? '—' : totalPct + '%'}</div>
       </div>
     </div>`;
 
@@ -6227,7 +6227,7 @@ function renderGroupBrandTargets() {
       <span style="color:var(--accent);font-weight:700;">${incentive}</span>
     </div>` : '';
 
-  // â”€â”€ Brand Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Brand Table ────────────────────────────────────────────────────────
   const GB_COLORS = {
     'SUKUN':'#a78bfa','EVO':'#ff5f5f','IMP':'#4da6ff',
     'LF':'#3ddc84','CLASSMILD':'#ff9a3c','CM':'#ff9a3c','BISON':'#f0c040','TR':'#64d9ff'
@@ -6244,7 +6244,7 @@ function renderGroupBrandTargets() {
       <div style="font-family:var(--mono);font-size:10px;font-weight:700;padding:8px 12px;color:${color};">${brand}</div>
       <div style="font-family:var(--mono);font-size:10px;padding:8px 6px;text-align:center;color:var(--muted);">${fmtNum(data.target_ctn)}</div>
       <div style="font-family:var(--mono);font-size:10px;padding:8px 6px;text-align:center;color:var(--text);">${fmtNum(data.actual_ctn)}</div>
-      <div style="font-family:var(--mono);font-size:11px;padding:8px 6px;text-align:center;font-weight:600;color:${gapCol};">${gap!=null?(gap>=0?'+':'')+fmtNum(gap):'â€”'}</div>
+      <div style="font-family:var(--mono);font-size:11px;padding:8px 6px;text-align:center;font-weight:600;color:${gapCol};">${gap!=null?(gap>=0?'+':'')+fmtNum(gap):'—'}</div>
       <div style="font-family:var(--mono);font-size:11px;padding:8px 6px;text-align:center;font-weight:700;color:${pctCol};">${fmtPct(p)}</div>
     </div>`;
   }).join('');
@@ -6252,16 +6252,16 @@ function renderGroupBrandTargets() {
   const brandTableHtml = `
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;">
       <div style="display:grid;grid-template-columns:90px 100px 100px 90px 80px;gap:0;background:var(--card);border-bottom:1px solid var(--border);">
-        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 12px;">ç‰Œå­</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">${DATA.current_month||''}<br>ç›®æ ‡</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">æ€»å…±æ¡æ•°<br>å·²ä»˜æ¬¾</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">è·ç¦»ç›®æ ‡</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">è¾¾æ ‡çŽ‡%</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 12px;">牌子</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">${DATA.current_month||''}<br>目标</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">总共条数<br>已付款</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">距离目标</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:8px 6px;text-align:center;">达标率%</div>
       </div>
       ${brandRows}
     </div>`;
 
-  // â”€â”€ Right panel summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Right panel summary ────────────────────────────────────────────────
   const prevMonthCtn    = team.prev_month_ctn            || 0;
   const curMonthPaid    = team.cur_month_invoiced_paid    || 0;
   const totalPaidCtn    = prevMonthCtn + curMonthPaid;
@@ -6286,27 +6286,27 @@ function renderGroupBrandTargets() {
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;">
       <div style="font-family:var(--mono);font-size:9px;color:var(--blue);text-align:right;margin-bottom:8px;">${DATA.current_month||''}</div>
       <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">å‰æœˆæ¡æ•° (å·²ä»˜æ¬¾)</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">前月条数 (已付款)</span>
         <span style="font-family:var(--mono);font-size:11px;font-weight:600;">${fmtNum(Math.round(prevMonthCtn))}</span>
       </div>
       <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">æœ¬æœˆæ¡æ•° (å·²ä»˜æ¬¾)</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">本月条数 (已付款)</span>
         <span style="font-family:var(--mono);font-size:11px;font-weight:600;">${fmtNum(Math.round(curMonthPaid))}</span>
       </div>
       <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid var(--border);margin-bottom:10px;">
-        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">æ€»å…±æ¡æ•° (å·²ä»˜æ¬¾)</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">总共条数 (已付款)</span>
         <span style="font-family:var(--display);font-size:20px;color:var(--green);">${fmtNum(Math.round(totalPaidCtn))}</span>
       </div>
       <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">æ€»å…±æ¡æ•° (å¾…ä»˜æ¬¾)</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">总共条数 (待付款)</span>
         <span style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--red);">${fmtNum(Math.round(canggihUnpaidCtn))}</span>
       </div>
       <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">8com æ€»å¾…ä»˜æ¬¾æ¡æ•°</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">8com 总待付款条数</span>
         <span style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--red);">${fmtNum(Math.round(totalUnpaidCtn))}</span>
       </div>
       <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid var(--border);">
-        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">${DATA.current_month||''} é”€å”® (æ¡æ•°)</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">${DATA.current_month||''} 销售 (条数)</span>
         <span style="font-family:var(--display);font-size:24px;color:var(--accent);">${fmtNum(Math.round(totalSalesCtn))}</span>
       </div>
     </div>`;
@@ -6315,14 +6315,14 @@ function renderGroupBrandTargets() {
 }
 
 
-// â”€â”€ SKU Tooltip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── SKU Tooltip ────────────────────────────────────────────────────────────
 let skuTipEl = null;
 
 function showSkuTip(dotEl, grp, status, tier) {
   hideSkuTip();
   const tip = document.createElement('div');
   tip.className = 'sku-tooltip';
-  const tierLine = tier ? `<div style="color:#ffc94d;margin-top:3px;">ðŸ’° ${tier}</div>` : '<div style="color:#888;margin-top:3px;">No purchase this month</div>';
+  const tierLine = tier ? `<div style="color:#ffc94d;margin-top:3px;">💰 ${tier}</div>` : '<div style="color:#888;margin-top:3px;">No purchase this month</div>';
   tip.innerHTML = `<div style="font-weight:600;color:#fff;">${grp}</div><div style="color:#aaa;">${status}</div>${tierLine}`;
   document.body.appendChild(tip);
   skuTipEl = tip;
@@ -6350,7 +6350,7 @@ document.addEventListener('click', e => {
   if (!e.target.classList.contains('sku-dot')) hideSkuTip();
 });
 
-// â”€â”€ Flag System â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Flag System ────────────────────────────────────────────────────────────
 const FLAGS_KEY = 'touro_debtor_flags';
 
 function loadFlags() {
@@ -6445,8 +6445,8 @@ function resolveFlag(agent, debtorCode) {
   renderDebtors();
 }
 
-// â”€â”€ View 7: KPI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// â”€â”€ 3-Month Trend Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── View 7: KPI ────────────────────────────────────────────────────────────
+// ── 3-Month Trend Card ─────────────────────────────────────────────────────
 function trendCard() {
   // Try to get historical data from window.HISTORY_DATA (injected by Streamlit)
   const hist = window.HISTORY_DATA?.monthly || [];
@@ -6466,7 +6466,7 @@ function trendCard() {
   const maxSales = Math.max(...agentRows.map(r => r['Normal Actual']||0), 1);
 
   return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
-    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;">ðŸ“ˆ My 3-Month Trend</div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;">📈 My 3-Month Trend</div>
     <div style="display:grid;grid-template-columns:repeat(${agentRows.length},1fr);gap:8px;">
       ${agentRows.map((r,i) => {
         const salesPct = maxSales > 0 ? Math.round((r['Normal Actual']||0)/maxSales*100) : 0;
@@ -6475,7 +6475,7 @@ function trendCard() {
         const salesCol = (r['Normal %']||0) >= 100 ? 'var(--green)' : (r['Normal %']||0) >= 80 ? 'var(--accent)' : 'var(--red)';
         const isCur    = i === agentRows.length - 1;
         return `<div style="text-align:center;${isCur?'background:rgba(77,166,255,.06);border:1px solid rgba(77,166,255,.2);':'border:1px solid var(--border);'}border-radius:10px;padding:10px 6px;">
-          <div style="font-family:var(--mono);font-size:9px;color:${isCur?'var(--blue)':'var(--muted)'};">${r.Month}${isCur?' â†':''}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:${isCur?'var(--blue)':'var(--muted)'};">${r.Month}${isCur?' ←':''}</div>
           <div style="height:40px;display:flex;align-items:flex-end;justify-content:center;margin:6px 0;">
             <div style="width:24px;background:${salesCol};border-radius:3px 3px 0 0;height:${Math.max(salesPct,4)}%;opacity:.8;"></div>
           </div>
@@ -6510,7 +6510,7 @@ function renderKPI() {
   const grandTotal = kpi.grand_total || total;
   const totalColor = total >= 80 ? 'var(--green)' : total >= 60 ? 'var(--accent)' : 'var(--red)';
 
-  // â”€â”€ Hero card â”€â”€
+  // ── Hero card ──
   const heroHtml = `<div class="kpi-hero">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
       <div>
@@ -6538,12 +6538,12 @@ function renderKPI() {
     ${kpi.section_d?.score != null || kpi.section_e?.score != null ? `
     <div class="kpi-section-strip" style="margin-top:6px;">
       <div class="kpi-sec-box">
-        <div class="kpi-sec-val" style="color:var(--blue)">${kpi.section_d?.score ?? 'â€”'}</div>
+        <div class="kpi-sec-val" style="color:var(--blue)">${kpi.section_d?.score ?? '—'}</div>
         <div style="font-family:var(--mono);font-size:6px;color:var(--muted);margin-top:1px;">/ 20.0</div>
         <div class="kpi-sec-lbl">Section D</div>
       </div>
       <div class="kpi-sec-box">
-        <div class="kpi-sec-val" style="color:var(--blue)">${kpi.section_e?.score ?? 'â€”'}</div>
+        <div class="kpi-sec-val" style="color:var(--blue)">${kpi.section_e?.score ?? '—'}</div>
         <div style="font-family:var(--mono);font-size:6px;color:var(--muted);margin-top:1px;">/ 5.0</div>
         <div class="kpi-sec-lbl">Section E</div>
       </div>
@@ -6555,8 +6555,8 @@ function renderKPI() {
     </div>` : ''}
   </div>`;
 
-  // â”€â”€ Sections â”€â”€
-  const SECTION_LABELS = { A:'A â€” é”€å”® (35%)', B:'B â€” å…¶å®ƒæœ‰å…³é”€å”® (36%)', C:'C â€” Marketing Support' };
+  // ── Sections ──
+  const SECTION_LABELS = { A:'A — 销售 (35%)', B:'B — 其它有关销售 (36%)', C:'C — Marketing Support' };
   let sectionsHtml = '';
   const shouldShowKpiItem = item => {
     if (!item || item.excluded === true) return false;
@@ -6580,7 +6580,7 @@ function renderKPI() {
         const finalActual = item.final_actual ?? item.actual;
         const autoActual = item.auto_actual ?? item.actual;
         const distributionDeductNote = isDistributionKpi && Number(item.distribution_removed_target || 0) > 0
-          ? ` Â· listed ${item.distribution_listed_target ?? item.target} - manager off ${item.distribution_removed_target}`
+          ? ` · listed ${item.distribution_listed_target ?? item.target} - manager off ${item.distribution_removed_target}`
           : '';
         const sourceLabel =
           item.source === 'manual_override' ? 'Override' :
@@ -6592,10 +6592,10 @@ function renderKPI() {
         const actualLine = item.target != null
           ? (isCampaignKpi
               ? (isDistributionKpi
-                  ? `Delivered: ${finalActual ?? 'â€”'} / ${item.target}${distributionDeductNote} Â· ${hasActualOverride ? `Auto ${autoActual ?? 0} â†’ Override ${item.override_actual}` : `Auto delivered ${autoActual ?? finalActual ?? 0}`}`
-                  : `Actual: ${finalActual ?? 'â€”'} / ${item.target} Â· ${hasActualOverride ? `Auto ${autoActual ?? 0} â†’ Override ${item.override_actual}` : `Auto ${autoActual ?? finalActual ?? 0}`}`)
-              : `${item.actual ?? 'â€”'} / ${item.target} Â· ${(item.pct||0).toFixed(1)}%`)
-          : `Score: ${item.actual ?? 'â€”'} pts`;
+                  ? `Delivered: ${finalActual ?? '—'} / ${item.target}${distributionDeductNote} · ${hasActualOverride ? `Auto ${autoActual ?? 0} → Override ${item.override_actual}` : `Auto delivered ${autoActual ?? finalActual ?? 0}`}`
+                  : `Actual: ${finalActual ?? '—'} / ${item.target} · ${hasActualOverride ? `Auto ${autoActual ?? 0} → Override ${item.override_actual}` : `Auto ${autoActual ?? finalActual ?? 0}`}`)
+              : `${item.actual ?? '—'} / ${item.target} · ${(item.pct||0).toFixed(1)}%`)
+          : `Score: ${item.actual ?? '—'} pts`;
 
         return `<div class="kpi-item-row">
           <div>
@@ -6606,8 +6606,8 @@ function renderKPI() {
           <div>
             ${canEdit
               ? key === 'birthday_campaign'
-                ? `<button class="kpi-manual-btn" onclick="openBdaySheet()">ðŸŽ‚ ${item.actual != null ? item.actual : 'Enter'}</button>`
-                : `<button class="kpi-manual-btn" onclick="openEventSheet()">âœï¸ ${item.actual || 'Enter'}</button>`
+                ? `<button class="kpi-manual-btn" onclick="openBdaySheet()">🎂 ${item.actual != null ? item.actual : 'Enter'}</button>`
+                : `<button class="kpi-manual-btn" onclick="openEventSheet()">✏️ ${item.actual || 'Enter'}</button>`
               : sourceLabel
                 ? `<span style="font-family:var(--mono);font-size:8px;color:${hasActualOverride?'var(--accent)':(item.source === 'auto_paid_conversion'?'var(--green)':(item.source === 'agent_self_report'?'var(--blue)':'var(--muted)'))};">${sourceLabel}</span>`
                 : `<span class="kpi-item-pct" style="color:${col}">${(item.pct||0).toFixed(0)}%</span>`
@@ -6621,19 +6621,19 @@ function renderKPI() {
 
   // D & E placeholder
   const dePlaceholder = `<div class="kpi-de-placeholder">
-    <div style="font-size:24px;margin-bottom:8px;">ðŸ“‹</div>
+    <div style="font-size:24px;margin-bottom:8px;">📋</div>
     <div style="font-family:var(--display);font-size:16px;letter-spacing:.05em;margin-bottom:4px;">Sections D & E</div>
     <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">Keyed in by Accounts Dept at end of month</div>
     ${kpi.section_d?.score != null
-      ? `<div style="font-family:var(--display);font-size:20px;color:var(--blue);margin-top:8px;">D: ${kpi.section_d.score} / 20 &nbsp;Â·&nbsp; E: ${kpi.section_e?.score ?? 'â€”'} / 5</div>`
+      ? `<div style="font-family:var(--display);font-size:20px;color:var(--blue);margin-top:8px;">D: ${kpi.section_d.score} / 20 &nbsp;·&nbsp; E: ${kpi.section_e?.score ?? '—'} / 5</div>`
       : '<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:6px;">Pending...</div>'}
   </div>`;
 
   el.innerHTML = heroHtml + trendCard() + sectionsHtml + dePlaceholder;
 }
 
-// â”€â”€ Campaign Detail Popup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const CAMP_EMOJI = {free_sample:'ðŸŽ',foc_sample:'ðŸŽ',birthday_gift:'ðŸŽ‚',promotion:'ðŸ“¢',festive_gift:'ðŸ§§',voucher:'ðŸŽŸï¸',conversion_tiered:'ðŸŽ¯',conversion_simple:'ðŸŽ¯',other:'ðŸ“‹'};
+// ── Campaign Detail Popup ──────────────────────────────────────────────────
+const CAMP_EMOJI = {free_sample:'🎁',foc_sample:'🎁',birthday_gift:'🎂',promotion:'📢',festive_gift:'🧧',voucher:'🎟️',conversion_tiered:'🎯',conversion_simple:'🎯',other:'📋'};
 const CAMP_LABEL = {free_sample:'Free Sample',birthday_gift:'Birthday Gift',promotion:'Brand Promotion',festive_gift:'Festive Gift',conversion_tiered:'Conversion',conversion_simple:'Conversion',other:'Other'};
 
 function isConversionCampaign(c) {
@@ -6678,7 +6678,7 @@ function visibleDebtorCampaigns(debtor) {
     .filter(isVisibleDebtorCampaign);
 }
 
-// â”€â”€ Campaign Visit Status Storage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Campaign Visit Status Storage ──────────────────────────────────────────
 // Key: camp_status_{month}_{agent}  Value: { "campId_debtorCode": { status, remark, ts } }
 // Month-scoped so statuses auto-clear each new month
 const CAMP_STATUS_KEY = () => {
@@ -6721,10 +6721,10 @@ function saveCampRemark(campId, debtorCode) {
 }
 
 const VISIT_STATUS = {
-  delivered:  { label:'âœ“ Delivered',    color:'var(--green)',  bg:'rgba(42,122,75,.2)',  border:'rgba(42,122,75,.4)'  },
-  not_in:     { label:'ðŸ“µ Not In',       color:'var(--muted)',  bg:'rgba(255,255,255,.08)',border:'rgba(255,255,255,.2)'},
-  next_visit: { label:'ðŸ“… Next Visit',   color:'var(--accent)', bg:'rgba(200,134,10,.15)',border:'rgba(200,134,10,.4)' },
-  refused:    { label:'âŒ Refused',       color:'var(--red)',    bg:'rgba(200,56,26,.15)', border:'rgba(200,56,26,.4)'  },
+  delivered:  { label:'✓ Delivered',    color:'var(--green)',  bg:'rgba(42,122,75,.2)',  border:'rgba(42,122,75,.4)'  },
+  not_in:     { label:'📵 Not In',       color:'var(--muted)',  bg:'rgba(255,255,255,.08)',border:'rgba(255,255,255,.2)'},
+  next_visit: { label:'📅 Next Visit',   color:'var(--accent)', bg:'rgba(200,134,10,.15)',border:'rgba(200,134,10,.4)' },
+  refused:    { label:'❌ Refused',       color:'var(--red)',    bg:'rgba(200,56,26,.15)', border:'rgba(200,56,26,.4)'  },
 };
 
 let _campDetailDebtor = null; // store current debtor for remark save
@@ -6765,7 +6765,7 @@ function showCampDetail(event, debtorCode, debtorName) {
             <div style="font-family:var(--mono);font-size:9px;color:${conv.color};font-weight:700;text-transform:uppercase;letter-spacing:.06em;">${conv.label}</div>
             <div style="font-family:var(--mono);font-size:9px;color:${conv.color};">${conv.note}</div>
           </div>
-          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:4px;">Feb-Apr: ${fmtNum(conv.lookback)} CTN Â· ${conv.currentText}</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:4px;">Feb-Apr: ${fmtNum(conv.lookback)} CTN · ${conv.currentText}</div>
           ${linkedPackageLine ? `<div style="font-family:var(--mono);font-size:9px;color:var(--accent);margin-top:3px;">${linkedPackageLine}</div>` : ''}
           ${conv.unpaid > 0 ? `<div style="font-family:var(--mono);font-size:9px;color:var(--orange);margin-top:3px;">Invoice CTN exists, but campaign conversion waits for paid CTN.</div>` : ''}
         </div>` : '';
@@ -6790,7 +6790,7 @@ function showCampDetail(event, debtorCode, debtorName) {
       <button onclick="saveCampRemark('${c.id}','${debtorCode}')"
         style="margin-top:4px;width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);
                color:var(--muted);font-family:var(--mono);font-size:9px;padding:5px;border-radius:6px;cursor:pointer;">
-        ðŸ’¾ Save Remark
+        💾 Save Remark
       </button>
     </div>`;
 
@@ -6799,7 +6799,7 @@ function showCampDetail(event, debtorCode, debtorName) {
     return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;border-left:4px solid ${borderCol};">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
         <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:20px;">${CAMP_EMOJI[c.type]||'ðŸ“‹'}</span>
+          <span style="font-size:20px;">${CAMP_EMOJI[c.type]||'📋'}</span>
           <div>
             <div style="font-weight:600;font-size:14px;">${c.name}</div>
             <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">${CAMP_LABEL[c.type]||c.type}</div>
@@ -6837,7 +6837,7 @@ function closeCampDetail(e) {
   document.body.style.overflow = '';
 }
 
-// â”€â”€ Campaigns View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Campaigns View ─────────────────────────────────────────────────────────
 function renderCamps() {
   const el = document.getElementById('camps-content');
   if (!el || !currentAgent || !DATA) return;
@@ -6867,7 +6867,7 @@ function renderCamps() {
     });
   });
 
-  // â”€â”€ Inject birthday campaign debtors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Inject birthday campaign debtors ───────────────────────────────────
   if (_campFilter === 'all' || _campFilter === '__birthday__') {
     const bdayCamp = DATA.birthday_campaign;
     if (bdayCamp) {
@@ -6877,7 +6877,7 @@ function renderCamps() {
         const selMonth = DATA.current_month || '';
         if (!campMap[bdayId]) campMap[bdayId] = {
           id: bdayId,
-          name: 'ðŸŽ‚ Birthday Gift â€” ' + selMonth,
+          name: '🎂 Birthday Gift — ' + selMonth,
           type: 'birthday_gift',
           brand: '',
           debtors: [],
@@ -6913,10 +6913,10 @@ function renderCamps() {
   }
 
   el.innerHTML = camps.map(c => {
-    // â”€â”€ conversion campaigns: progress card + debtor conversion details â”€â”€â”€
+    // ── conversion campaigns: progress card + debtor conversion details ───
     if (c.type === 'conversion_tiered' || c.type === 'conversion_simple') {
       // Pull rollup data from the agent block. Fall back to computing from
-      // c.debtors if rollup is missing (defensive â€” handles stale data).
+      // c.debtors if rollup is missing (defensive — handles stale data).
       const rollup = DATA.agents[currentAgent]?.conversion_campaigns?.[c.id];
       const linkedCampaign = isLinkedConversionRepeatCampaign(c) || !!rollup?.linked_campaign || !!rollup?.linked_progress;
       let linkedProgress = rollup?.linked_progress || null;
@@ -7000,8 +7000,8 @@ function renderCamps() {
         '<div style="padding:14px 16px;border-bottom:1px solid var(--border);">' +
           '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">' +
             '<div>' +
-              '<div style="font-family:var(--display);font-size:16px;letter-spacing:.04em;">ðŸŽ¯ ' + c.name + '</div>' +
-              '<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;">Conversion Â· ' + totalEnrolled + ' enrolled Â· ' + targetCount + ' candidates</div>' +
+              '<div style="font-family:var(--display);font-size:16px;letter-spacing:.04em;">🎯 ' + c.name + '</div>' +
+              '<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;">Conversion · ' + totalEnrolled + ' enrolled · ' + targetCount + ' candidates</div>' +
             '</div>' +
             '<div style="text-align:right;">' +
               '<div style="font-family:var(--display);font-size:22px;color:' + rateColor + ';">' + ratePct + '%</div>' +
@@ -7021,7 +7021,7 @@ function renderCamps() {
               '<span style="font-family:var(--mono);font-size:8px;background:rgba(255,255,255,.06);color:var(--muted);padding:2px 8px;border-radius:10px;">+' + (convertedCount - convertedTargets) + ' non-target conversions</span>'
               : '') +
             (awaitingCount > 0 ?
-              '<span style="font-family:var(--mono);font-size:8px;background:rgba(255,154,60,.12);color:var(--orange);padding:2px 8px;border-radius:10px;">Awaiting payment ' + awaitingCount + ' Â· ' + fmtNum(awaitingCtn) + ' CTN unpaid</span>'
+              '<span style="font-family:var(--mono);font-size:8px;background:rgba(255,154,60,.12);color:var(--orange);padding:2px 8px;border-radius:10px;">Awaiting payment ' + awaitingCount + ' · ' + fmtNum(awaitingCtn) + ' CTN unpaid</span>'
               : '') +
           '</div>' +
         '</div>' +
@@ -7038,7 +7038,7 @@ function renderCamps() {
         renderCampaignDebtorPanel(c) +
       '</div>';
     }
-    // â”€â”€ end conversion_tiered branch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── end conversion_tiered branch ──────────────────────────────────────
 
     const total     = c.debtors.length;
     const claimByDebtor = c.debtors.reduce((acc, d) => {
@@ -7142,7 +7142,7 @@ function renderCamps() {
   }).join('');
 }
 
-// â”€â”€ Brand Tier Detail Popup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Brand Tier Detail Popup ────────────────────────────────────────────────
 function showBrandTierDetail(event, debtorCode, debtorName) {
   event.stopPropagation();
   const debtors = DATA.agents[currentAgent]?.debtor_cards?.debtors || [];
@@ -7152,10 +7152,10 @@ function showBrandTierDetail(event, debtorCode, debtorName) {
   const TIER_COLORS = {A:'var(--red)',B:'var(--blue)',C:'var(--green)',KA:'var(--purple)'};
   const TIER_BG     = {A:'rgba(200,56,26,.12)',B:'rgba(77,166,255,.12)',C:'rgba(61,220,132,.12)',KA:'rgba(167,139,250,.12)'};
   const TIER_DESC   = {
-    A:'Dormant â€” never / rarely bought this brand',
-    B:'Small buyer â€” encourage to increase order',
-    C:'Medium buyer â€” push to upgrade to bigger order',
-    KA:'Key account â€” maintain big order',
+    A:'Dormant — never / rarely bought this brand',
+    B:'Small buyer — encourage to increase order',
+    C:'Medium buyer — push to upgrade to bigger order',
+    KA:'Key account — maintain big order',
   };
 
   document.getElementById('cd-title').textContent = debtorName || debtorCode;
@@ -7165,7 +7165,7 @@ function showBrandTierDetail(event, debtorCode, debtorName) {
     <div style="background:${TIER_BG[data.tier]||'rgba(255,255,255,.05)'};border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 14px;margin-bottom:8px;border-left:4px solid ${TIER_COLORS[data.tier]||'var(--muted)'};">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
         <div>
-          <div style="font-family:var(--mono);font-size:9px;color:${TIER_COLORS[data.tier]||'var(--muted)'};text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">ðŸ”¥ ${brand} Â· Tier ${data.tier}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:${TIER_COLORS[data.tier]||'var(--muted)'};text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">🔥 ${brand} · Tier ${data.tier}</div>
           <div style="font-weight:600;font-size:14px;">${data.promo}</div>
           <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px;">${TIER_DESC[data.tier]||''}</div>
         </div>
@@ -7185,10 +7185,10 @@ function showBrandTierDetail(event, debtorCode, debtorName) {
   document.body.style.overflow = 'hidden';
 }
 
-// â”€â”€ CTN Breakdown Tooltip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── CTN Breakdown Tooltip ──────────────────────────────────────────────────
 let _campUndoTimer = null;
 
-// â”€â”€ Campaign claim/deliver storage helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Campaign claim/deliver storage helpers ────────────────────────────────
 function normalizeCampClaimStage(stage) {
   const n = Number(stage || 1);
   return n === 2 ? 2 : 1;
@@ -7311,7 +7311,7 @@ function linkedStageClaimHtml(c, debtor, promoText, mode = 'card') {
   }).join('');
 }
 
-// â”€â”€ Campaign filter state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Campaign filter state ─────────────────────────────────────────────────
 let _campFilter = 'all';
 
 function campEsc(v) {
@@ -7434,7 +7434,7 @@ function renderCampaignDebtorPanel(camp) {
   let lastGroup = null;
   const sectionHeader = (key) => {
     const meta = {
-      converted: { label: 'âœ“ Converted', count: convertedTotal, color: 'var(--green)', bg: 'rgba(61,220,132,.08)' },
+      converted: { label: '✓ Converted', count: convertedTotal, color: 'var(--green)', bg: 'rgba(61,220,132,.08)' },
       awaiting_payment: { label: 'Awaiting payment', count: awaitingTotal, color: 'var(--orange)', bg: 'rgba(255,154,60,.08)' },
       'not-yet': { label: 'No paid order yet', count: notYetTotal, color: 'var(--muted)', bg: 'rgba(255,255,255,.035)' }
     }[key] || { label: 'Other', count: 0, color: 'var(--muted)', bg: 'rgba(255,255,255,.035)' };
@@ -7483,9 +7483,9 @@ function renderCampaignDebtorPanel(camp) {
     </div>`;
   }).join('');
   const pager = `<div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:9px 8px;">
-    <button class="page-btn" onclick='changeCampaignDebtorPage(${JSON.stringify(campId)},-1)' ${page <= 1 ? 'disabled' : ''}>â† Prev</button>
-    <span class="page-info">${total ? start + 1 : 0}â€“${Math.min(start + CAMPAIGN_DEBTOR_PAGE_SIZE, total)} of ${total}</span>
-    <button class="page-btn" onclick='changeCampaignDebtorPage(${JSON.stringify(campId)},1)' ${page >= pages ? 'disabled' : ''}>Next â†’</button>
+    <button class="page-btn" onclick='changeCampaignDebtorPage(${JSON.stringify(campId)},-1)' ${page <= 1 ? 'disabled' : ''}>← Prev</button>
+    <span class="page-info">${total ? start + 1 : 0}–${Math.min(start + CAMPAIGN_DEBTOR_PAGE_SIZE, total)} of ${total}</span>
+    <button class="page-btn" onclick='changeCampaignDebtorPage(${JSON.stringify(campId)},1)' ${page >= pages ? 'disabled' : ''}>Next →</button>
   </div>`;
   return toggle + `<div style="padding:0 16px 14px;">
     <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:rgba(255,255,255,.025);">
@@ -7493,10 +7493,10 @@ function renderCampaignDebtorPanel(camp) {
         <div>#</div><div>Company</div><div>Code</div><div>Status</div><div style="text-align:right;">${campEsc(campaignLookbackLabel(camp))}</div><div style="text-align:right;">${campEsc(DATA.current_month || 'Current')}</div><div>Claim</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;padding:7px 8px;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:9px;color:var(--muted);">
-        <span style="color:var(--green);">âœ“ Converted ${convertedTotal}</span>
-        <span>Â·</span>
+        <span style="color:var(--green);">✓ Converted ${convertedTotal}</span>
+        <span>·</span>
         <span style="color:var(--orange);">Awaiting payment ${awaitingTotal}</span>
-        <span>Â·</span>
+        <span>·</span>
         <span>No paid order yet ${notYetTotal}</span>
       </div>
       ${rows || '<div style="padding:12px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--muted);">No enrolled debtors</div>'}
@@ -7546,13 +7546,13 @@ function renderCampFilterChips() {
   // One chip per real campaign, ordered by campaign name for predictability
   const sortedCamps = Array.from(campMap.values()).sort((a, b) => a.name.localeCompare(b.name));
   for (const c of sortedCamps) {
-    const emoji = (CAMP_EMOJI && CAMP_EMOJI[c.type]) || 'ðŸ“‹';
+    const emoji = (CAMP_EMOJI && CAMP_EMOJI[c.type]) || '📋';
     fb.appendChild(makeChip(c.id, `${emoji} ${c.name}`, _campFilter === c.id));
   }
 
   // Birthday chip last, only if this month has birthdays
   if (hasBirthday) {
-    fb.appendChild(makeChip('__birthday__', 'ðŸŽ‚ Birthday', _campFilter === '__birthday__'));
+    fb.appendChild(makeChip('__birthday__', '🎂 Birthday', _campFilter === '__birthday__'));
   }
 
   // If the previously-selected filter is no longer valid (e.g., agent switched
@@ -7597,7 +7597,7 @@ function toggleCampClaim(event, debtorCode, campId, debtorName, promoText, campT
 
   const submittedAt = existing?.ts ? `<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:6px;">Last update: ${campEsc(existing.ts)}</div>` : '';
   const remarkText = existing?.remark ? `<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:12px;">Remark: ${campEsc(existing.remark)}</div>` : '';
-  const claimModalTitle = `${campClaimStageLabel(cleanStage)} Ã‚Â· ${existing ? claimInfo.label : 'Submit Claim'}`;
+  const claimModalTitle = `${campClaimStageLabel(cleanStage)} Â· ${existing ? claimInfo.label : 'Submit Claim'}`;
   let actionHtml = '';
 
   if (!existing || claimInfo.key === 'not_requested') {
@@ -7632,7 +7632,7 @@ function toggleCampClaim(event, debtorCode, campId, debtorName, promoText, campT
   overlay.innerHTML = `
     <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;">
       <div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 auto 16px;"></div>
-      <div style="font-family:var(--display);font-size:20px;color:${claimInfo.color || '#3ddc84'};margin-bottom:2px;">ðŸŽ ${campEsc(claimModalTitle)}</div>
+      <div style="font-family:var(--display);font-size:20px;color:${claimInfo.color || '#3ddc84'};margin-bottom:2px;">🎁 ${campEsc(claimModalTitle)}</div>
       <div style="font-family:var(--body);font-size:13px;color:var(--text);margin-bottom:2px;">${campEsc(debtorName)}</div>
       <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:10px;">${campEsc(promoText || campId)}</div>
       ${submittedAt}
@@ -7697,7 +7697,7 @@ function showCampUndoToast(debtorCode, campId, debtorName, campType, stage = 1) 
   const toast = document.createElement('div');
   toast.id = 'camp-undo-toast';
   toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--green);color:#0e0e12;font-family:var(--mono);font-size:11px;font-weight:700;padding:10px 16px;border-radius:12px;z-index:9998;display:flex;align-items:center;gap:10px;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4);';
-  toast.innerHTML = `<span>${campEsc(campClaimStageLabel(cleanStage))} request sent Â· ${campEsc(debtorName)}</span>
+  toast.innerHTML = `<span>${campEsc(campClaimStageLabel(cleanStage))} request sent · ${campEsc(debtorName)}</span>
     <button onclick="undoCampClaimFromToast('${campEsc(debtorCode)}','${campEsc(campId)}',this,${cleanStage})"
       style="background:rgba(0,0,0,.2);border:none;color:#0e0e12;font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer;">UNDO</button>
     <span id="camp-undo-countdown" style="font-size:9px;opacity:.7;">30s</span>`;
@@ -7713,7 +7713,7 @@ function showCampUndoToast(debtorCode, campId, debtorName, campType, stage = 1) 
   _campUndoTimer = setTimeout(() => { toast.remove(); }, 30000);
 }
 
-// â”€â”€ Unable to Deliver â€” Exclusion Flow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Unable to Deliver — Exclusion Flow ──────────────────────────────────────
 const UNABLE_REASONS = [
   { value: 'closed',      label: 'Shop Closed' },
   { value: 'unreachable', label: 'Unreachable' },
@@ -7738,7 +7738,7 @@ function openUnableModal(event, debtorCode, campId, debtorName, campType) {
     '<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:14px;">' + debtorCode + '</div>' +
     '<div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Reason (required)</div>' +
     '<select id="unable-reason" style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--body);font-size:13px;padding:11px 12px;box-sizing:border-box;margin-bottom:12px;">' +
-    '<option value="">â€” Select reason â€”</option>' + reasonOpts + '</select>' +
+    '<option value="">— Select reason —</option>' + reasonOpts + '</select>' +
     '<div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Notes (required for Other)</div>' +
     '<input type="text" id="unable-remark" placeholder="e.g. Phone disconnected" style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--body);font-size:13px;padding:11px 12px;box-sizing:border-box;margin-bottom:14px;">' +
     '<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:10px;">\u26A0 This debtor will be removed from your target list for this campaign.</div>' +
@@ -7802,14 +7802,14 @@ function toggleBdayGift(debtorCode, debtorName, event) {
   overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;`;
   overlay.innerHTML = `
     <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:340px;width:100%;">
-      <div style="font-family:var(--display);font-size:16px;color:var(--purple);margin-bottom:4px;">ðŸŽ‚ Birthday Gift</div>
+      <div style="font-family:var(--display);font-size:16px;color:var(--purple);margin-bottom:4px;">🎂 Birthday Gift</div>
       <div style="font-family:var(--body);font-size:13px;color:var(--text);margin-bottom:16px;">${debtorName}</div>
       <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">Remark (optional)</div>
       <textarea id="bday-popup-note" style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--body);font-size:13px;padding:10px;resize:none;height:80px;box-sizing:border-box;">${existingNote}</textarea>
       <div style="display:flex;gap:10px;margin-top:16px;">
         ${alreadySent
-          ? `<button onclick="saveBdayGift('${debtorCode}','${month}',false,this)" style="flex:1;background:rgba(255,95,95,.2);border:1px solid rgba(255,95,95,.4);color:var(--red);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;cursor:pointer;">âœ• Undo Sent</button>`
-          : `<button onclick="saveBdayGift('${debtorCode}','${month}',true,this)" style="flex:1;background:rgba(61,220,132,.2);border:1px solid rgba(61,220,132,.4);color:var(--green);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;cursor:pointer;">âœ“ Mark Sent</button>`
+          ? `<button onclick="saveBdayGift('${debtorCode}','${month}',false,this)" style="flex:1;background:rgba(255,95,95,.2);border:1px solid rgba(255,95,95,.4);color:var(--red);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;cursor:pointer;">✕ Undo Sent</button>`
+          : `<button onclick="saveBdayGift('${debtorCode}','${month}',true,this)" style="flex:1;background:rgba(61,220,132,.2);border:1px solid rgba(61,220,132,.4);color:var(--green);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;cursor:pointer;">✓ Mark Sent</button>`
         }
         <button onclick="this.closest('div[style*=fixed]').remove()" style="flex:1;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;cursor:pointer;">Cancel</button>
       </div>
@@ -7856,9 +7856,9 @@ function showCtnBreakdown(mbKey, label, monthLabel) {
   const debtorCode = mbKey.split('_').slice(1).join('_');
   const totalCtn = items.reduce((s, i) => s + (Number(i.ctn) || 0), 0);
 
-  document.getElementById('ctn-tt-title').textContent = `${label}  Â·  ${monthLabel || 'â€”'}`;
+  document.getElementById('ctn-tt-title').textContent = `${label}  ·  ${monthLabel || '—'}`;
   document.getElementById('ctn-tt-sub').textContent =
-    `${debtorCode}  Â·  Total: ${totalCtn % 1 === 0 ? totalCtn.toFixed(0) : totalCtn.toFixed(1)} CTN  Â·  ${items.length} item${items.length !== 1 ? 's' : ''}`;
+    `${debtorCode}  ·  Total: ${totalCtn % 1 === 0 ? totalCtn.toFixed(0) : totalCtn.toFixed(1)} CTN  ·  ${items.length} item${items.length !== 1 ? 's' : ''}`;
 
   const el = document.getElementById('ctn-tt-items');
   if (!items.length) {
@@ -7895,14 +7895,14 @@ function closeCtnTooltip() {
   document.body.style.overflow = '';
 }
 
-// â”€â”€ Event Sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// â”€â”€ Birthday Gift Entry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Event Sheet ────────────────────────────────────────────────────────────
+// ── Birthday Gift Entry ────────────────────────────────────────────────────
 function openBdaySheet() {
   const kpi = DATA.agents[currentAgent]?.kpi || {};
   const item = kpi.items?.birthday_campaign || {};
   const target = birthdayRowsForCurrentAgent().length;
   const actual = item.actual ?? 0;
-  document.getElementById('bday-target-display').textContent = target || 'â€”';
+  document.getElementById('bday-target-display').textContent = target || '—';
   document.getElementById('bday-actual-input').value = actual || '';
   document.getElementById('bday-sheet-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -7934,7 +7934,7 @@ function saveBdayActual() {
   renderKPI();
 }
 
-// â”€â”€ Event Entry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Event Entry ────────────────────────────────────────────────────────────
 function openEventSheet() {
   const kpi = DATA?.agents[currentAgent]?.kpi;
   const eventItem = kpi?.items?.event;
@@ -7975,12 +7975,12 @@ async function saveEventCount() {
   renderKPI();
 }
 
-// â”€â”€ Boot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Boot ───────────────────────────────────────────────────────────────────
 loadData();
 
-// â”€â”€ GistSync Module (Supabase-backed) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── GistSync Module (Supabase-backed) ─────────────────────────────────
 /**
- * MIRACLE-å¥‡è¿¹ MD Dashboard â€” Data Sync Module
+ * MIRACLE-奇迹 MD Dashboard — Data Sync Module
  *
  * NOTE ON NAME: This module is still called "GistSync" for backwards
  * compatibility with ~40+ call sites across 4 HTML files. The Gist
@@ -7992,11 +7992,11 @@ loadData();
  * Tables:  claims, flags, kpi_scores, kpi_manual, audit_log
  *
  * Public API (all files):
- *   isConfigured()  â†’ boolean (always true now)
- *   getConfig()     â†’ {gist_id, token, backend}
- *   getCache()      â†’ object (localStorage cache)
- *   getCacheAge()   â†’ seconds since last sync
- *   syncToLocal(m)  â†’ pulls month data from Supabase into localStorage
+ *   isConfigured()  → boolean (always true now)
+ *   getConfig()     → {gist_id, token, backend}
+ *   getCache()      → object (localStorage cache)
+ *   getCacheAge()   → seconds since last sync
+ *   syncToLocal(m)  → pulls month data from Supabase into localStorage
  *
  * Claims (sales_dashboard.html, management.html):
  *   saveClaim(month, agent, campId, debtorCode, claimData)
@@ -8009,22 +8009,22 @@ loadData();
  *   saveKPIScores(month, scoresObj)
  *
  * Low-level (admin.html + management.html):
- *   pull(fileKey)  â†’ object      e.g. pull('claims_Apr26')
- *   push(fileKey, data) â†’ bool   e.g. push('flags_Apr26', {...})
+ *   pull(fileKey)  → object      e.g. pull('claims_Apr26')
+ *   push(fileKey, data) → bool   e.g. push('flags_Apr26', {...})
  *
- * Also: setup(), createGist(), saveConfig() â€” all no-op shims for
+ * Also: setup(), createGist(), saveConfig() — all no-op shims for
  * back-compat with old admin.html setup flows.
  */
 const GistSync = (() => {
 
-  // â”€â”€ Configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Configuration ────────────────────────────────────────────────────
   const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
 
   const CACHE_KEY    = 'md_gist_cache';     // kept same key name for back-compat
   const CACHE_TS_KEY = 'md_gist_cache_ts';
 
-  // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Helpers ──────────────────────────────────────────────────────────
   function _headers(extra) {
     return Object.assign({
       'apikey': SUPABASE_KEY,
@@ -8046,9 +8046,9 @@ const GistSync = (() => {
     if (!ts) return new Date().toISOString();
     if (ts instanceof Date) return ts.toISOString();
     if (typeof ts !== 'string') return new Date().toISOString();
-    // Already ISO? (crude but effective â€” ISO starts with YYYY-MM-DD)
+    // Already ISO? (crude but effective — ISO starts with YYYY-MM-DD)
     if (/^\d{4}-\d{2}-\d{2}T/.test(ts)) return ts;
-    // Human format "24 Apr 14:32" â€” check BEFORE native Date parse, because
+    // Human format "24 Apr 14:32" — check BEFORE native Date parse, because
     // native Date.parse() mis-interprets this as year 2001 in many engines.
     const m = /^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{1,2}):(\d{2})$/.exec(ts.trim());
     if (m) {
@@ -8088,7 +8088,7 @@ const GistSync = (() => {
         body: opts.body ? JSON.stringify(opts.body) : undefined
       });
       if (!r.ok) {
-        console.warn(`[SupabaseSync] ${opts.method||'GET'} ${path} â†’ ${r.status}`);
+        console.warn(`[SupabaseSync] ${opts.method||'GET'} ${path} → ${r.status}`);
         return { ok:false, status:r.status };
       }
       if (r.status === 204) return { ok:true, data:null };
@@ -8128,7 +8128,7 @@ const GistSync = (() => {
           })
         });
         if (!r.ok) {
-          console.warn(`[SupabaseSync] paged GET ${path} page ${page} â†’ ${r.status}`);
+          console.warn(`[SupabaseSync] paged GET ${path} page ${page} → ${r.status}`);
           break;
         }
         const chunk = await r.json();
@@ -8143,16 +8143,16 @@ const GistSync = (() => {
     return { ok:true, data: all };
   }
 
-  // â”€â”€ Public: always "configured" â€” no token rotation needed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Public: always "configured" — no token rotation needed ───────────
   function isConfigured() { return true; }
 
   function getConfig() {
     return { gist_id: 'supabase', token: 'supabase', backend: 'supabase' };
   }
 
-  function saveConfig() { /* no-op â€” kept for back-compat */ }
+  function saveConfig() { /* no-op — kept for back-compat */ }
 
-  // â”€â”€ Cache helpers (kept so existing UI code works) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Cache helpers (kept so existing UI code works) ───────────────────
   function getCache() {
     try { return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}'); }
     catch { return {}; }
@@ -8200,7 +8200,7 @@ const GistSync = (() => {
     };
   }
 
-  // â”€â”€ Low-level pull/push (admin.html + management.html) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Low-level pull/push (admin.html + management.html) ───────────────
   // Keeps Gist-style file keys like "claims_Apr26", "flags_Apr26", "kpi_scores"
   async function pull(fileKey) {
     if (!fileKey) return null;
@@ -8327,7 +8327,7 @@ const GistSync = (() => {
     return false;
   }
 
-  // â”€â”€ Single-claim upsert (sales_dashboard.html main path) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Single-claim upsert (sales_dashboard.html main path) ─────────────
   async function saveClaim(month, agent, campId, debtorCode, claimData, stage) {
     if (blockFutureViewAction()) return false;
     const slug  = _slug(month);
@@ -8337,7 +8337,7 @@ const GistSync = (() => {
     const lsKey = `camp_claim_${slug}_${key}`;
 
     // Fire-and-forget localStorage first (instant UX).
-    // We store the FULL claimData locally â€” UI reads extra fields like
+    // We store the FULL claimData locally — UI reads extra fields like
     // `count` directly from here, so don't trim it.
     localStorage.setItem(lsKey, JSON.stringify(payload));
 
@@ -8387,7 +8387,7 @@ const GistSync = (() => {
     }
   }
 
-  // â”€â”€ Flags (per-agent bulk write) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Flags (per-agent bulk write) ─────────────────────────────────────
   async function saveFlags(month, agent, flags) {
     if (blockFutureViewAction()) return false;
     const slug = _slug(month);
@@ -8412,14 +8412,14 @@ const GistSync = (() => {
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch {}
   }
 
-  // â”€â”€ KPI scores (by month + agent) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── KPI scores (by month + agent) ────────────────────────────────────
   async function saveKPIScores(month, scores) {
     if (blockFutureViewAction()) return false;
     const slug = _slug(month);
     localStorage.setItem(`md_scores_${slug}`, JSON.stringify(scores));
 
     // scores can be either { AGENT: {...}, AGENT2: {...}, ... } (multi-agent)
-    // or { scoreKey: value, ... } (single agent â€” accounts.html pattern)
+    // or { scoreKey: value, ... } (single agent — accounts.html pattern)
     // Detect shape: if values are objects, it's multi-agent; otherwise single.
     const entries = Object.entries(scores || {});
     const isMultiAgent = entries.length > 0 &&
@@ -8431,7 +8431,7 @@ const GistSync = (() => {
         month, agent, scores: s || {}, updated_at: new Date().toISOString()
       }));
     } else {
-      // Single-agent shape â€” caller didn't wrap by agent.
+      // Single-agent shape — caller didn't wrap by agent.
       // This path shouldn't trigger in current code; log for visibility.
       console.warn('[SupabaseSync] saveKPIScores called with non-multi-agent shape; skipping upsert', scores);
       rows = [];
@@ -8441,7 +8441,7 @@ const GistSync = (() => {
       const r = await _rest('kpi_scores?on_conflict=month,agent', {
         method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body: rows
       });
-      if (r.ok) console.log(`[SupabaseSync] KPI scores for ${month} saved âœ“`);
+      if (r.ok) console.log(`[SupabaseSync] KPI scores for ${month} saved ✓`);
     }
 
     const cache = getCache();
@@ -8450,7 +8450,7 @@ const GistSync = (() => {
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch {}
   }
 
-  // â”€â”€ Bulk sync from Supabase â†’ localStorage (called on page load) â”€â”€â”€â”€â”€
+  // ── Bulk sync from Supabase → localStorage (called on page load) ─────
   async function syncToLocal(month, opts) {
     opts = opts || {};
     const slug = _slug(month);
@@ -8528,11 +8528,11 @@ const GistSync = (() => {
     }
   }
 
-  // â”€â”€ Back-compat: setup/createGist are no-ops now â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Back-compat: setup/createGist are no-ops now ─────────────────────
   async function setup() { return { ok:true, gist_id:'supabase', backend:'supabase' }; }
   async function createGist() { return { ok:true, gist_id:'supabase', url:SUPABASE_URL }; }
 
-  // â”€â”€ Realtime subscription (optional, caller opts in) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Realtime subscription (optional, caller opts in) ─────────────────
   // Returns an unsubscribe fn. Requires supabase-js CDN loaded on the page.
   let _realtimeClient = null;
   function subscribeClaims(month, cb) {
@@ -8558,7 +8558,7 @@ const GistSync = (() => {
     }
   }
 
-  // â”€â”€ Audit log (fire-and-forget) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Audit log (fire-and-forget) ──────────────────────────────────────
   function logAudit(actor, action, month, details) {
     _rest('audit_log', {
       method:'POST',
@@ -8566,7 +8566,7 @@ const GistSync = (() => {
     }).catch(()=>{});
   }
 
-  // â”€â”€ Public API (same shape as original GistSync) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Public API (same shape as original GistSync) ─────────────────────
   return {
     isConfigured, getConfig, saveConfig, setup, createGist,
     pull, push,

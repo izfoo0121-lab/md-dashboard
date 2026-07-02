@@ -1000,8 +1000,9 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
             </div>
           </div>
           <div class="input-group">
-            <div class="input-label">Delivery Note (shown to agent)</div>
-            <input type="text" id="new-camp-foc-note" placeholder="e.g. Deliver before Raya / Must state LAM FOC">
+            <div class="input-label">FOC / Claim Note (optional)</div>
+            <input type="text" id="new-camp-foc-note" placeholder="e.g. Must state LAM FOC">
+            <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:4px;">Use only for the claim or invoice note. If it matches the agent instruction, Admin shows it once.</div>
           </div>
         </div>
 
@@ -1208,8 +1209,9 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
         </div>
 
         <div class="input-group">
-          <div class="input-label">Description / Notes for Agent</div>
-          <input type="text" id="new-camp-desc" placeholder="Brief description or instructions">
+          <div class="input-label">Agent Instruction (optional)</div>
+          <input type="text" id="new-camp-desc" placeholder="One short line shown to agents, e.g. 打单 [CM7]">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:4px;">Keep this as the plain instruction. Put FOC package above and claim code in FOC / Claim Note.</div>
         </div>
         <div class="input-group">
           <div class="input-label">Deadline</div>
@@ -4646,6 +4648,71 @@ function renderCampaignMechanismSummary(camp) {
   return `<div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:4px;">Mechanism: ${bits.join(' · ')}</div>`;
 }
 
+function cleanCampaignCopyText(value) {
+  return String(value || '').trim();
+}
+
+function normalizeCampaignCopyText(value) {
+  return cleanCampaignCopyText(value)
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[.:;,\-|·"']+$/g, '')
+    .trim();
+}
+
+function campaignAgentInstructionParts(camp = {}) {
+  const notes = camp.notes && typeof camp.notes === 'object' ? camp.notes : {};
+  const seen = new Set();
+  const addUnique = value => {
+    const text = cleanCampaignCopyText(value);
+    const key = normalizeCampaignCopyText(text);
+    if (!key) return '';
+    for (const existing of seen) {
+      if (existing === key || existing.includes(key) || key.includes(existing)) return '';
+    }
+    seen.add(key);
+    return text;
+  };
+  const instruction = addUnique(camp.description);
+  const promo = addUnique(camp.promo_detail);
+  const claimNote = [
+    camp.foc_note,
+    notes.foc_note,
+    notes.delivery_note,
+    notes.note
+  ].map(addUnique).find(Boolean) || '';
+  return { instruction, promo, claimNote };
+}
+
+function campaignDefaultFocCopy(camp = {}) {
+  const item = cleanCampaignCopyText(camp.default_foc_item || camp.foc_item).toUpperCase();
+  if (!item) return '';
+  const qtyRaw = camp.default_foc_qty ?? camp.foc_qty ?? '';
+  const qty = Number(qtyRaw || 0);
+  const qtyText = Number.isFinite(qty) && qty > 0
+    ? (Number.isInteger(qty) ? String(qty) : String(Number(qty.toFixed(3))))
+    : cleanCampaignCopyText(qtyRaw);
+  const unit = cleanCampaignCopyText(camp.default_foc_unit || camp.foc_unit || '');
+  return `Default FOC: ${item}${qtyText ? ` x ${qtyText}` : ''}${unit ? ` ${unit}` : ''}`;
+}
+
+function renderCampaignAgentCopySummary(camp = {}) {
+  const copy = campaignAgentInstructionParts(camp);
+  const focLine = campaignDefaultFocCopy(camp);
+  const rows = [
+    copy.instruction ? ['Agent instruction', copy.instruction, 'var(--ink2)'] : null,
+    copy.promo ? ['Promo', copy.promo, 'var(--green)'] : null,
+    focLine ? ['FOC', focLine, 'var(--ink3)'] : null,
+    copy.claimNote ? ['Claim note', copy.claimNote, 'var(--ink3)'] : null
+  ].filter(Boolean);
+  if (!rows.length) return '';
+  return `<div style="display:grid;gap:3px;margin-top:6px;">${rows.map(([label, text, color]) => `
+    <div style="font-family:var(--mono);font-size:9px;color:${color};line-height:1.35;">
+      <span style="color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;">${label}:</span>
+      ${kpiAdminEscape(text)}
+    </div>`).join('')}</div>`;
+}
+
 function isDynamicCampaignMonth(monthLabel) {
   // Q5=A: May 26 onward uses dynamic per-campaign KPI
   const [monStr, yrStr] = String(monthLabel || '').split(' ');
@@ -7772,7 +7839,7 @@ function applyBrandPenetrationPreset(preset = 'IFACE') {
   setNewCampaignField('brand-pen-group-labels', '');
   setNewCampaignField('brand-pen-default-group', '');
   setNewCampaignField('new-camp-name', `${cfg.label} ${month} Penetration Campaign`);
-  setNewCampaignField('new-camp-desc', `${cfg.label} new account / never bought / 3-month no ${cfg.label}.${hasFoc ? ` FOC ${cfg.foc_item} x ${cfg.foc_qty} ${cfg.foc_unit}.` : ''}${cfg.foc_note ? ` Note: ${cfg.foc_note}.` : ''}`);
+  setNewCampaignField('new-camp-desc', `${cfg.label} new account / never bought / 3-month no ${cfg.label}`);
   setNewCampaignField('new-camp-deadline', deadline);
   setNewCampaignField('new-camp-foc-item', cfg.foc_item || '');
   setNewCampaignField('new-camp-foc-qty', cfg.foc_qty || '');
@@ -8557,7 +8624,7 @@ function renderClosedCampaignCard(c) {
       <details style="margin-top:8px;">
         <summary style="cursor:pointer;font-family:var(--mono);font-size:10px;color:#777;">Details and delivery history</summary>
         <div style="margin-top:8px;">
-          ${c.description ? `<div style="font-family:var(--mono);font-size:9px;color:#888;margin-bottom:4px;">${kpiAdminEscape(c.description)}</div>` : ''}
+          ${renderCampaignAgentCopySummary(c)}
           ${renderCampaignMechanismSummary(c)}
           ${renderCampaignDeliveriesSection(c, { readOnly: true })}
           <details style="margin-top:10px;">
@@ -8812,11 +8879,11 @@ function renderCampaignsList() {
         <div style="flex:1;">
           <div style="font-family:var(--mono);font-size:9px;color:#888;">${TYPES[c.type]||c.type}${isInactive?' · CLOSED':''}</div>
           <div id="camp-name-${c.id}" style="font-family:var(--display);font-size:18px;letter-spacing:.05em;">${c.name}</div>
-          <div id="camp-desc-disp-${c.id}" style="font-family:var(--mono);font-size:9px;color:#888;margin-top:2px;">${c.description||''}</div>
+          <div id="camp-desc-disp-${c.id}" style="margin-top:2px;">${renderCampaignAgentCopySummary(c)}</div>
           <div id="camp-edit-form-${c.id}" style="display:none;margin-top:8px;">
             <input type="text" id="camp-edit-name-${c.id}" value="${c.name}"
               style="width:100%;font-family:var(--body);font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);margin-bottom:6px;">
-            <input type="text" id="camp-edit-desc-${c.id}" value="${(c.description||'').replace(/"/g,'&quot;')}" placeholder="Description shown to agents"
+            <input type="text" id="camp-edit-desc-${c.id}" value="${(c.description||'').replace(/"/g,'&quot;')}" placeholder="Agent instruction, e.g. 打单 [CM7]"
               style="width:100%;font-family:var(--body);font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);margin-bottom:6px;">
             <input type="text" id="camp-edit-promo-${c.id}" value="${(c.promo_detail||'').replace(/"/g,'&quot;')}" placeholder="Promo detail (e.g. 买10条送4条 BISON)"
               style="width:100%;font-family:var(--body);font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);margin-bottom:6px;">
@@ -8831,8 +8898,6 @@ function renderCampaignsList() {
             </div>
           </div>
           ${c.brand?`<span style="font-family:var(--mono);font-size:9px;background:rgba(200,56,26,.1);color:#c8381a;padding:2px 8px;border-radius:8px;border:1px solid rgba(200,56,26,.3);margin-top:6px;display:inline-block;">${c.brand}</span>`:''}
-          ${c.promo_detail?`<div id="camp-promo-disp-${c.id}" style="font-family:var(--mono);font-size:10px;color:var(--green);margin-top:4px;font-weight:600;">💬 "${c.promo_detail}"</div>`:''}
-          ${c.default_foc_item?`<div style="font-family:var(--mono);font-size:9px;color:#888;margin-top:2px;">🎁 Default FOC: ${c.default_foc_item} × ${c.default_foc_qty} ${c.default_foc_unit||''}</div>`:''}
           ${renderCampaignMechanismSummary(c)}
         </div>
         <div style="display:flex;gap:6px;margin-left:8px;flex-shrink:0;">

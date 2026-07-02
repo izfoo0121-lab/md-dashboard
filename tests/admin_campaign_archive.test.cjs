@@ -36,6 +36,9 @@ const context = {
   renderCampaignMechanismSummary() {
     return '';
   },
+  renderCampaignAgentCopySummary() {
+    return '';
+  },
   adminMonthLabelToIso(month) {
     const [mon, yy] = String(month || '').split(' ');
     const idx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(mon);
