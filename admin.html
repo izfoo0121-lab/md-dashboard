@@ -376,6 +376,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
         <div id="group-sp-status" style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:8px;"></div>
       </div>
 
+      <div id="group-brand-config-editor"></div>
       <div id="group-brand-form"></div>
       <button class="save-btn" onclick="saveAll()">SAVE GROUP TARGETS</button>
       <div class="save-toast" id="save-toast-grp">✓ Saved</div>
@@ -2361,6 +2362,113 @@ function adminBrandKeys(opts = {}) {
   return adminSortBrandKeys(keys);
 }
 
+function normalizeGroupBrandKey(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
+function normalizeGroupBrandCodes(value) {
+  const source = Array.isArray(value) ? value : String(value || '').split(/[,;\n]/);
+  const seen = new Set();
+  const out = [];
+  source.forEach(item => {
+    const code = String(item || '').trim().toUpperCase();
+    if (code && !seen.has(code)) {
+      seen.add(code);
+      out.push(code);
+    }
+  });
+  return out;
+}
+
+function normalizeGroupBrandConfig(value, opts = {}) {
+  const source = value && typeof value === 'object' && !Array.isArray(value)
+    ? value
+    : DEFAULT_GROUP_BRAND_CONFIG;
+  const out = {};
+  Object.entries(source).forEach(([brand, codes]) => {
+    const key = normalizeGroupBrandKey(brand);
+    const list = normalizeGroupBrandCodes(codes);
+    if (key && list.length) out[key] = list;
+  });
+
+  if (out.SUKUN && !out.CMP && normalizeGroupBrandCodes(out.SUKUN).join('|') === 'SKNR|SKNW') {
+    out.CMP = ['CMP'];
+    delete out.SUKUN;
+    if (opts.preserveTargets && CONFIG?.group_brand_targets) {
+      if (CONFIG.group_brand_targets.CMP === undefined && CONFIG.group_brand_targets.SUKUN !== undefined) {
+        CONFIG.group_brand_targets.CMP = CONFIG.group_brand_targets.SUKUN;
+      }
+      delete CONFIG.group_brand_targets.SUKUN;
+    }
+  }
+  const ordered = {};
+  Object.keys(DEFAULT_GROUP_BRAND_CONFIG).forEach(brand => {
+    if (out[brand]) ordered[brand] = out[brand];
+  });
+  Object.keys(out).forEach(brand => {
+    if (!ordered[brand]) ordered[brand] = out[brand];
+  });
+  return ordered;
+}
+
+function adminGroupBrandConfig() {
+  const normalized = normalizeGroupBrandConfig(CONFIG?.group_brand_config, { preserveTargets: true });
+  CONFIG.group_brand_config = normalized;
+  return normalized;
+}
+
+function groupBrandConfigToText(config = adminGroupBrandConfig()) {
+  return Object.entries(config).map(([brand, codes]) => `${brand}=${normalizeGroupBrandCodes(codes).join(', ')}`).join('\n');
+}
+
+function parseGroupBrandConfigText(text) {
+  const out = {};
+  String(text || '').split(/\r?\n/).forEach((line, idx) => {
+    const raw = line.trim();
+    if (!raw) return;
+    const parts = raw.includes('=') ? raw.split('=') : raw.split(':');
+    if (parts.length < 2) throw new Error(`Line ${idx + 1}: use BRAND=SKU1, SKU2`);
+    const brand = normalizeGroupBrandKey(parts.shift());
+    const codes = normalizeGroupBrandCodes(parts.join('='));
+    if (!brand || !codes.length) throw new Error(`Line ${idx + 1}: missing brand or SKU codes`);
+    out[brand] = codes;
+  });
+  if (!Object.keys(out).length) throw new Error('Enter at least one group brand row');
+  return out;
+}
+
+function renderGroupBrandConfigEditor() {
+  const el = document.getElementById('group-brand-config-editor');
+  if (!el) return;
+  const configText = groupBrandConfigToText();
+  el.innerHTML = `
+    <div class="admin-card" style="margin-bottom:10px;">
+      <div style="font-family:var(--display);font-size:18px;letter-spacing:.04em;margin-bottom:6px;">Group Brand Target Config</div>
+      <textarea id="group-brand-config-input" rows="6" style="width:100%;font-family:var(--mono);font-size:11px;line-height:1.45;">${kpiAdminEscape(configText)}</textarea>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+        <button class="small-btn" type="button" onclick="applyGroupBrandConfigText()">Apply Group Brand Config</button>
+      </div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:6px;">Format: BRAND=SKU1, SKU2. Example: CMP=CMP. Save Group Targets to sync Supabase.</div>
+    </div>
+  `;
+}
+
+function applyGroupBrandConfigText() {
+  const input = document.getElementById('group-brand-config-input');
+  try {
+    const parsed = parseGroupBrandConfigText(input?.value || '');
+    const keep = new Set(Object.keys(parsed));
+    CONFIG.group_brand_config = parsed;
+    CONFIG.group_brand_targets = Object.fromEntries(
+      Object.entries(CONFIG.group_brand_targets || {}).filter(([brand]) => keep.has(normalizeGroupBrandKey(brand)))
+    );
+    renderGroupBrandForms();
+    updateRawJSON();
+  } catch (e) {
+    alert(e.message || String(e));
+  }
+}
+
 function normalizeAdminConfigDefaults() {
   if (!CONFIG) return;
   CONFIG.brand_config = CONFIG.brand_config || {};
@@ -2386,6 +2494,7 @@ function normalizeAdminConfigDefaults() {
     const code = String(agent || '').trim().toUpperCase();
     if (cfg && !cfg.default_group && ADMIN_AGENT_GROUPS[code]) cfg.default_group = MD_ADMIN_GROUP;
   });
+  CONFIG.group_brand_config = normalizeGroupBrandConfig(CONFIG.group_brand_config, { preserveTargets: true });
 }
 
 function buildDefaultConfig() {
@@ -5432,9 +5541,12 @@ async function saveAllToSupabase() {
 
   // ── 5. GROUP BRAND TARGETS ────────────────────────────
   const gbt = CONFIG.group_brand_targets || {};
-  const gbtRows = Object.entries(gbt).map(([brand, tgt]) => ({
-    brand, target_ctn: parseFloat(tgt) || 0,
-  }));
+  const groupBrandKeys = new Set(Object.keys(adminGroupBrandConfig()));
+  const gbtRows = Object.entries(gbt)
+    .filter(([brand]) => groupBrandKeys.has(normalizeGroupBrandKey(brand)))
+    .map(([brand, tgt]) => ({
+      brand, target_ctn: parseFloat(tgt) || 0,
+    }));
   await upsert('targets_group_brand', gbtRows, 'brand');
 
   // ── 6. STATIC CONFIG (JSON blobs) ─────────────────────
@@ -5969,19 +6081,20 @@ function importExcel(input) {
 
 // ── Group Brand Targets ────────────────────────────────────────────────────
 const DEFAULT_GROUP_BRAND_CONFIG = {
-  'SUKUN':['SKNR','SKNW'],'EVO':['EVO'],'IMP':['IMP-001'],
+  'CMP':['CMP'],'EVO':['EVO'],'IMP':['IMP-001'],
   'LF':['LF-002'],'CLASSMILD':['CM-002'],'BISON':['BISON-G','BISON-M','BISON-R'],
   'TR':['TR20','TR-002']
 };
 const GB_COLORS = {
-  'SUKUN':'#6B3FA0','EVO':'#C8381A','IMP':'#1A5C8F',
+  'CMP':'#6B3FA0','EVO':'#C8381A','IMP':'#1A5C8F',
   'LF':'#2A7A4B','CLASSMILD':'#C85A1A','BISON':'#C8860A','TR':'#2A2A38'
 };
 
 function renderGroupBrandForms() {
   const container = document.getElementById('group-brand-form');
   if (!container) return;
-  const gbConfig  = CONFIG.group_brand_config  || DEFAULT_GROUP_BRAND_CONFIG;
+  renderGroupBrandConfigEditor();
+  const gbConfig  = adminGroupBrandConfig();
   const gbTargets = CONFIG.group_brand_targets || {};
 
   container.innerHTML = Object.entries(gbConfig).map(([brand, codes]) => {
@@ -5990,14 +6103,14 @@ function renderGroupBrandForms() {
     return `<div class="admin-card" style="margin-bottom:10px;border-left:4px solid ${color};">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <div>
-          <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;color:${color}">${brand}</div>
-          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:2px;">${Array.isArray(codes) ? codes.join(', ') : codes}</div>
+          <div style="font-family:var(--display);font-size:18px;letter-spacing:.05em;color:${color}">${kpiAdminEscape(brand)}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:2px;">${normalizeGroupBrandCodes(codes).map(kpiAdminEscape).join(', ')}</div>
         </div>
       </div>
       <div class="input-group">
         <div class="input-label">Monthly CTN Target (group total)</div>
         <input type="number" min="0" placeholder="0" value="${target}"
-          onchange="setGroupTarget('${brand}', this.value)" style="max-width:180px;">
+          onchange="setGroupTarget(${kpiAdminEventArg(brand)}, this.value)" style="max-width:180px;">
       </div>
     </div>`;
   }).join('');

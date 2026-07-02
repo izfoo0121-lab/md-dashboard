@@ -379,11 +379,14 @@ SALES_TYPE_MAP  = {
 DEFAULT_BRAND_CONFIG = {
     "iFACE":   ["IFACE B", "IFACE M", "IFACE R", "IFACE DB"],
     "SUKUN":   ["SKNR", "SKNW"],
+    "CMP":     ["CMP"],
     "EVO":     ["EVO"],          # special: also filter S >= 36
     "BISON":   ["BISON-G", "BISON-R", "BISON-M"],
     "TR20":    ["TR20"],
     "LAM+LWM": ["LAM", "LWM"],
 }
+DEFAULT_PENETRATION_AUTO_BRANDS = ["iFACE", "CMP", "BISON", "TR20"]
+DEFAULT_ZLB_BRANDS = ["SUKUN", "EVO", "BISON", "LAM+LWM"]
 
 IFACE_ITEM_CODES = ["IFACE B", "IFACE M", "IFACE R", "IFACE DB"]
 IFACE_PK_POOL_RATE = 3.5
@@ -391,7 +394,7 @@ IFACE_FOC_ITEM = "SUKUN"
 IFACE_FOC_QTY = 4
 IFACE_FOC_UNIT = "packs"
 IFACE_FOC_NOTE = "IFACE PEN"
-BRAND_PENETRATION_PRESET_ORDER = ["IFACE", "SUKUN", "EVO", "BISON", "TR20", "LAM+LWM"]
+BRAND_PENETRATION_PRESET_ORDER = ["IFACE", "CMP", "SUKUN", "EVO", "BISON", "TR20", "LAM+LWM"]
 
 # All Canggih in-house item codes (used for total Canggih CTN)
 # Managed via Admin Page — loaded from targets.json if present
@@ -411,7 +414,7 @@ DEFAULT_INHOUSE_CODES = [
 # Group-level brand targets — item codes per brand (set monthly in Admin Page)
 # These are GROUP totals — no per-agent split, no RM36 filter (even for EVO)
 DEFAULT_GROUP_BRAND_CONFIG = {
-    "SUKUN":     ["SKNR", "SKNW"],
+    "CMP":       ["CMP"],
     "EVO":       ["EVO"],               # No RM36 filter for group target
     "IMP":       ["IMP-001"],
     "LF":        ["LF-002"],
@@ -623,6 +626,89 @@ def _iface_match_mask(df):
 def _brand_penetration_key(value):
     key = str(value or "").strip().upper()
     return "IFACE" if key == "IFACE" else key
+
+
+def _brand_display_label(value):
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    upper = raw.upper()
+    if upper == "IFACE":
+        return "iFACE"
+    return upper
+
+
+def _clean_brand_sequence(values, default_values=None):
+    source = values if isinstance(values, list) else (default_values or [])
+    clean = []
+    seen = set()
+    for value in source:
+        label = _brand_display_label(value)
+        key = label.upper()
+        if label and key not in seen:
+            seen.add(key)
+            clean.append(label)
+    return clean
+
+
+def _brand_config_with_required_defaults(brand_config=None, required_brands=None):
+    if isinstance(brand_config, dict) and brand_config:
+        config = {
+            str(brand).strip(): list(codes or [])
+            for brand, codes in brand_config.items()
+            if str(brand).strip()
+        }
+    else:
+        config = {brand: list(codes) for brand, codes in DEFAULT_BRAND_CONFIG.items()}
+
+    for brand in _clean_brand_sequence(required_brands, []):
+        if brand not in config and brand in DEFAULT_BRAND_CONFIG:
+            config[brand] = list(DEFAULT_BRAND_CONFIG[brand])
+    return config
+
+
+def _clean_group_brand_codes(values):
+    source = values if isinstance(values, list) else str(values or "").replace(";", ",").split(",")
+    clean = []
+    seen = set()
+    for value in source:
+        code = str(value or "").strip().upper()
+        if code and code not in seen:
+            seen.add(code)
+            clean.append(code)
+    return clean
+
+
+def normalize_group_brand_config(targets):
+    raw_config = targets.get("group_brand_config") if isinstance(targets, dict) else None
+    source = raw_config if isinstance(raw_config, dict) and raw_config else DEFAULT_GROUP_BRAND_CONFIG
+    config = {}
+    for brand, codes in source.items():
+        key = str(brand or "").strip().upper()
+        clean_codes = _clean_group_brand_codes(codes)
+        if key and clean_codes:
+            config[key] = clean_codes
+
+    if config.get("SUKUN") == ["SKNR", "SKNW"] and "CMP" not in config:
+        config["CMP"] = ["CMP"]
+        del config["SUKUN"]
+        if isinstance(targets, dict):
+            gb_targets = targets.setdefault("group_brand_targets", {})
+            if "CMP" not in gb_targets and "SUKUN" in gb_targets:
+                gb_targets["CMP"] = gb_targets["SUKUN"]
+            gb_targets.pop("SUKUN", None)
+
+    ordered = {}
+    for brand in DEFAULT_GROUP_BRAND_CONFIG:
+        if brand in config:
+            ordered[brand] = config[brand]
+    for brand, codes in config.items():
+        if brand not in ordered:
+            ordered[brand] = codes
+
+    if isinstance(targets, dict):
+        targets["group_brand_config"] = ordered
+    return ordered
 
 
 def _brand_penetration_config(brand_config=None):
@@ -4064,23 +4150,34 @@ def calc_birthday_by_month(debtor_cards, targets, months_index, cur_month=None):
 def save_penetration_snapshot(brand_comm, targets, cur_month):
     """
     Auto-calculate penetration targets from non-buyer counts.
-    5% of non-buyers for: iFACE, SUKUN, BISON, TR20
-    EVO and LAM+LWM = manual only
+    5% of non-buyers for configured penetration_auto_brands.
+    Brands not listed there are manual only.
     Only runs once per month (preserves Day 1 snapshot).
     Management can override per agent per brand via kpi_overrides.
     """
-    AUTO_BRANDS = {"iFACE", "SUKUN", "BISON", "TR20"}
-    MANUAL_BRANDS = {"EVO", "LAM+LWM"}
     POOL_VERSION = "dm_active_nonpersonal_debtorwide_v2"
+    auto_brands = _clean_brand_sequence(
+        targets.get("penetration_auto_brands"),
+        DEFAULT_PENETRATION_AUTO_BRANDS,
+    )
+    auto_brand_keys = {brand.upper() for brand in auto_brands}
 
     snaps = targets.get("penetration_snapshots", {})
     snap_meta = targets.get("penetration_snapshot_meta", {})
-    if cur_month in snaps and snap_meta.get(cur_month, {}).get("pool_version") == POOL_VERSION:
+    existing_meta = snap_meta.get(cur_month, {})
+    existing_auto_brands = _clean_brand_sequence(existing_meta.get("penetration_auto_brands"), [])
+    auto_config_unchanged = existing_auto_brands == auto_brands
+    if (
+        cur_month in snaps
+        and existing_meta.get("pool_version") == POOL_VERSION
+        and auto_config_unchanged
+    ):
         log(f"  Penetration snapshot for {cur_month} already exists — skipping")
         return targets
     if cur_month in snaps:
-        log(f"  Refreshing legacy penetration snapshot for {cur_month} with Debtor Maintenance non-personal pool...")
+        log(f"  Refreshing penetration snapshot for {cur_month} with current auto brand config...")
 
+    targets["penetration_auto_brands"] = auto_brands
     log(f"  Saving penetration snapshot for {cur_month}...")
     snap = {}
     for agent, bc in brand_comm.items():
@@ -4094,13 +4191,14 @@ def save_penetration_snapshot(brand_comm, targets, cur_month):
             snap[agent][brand] = non_buyers
 
             # Auto-calculate target for selected brands
-            if brand in AUTO_BRANDS and brand not in overrides:
+            is_auto_brand = _brand_display_label(brand).upper() in auto_brand_keys
+            if is_auto_brand and brand not in overrides:
                 auto_target = 0 if non_buyers <= 0 else max(1, round(non_buyers * 0.05))
                 if brand not in bc_tgts:
                     bc_tgts[brand] = {}
                 bc_tgts[brand]["penetration_target"] = auto_target
                 bc_tgts[brand]["pen_auto"] = True
-            elif brand in MANUAL_BRANDS:
+            else:
                 if brand not in bc_tgts:
                     bc_tgts[brand] = {}
                 bc_tgts[brand]["pen_auto"] = False
@@ -4112,6 +4210,7 @@ def save_penetration_snapshot(brand_comm, targets, cur_month):
     targets["penetration_snapshots"] = snaps
     snap_meta[cur_month] = {
         "pool_version": POOL_VERSION,
+        "penetration_auto_brands": auto_brands,
         "updated_at": datetime.now().isoformat(timespec="seconds"),
     }
     targets["penetration_snapshot_meta"] = snap_meta
@@ -4309,6 +4408,14 @@ def _calc_total_sales_ctn(df, cur_month):
         return round(float(canggih[canggih[col] == cur_month]["qty_ctn"].sum()), 2)
     except: return 0
 
+def _team_brand_keys(brand_comm, agents, targets):
+    configured = targets.get("brand_config") if isinstance(targets, dict) else None
+    keys = list(configured.keys()) if isinstance(configured, dict) and configured else list(DEFAULT_BRAND_CONFIG.keys())
+    for agent in agents:
+        keys.extend((brand_comm.get(agent) or {}).keys())
+    ordered = _clean_brand_sequence(keys, [])
+    return [brand for brand in ordered if brand]
+
 def calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month, df=None, prev_months=None):
     """Aggregate team-level totals for management view."""
     log("Calculating team summary...")
@@ -4362,7 +4469,8 @@ def calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month, df=Non
 
     # Brand commission team totals
     brand_summary = {}
-    for brand in DEFAULT_BRAND_CONFIG.keys():
+    team_brands = _team_brand_keys(brand_comm, agents, targets)
+    for brand in team_brands:
         total_comm = sum(
             brand_comm.get(a, {}).get(brand, {}).get("comm_earned", 0)
             for a in agents
@@ -4393,7 +4501,7 @@ def calc_team_summary(sales_prog, brand_comm, agents, targets, cur_month, df=Non
         t1_tgt = _sales_targets_for(agent).get("normal_t1")
         t1_pct = pct(sp.get("normal_ctn", 0), t1_tgt) if t1_tgt else None
         brands_earned = sum(
-            1 for brand in DEFAULT_BRAND_CONFIG
+            1 for brand in team_brands
             if brand_comm.get(agent, {}).get(brand, {}).get("both_hit", False)
         )
         leaderboard.append({
@@ -5336,8 +5444,19 @@ def main():
     df = filter_scope(df_raw)
 
     # ── Brand config (from targets.json or default) ─────────────────
-    brand_config = targets.get("brand_config", DEFAULT_BRAND_CONFIG)
-    group_brand_config = targets.get("group_brand_config", DEFAULT_GROUP_BRAND_CONFIG)
+    penetration_auto_brands = _clean_brand_sequence(
+        targets.get("penetration_auto_brands"),
+        DEFAULT_PENETRATION_AUTO_BRANDS,
+    )
+    zlb_brands = _clean_brand_sequence(
+        targets.get("zlb_brands"),
+        DEFAULT_ZLB_BRANDS,
+    )
+    brand_config = _brand_config_with_required_defaults(
+        targets.get("brand_config", DEFAULT_BRAND_CONFIG),
+        [*penetration_auto_brands, *zlb_brands],
+    )
+    group_brand_config = normalize_group_brand_config(targets)
     sku_rules_config = load_sku_rules_config(targets)
     sku_trace_config = _clean_sku_trace_config(targets.get("sku_trace_config", DEFAULT_SKU_TRACE_CONFIG))
 
@@ -5767,6 +5886,8 @@ def main():
         "config": {
             "brand_config":       brand_config,
             "group_brand_config": group_brand_config,
+            "penetration_auto_brands": penetration_auto_brands,
+            "zlb_brands":         zlb_brands,
             "sku_trace_config":   sku_trace_config,
             "sku_rules_snapshot": sku_rules_config,
             "inhouse_codes":      targets.get("inhouse_codes", DEFAULT_INHOUSE_CODES),

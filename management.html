@@ -1390,10 +1390,29 @@ function renderAgentProgressKpi(D) {
 }
 
 const PROGRESS_ZLB_BRAND_ORDER = ['iFACE', 'SUKUN', 'EVO', 'BISON', 'LAM+LWM'];
+const PROGRESS_ZLB_DEFAULT_VISIBLE_BRANDS = ['SUKUN', 'EVO', 'BISON', 'LAM+LWM'];
+
+function progressZlbBrandKey(brand) {
+  const upper = String(brand || '').trim().toUpperCase();
+  return upper === 'IFACE' ? 'IFACE' : upper;
+}
+
+function progressZlbConfiguredBrands(D) {
+  const seen = new Set();
+  return (Array.isArray(D?.config?.zlb_brands) ? D.config.zlb_brands : [])
+    .map(brand => String(brand || '').trim())
+    .filter(Boolean)
+    .filter(brand => {
+      const key = progressZlbBrandKey(brand);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
 
 function progressZlbBrandSortKey(brand) {
-  const upper = String(brand || '').trim().toUpperCase();
-  const idx = PROGRESS_ZLB_BRAND_ORDER.findIndex(item => item.toUpperCase() === upper);
+  const upper = progressZlbBrandKey(brand);
+  const idx = PROGRESS_ZLB_BRAND_ORDER.findIndex(item => progressZlbBrandKey(item) === upper);
   return idx >= 0 ? idx : 100 + upper.charCodeAt(0);
 }
 
@@ -1405,8 +1424,13 @@ function progressZlbBrandLabel(brand) {
 }
 
 function progressZlbBrands(D) {
+  const configured = progressZlbConfiguredBrands(D);
+  if (configured.length) return configured;
   const brands = new Set(Object.keys(D?.config?.brand_config || {}));
   apAgents(D).forEach(agent => Object.keys(D.agents[agent]?.brand_commission || {}).forEach(b=>brands.add(b)));
+  const brandKeys = new Set([...brands].map(progressZlbBrandKey));
+  const defaultVisible = PROGRESS_ZLB_DEFAULT_VISIBLE_BRANDS.filter(brand => brandKeys.has(progressZlbBrandKey(brand)));
+  if (defaultVisible.length) return defaultVisible;
   return [...brands].filter(Boolean).sort((a,b) => progressZlbBrandSortKey(a) - progressZlbBrandSortKey(b) || String(a).localeCompare(String(b)));
 }
 
@@ -5425,8 +5449,8 @@ function mgmtUnpurchasedBrands(D=CURRENT_DATA||DATA) {
   const configured = progressZlbBrands(D)
     .map(brand => progressZlbUnpurchasedBrandKey(brand))
     .filter(Boolean);
-  const source = configured.length ? configured : Object.keys(MGMT_UNPURCHASED_BRAND_ITEMS);
-  return [...new Set(source)]
+  if (configured.length) return [...new Set(configured)].filter(Boolean);
+  return [...new Set(Object.keys(MGMT_UNPURCHASED_BRAND_ITEMS))]
     .filter(Boolean)
     .sort((a, b) => progressZlbBrandSortKey(a) - progressZlbBrandSortKey(b) || String(a).localeCompare(String(b)));
 }

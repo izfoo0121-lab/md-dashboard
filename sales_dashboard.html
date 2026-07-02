@@ -8329,7 +8329,7 @@ const GistSync = (() => {
 
   // ── Single-claim upsert (sales_dashboard.html main path) ─────────────
   async function saveClaim(month, agent, campId, debtorCode, claimData, stage) {
-    if (blockFutureViewAction()) return false;
+    if (blockFutureViewAction({ allowCampaignClaim: true })) return false;
     const slug  = _slug(month);
     const cleanStage = _claimStage(stage || (claimData && claimData.stage));
     const payload = { ...(claimData || {}), stage: cleanStage };
@@ -8369,7 +8369,7 @@ const GistSync = (() => {
   }
 
   async function removeClaim(month, agent, campId, debtorCode, stage) {
-    if (blockFutureViewAction()) return false;
+    if (blockFutureViewAction({ allowCampaignClaim: true })) return false;
     const slug = _slug(month);
     const cleanStage = _claimStage(stage);
     const key  = _claimCompKey(agent, campId, debtorCode, cleanStage);

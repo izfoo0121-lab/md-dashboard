@@ -105,6 +105,7 @@ const context = {
 context.window = context;
 vm.createContext(context);
 vm.runInContext(extractBlock('const MD_ADMIN_GROUP', 'const BRAND_PEN_GROUP_MAP_KEY'), context);
+vm.runInContext(extractBlock('const DEFAULT_GROUP_BRAND_CONFIG', 'function renderGroupBrandForms'), context);
 
 [
   'kpiAdminEscape',
@@ -118,6 +119,9 @@ vm.runInContext(extractBlock('const MD_ADMIN_GROUP', 'const BRAND_PEN_GROUP_MAP_
   'adminBrandSortKey',
   'adminSortBrandKeys',
   'adminConfiguredBrandList',
+  'normalizeGroupBrandKey',
+  'normalizeGroupBrandCodes',
+  'normalizeGroupBrandConfig',
   'normalizeAdminConfigDefaults',
   'renderBrandSkuBehaviorSummary',
   'renderBrandBehaviorConfig',

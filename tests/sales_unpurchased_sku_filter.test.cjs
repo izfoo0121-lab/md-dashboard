@@ -27,9 +27,16 @@ const context = {
     current_month: 'Jun 26',
     brand_penetration_filter_options: {
       item_code_values: ['SKNR', 'SKNW', 'CMX', 'CMP', 'DPM EVO']
+    },
+    config: {
+      sku_rules_snapshot: {
+        new_sku_groups: {
+          TEST: { item_codes: ['XYZ-001'], item_code_prefixes: ['XYZ-P'], item_groups: ['XYZGROUP'] }
+        }
+      }
     }
   },
-  UNPURCHASED_SKU_PRIORITY: ['SKNR', 'SKNW', 'CMX', 'CMP', 'DPM EVO', 'IFACE R'],
+  UNPURCHASED_SKU_PRIORITY: ['SKNR', 'SKNW', 'CMX', 'CMP', 'DPM EVO', 'IFACE R', 'BISON-R', 'BISON-M'],
   UNPURCHASED_BRAND_ITEMS: {
     IFACE: ['IFACE B', 'IFACE M'],
     SUKUN: ['SKNR', 'SKNW']
@@ -40,10 +47,13 @@ vm.createContext(context);
 [
   'shiftedMonthLabel',
   'normalizeSkuItemCode',
+  'getConfiguredNewSkuItems',
+  'getConfiguredNewSkuPrefixes',
   'getDebtorPurchaseBreakdown',
   'debtorBreakdownRowsForMonth',
   'getUnpurchasedSkuCatalog',
   'skuRecencyMonths',
+  'matchesSkuItemSelection',
   'skuCtnInMonth',
   'summarizeDebtorSkuRecency',
   'matchesSkuRecencyMode'
@@ -58,8 +68,14 @@ const catalog = context.getUnpurchasedSkuCatalog([
 ]);
 
 assert(catalog.includes('CMX'), 'SKU item catalog should include generated item codes beyond ZLB presets');
+assert(catalog.includes('CMP'), 'SKU item catalog should include CMP as a fixed matrix SKU');
+assert(catalog.includes('BISON-R'), 'SKU item catalog should include BISON-R as a fixed matrix SKU');
+assert(catalog.includes('BISON-M'), 'SKU item catalog should include BISON-M as a fixed matrix SKU');
+assert(catalog.includes('XYZ-001'), 'SKU item catalog should include item codes from payload sku_rules_snapshot');
+assert(catalog.includes('XYZ-P'), 'SKU item catalog should include item code prefixes from payload sku_rules_snapshot');
 assert(catalog.includes('IFACE R'), 'SKU item catalog should include item codes found in debtor month breakdowns');
 assert(!catalog.includes('SUKUN'), 'SKU item catalog should not include brand/group labels as selectable SKU items');
+assert(!catalog.includes('XYZGROUP'), 'SKU item catalog should not include item group labels as selectable SKU items');
 
 const rows = {
   buyerPrevOnly: {
@@ -76,6 +92,15 @@ const rows = {
     month_breakdown: {
       'Jun 26': [{ item: 'SKNR', ctn: 3 }],
       'May 26': [],
+      'Apr 26': [],
+      'Mar 26': []
+    }
+  },
+  configuredPrefixBuyer: {
+    debtor_code: '300-P006',
+    month_breakdown: {
+      'Jun 26': [],
+      'May 26': [{ item: 'XYZ-P-01', ctn: 2 }],
       'Apr 26': [],
       'Mar 26': []
     }
@@ -151,6 +176,16 @@ assert.strictEqual(
   context.summarizeDebtorSkuRecency(rows.staleUnpurchasedBreakdown, 'CMX', 'Jun 26').currentCtn,
   2,
   'selected month counts should fall back to month_breakdown when unpurchased_breakdown has no selected-month rows'
+);
+assert.strictEqual(
+  context.summarizeDebtorSkuRecency(rows.configuredPrefixBuyer, 'XYZ-P', 'Jun 26').prev3Ctn,
+  2,
+  'configured SKU prefix selections should match debtor purchase item codes by prefix'
+);
+assert.strictEqual(
+  context.matchesSkuRecencyMode(rows.configuredPrefixBuyer, 'XYZ-P', 'bought_3m', 'Jun 26'),
+  true,
+  'configured SKU prefix selections should work in bought-within-3-months mode'
 );
 
 console.log('sales_unpurchased_sku_filter.test.cjs passed');

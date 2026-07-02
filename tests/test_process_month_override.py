@@ -175,6 +175,121 @@ class ProcessMonthOverrideTests(unittest.TestCase):
         self.assertEqual(active_agents, ["BEN"])
         self.assertEqual(inactive_agents, ["JW"])
 
+    def test_missing_monthly_targets_keep_sales_actuals_without_stale_targets(self):
+        targets = {
+            "agents": {
+                "CJ": {
+                    "active": True,
+                    "sales_progression": {
+                        "normal_t1": 930,
+                        "normal_t2": 1171,
+                        "ga": 50,
+                        "ma": 100,
+                    },
+                }
+            },
+            "monthly_targets": {
+                "Jun 26": {
+                    "CJ": {
+                        "active": True,
+                        "sales_progression": {"normal_t1": 500},
+                    }
+                }
+            },
+        }
+        sales = pd.DataFrame(
+            [
+                {
+                    "paid_on": "Jul 26",
+                    "tranx_mth": "Jul",
+                    "item_group": "SUKUN",
+                    "sales_type": "Target",
+                    "qty_ctn": 12,
+                    "agent": "CJ",
+                    "doc_no": "IV-JUL-1",
+                    "debtor_code": "300-CJ001",
+                    "item_code": "SKNR",
+                }
+            ]
+        )
+
+        sales_prog = process_data.calc_sales_progression(sales, targets, ["CJ"], "Jul 26")
+        team = process_data.calc_team_summary(sales_prog, {}, ["CJ"], targets, "Jul 26", sales)
+
+        self.assertEqual(sales_prog["CJ"]["normal_ctn"], 12)
+        self.assertIsNone(sales_prog["CJ"]["tiers"]["normal_t1"]["target"])
+        self.assertIsNone(sales_prog["CJ"]["tiers"]["normal_t1"]["gap"])
+        self.assertEqual(team["team_normal_ctn"], 12)
+        self.assertEqual(team["t1_total_target"], 0)
+        self.assertIsNone(team["t1_gap"])
+        self.assertIsNone(team["leaderboard"][0]["t1_target"])
+
+    def test_blank_monthly_target_shell_does_not_inherit_general_targets(self):
+        targets = {
+            "agents": {
+                "CJ": {
+                    "active": True,
+                    "sales_progression": {"normal_t1": 930, "normal_t2": 1171},
+                }
+            },
+            "monthly_targets": {
+                "Jul 26": {
+                    "CJ": {"active": True, "sales_progression": {}}
+                }
+            },
+        }
+        sales = pd.DataFrame(
+            [
+                {
+                    "paid_on": "Jul 26",
+                    "tranx_mth": "Jul",
+                    "item_group": "SUKUN",
+                    "sales_type": "Target",
+                    "qty_ctn": 12,
+                    "agent": "CJ",
+                    "doc_no": "IV-JUL-1",
+                    "debtor_code": "300-CJ001",
+                    "item_code": "SKNR",
+                }
+            ]
+        )
+
+        merged = process_data.merge_agent_config(targets, "Jul 26", "CJ")
+        sales_prog = process_data.calc_sales_progression(sales, targets, ["CJ"], "Jul 26")
+
+        self.assertEqual(merged.get("sales_progression"), {})
+        self.assertEqual(sales_prog["CJ"]["normal_ctn"], 12)
+        self.assertIsNone(sales_prog["CJ"]["tiers"]["normal_t1"]["target"])
+
+    def test_legacy_targets_without_monthly_table_still_use_general_targets(self):
+        targets = {
+            "agents": {
+                "CJ": {
+                    "active": True,
+                    "sales_progression": {"normal_t1": 930},
+                }
+            }
+        }
+        sales = pd.DataFrame(
+            [
+                {
+                    "paid_on": "Jul 26",
+                    "tranx_mth": "Jul",
+                    "item_group": "SUKUN",
+                    "sales_type": "Target",
+                    "qty_ctn": 12,
+                    "agent": "CJ",
+                    "doc_no": "IV-JUL-1",
+                    "debtor_code": "300-CJ001",
+                    "item_code": "SKNR",
+                }
+            ]
+        )
+
+        sales_prog = process_data.calc_sales_progression(sales, targets, ["CJ"], "Jul 26")
+
+        self.assertEqual(sales_prog["CJ"]["tiers"]["normal_t1"]["target"], 930)
+
 
 if __name__ == "__main__":
     unittest.main()

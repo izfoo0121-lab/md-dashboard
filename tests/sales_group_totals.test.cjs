@@ -114,4 +114,31 @@ assert(groupContent.innerHTML.includes('63,127'), 'Group tab total actual should
 assert(groupContent.innerHTML.includes('-2,187'), 'Group tab total gap should be actual minus combined fixed target');
 assert(groupContent.innerHTML.includes('96.65%'), 'Group tab total achievement should use combined actual / fixed target');
 
+context.DATA.team = {
+  t1_total_target: 0,
+  t2_total_target: 0,
+  ga_total_target: 0,
+  ma_total_target: 0,
+  team_normal_ctn: 12,
+  team_ga_ctn: 3,
+  team_ma_ctn: 0,
+  t1_gap: null,
+  t2_gap: null,
+  ga_gap: null,
+  ma_gap: null,
+  t1_pct: null,
+  t2_pct: null,
+  ga_pct: null,
+  ma_pct: null,
+  prev_month_ctn: 0,
+  cur_month_invoiced_paid: 12,
+  team_8com_unpaid: 0,
+};
+context.renderGroupBrandTargets();
+
+assert(groupContent.innerHTML.includes('12'), 'Group tab should still show actual CTN when targets are pending');
+assert(groupContent.innerHTML.includes('—'), 'Group tab should show blank/pending target fields as dash');
+assert(!groupContent.innerHTML.includes('+12'), 'Group tab should not calculate a positive gap from a missing target');
+assert(!groupContent.innerHTML.includes('Infinity'), 'Group tab should not divide by a missing target');
+
 console.log('sales_group_totals.test.cjs passed');
