@@ -1593,6 +1593,8 @@ async function adminWorkingMonthSelectChanged(nextMonth) {
     loadGroupSpOverride();
     await loadAgentCalendarSettings();
     renderBirthdayCampList();
+    renderCampaignsList();
+    populateBulkCampSelect();
     if (document.getElementById('tab-kpi_manual')?.classList.contains('active')) await loadKpiManual();
     if (document.getElementById('tab-leave_records')?.classList.contains('active')) loadLeaveRecords();
     if (document.getElementById('tab-archive')?.classList.contains('active')) refreshArchiveList();
@@ -8226,6 +8228,40 @@ function campaignExpiredBeforeWorkingMonth(camp, monthLabel) {
   return Boolean(deadline && deadline < month.start);
 }
 
+function campaignMonthWindowLabel(camp) {
+  const start = campaignArchiveStartDate(camp);
+  const end = campaignArchiveEndDate(camp);
+  const startLabel = start ? adminIsoToMonthLabel(start.slice(0, 7)) : '';
+  const endLabel = end ? adminIsoToMonthLabel(end.slice(0, 7)) : '';
+  if (startLabel && endLabel && startLabel !== endLabel) return `${startLabel} - ${endLabel}`;
+  return startLabel || endLabel || 'Unscheduled';
+}
+
+function campaignActiveOutsideWorkingMonth(camp, monthLabel) {
+  if (!camp || camp.active === false) return false;
+  if (campaignOperationalInWorkingMonth(camp, monthLabel)) return false;
+  if (campaignExpiredBeforeWorkingMonth(camp, monthLabel)) return false;
+  return true;
+}
+
+function filterActiveOutsideWorkingMonth(campaigns, monthLabel, visibleCampaigns = null) {
+  const visibleIds = Array.isArray(visibleCampaigns)
+    ? new Set(visibleCampaigns.map(c => String(c?.id || '')).filter(Boolean))
+    : null;
+  return (campaigns || [])
+    .filter(c => c && c.active !== false)
+    .filter(c => visibleIds ? !visibleIds.has(String(c.id || '')) : campaignActiveOutsideWorkingMonth(c, monthLabel))
+    .filter(c => !campaignExpiredBeforeWorkingMonth(c, monthLabel))
+    .sort((a, b) => campaignArchiveSortDate(a).localeCompare(campaignArchiveSortDate(b)) || String(a.name || '').localeCompare(String(b.name || '')));
+}
+
+function filterBulkCampaignsForMonth(campaigns, monthLabel) {
+  return (campaigns || [])
+    .filter(c => c && c.active !== false)
+    .filter(c => campaignOperationalInWorkingMonth(c, monthLabel))
+    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+}
+
 function campaignArchiveSearchText(camp) {
   const debtors = camp?.debtors || [];
   const brands = Array.isArray(camp?.brands) ? camp.brands.join(' ') : (camp?.brand || '');
@@ -8343,6 +8379,32 @@ function renderExpiredActiveCampaignsPanel(campaigns, monthLabel = getAdminWorki
           <button onclick="closeCampaign('${kpiAdminEscape(c.id)}')" style="background:none;border:1px solid #c8860a;color:#9a6500;font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;">Close to archive</button>
         </div>
       `).join('')}
+    </details>`;
+}
+
+function renderOtherActiveCampaignsPanel(campaigns, monthLabel = getAdminWorkingMonth(), renderCard, visibleCampaigns = null) {
+  const other = filterActiveOutsideWorkingMonth(campaigns, monthLabel, visibleCampaigns);
+  if (!other.length || typeof renderCard !== 'function') return '';
+  return `
+    <details open style="margin:0 0 12px;border:1px solid rgba(37,99,235,.22);border-left:4px solid var(--blue);border-radius:12px;background:rgba(37,99,235,.04);padding:10px 12px;">
+      <summary style="cursor:pointer;font-family:var(--display);font-size:17px;letter-spacing:.05em;">
+        Active campaigns in other months
+        <span style="font-family:var(--mono);font-size:10px;color:#888;margin-left:8px;">${other.length} outside ${kpiAdminEscape(monthLabel)}</span>
+      </summary>
+      <div style="font-family:var(--mono);font-size:10px;color:#777;margin:8px 0 10px;line-height:1.5;">
+        These are still active in Supabase, but they do not belong to ${kpiAdminEscape(monthLabel)}. Switch month to manage normally, or use Edit/Close here if it was created by mistake.
+      </div>
+      ${other.map(c => {
+        const label = campaignMonthWindowLabel(c);
+        return `
+          <div style="border-top:1px solid var(--border);padding-top:8px;margin-top:8px;">
+            <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
+              <div style="font-family:var(--mono);font-size:9px;color:var(--blue);">Campaign month: ${kpiAdminEscape(label)}</div>
+              ${label && label !== 'Unscheduled' ? `<button type="button" onclick="adminWorkingMonthSelectChanged('${kpiAdminEscape(label)}')" style="background:none;border:1px solid var(--blue);color:var(--blue);font-family:var(--mono);font-size:9px;padding:4px 9px;border-radius:6px;cursor:pointer;">Switch to ${kpiAdminEscape(label)}</button>` : ''}
+            </div>
+            ${renderCard(c, false)}
+          </div>`;
+      }).join('')}
     </details>`;
 }
 
@@ -8499,7 +8561,8 @@ function renderCampaignsList() {
   if(!el)return;
   const workingMonth = getAdminWorkingMonth();
   const active=CAMPAIGNS_DATA.campaigns.filter(c=>campaignOperationalInWorkingMonth(c, workingMonth));
-  const expiredActive=CAMPAIGNS_DATA.campaigns.filter(c=>campaignExpiredBeforeWorkingMonth(c, workingMonth));
+  const activeCampaigns=CAMPAIGNS_DATA.campaigns.filter(c=>c && c.active !== false);
+  const expiredActive=activeCampaigns.filter(c=>campaignExpiredBeforeWorkingMonth(c, workingMonth));
   const inactive=CAMPAIGNS_DATA.campaigns.filter(c=>!c.active);
   const TYPES={free_sample:'🎁 Free Sample',birthday_gift:'🎂 Birthday Gift',promotion:'📢 Brand Promotion',festive_gift:'🧧 Festive Gift',conversion_tiered:'🎯 Conversion (Tiered)',conversion_simple:'🎯 Conversion (Simple)',foc_sample:'🎁 FOC Sample',other:'📋 Other'};
   const TYPE_COLORS={free_sample:'#c8860a',foc_sample:'#c8860a',birthday_gift:'#c8381a',promotion:'#1a5c8f',festive_gift:'#6b3fa0',conversion_tiered:'#7c3aed',conversion_simple:'#0f766e',other:'#555'};
@@ -8545,6 +8608,7 @@ function renderCampaignsList() {
 
   el.innerHTML = (active.length ? active.map(c=>renderCard(c,false)).join('') : '<div style="font-family:var(--mono);font-size:10px;color:#888;padding:8px 0;">No active campaigns.</div>')
     + renderExpiredActiveCampaignsPanel(expiredActive, workingMonth)
+    + renderOtherActiveCampaignsPanel(activeCampaigns, workingMonth, renderCard, active)
     + renderCampaignArchiveDrawer(inactive, workingMonth);
   hydrateCampaignDeliveriesSections();
 }
@@ -8638,12 +8702,13 @@ async function hardDeleteCampaign(id) {
 function populateBulkCampSelect() {
   const sel = document.getElementById('bulk-camp-select');
   if (!sel) return;
+  const month = document.getElementById('bulk-month-select')?.value || getAdminWorkingMonth();
   sel.innerHTML = '<option value="">-- Select Campaign --</option>';
   const bdayOpt = document.createElement('option');
   bdayOpt.value = 'birthday_gift_auto';
   bdayOpt.textContent = '🎂 Birthday Gift Auto';
   sel.appendChild(bdayOpt);
-  (CAMPAIGNS_DATA.campaigns || []).filter(c => c.active).forEach(c => {
+  filterBulkCampaignsForMonth(CAMPAIGNS_DATA.campaigns || [], month).forEach(c => {
     const opt = document.createElement('option');
     opt.value = c.id;
     opt.textContent = c.name;
