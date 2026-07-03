@@ -56,7 +56,9 @@
       message.includes('payload too large') ||
       message.includes('request entity too large') ||
       message.includes('body size') ||
-      message.includes('request body') ||
+      message.includes('request body size') ||
+      message.includes('request body too large') ||
+      /request body (exceeded|exceeds)( the)?( size)? limit/.test(message) ||
       message.includes('content length') ||
       message.includes('content-length') ||
       message.includes('http 413') ||
