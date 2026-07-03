@@ -154,6 +154,8 @@ assert.doesNotMatch(autoSummary, /SUKUN/, 'Summary should not list SUKUN as Auto
 
 context.updateBrandBehaviorList('penetration_auto_brands', 'CMP, TR20');
 assert.deepEqual(context.CONFIG.penetration_auto_brands, ['CMP', 'TR20']);
+context.updateBrandBehaviorList('zlb_brands', 'SUKUN, CMP, CMX');
+assert.deepEqual(context.CONFIG.zlb_brands, ['SUKUN', 'CMP', 'CMX']);
 
 context.CONFIG.brand_config = {
   'BAD" onclick="alert(1)': ['SKU"><img src=x>'],

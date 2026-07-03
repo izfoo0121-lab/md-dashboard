@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <script>
-const SALES_DASHBOARD_BUILD = '20260703-162201';
+const SALES_DASHBOARD_BUILD = '20260703-164312';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
@@ -1460,7 +1460,27 @@ function zlbBrandKey(brand) {
 function configuredZlbBrandKeys() {
   const configured = DATA?.config?.zlb_brands;
   if (!Array.isArray(configured) || configured.length === 0) return null;
-  return new Set(configured.map(zlbBrandKey).filter(Boolean));
+  const keys = configured.map(zlbBrandKey).filter(Boolean);
+  return keys.length ? new Set(keys) : null;
+}
+
+function visibleZlbBrandKeys() {
+  const configured = DATA?.config?.zlb_brands;
+  const source = Array.isArray(configured) && configured.length
+    ? configured
+    : DEFAULT_VISIBLE_ZLB_BRANDS;
+  const seen = new Set();
+  const keys = [];
+  source.forEach(brand => {
+    const key = zlbBrandKey(brand);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    keys.push(key);
+  });
+  if (isHistoricalZlbIfaceMonth() && !seen.has('IFACE')) {
+    keys.unshift('IFACE');
+  }
+  return keys;
 }
 
 function isHistoricalZlbIfaceMonth(month = DATA?.current_month) {
@@ -1472,15 +1492,95 @@ function isHistoricalZlbIfaceMonth(month = DATA?.current_month) {
 function isVisibleZlbBrandGroup(brand) {
   const key = zlbBrandKey(brand);
   if (!key) return false;
-  const visible = configuredZlbBrandKeys() || new Set(DEFAULT_VISIBLE_ZLB_BRANDS.map(zlbBrandKey));
-  if (isHistoricalZlbIfaceMonth()) visible.add('IFACE');
-  return visible.has(key);
+  return visibleZlbBrandKeys().includes(key);
 }
 
 function zlbBrandChipLabel(brand) {
   const key = zlbBrandKey(brand);
   if (key === 'LAM+LWM') return 'L+L';
   return key;
+}
+
+function zlbConfiguredBrandCodes(brand) {
+  const key = zlbBrandKey(brand);
+  const config = DATA?.config?.brand_config || {};
+  const direct = config?.[brand] || config?.[key] || config?.[zlbBrandChipLabel(key)];
+  if (Array.isArray(direct) && direct.length) return direct.filter(Boolean);
+  const matchedKey = Object.keys(config).find(name => zlbBrandKey(name) === key);
+  const matched = matchedKey ? config[matchedKey] : null;
+  if (Array.isArray(matched) && matched.length) return matched.filter(Boolean);
+  return UNPURCHASED_BRAND_ITEMS?.[key] || UNPURCHASED_BRAND_ITEMS?.[brand] || [key];
+}
+
+function zlbNormalizedCode(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
+function zlbBrandCodeSet(brand) {
+  const codes = zlbConfiguredBrandCodes(brand).map(zlbNormalizedCode).filter(Boolean);
+  const key = zlbBrandKey(brand);
+  if (key) codes.push(key);
+  return new Set(codes);
+}
+
+function zlbRowsForMonth(debtor, monthLabel) {
+  const source = debtor?.month_breakdown || debtor?.unpurchased_breakdown || {};
+  const rows = source?.[monthLabel];
+  return Array.isArray(rows) ? rows : [];
+}
+
+function zlbRowsForBrandInMonth(debtor, brand, monthLabel) {
+  const wanted = zlbBrandCodeSet(brand);
+  if (!wanted.size || !monthLabel) return [];
+  return zlbRowsForMonth(debtor, monthLabel).filter(row => {
+    const candidates = [row?.item, row?.item_code, row?.item_group, row?.brand, row?.group]
+      .map(zlbNormalizedCode)
+      .filter(Boolean);
+    return candidates.some(code => wanted.has(code));
+  });
+}
+
+function zlbBrandCtnInMonth(debtor, brand, monthLabel) {
+  return zlbRowsForBrandInMonth(debtor, brand, monthLabel)
+    .reduce((sum, row) => sum + Math.abs(Number(row?.ctn ?? row?.qty_ctn ?? 0) || 0), 0);
+}
+
+function zlbMappedValue(map, brand) {
+  if (!map || typeof map !== 'object') return '';
+  const key = zlbBrandKey(brand);
+  if (Object.prototype.hasOwnProperty.call(map, brand)) return map[brand];
+  if (Object.prototype.hasOwnProperty.call(map, key)) return map[key];
+  const matchedKey = Object.keys(map).find(name => zlbBrandKey(name) === key);
+  return matchedKey ? map[matchedKey] : '';
+}
+
+function synthesizeZlbBrandStatus(debtor, brand) {
+  const curMonth = DATA?.current_month || '';
+  const priorMonths = [-1, -2, -3]
+    .map(offset => shiftedMonthLabel(curMonth, offset))
+    .filter(Boolean);
+  const boughtThis = zlbBrandCtnInMonth(debtor, brand, curMonth) > 0;
+  const boughtPast = priorMonths.some(month => zlbBrandCtnInMonth(debtor, brand, month) > 0);
+  if (boughtThis && !boughtPast) return 'new_penetration';
+  if (boughtPast) return 'regular';
+  return 'lapsed';
+}
+
+function zlbStatusForBrand(debtor, brand) {
+  return zlbMappedValue(debtor?.sku_status, brand) || synthesizeZlbBrandStatus(debtor, brand);
+}
+
+function zlbSalesTypeForBrand(debtor, brand) {
+  const existing = zlbMappedValue(debtor?.sku_sales_type, brand);
+  if (existing) return existing;
+  const rows = zlbRowsForBrandInMonth(debtor, brand, DATA?.current_month || '');
+  const types = rows.map(row => row?.sales_type).filter(Boolean);
+  const tierOrder = ['Target', 'Grey Area', 'Master Agent 35/45/55', 'Master Agent/Promo', 'Below Master Agent', 'Master Agent'];
+  return tierOrder.find(tier => types.includes(tier)) || types[0] || '';
+}
+
+function visibleZlbStatusEntries(debtor) {
+  return visibleZlbBrandKeys().map(brand => [brand, zlbStatusForBrand(debtor, brand)]);
 }
 
 function monthSlug(monthLabel) {
@@ -4978,10 +5078,10 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
       'Below Master Agent': 'var(--red)',
       'Master Agent': 'var(--accent)',
     };
-    const skuHtml = Object.entries(d.sku_status || {}).filter(([grp]) => isVisibleZlbBrandGroup(grp)).map(([grp, st]) => {
+    const skuHtml = visibleZlbStatusEntries(d).map(([grp, st]) => {
       const cls  = st==='new_penetration' ? 'sku-green' : st==='regular' ? 'sku-yellow' : 'sku-red';
       const lbl  = zlbBrandChipLabel(grp);
-      const tier = skuSalesType[grp] || '';
+      const tier = skuSalesType[grp] || zlbSalesTypeForBrand(d, grp);
       const tierLbl = tierShort[tier] || '';
       const tcolor  = tierColor[tier] || 'var(--muted)';
       const statusTip = st==='new_penetration' ? '当月购买' : st==='regular' ? '3个月内购买' : '还未购买';

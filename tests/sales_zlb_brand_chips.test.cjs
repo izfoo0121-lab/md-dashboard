@@ -38,8 +38,8 @@ assert(
   'debtor card chips should be labelled ZLB Brand, not generic SKU',
 );
 assert(
-  renderDebtorCard.includes('isVisibleZlbBrandGroup'),
-  'debtor card should filter visible ZLB brand groups through a dedicated helper',
+  renderDebtorCard.includes('visibleZlbStatusEntries'),
+  'debtor card should build visible ZLB brand chips through a helper that can follow admin config',
 );
 assert(
   salesHtml.includes('function isVisibleZlbBrandGroup'),
@@ -63,6 +63,7 @@ const salesContext = {
 };
 vm.createContext(salesContext);
 vm.runInContext(extractFunction(salesHtml, 'monthSortKey'), salesContext);
+vm.runInContext(extractFunction(salesHtml, 'shiftedMonthLabel'), salesContext);
 const zlbHelperStart = salesHtml.indexOf('const ZLB_IFACE_REMOVED_FROM_MONTH');
 const zlbHelperEnd = salesHtml.indexOf('function monthSlug', zlbHelperStart);
 assert(zlbHelperStart >= 0 && zlbHelperEnd > zlbHelperStart, 'ZLB helper block should be extractable');
@@ -83,6 +84,33 @@ assert.strictEqual(
   salesContext.isVisibleZlbBrandGroup('SUKUN'),
   true,
   'configured ZLB brands should remain visible after the IFACE cutoff',
+);
+
+salesContext.DATA.current_month = 'Jul 26';
+salesContext.DATA.config = {
+  zlb_brands: ['SUKUN', 'CMP'],
+  brand_config: { SUKUN: ['SKNR', 'SKNW'], CMP: ['CMP'] },
+};
+const dynamicZlbDebtor = {
+  sku_status: { SUKUN: 'lapsed' },
+  month_breakdown: {
+    'Jul 26': [{ item: 'CMP', ctn: 2, sales_type: 'Target' }],
+    'Jun 26': [],
+    'May 26': [],
+    'Apr 26': [],
+  },
+};
+const dynamicEntries = salesContext.visibleZlbStatusEntries(dynamicZlbDebtor);
+const dynamicBrands = Array.from(dynamicEntries, ([grp]) => grp);
+assert.deepStrictEqual(
+  dynamicBrands,
+  ['SUKUN', 'CMP'],
+  'debtor card ZLB chips should follow the admin ZLB Brand order even when payload sku_status is missing a newly configured brand',
+);
+assert.strictEqual(
+  Object.fromEntries(dynamicEntries).CMP,
+  'new_penetration',
+  'a newly configured ZLB brand should be synthesized from month_breakdown when old payloads omit sku_status for that brand',
 );
 
 const skuGroupsBlock = extractPythonBlock(processData, '# ZLB brand groups shown on debtor cards', '# New SKU groups');
