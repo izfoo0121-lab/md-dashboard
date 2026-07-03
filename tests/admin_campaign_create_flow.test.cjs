@@ -214,16 +214,8 @@ function createEditContext(campaign) {
   assert.strictEqual(unknownAgent.posts.length, 0, 'Campaign creation should stop before Supabase when an agent is unknown');
   assert(unknownAgent.alerts.join('\n').includes('300-A003'), 'Unknown agent validation should identify the affected debtor row');
 
-  const edit = createEditContext({
-    id: 'camp-edit-scope',
-    name: 'June FOC',
-    type: 'free_sample',
-    description: 'Original description',
-    promo_detail: 'Original promo',
-    deadline: '2026-06-30',
-    kpi_numerators: ['distribution'],
-    notes: { mechanism_type: 'delivery_gift', target_groups: ['grp2a'] },
-  });
+  const createdCampaign = valid.CAMPAIGNS_DATA.campaigns[0];
+  const edit = createEditContext(createdCampaign);
   const loaded = edit._campFromDb(
     { id: 'loaded-camp', name: 'Loaded FOC', type: 'free_sample', notes: { target_groups: ['grp2a'] } },
     {},
@@ -237,19 +229,19 @@ function createEditContext(campaign) {
   );
   assert.deepStrictEqual(Array.from(loadedDefault.target_groups), ['grp2a'], 'Loaded campaigns should default to Group 2A scope');
 
-  await edit.saveCampEdit('camp-edit-scope');
+  await edit.saveCampEdit(createdCampaign.id);
   assert.deepStrictEqual(
     edit.patches[0].payload.notes.target_groups,
     ['grp2a'],
     'Campaign edit PATCH should preserve Group 2A target groups in notes'
   );
   assert.deepStrictEqual(
-    Array.from(edit.CAMPAIGNS_DATA.campaigns[0].target_groups),
+    Array.from(createdCampaign.target_groups),
     ['grp2a'],
     'Campaign edit should keep local target_groups in sync after PATCH'
   );
   assert.deepStrictEqual(
-    edit.CAMPAIGNS_DATA.campaigns[0].notes.target_groups,
+    Array.from(createdCampaign.notes.target_groups),
     ['grp2a'],
     'Campaign edit should keep local notes.target_groups in sync after PATCH'
   );
