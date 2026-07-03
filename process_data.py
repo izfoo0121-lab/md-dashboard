@@ -387,6 +387,7 @@ DEFAULT_BRAND_CONFIG = {
 }
 DEFAULT_PENETRATION_AUTO_BRANDS = ["iFACE", "CMP", "BISON", "TR20"]
 DEFAULT_ZLB_BRANDS = ["SUKUN", "EVO", "BISON", "LAM+LWM"]
+ZLB_IFACE_REMOVED_FROM_MONTH = "Jul 26"
 
 IFACE_ITEM_CODES = ["IFACE B", "IFACE M", "IFACE R", "IFACE DB"]
 IFACE_PK_POOL_RATE = 3.5
@@ -649,6 +650,17 @@ def _clean_brand_sequence(values, default_values=None):
             seen.add(key)
             clean.append(label)
     return clean
+
+
+def zlb_brands_for_month(cur_month, zlb_brands=None):
+    brands = _clean_brand_sequence(zlb_brands, DEFAULT_ZLB_BRANDS)
+    month_key = _month_sort_key(cur_month)
+    cutoff_key = _month_sort_key(ZLB_IFACE_REMOVED_FROM_MONTH)
+    if month_key and cutoff_key and month_key < cutoff_key:
+        has_iface = any(_brand_penetration_key(brand) == "IFACE" for brand in brands)
+        if not has_iface:
+            brands = [_brand_display_label("IFACE"), *brands]
+    return brands
 
 
 def _brand_config_with_required_defaults(brand_config=None, required_brands=None):
@@ -3334,7 +3346,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
 
     # ZLB brand groups shown on debtor cards. These follow Admin Brand Behavior
     # config; IFACE stays available for campaign logic but is not a ZLB default.
-    zlb_brand_list = _clean_brand_sequence(zlb_brands, DEFAULT_ZLB_BRANDS)
+    zlb_brand_list = zlb_brands_for_month(cur_month, zlb_brands)
     zlb_brand_config = _brand_config_with_required_defaults(brand_config, zlb_brand_list)
     sku_groups = {}
     for brand in zlb_brand_list:

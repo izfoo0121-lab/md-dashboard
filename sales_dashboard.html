@@ -1446,6 +1446,7 @@ const BRAND_COLORS = {
   'iFACE':'#4da6ff','SUKUN':'#a78bfa','EVO':'#ff5f5f',
   'BISON':'#f0c040','TR20':'#3ddc84','LAM+LWM':'#ff9a3c'
 };
+const ZLB_IFACE_REMOVED_FROM_MONTH = 'Jul 26';
 const DEFAULT_VISIBLE_ZLB_BRANDS = ['SUKUN', 'EVO', 'BISON', 'TR20', 'LAM+LWM'];
 
 function zlbBrandKey(brand) {
@@ -1462,12 +1463,18 @@ function configuredZlbBrandKeys() {
   return new Set(configured.map(zlbBrandKey).filter(Boolean));
 }
 
+function isHistoricalZlbIfaceMonth(month = DATA?.current_month) {
+  const selected = monthSortKey(month);
+  const cutoff = monthSortKey(ZLB_IFACE_REMOVED_FROM_MONTH);
+  return Number.isFinite(selected) && Number.isFinite(cutoff) && selected < cutoff;
+}
+
 function isVisibleZlbBrandGroup(brand) {
   const key = zlbBrandKey(brand);
   if (!key) return false;
-  const configured = configuredZlbBrandKeys();
-  if (configured) return configured.has(key);
-  return DEFAULT_VISIBLE_ZLB_BRANDS.map(zlbBrandKey).includes(key);
+  const visible = configuredZlbBrandKeys() || new Set(DEFAULT_VISIBLE_ZLB_BRANDS.map(zlbBrandKey));
+  if (isHistoricalZlbIfaceMonth()) visible.add('IFACE');
+  return visible.has(key);
 }
 
 function zlbBrandChipLabel(brand) {

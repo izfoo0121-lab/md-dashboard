@@ -9,6 +9,15 @@ import process_data
 
 
 class NewSkuGroupTests(unittest.TestCase):
+    def test_zlb_brands_keep_iface_before_july_cutoff_only(self):
+        configured = ["SUKUN", "EVO", "BISON", "LAM+LWM"]
+
+        self.assertEqual(
+            process_data.zlb_brands_for_month("Jun 26", configured)[0],
+            "iFACE",
+        )
+        self.assertNotIn("iFACE", process_data.zlb_brands_for_month("Jul 26", configured))
+
     def test_debtor_cards_count_new_matrix_skus_individually(self):
         rows = []
         for item_code in ("CMX", "CMP", "BISON-R", "BISON-M"):
