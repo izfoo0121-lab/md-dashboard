@@ -134,6 +134,43 @@ function createContext(uploadRows) {
   return context;
 }
 
+function createEditContext(campaign) {
+  const patches = [];
+  const elements = {
+    [`camp-edit-name-${campaign.id}`]: createElement('June FOC edited'),
+    [`camp-edit-desc-${campaign.id}`]: createElement('Updated description'),
+    [`camp-edit-promo-${campaign.id}`]: createElement('Updated promo'),
+    [`camp-edit-deadline-${campaign.id}`]: createElement('2026-06-29'),
+  };
+  const context = {
+    CAMPAIGNS_DATA: { campaigns: [campaign] },
+    patches,
+    console,
+    document: {
+      getElementById(id) {
+        if (!elements[id]) elements[id] = createElement('');
+        return elements[id];
+      },
+    },
+    alert(msg) { throw new Error(`Unexpected alert: ${msg}`); },
+    confirm() { throw new Error('Unexpected confirm'); },
+    getCampaignNumerators: camp => camp.kpi_numerators || ['distribution'],
+    readKpiNumerators: () => ['distribution'],
+    readCampaignMechanism: () => ({ mechanism_type: 'delivery_gift' }),
+    _campPatchCampaign: async (id, payload) => { patches.push({ id, payload }); },
+    saveCampaignsData() {},
+    renderCampaignsList() {},
+  };
+  context.window = context;
+  vm.createContext(context);
+  vm.runInContext([
+    'var CAMPAIGNS_DATA = globalThis.CAMPAIGNS_DATA;',
+    extractFunction('_campFromDb'),
+    extractFunction('saveCampEdit'),
+  ].join('\n'), context);
+  return context;
+}
+
 (async () => {
   const valid = createContext([{ code: '300-A001', name: 'SHOP A', agent: 'ben' }]);
   await valid.createCampaign();
@@ -176,6 +213,46 @@ function createContext(uploadRows) {
   await unknownAgent.createCampaign();
   assert.strictEqual(unknownAgent.posts.length, 0, 'Campaign creation should stop before Supabase when an agent is unknown');
   assert(unknownAgent.alerts.join('\n').includes('300-A003'), 'Unknown agent validation should identify the affected debtor row');
+
+  const edit = createEditContext({
+    id: 'camp-edit-scope',
+    name: 'June FOC',
+    type: 'free_sample',
+    description: 'Original description',
+    promo_detail: 'Original promo',
+    deadline: '2026-06-30',
+    kpi_numerators: ['distribution'],
+    notes: { mechanism_type: 'delivery_gift', target_groups: ['grp2a'] },
+  });
+  const loaded = edit._campFromDb(
+    { id: 'loaded-camp', name: 'Loaded FOC', type: 'free_sample', notes: { target_groups: ['grp2a'] } },
+    {},
+    {},
+  );
+  assert.deepStrictEqual(Array.from(loaded.target_groups), ['grp2a'], 'Loaded campaigns should hydrate target groups from notes');
+  const loadedDefault = edit._campFromDb(
+    { id: 'loaded-default', name: 'Loaded Default', type: 'free_sample', notes: {} },
+    {},
+    {},
+  );
+  assert.deepStrictEqual(Array.from(loadedDefault.target_groups), ['grp2a'], 'Loaded campaigns should default to Group 2A scope');
+
+  await edit.saveCampEdit('camp-edit-scope');
+  assert.deepStrictEqual(
+    edit.patches[0].payload.notes.target_groups,
+    ['grp2a'],
+    'Campaign edit PATCH should preserve Group 2A target groups in notes'
+  );
+  assert.deepStrictEqual(
+    Array.from(edit.CAMPAIGNS_DATA.campaigns[0].target_groups),
+    ['grp2a'],
+    'Campaign edit should keep local target_groups in sync after PATCH'
+  );
+  assert.deepStrictEqual(
+    edit.CAMPAIGNS_DATA.campaigns[0].notes.target_groups,
+    ['grp2a'],
+    'Campaign edit should keep local notes.target_groups in sync after PATCH'
+  );
 
   console.log('admin_campaign_create_flow.test.cjs passed');
 })().catch(err => {

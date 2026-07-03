@@ -7111,6 +7111,8 @@ function _campRuleFromDb(row) {
 
 function _campFromDb(row, rulesByCampaign, debtorsByCampaign) {
   const brands = Array.isArray(row.brands) ? row.brands : (row.brands ? [row.brands] : []);
+  const notes = row.notes && typeof row.notes === 'object' && !Array.isArray(row.notes) ? row.notes : {};
+  const targetGroups = Array.isArray(notes.target_groups) && notes.target_groups.length ? notes.target_groups : ['grp2a'];
   const catRules = {};
   (rulesByCampaign[row.id] || []).forEach(rule => {
     if (rule.cat_group) catRules[rule.cat_group] = _campRuleFromDb(rule);
@@ -7148,7 +7150,8 @@ function _campFromDb(row, rulesByCampaign, debtorsByCampaign) {
     brand: brands.length === 1 ? brands[0] : '',
     brands,
     description: row.description || '',
-    notes: row.notes || {},
+    notes,
+    target_groups: targetGroups,
     promo_detail: row.promo_detail || '',
     min_order_ctn: row.min_order_ctn ?? null,
     cat_rules: catRules,
@@ -9325,13 +9328,14 @@ async function saveCampEdit(id) {
   if (oldNums.slice().sort().join('|') !== newNums.slice().sort().join('|')) {
     if (!confirm('Changing numerators may invalidate existing per-agent targets for this campaign. Continue?')) return;
   }
+  const existingTargetGroups = camp.notes?.target_groups || camp.target_groups || ['grp2a'];
   const payload = {
     name: name || camp.name,
     description: desc ?? '',
     promo_detail: promo ?? '',
     deadline: deadline || camp.deadline || null,
     kpi_numerators: newNums,
-    notes: readCampaignMechanism('camp-edit-' + id, camp.type)
+    notes: { ...readCampaignMechanism('camp-edit-' + id, camp.type), target_groups: existingTargetGroups }
   };
   try {
     await _campPatchCampaign(id, payload);
@@ -9341,6 +9345,7 @@ async function saveCampEdit(id) {
     camp.deadline     = payload.deadline || '';
     camp.kpi_numerators = payload.kpi_numerators;
     camp.notes = payload.notes || {};
+    camp.target_groups = existingTargetGroups;
     saveCampaignsData();
     renderCampaignsList();
   } catch(e) {
