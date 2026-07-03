@@ -51,6 +51,10 @@ function scriptTagIndex(scriptPath) {
 }
 
 let previousScriptIndex = -1;
+const adminContextScriptIndex = scriptTagIndex('admin_context.js');
+assert(adminContextScriptIndex >= 0, 'admin.html should include admin_context.js before campaign engine scripts');
+previousScriptIndex = adminContextScriptIndex;
+
 expectedEngineScripts.forEach(script => {
   const scriptIndex = scriptTagIndex(script);
   assert(scriptIndex >= 0, `admin.html should include an active script tag for ${script}`);

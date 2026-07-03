@@ -3,11 +3,16 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
+const engineAdmin = require('../campaign_engine/admin_campaign_adapter.js');
+
 const html = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
 
 function extractFunction(name) {
-  const start = html.indexOf(`function ${name}`);
+  const markers = [`function ${name}(`, `async function ${name}(`];
+  const starts = markers.map(marker => html.indexOf(marker)).filter(index => index >= 0);
+  const start = starts.length ? Math.min(...starts) : -1;
   assert(start >= 0, `${name} should exist`);
+
   const fnStart = html.slice(start - 6, start) === 'async ' ? start - 6 : start;
   const bodyStart = html.indexOf('{', html.indexOf(')', start));
   assert(bodyStart >= 0, `${name} should have a function body`);
@@ -36,6 +41,11 @@ function createElement(value = '') {
 function createContext(uploadRows) {
   const posts = [];
   const alerts = [];
+  const engineCalls = [];
+  const brandBoxes = [
+    { value: 'SUKUN', checked: false },
+    { value: 'EVO', checked: false },
+  ];
   const elements = {
     'new-camp-name': createElement('June FOC'),
     'new-camp-type': createElement('free_sample'),
@@ -48,14 +58,15 @@ function createContext(uploadRows) {
     'new-camp-foc-unit': createElement('packs'),
     'new-camp-foc-note': createElement(''),
     'new-camp-festive': createElement(''),
-    'new-camp-file': createElement(''),
+    'new-camp-file': createElement('uploaded.csv'),
     'new-camp-price-floor': createElement(''),
     'new-camp-reward-tiers': createElement(''),
-    'camp-file-preview': createElement(''),
+    'camp-file-preview': createElement('1 debtor ready'),
     'cat-rules-section': createElement(''),
     'cat-rules-list': createElement(''),
     'save-toast-camp': createElement(''),
   };
+  elements['cat-rules-section'].style.display = 'block';
 
   const context = {
     _campFileDebtors: uploadRows,
@@ -63,6 +74,7 @@ function createContext(uploadRows) {
     CONFIG: { agents: { BEN: { active: true }, JACKY: { active: true } } },
     posts,
     alerts,
+    engineCalls,
     console,
     window: null,
     MDAdminContext: { monthToIsoDate },
@@ -72,81 +84,98 @@ function createContext(uploadRows) {
         if (!elements[id]) elements[id] = createElement('');
         return elements[id];
       },
-      querySelectorAll() {
+      querySelectorAll(selector) {
+        if (selector === '#brand-checkboxes input:checked') return brandBoxes.filter(box => box.checked);
+        if (selector === '#brand-checkboxes input') return brandBoxes;
         return [];
       },
     },
     alert(msg) { alerts.push(String(msg)); },
-    setTimeout() {},
-    readKpiNumerators: () => ['count'],
-    validateCampaignMechanismBeforeSave: () => true,
+    setTimeout(fn) { if (typeof fn === 'function') fn(); },
+    readKpiNumerators: () => ['distribution'],
     getCatRules: () => ({}),
     readBrandPenetrationAgentGroupMap: () => ({}),
-    brandPenetrationDefaultGroup: () => '',
+    brandPenetrationDefaultGroup: () => 'grp2a',
     readCampaignMechanism: () => ({ mechanism_type: 'delivery_gift' }),
-    _campRuleToDb: (campaignId, catGroup, rule) => ({ campaign_id: campaignId, cat_group: catGroup, ...rule }),
-    _campPostRows: async (table, rows) => { posts.push({ table, rows }); },
-    _adminSupabaseFetch: async (table, opts) => {
+    getMdAdminScopedAgents(agentList, opts = {}) {
+      return (agentList || [])
+        .filter(agent => opts.includeInactive || context.CONFIG.agents[agent]?.active !== false)
+        .filter(agent => opts.includeArchived || !context.CONFIG.agents[agent]?.archived)
+        .map(agent => String(agent || '').trim().toUpperCase())
+        .filter(Boolean);
+    },
+    _adminSupabaseFetch: async (table, opts = {}) => {
       posts.push({ table, opts, body: opts.body ? JSON.parse(opts.body) : null });
       return { ok: true };
     },
-    _campDeleteCampaign: async id => { posts.push({ table: 'campaigns_delete', id }); },
     saveCampaignsData() {},
-    _campNumOrNull(value) {
-      if (value === '' || value == null) return null;
-      const n = Number(value);
-      return Number.isFinite(n) ? n : null;
-    },
-    _campTextOrNull(value) {
-      const text = String(value || '').trim();
-      return text || null;
-    },
-    normalizeFocUnit(value) {
-      return String(value || '').trim();
+    PFMDCampaignEngine: {
+      admin: {
+        async createCampaignFromAdminForm(ctx) {
+          engineCalls.push(ctx);
+          return engineAdmin.createCampaignFromAdminForm(ctx);
+        },
+      },
     },
   };
+
   context.window = context;
   vm.createContext(context);
   vm.runInContext([
     'var _campFileDebtors = globalThis._campFileDebtors;',
     'var CAMPAIGNS_DATA = globalThis.CAMPAIGNS_DATA;',
     'var CONFIG = globalThis.CONFIG;',
-    extractFunction('_campCampaignToDb'),
-    extractFunction('_campDebtorToDb'),
     extractFunction('_adminCurrentMonthDate'),
     extractFunction('prepareCampaignDebtorForSave'),
-    extractFunction('campaignDebtorCode'),
-    extractFunction('validateCampaignDebtorAgents'),
+    extractFunction('buildAdminCampaignEngineContext'),
     extractFunction('createCampaign'),
   ].join('\n'), context);
+
   return context;
 }
 
 (async () => {
   const valid = createContext([{ code: '300-A001', name: 'SHOP A', agent: 'ben' }]);
   await valid.createCampaign();
+  assert.strictEqual(valid.engineCalls.length, 1, 'createCampaign should delegate once to the shared admin engine');
+  assert.deepStrictEqual(Array.from(valid.engineCalls[0].defaultTargetGroups), ['grp2a']);
+
   const campaignPost = valid.posts.find(post => post.table === 'campaigns');
-  assert(campaignPost, 'createCampaign should post a campaign row to Supabase');
+  assert(campaignPost, 'shared engine should post a campaign row to Supabase');
   assert.strictEqual(
     campaignPost.body.start_date,
     '2026-06-01',
     'Campaigns created from a working month should persist that month start date'
+  );
+  assert.deepStrictEqual(
+    campaignPost.body.notes.target_groups,
+    ['grp2a'],
+    'Campaign Supabase notes should scope the campaign to Group 2A'
   );
   assert.strictEqual(
     valid.CAMPAIGNS_DATA.campaigns[0].start_date,
     '2026-06-01',
     'Local campaign state should keep the same working-month start date'
   );
+  assert.deepStrictEqual(
+    Array.from(valid.CAMPAIGNS_DATA.campaigns[0].target_groups),
+    ['grp2a'],
+    'Local campaign state should keep the Group 2A target scope'
+  );
+
+  const debtorPost = valid.posts.find(post => post.table === 'campaign_debtors');
+  assert(debtorPost, 'shared engine should post campaign debtor rows to Supabase');
+  assert.strictEqual(debtorPost.body[0].agent, 'BEN', 'Uploaded debtor agents should be normalized before save');
 
   const missingAgent = createContext([{ code: '300-A002', name: 'SHOP B', agent: '' }]);
   await missingAgent.createCampaign();
   assert.strictEqual(missingAgent.posts.length, 0, 'Campaign creation should stop before Supabase when an agent is blank');
-  assert(missingAgent.alerts.join('\n').includes('agent'), 'Blank agent validation should explain the agent problem');
+  assert(missingAgent.alerts.join('\n').includes('no active agent can claim'), 'Blank agent validation should explain the agent problem');
 
   const unknownAgent = createContext([{ code: '300-A003', name: 'SHOP C', agent: 'ZZ' }]);
   await unknownAgent.createCampaign();
   assert.strictEqual(unknownAgent.posts.length, 0, 'Campaign creation should stop before Supabase when an agent is unknown');
-  assert(unknownAgent.alerts.join('\n').includes('ZZ'), 'Unknown agent validation should name the bad agent code');
+  assert(unknownAgent.alerts.join('\n').includes('300-A003'), 'Unknown agent validation should identify the affected debtor row');
 
   console.log('admin_campaign_create_flow.test.cjs passed');
 })().catch(err => {

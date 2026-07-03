@@ -168,6 +168,12 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="admin_context.js"></script>
+<script src="campaign_engine/campaign_model.js"></script>
+<script src="campaign_engine/campaign_validation.js"></script>
+<script src="campaign_engine/campaign_db_mapper.js"></script>
+<script src="campaign_engine/campaign_repository.js"></script>
+<script src="campaign_engine/admin_campaign_adapter.js"></script>
+<script src="campaign_engine/index.js"></script>
 </head>
 <body>
 
@@ -8630,100 +8636,72 @@ function validateCampaignMechanismBeforeSave(scope, type) {
   return !errors.length;
 }
 
-async function createCampaign() {
-  const name     = document.getElementById('new-camp-name').value.trim();
-  const type     = document.getElementById('new-camp-type').value;
-  const desc     = document.getElementById('new-camp-desc').value.trim();
-  const deadline = document.getElementById('new-camp-deadline').value;
-  const kpiNumerators = readKpiNumerators('new-camp');
-  if (!name)     { alert('Please enter campaign name'); return; }
-  if (!deadline) { alert('Please set deadline'); return; }
-  if (!_campFileDebtors.length) { alert('Please upload debtor list'); return; }
-  if (!kpiNumerators.length) { alert('Please select at least one KPI numerator.'); return; }
-  if (!validateCampaignMechanismBeforeSave('new-camp', type)) return;
+function buildAdminCampaignEngineContext() {
+  return {
+    mode: 'md-dashboard',
+    defaultTargetGroups: ['grp2a'],
+    activeAgents: getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}), { includeArchived: false, includeInactive: false }),
+    normalizeAgent: value => String(value || '').trim().toUpperCase(),
+    normalizeGroup: value => String(value || '').trim().toLowerCase() || 'grp2a',
+    getValue(id) { return document.getElementById(id)?.value || ''; },
+    getCheckedValues(selector) { return Array.from(document.querySelectorAll(selector)).map(el => el.value); },
+    getCampaignFileDebtors() { return _campFileDebtors || []; },
+    campaignId() { return 'camp_' + Date.now(); },
+    monthStart() { return _adminCurrentMonthDate(); },
+    now() { return new Date(); },
+    readKpiNumerators,
+    getCatRules,
+    readCampaignMechanism,
+    prepareCampaignDebtorForSave(row) {
+      return prepareCampaignDebtorForSave(row, {
+        groupMap: readBrandPenetrationAgentGroupMap(),
+        defaultGroup: brandPenetrationDefaultGroup(),
+      });
+    },
+    validateListingCoverage(debtors) {
+      if (!Array.isArray(debtors) || !debtors.length) {
+        return {
+          ok: false,
+          errors: [{ code: 'empty_group2a_listing', message: 'No uploaded/generated debtor rows match Group 2A.' }],
+          warnings: [],
+        };
+      }
+      return { ok: true, errors: [], warnings: [] };
+    },
+    supabaseFetch: _adminSupabaseFetch,
+    alert(message) { alert(message); },
+    onCampaignCreateSuccess(camp) {
+      CAMPAIGNS_DATA.campaigns.push(camp);
+      saveCampaignsData();
 
-  const brands   = type==='promotion'
-    ? Array.from(document.querySelectorAll('#brand-checkboxes input:checked')).map(c=>c.value) : [];
-  const promo    = document.getElementById('new-camp-promo')?.value?.trim()||'';
-  const minOrder = parseFloat(document.getElementById('new-camp-min-order')?.value)||null;
-  const catRules = getCatRules();
+      ['new-camp-name','new-camp-desc','new-camp-deadline','new-camp-file',
+       'new-camp-promo','new-camp-min-order',
+       'new-camp-foc-item','new-camp-foc-qty','new-camp-foc-note',
+       'new-camp-price-floor','new-camp-reward-tiers'].forEach(id=>{
+        const el=document.getElementById(id); if(el) el.value='';
+      });
+      const preview = document.getElementById('camp-file-preview');
+      if (preview) preview.textContent = '';
+      const sec=document.getElementById('cat-rules-section'); if(sec) sec.style.display='none';
+      const lst=document.getElementById('cat-rules-list'); if(lst) lst.innerHTML='';
+      document.querySelectorAll('#brand-checkboxes input').forEach(c=>c.checked=false);
+      _campFileDebtors=[];
 
-  // FOC fields
-  const focItem  = document.getElementById('new-camp-foc-item')?.value?.trim().toUpperCase()||'';
-  const focQty   = parseFloat(document.getElementById('new-camp-foc-qty')?.value)||0;
-  const focUnit  = normalizeFocUnit(document.getElementById('new-camp-foc-unit')?.value||'packs');
-  const focNote  = document.getElementById('new-camp-foc-note')?.value?.trim()||'';
-  const festive  = document.getElementById('new-camp-festive')?.value||'';
-  const brandPenGroupMap = readBrandPenetrationAgentGroupMap();
-  const brandPenDefaultGroup = brandPenetrationDefaultGroup();
-  const preparedDebtors = _campFileDebtors.map(d => prepareCampaignDebtorForSave(d, {
-    groupMap: brandPenGroupMap,
-    defaultGroup: brandPenDefaultGroup,
-  }));
-  if (!validateCampaignDebtorAgents(preparedDebtors, 'Campaign debtor list')) return;
-  const startDate = _adminCurrentMonthDate();
-
-  const camp = {
-    id:'camp_'+Date.now(), name, type, description:desc,
-    brands, promo_detail:promo, min_order_ctn:minOrder,
-    cat_rules: catRules,
-    // FOC/Festive fields
-    default_foc_item:  focItem,
-    default_foc_qty:   focQty,
-    default_foc_unit:  focUnit,
-    foc_note:          focNote,
-    festive_occasion:  festive,
-    kpi_numerators:    kpiNumerators,
-    notes:             readCampaignMechanism('new-camp', type),
-    created_at:new Date().toISOString().split('T')[0],
-    start_date:startDate,
-    deadline, active:true, debtors:preparedDebtors,
+      const t=document.getElementById('save-toast-camp');
+      if (t) {
+        t.style.display='block';
+        setTimeout(()=>{ t.style.display='none'; },2000);
+      }
+    },
   };
+}
 
-  let insertedCampaign = false;
-  try {
-    await _adminSupabaseFetch('campaigns', {
-      method: 'POST',
-      headers: { 'Prefer': 'return=representation' },
-      body: JSON.stringify(_campCampaignToDb(camp))
-    });
-    insertedCampaign = true;
-
-    const ruleRows = Object.entries(camp.cat_rules || {})
-      .map(([catGroup, rule]) => _campRuleToDb(camp.id, catGroup, rule));
-    await _campPostRows('campaign_cat_rules', ruleRows);
-
-    const debtorRows = (camp.debtors || []).map(d => _campDebtorToDb(camp.id, d));
-    await _campPostRows('campaign_debtors', debtorRows);
-  } catch (e) {
-    if (insertedCampaign) {
-      try { await _campDeleteCampaign(camp.id); }
-      catch (rollbackErr) { console.error('Campaign rollback failed', rollbackErr); }
-    }
-    console.error('Campaign create failed', e);
-    const detail = e?.message ? `\n\n${String(e.message).slice(0, 700)}` : '';
-    alert(`Failed to save campaign to Supabase. No campaign was kept locally.${detail}`);
+async function createCampaign() {
+  if (!window.PFMDCampaignEngine?.admin?.createCampaignFromAdminForm) {
+    alert('Campaign engine did not load. Refresh Admin and try again.');
     return;
   }
-
-  CAMPAIGNS_DATA.campaigns.push(camp);
-  saveCampaignsData();
-
-  // Reset form
-  ['new-camp-name','new-camp-desc','new-camp-deadline','new-camp-file',
-   'new-camp-promo','new-camp-min-order',
-   'new-camp-foc-item','new-camp-foc-qty','new-camp-foc-note',
-   'new-camp-price-floor','new-camp-reward-tiers'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.value='';
-  });
-  document.getElementById('camp-file-preview').textContent='';
-  const sec=document.getElementById('cat-rules-section'); if(sec) sec.style.display='none';
-  const lst=document.getElementById('cat-rules-list'); if(lst) lst.innerHTML='';
-  document.querySelectorAll('#brand-checkboxes input').forEach(c=>c.checked=false);
-  _campFileDebtors=[];
-
-  const t=document.getElementById('save-toast-camp');
-  t.style.display='block'; setTimeout(()=>t.style.display='none',2000);
+  await window.PFMDCampaignEngine.admin.createCampaignFromAdminForm(buildAdminCampaignEngineContext());
 }
 
 function previewCampFile(input) {
