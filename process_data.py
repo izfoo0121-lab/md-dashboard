@@ -3270,7 +3270,7 @@ def build_debtor_info(debtor_df):
     return debtor_info
 
 
-def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_groups=None, new_sku_groups_config=None):
+def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_groups=None, new_sku_groups_config=None, brand_config=None, zlb_brands=None):
     """
     Preserve existing Phase 1 debtor card logic:
     - Activation status per debtor (Active / Pending / Need Reactivation)
@@ -3332,15 +3332,21 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
     if debtor_info:
         log(f"  Debtor info loaded: {len(debtor_info)} entries")
 
-    # SKU groups
-    sku_groups = {
-        "IFACE":   ["IFACE B", "IFACE DB", "IFACE M", "IFACE R"],
-        "SUKUN":   ["SKNW", "SKNR"],
-        "EVO":     ["EVO"],
-        "BISON":   ["BISON-R", "BISON-M", "BISON-G"],
-        "TR20":    ["TR20"],
-        "LAM+LWM": ["LAM", "LWM"],
-    }
+    # ZLB brand groups shown on debtor cards. These follow Admin Brand Behavior
+    # config; IFACE stays available for campaign logic but is not a ZLB default.
+    zlb_brand_list = _clean_brand_sequence(zlb_brands, DEFAULT_ZLB_BRANDS)
+    zlb_brand_config = _brand_config_with_required_defaults(brand_config, zlb_brand_list)
+    sku_groups = {}
+    for brand in zlb_brand_list:
+        codes = zlb_brand_config.get(brand)
+        if codes is None:
+            codes = next(
+                (values for key, values in zlb_brand_config.items() if _brand_penetration_key(key) == _brand_penetration_key(brand)),
+                [],
+            )
+        clean_codes = [_norm_code(code) for code in (codes or []) if _norm_code(code)]
+        if clean_codes:
+            sku_groups[brand] = clean_codes
 
     # New SKU groups are config-driven. Admin can save targets.sku_rules,
     # and local runs can use config/sku_rules.json as a fallback.
@@ -5632,7 +5638,7 @@ def main():
     brand_comm  = calc_brand_commission(df, targets, all_agents, cur_month, prev_months, brand_config, debtor_info=debtor_info_shared)
     newbie      = calc_newbie_scheme(df, targets, agents, cur_month, debtor_info=debtor_info_shared, manual_overrides=_sb_kpi)
     aging       = calc_aging(df, all_agents, cur_month)
-    debtor_cards = calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map, area_groups, sku_rules_config)
+    debtor_cards = calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map, area_groups, sku_rules_config, brand_config, zlb_brands)
     sku_trace   = calc_sku_trace(df, sku_trace_config, all_agents, cur_month)
 
     # ── Save month-start snapshot + auto-calc KPI targets ───────────────────

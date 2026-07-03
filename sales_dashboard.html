@@ -1446,6 +1446,35 @@ const BRAND_COLORS = {
   'iFACE':'#4da6ff','SUKUN':'#a78bfa','EVO':'#ff5f5f',
   'BISON':'#f0c040','TR20':'#3ddc84','LAM+LWM':'#ff9a3c'
 };
+const DEFAULT_VISIBLE_ZLB_BRANDS = ['SUKUN', 'EVO', 'BISON', 'TR20', 'LAM+LWM'];
+
+function zlbBrandKey(brand) {
+  const raw = String(brand || '').trim();
+  const upper = raw.toUpperCase();
+  if (upper === 'L+L') return 'LAM+LWM';
+  if (upper === 'IFACE') return 'IFACE';
+  return upper;
+}
+
+function configuredZlbBrandKeys() {
+  const configured = DATA?.config?.zlb_brands;
+  if (!Array.isArray(configured) || configured.length === 0) return null;
+  return new Set(configured.map(zlbBrandKey).filter(Boolean));
+}
+
+function isVisibleZlbBrandGroup(brand) {
+  const key = zlbBrandKey(brand);
+  if (!key) return false;
+  const configured = configuredZlbBrandKeys();
+  if (configured) return configured.has(key);
+  return DEFAULT_VISIBLE_ZLB_BRANDS.map(zlbBrandKey).includes(key);
+}
+
+function zlbBrandChipLabel(brand) {
+  const key = zlbBrandKey(brand);
+  if (key === 'LAM+LWM') return 'L+L';
+  return key;
+}
 
 function monthSlug(monthLabel) {
   return (monthLabel || '').replace(' ','').toLowerCase();
@@ -4942,9 +4971,9 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
       'Below Master Agent': 'var(--red)',
       'Master Agent': 'var(--accent)',
     };
-    const skuHtml = Object.entries(d.sku_status || {}).map(([grp, st]) => {
+    const skuHtml = Object.entries(d.sku_status || {}).filter(([grp]) => isVisibleZlbBrandGroup(grp)).map(([grp, st]) => {
       const cls  = st==='new_penetration' ? 'sku-green' : st==='regular' ? 'sku-yellow' : 'sku-red';
-      const lbl  = grp.replace('LAM+LWM','L+L').replace('IFACE','iFACE');
+      const lbl  = zlbBrandChipLabel(grp);
       const tier = skuSalesType[grp] || '';
       const tierLbl = tierShort[tier] || '';
       const tcolor  = tierColor[tier] || 'var(--muted)';
@@ -5015,7 +5044,7 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
         </div>
 
         <div class="sku-section">
-          <div class="sku-section-lbl">SKU · Last: ${d.last_purchase_date||'—'} &nbsp;
+          <div class="sku-section-lbl">ZLB Brand · Last: ${d.last_purchase_date||'—'} &nbsp;
             <span style="color:var(--green)">●</span>当月购买
             <span style="color:var(--accent)">●</span>3个月内购买
             <span style="color:var(--red)">●</span>还未购买
