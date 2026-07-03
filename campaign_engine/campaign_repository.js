@@ -33,12 +33,32 @@
       try {
         await writeChunk(deps, table, chunk, headers);
       } catch (error) {
-        if (chunk.length <= retryChunkSize) throw error;
+        if (chunk.length <= retryChunkSize || !shouldRetryChunkWrite(error)) throw error;
         for (let j = 0; j < chunk.length; j += retryChunkSize) {
           await writeChunk(deps, table, chunk.slice(j, j + retryChunkSize), headers);
         }
       }
     }
+  }
+
+  function shouldRetryChunkWrite(error) {
+    if (!error) return false;
+    const status = Number(error.status || error.statusCode || error.code);
+    if (status === 413 || status === 414 || status === 429) return true;
+    const message = [
+      error.message,
+      error.details,
+      error.hint,
+      error.error,
+      error.description,
+    ].filter(Boolean).join(' ').toLowerCase();
+    return (
+      message.includes('payload too large') ||
+      message.includes('request entity too large') ||
+      message.includes('too large') ||
+      message.includes('maximum') ||
+      message.includes('body size')
+    );
   }
 
   async function writeChunk(deps, table, chunk, headers) {
