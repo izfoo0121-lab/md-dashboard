@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
+const htmlWithoutComments = html.replace(/<!--[\s\S]*?-->/g, '');
 
 function extractFunction(name, { asyncOnly = false } = {}) {
   const markers = asyncOnly
@@ -36,10 +37,23 @@ const expectedEngineScripts = [
   'campaign_engine/index.js',
 ];
 
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function scriptTagIndex(scriptPath) {
+  const pattern = new RegExp(
+    `<script\\b[^>]*\\bsrc\\s*=\\s*["']${escapeRegex(scriptPath)}["'][^>]*>\\s*</script>`,
+    'i'
+  );
+  const match = htmlWithoutComments.match(pattern);
+  return match ? match.index : -1;
+}
+
 let previousScriptIndex = -1;
 expectedEngineScripts.forEach(script => {
-  const scriptIndex = html.indexOf(script);
-  assert(scriptIndex >= 0, `admin.html should include ${script}`);
+  const scriptIndex = scriptTagIndex(script);
+  assert(scriptIndex >= 0, `admin.html should include an active script tag for ${script}`);
   assert(
     scriptIndex > previousScriptIndex,
     `${script} should be loaded after the previous campaign engine script`
@@ -56,10 +70,14 @@ assert(
   "buildAdminCampaignEngineContext should default campaigns to Group 2A"
 );
 
-assert.match(
-  extractFunction('createCampaign', { asyncOnly: true }),
-  /PFMDCampaignEngine\.admin\.createCampaignFromAdminForm/,
-  'createCampaign should delegate to the shared admin campaign engine adapter'
+const createCampaignBody = extractFunction('createCampaign', { asyncOnly: true });
+assert(
+  createCampaignBody.includes('await window.PFMDCampaignEngine.admin.createCampaignFromAdminForm(buildAdminCampaignEngineContext())'),
+  'createCampaign should delegate through the thin shared campaign engine wrapper'
+);
+assert(
+  !createCampaignBody.includes("_adminSupabaseFetch('campaigns'") && !createCampaignBody.includes('_adminSupabaseFetch("campaigns"'),
+  'createCampaign should not retain the legacy direct Supabase campaign insert path'
 );
 
 console.log('admin_campaign_engine_integration.test.cjs passed');

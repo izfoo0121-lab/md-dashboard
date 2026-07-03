@@ -17,29 +17,36 @@
   }
 
   async function postRows(deps, table, rows, chunkSize) {
-    if (!rows || !rows.length) return;
-    const size = chunkSize || deps.chunkSize || 500;
-    for (let i = 0; i < rows.length; i += size) {
-      const chunk = rows.slice(i, i + size);
-      await deps.supabaseFetch(table, {
-        method: 'POST',
-        headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify(chunk),
-      });
-    }
+    return writeRows(deps, table, rows, chunkSize, { Prefer: 'return=minimal' });
   }
 
   async function upsertRows(deps, table, rows, chunkSize) {
+    return writeRows(deps, table, rows, chunkSize, { Prefer: 'resolution=merge-duplicates,return=minimal' });
+  }
+
+  async function writeRows(deps, table, rows, chunkSize, headers) {
     if (!rows || !rows.length) return;
     const size = chunkSize || deps.chunkSize || 500;
+    const retryChunkSize = deps.retryChunkSize || 100;
     for (let i = 0; i < rows.length; i += size) {
       const chunk = rows.slice(i, i + size);
-      await deps.supabaseFetch(table, {
-        method: 'POST',
-        headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-        body: JSON.stringify(chunk),
-      });
+      try {
+        await writeChunk(deps, table, chunk, headers);
+      } catch (error) {
+        if (chunk.length <= retryChunkSize) throw error;
+        for (let j = 0; j < chunk.length; j += retryChunkSize) {
+          await writeChunk(deps, table, chunk.slice(j, j + retryChunkSize), headers);
+        }
+      }
     }
+  }
+
+  async function writeChunk(deps, table, chunk, headers) {
+    return deps.supabaseFetch(table, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(chunk),
+    });
   }
 
   async function deleteCampaignDebtorCodes(deps, campaignId, codes, chunkSize) {
