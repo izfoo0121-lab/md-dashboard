@@ -1,6 +1,8 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
+const repository = require('../campaign_engine/campaign_repository.js');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
 const htmlWithoutComments = html.replace(/<!--[\s\S]*?-->/g, '');
@@ -26,6 +28,37 @@ function extractFunction(name, { asyncOnly = false } = {}) {
   }
 
   throw new Error(`Could not extract ${name}`);
+}
+
+async function testAdminSupabaseFetchPreservesStatusForEngineRetry() {
+  const fetchBodies = [];
+  const context = {
+    SUPABASE_URL: 'https://example.supabase.co',
+    SUPABASE_KEY: 'anon-key',
+    fetch: async (_url, options = {}) => {
+      fetchBodies.push(JSON.parse(options.body || '[]'));
+      if (fetchBodies.length === 1) {
+        return { ok: false, status: 413, text: async () => 'payload too large' };
+      }
+      return { ok: true, status: 204, text: async () => '' };
+    },
+  };
+  vm.createContext(context);
+  vm.runInContext(extractFunction('_adminSupabaseFetch', { asyncOnly: true }), context);
+
+  const rows = Array.from({ length: 150 }, (_, index) => ({ id: index + 1 }));
+  await repository.postRows(
+    { supabaseFetch: context._adminSupabaseFetch, retryChunkSize: 100 },
+    'campaign_debtors',
+    rows,
+    150,
+  );
+
+  assert.deepStrictEqual(
+    fetchBodies.map(body => body.length),
+    [150, 100, 50],
+    'status-bearing 413 errors from admin fetch should trigger shared engine chunk retry',
+  );
 }
 
 const expectedEngineScripts = [
@@ -84,4 +117,9 @@ assert(
   'createCampaign should not retain the legacy direct Supabase campaign insert path'
 );
 
-console.log('admin_campaign_engine_integration.test.cjs passed');
+testAdminSupabaseFetchPreservesStatusForEngineRetry()
+  .then(() => console.log('admin_campaign_engine_integration.test.cjs passed'))
+  .catch(error => {
+    console.error(error);
+    process.exit(1);
+  });
