@@ -55,7 +55,6 @@
     return (
       message.includes('payload too large') ||
       message.includes('request entity too large') ||
-      message.includes('too large') ||
       message.includes('body size') ||
       message.includes('request body') ||
       message.includes('content length') ||
