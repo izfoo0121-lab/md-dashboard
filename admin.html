@@ -235,6 +235,12 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
       <select id="admin-working-month" onchange="adminWorkingMonthSelectChanged(this.value)" style="font-family:monospace;font-size:12px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#111;cursor:pointer;"></select>
     </label>
     <span id="admin-month-scope" style="font-family:monospace;font-size:9px;color:#777;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;">Month-scoped tabs follow this</span>
+    <span id="admin-historical-month-guard" style="display:none;align-items:center;gap:8px;font-family:monospace;font-size:10px;color:#8a4f00;background:#fff7e0;border:1px solid #f0c56a;border-radius:8px;padding:6px 10px;white-space:nowrap;">
+      <strong id="admin-historical-month-title">Historical month locked</strong>
+      <span id="admin-historical-month-copy"></span>
+      <button type="button" id="admin-historical-unlock-btn" onclick="unlockAdminHistoricalMonth()" style="font-family:monospace;font-size:9px;padding:4px 8px;border:1px solid #d59b28;border-radius:7px;background:#fff;color:#8a4f00;cursor:pointer;">Unlock historical editing</button>
+      <button type="button" id="admin-historical-lock-btn" onclick="lockAdminHistoricalMonth()" style="display:none;font-family:monospace;font-size:9px;padding:4px 8px;border:1px solid #d59b28;border-radius:7px;background:#fff;color:#8a4f00;cursor:pointer;">Lock</button>
+    </span>
     <span id="admin-dirty-indicator" style="display:none;font-family:monospace;font-size:10px;color:#c8860a;white-space:nowrap;">Unsaved changes</span>
     <div id="save-status-bar" style="flex:1;min-width:200px;padding:6px 12px;border-radius:6px;color:white;font-family:monospace;font-size:12px;background:#888;">
       ⚪ Not saved yet this session
@@ -521,11 +527,11 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
       <div class="sec-header">SKU Configuration</div>
       <div class="sec-sub">Manage item code lists. Changes apply on next daily update.</div>
 
-      <div class="sec-divider">Brand → Item Code Mapping</div>
+      <div class="sec-divider">ZLB Brand</div>
       <div id="brand-sku-forms"></div>
 
       <div class="admin-card" style="margin-top:12px;">
-        <div style="font-family:var(--display);font-size:18px;letter-spacing:.04em;margin-bottom:6px;">New SKU Matrix</div>
+        <div style="font-family:var(--display);font-size:18px;letter-spacing:.04em;margin-bottom:6px;">新增SKU</div>
         <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);margin-bottom:10px;">
           Edit groups used by New SKU KPI and sales dashboard SKU filters. Saved rules are stored in live config; download sku_rules.json before regenerating local static data.
         </div>
@@ -1548,6 +1554,7 @@ function adminBirthdayByAgent(month) {
 let ADMIN_ACTIVE_MONTH = '';
 let ADMIN_DIRTY = false;
 let ADMIN_SUPPRESS_DIRTY = false;
+let ADMIN_HISTORICAL_UNLOCKS = {};
 
 function getAdminWorkingMonth() {
   if (ADMIN_ACTIVE_MONTH) return ADMIN_ACTIVE_MONTH;
@@ -1557,6 +1564,104 @@ function getAdminWorkingMonth() {
     return ADMIN_ACTIVE_MONTH;
   }
   return fallback || new Date().toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+}
+
+function adminMonthSortKey(month) {
+  const iso = adminMonthLabelToIso(month);
+  const m = String(iso || '').match(/^(\d{4})-(\d{2})$/);
+  if (!m) return NaN;
+  return Number(m[1]) * 12 + Number(m[2]);
+}
+
+function adminReferenceMonth() {
+  const helper = window.MDAdminContext;
+  const candidates = [
+    helper?.currentMonthLabel?.(),
+    helper?.normalizeMonth?.(DASH_DATA?.current_month) || DASH_DATA?.current_month,
+    new Date().toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+    getAdminWorkingMonth(),
+  ].filter(Boolean);
+  const valid = candidates.filter(month => Number.isFinite(adminMonthSortKey(month)));
+  if (!valid.length) return getAdminWorkingMonth();
+  return valid.sort((a, b) => adminMonthSortKey(a) - adminMonthSortKey(b))[valid.length - 1];
+}
+
+function isHistoricalAdminMonth(month = getAdminWorkingMonth()) {
+  const selectedKey = adminMonthSortKey(month);
+  const referenceKey = adminMonthSortKey(adminReferenceMonth());
+  return Number.isFinite(selectedKey) && Number.isFinite(referenceKey) && selectedKey < referenceKey;
+}
+
+function adminHistoricalUnlockKey(month) {
+  return adminIsoToMonthLabel(adminMonthLabelToIso(month)) || String(month || '');
+}
+
+function isAdminHistoricalMonthUnlocked(month = getAdminWorkingMonth()) {
+  return !!ADMIN_HISTORICAL_UNLOCKS[adminHistoricalUnlockKey(month)];
+}
+
+function setAdminHistoricalMonthUnlocked(month, unlocked) {
+  const key = adminHistoricalUnlockKey(month);
+  if (!key) return;
+  if (unlocked) ADMIN_HISTORICAL_UNLOCKS[key] = true;
+  else delete ADMIN_HISTORICAL_UNLOCKS[key];
+  try { updateAdminHistoricalMonthGuard(); } catch (_) {}
+}
+
+function unlockAdminHistoricalMonth() {
+  const month = getAdminWorkingMonth();
+  const reference = adminReferenceMonth();
+  if (!isHistoricalAdminMonth(month)) return;
+  if (!confirm(`Unlock historical editing for ${month}? Current/reference month is ${reference}.`)) return;
+  setAdminHistoricalMonthUnlocked(month, true);
+}
+
+function lockAdminHistoricalMonth() {
+  setAdminHistoricalMonthUnlocked(getAdminWorkingMonth(), false);
+}
+
+function updateAdminHistoricalMonthGuard() {
+  const guard = document.getElementById('admin-historical-month-guard');
+  const title = document.getElementById('admin-historical-month-title');
+  const copy = document.getElementById('admin-historical-month-copy');
+  const unlockBtn = document.getElementById('admin-historical-unlock-btn');
+  const lockBtn = document.getElementById('admin-historical-lock-btn');
+  const month = getAdminWorkingMonth();
+  const reference = adminReferenceMonth();
+  const historical = isHistoricalAdminMonth(month);
+  const unlocked = historical && isAdminHistoricalMonthUnlocked(month);
+
+  if (guard) guard.style.display = historical ? 'inline-flex' : 'none';
+  if (title) title.textContent = unlocked ? 'Historical month unlocked' : 'Historical month locked';
+  if (copy) copy.textContent = historical
+    ? `${month} is older than ${reference}. Saves are ${unlocked ? 'allowed with confirmation' : 'blocked until unlocked'}.`
+    : '';
+  if (unlockBtn) unlockBtn.style.display = historical && !unlocked ? 'inline-flex' : 'none';
+  if (lockBtn) lockBtn.style.display = historical && unlocked ? 'inline-flex' : 'none';
+
+  document.querySelectorAll('.save-btn').forEach(btn => {
+    if (!btn) return;
+    if (historical && !unlocked) {
+      btn.dataset.historicalLocked = '1';
+      btn.disabled = true;
+      btn.title = `Unlock historical editing for ${month} before saving.`;
+    } else if (btn.dataset.historicalLocked === '1') {
+      delete btn.dataset.historicalLocked;
+      btn.disabled = false;
+      btn.title = '';
+    }
+  });
+}
+
+function adminHistoricalSaveAllowed(actionLabel = 'Save', month = getAdminWorkingMonth()) {
+  if (!isHistoricalAdminMonth(month)) return true;
+  const reference = adminReferenceMonth();
+  if (!isAdminHistoricalMonthUnlocked(month)) {
+    alert(`Historical month ${month} is locked. Unlock historical editing before ${actionLabel}. Current/reference month is ${reference}.`);
+    if (typeof updateAdminHistoricalMonthGuard === 'function') updateAdminHistoricalMonthGuard();
+    return false;
+  }
+  return confirm(`${actionLabel}: you are saving changes to ${month}, not ${reference}. Continue?`);
 }
 
 function getAdminMonthOptions(extraMonths = []) {
@@ -1639,6 +1744,7 @@ function updateAdminMonthScope() {
   const month = getAdminWorkingMonth();
   const scope = document.getElementById('admin-month-scope');
   if (scope) scope.textContent = `Month-scoped tabs use ${month}; global tabs are SKU Config, Agent PINs, Cloud Sync, and brand config`;
+  try { updateAdminHistoricalMonthGuard(); } catch (_) {}
   try { if (typeof updateSaveStatus === 'function') updateSaveStatus(); } catch (_) {}
 }
 
@@ -2013,6 +2119,7 @@ async function saveKpiManualOverrideFromInput(input) {
 }
 
 async function saveKpiManualOverride(month, agent, kpiKey, value, inputEl = null) {
+  if (!adminHistoricalSaveAllowed('Save KPI manual override', month)) return;
   const trimmed = String(value ?? '').trim();
   if (inputEl) inputEl.style.borderColor = 'var(--accent)';
 
@@ -2066,6 +2173,7 @@ async function saveKpiManualOverride(month, agent, kpiKey, value, inputEl = null
 async function saveKpiManual() {
   const month = document.getElementById('kpi-manual-month').value;
   if (!month) { alert('Select a month first'); return; }
+  if (!adminHistoricalSaveAllowed('Save KPI manual', month)) return;
 
   const agents = getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}), { includeInactive: true });
   const payload = agents.map(agent => {
@@ -2644,6 +2752,10 @@ function setAllAgentCardsMinimized(minimized) {
 }
 
 async function saveAgentMonthlyAccess(agent, month, active) {
+  if (!adminHistoricalSaveAllowed('Save monthly agent access', month)) {
+    renderAgentForms();
+    return;
+  }
   const status = document.getElementById(`agent-active-status-${agent}`);
   if (status) {
     status.textContent = 'saving access...';
@@ -4082,7 +4194,7 @@ function renderSkuRulesPreview() {
   if (!el) return;
   const snapshot = adminSkuRulesSnapshot();
   if (!snapshot) {
-    el.innerHTML = '<div class="ap-empty">No SKU rules snapshot found in current config. Add New SKU Matrix rows or load generated dashboard data.</div>';
+    el.innerHTML = '<div class="ap-empty">No SKU rules snapshot found in current config. Add 新增SKU rows or load generated dashboard data.</div>';
     return;
   }
   const traceRows = Array.isArray(snapshot.sku_trace_defaults) ? snapshot.sku_trace_defaults : [];
@@ -4167,7 +4279,7 @@ function renderNewSkuRulesEditor() {
   const rules = adminEditableSkuRules();
   const rows = adminSkuRuleListFromMap(rules.new_sku_groups);
   if (!rows.length) {
-    el.innerHTML = '<div class="ap-empty">No New SKU rules yet. Add a SKU group to start.</div>';
+    el.innerHTML = '<div class="ap-empty">No 新增SKU rules yet. Add a SKU group to start.</div>';
     return;
   }
   el.innerHTML = `
@@ -5316,6 +5428,7 @@ ${sources.join(' / ')}`);
 }
 
 async function saveAll() {
+  if (!adminHistoricalSaveAllowed('Save Admin changes')) return;
   normalizeAdminConfigDefaults();
   // Sync DOM -> CONFIG for sections whose form inputs aren't auto-bound to CONFIG.
   // KPI Weights specifically needs this because renderKPIWeights renders inputs
@@ -6224,6 +6337,7 @@ function saveGroupSpOverride() {
   if (!monthSel) return;
   const month = monthSel.value;
   if (!month) return;
+  if (!adminHistoricalSaveAllowed('Save group sales progression override', month)) return;
 
   const v = id => {
     const raw = document.getElementById(id).value.trim();
@@ -6640,6 +6754,7 @@ function renderAgentWorkdaysTable() {
 
 async function saveAgentWorkday(agent) {
   const month = _adminCurrentMonthDate();
+  if (!adminHistoricalSaveAllowed('Save agent workday', getAdminWorkingMonth())) return;
   const val = parseInt(document.getElementById(`wd-${agent}`).value, 10);
   if (!Number.isFinite(val) || val < 0) { alert('Enter a valid working day number'); return; }
   await _adminSupabaseFetch('agent_workdays?on_conflict=agent_name,month', {
@@ -6748,6 +6863,7 @@ function renderAgentOffdaysTable() {
 }
 
 async function saveAgentOffdays(agent) {
+  if (!adminHistoricalSaveAllowed('Save agent off-days', getAdminWorkingMonth())) return;
   const cfg = AGENT_OFFDAYS_CACHE[agent] || {};
   const defaultDay = document.getElementById(`offday-default-${agent}`)?.value || cfg.default_day || 'Sunday';
   const exceptions = cfg.exceptions || [];
@@ -6879,6 +6995,8 @@ async function saveLeaveRecord() {
   const type = document.getElementById('leave-type')?.value;
   const note = (document.getElementById('leave-note')?.value || '').trim();
   if (!agent || !date || !type) { alert('Please choose agent, date, and leave type.'); return; }
+  const leaveMonth = window.MDAdminContext ? MDAdminContext.normalizeMonth(date.slice(0, 7)) : adminIsoToMonthLabel(date.slice(0, 7));
+  if (!adminHistoricalSaveAllowed('Save leave record', leaveMonth)) return;
   const row = { leave_type: type };
   row[schema.agent] = agent;
   row[schema.date] = date;
