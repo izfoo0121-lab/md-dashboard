@@ -44,7 +44,7 @@
   function shouldRetryChunkWrite(error) {
     if (!error) return false;
     const status = Number(error.status || error.statusCode || error.code);
-    if (status === 413 || status === 414 || status === 429) return true;
+    if (status === 413 || status === 414) return true;
     const message = [
       error.message,
       error.details,
@@ -56,8 +56,14 @@
       message.includes('payload too large') ||
       message.includes('request entity too large') ||
       message.includes('too large') ||
-      message.includes('maximum') ||
-      message.includes('body size')
+      message.includes('body size') ||
+      message.includes('request body') ||
+      message.includes('content length') ||
+      message.includes('content-length') ||
+      message.includes('http 413') ||
+      message.includes('status 413') ||
+      message.includes('http 414') ||
+      message.includes('status 414')
     );
   }
 
