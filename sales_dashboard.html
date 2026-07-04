@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <script>
-const SALES_DASHBOARD_BUILD = '20260704-205507';
+const SALES_DASHBOARD_BUILD = '20260704-214502';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
@@ -1717,7 +1717,7 @@ function newSkuEntryStatus(debtor, statuses, group, rule) {
   const mapped = newSkuMappedStatus(statuses, group);
   const curMonth = DATA?.current_month || '';
   if (newSkuGroupCtnInMonth(debtor, group, curMonth, rule) > 0) {
-    return mapped === 'new' ? 'new' : 'current';
+    return 'new';
   }
   const priorMonths = [-1, -2, -3]
     .map(offset => shiftedMonthLabel(curMonth, offset))
@@ -5356,7 +5356,7 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
       </div>`;
     }).join('');
     const newSkuEntries = newSkuItemChipEntries(d);
-    const newSkuKpiCount = Number(d.new_sku_count || 0);
+    const newSkuKpiCount = newSkuEntries.filter(entry => entry.kpi).length;
     const newSkuCatalogTotal = Number(d.new_sku_total || 0)
       || newSkuEntries.filter(entry => entry.status !== 'other').length;
     const newSkuHtml = newSkuEntries.map(entry => {

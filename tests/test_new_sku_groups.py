@@ -125,6 +125,72 @@ class NewSkuGroupTests(unittest.TestCase):
         self.assertEqual(debtor["new_sku_total"], 1)
         self.assertEqual(debtor["new_sku_status"].get("TEST"), "new")
 
+    def test_debtor_cards_count_configured_new_sku_current_month_even_if_bought_before(self):
+        sales = pd.DataFrame(
+            [
+                {
+                    "debtor_code": "300-REPEAT-SKU",
+                    "company_name": "Repeat SKU Shop",
+                    "agent": "CJ",
+                    "item_group": "LF",
+                    "item_code": "LF-002",
+                    "paid_on": "May 26",
+                    "tranx_mth_full": "May 26",
+                    "qty_ctn": 1,
+                    "date_parsed": pd.Timestamp("2026-05-05"),
+                    "local_subtotal": 100,
+                    "rm_ctn": 100,
+                    "rm_ctn_rebate": 0,
+                    "sales_type": "Target",
+                },
+                {
+                    "debtor_code": "300-REPEAT-SKU",
+                    "company_name": "Repeat SKU Shop",
+                    "agent": "CJ",
+                    "item_group": "LF",
+                    "item_code": "LF-002",
+                    "paid_on": "Jun 26",
+                    "tranx_mth_full": "Jun 26",
+                    "qty_ctn": 1,
+                    "date_parsed": pd.Timestamp("2026-06-05"),
+                    "local_subtotal": 100,
+                    "rm_ctn": 100,
+                    "rm_ctn_rebate": 0,
+                    "sales_type": "Target",
+                },
+            ]
+        )
+        debtors = pd.DataFrame(
+            [
+                {
+                    "Code": "300-REPEAT-SKU",
+                    "Company Name": "Repeat SKU Shop",
+                    "Agent": "CJ",
+                    "Debtor Type": "SH-Shop",
+                    "Active": "Checked",
+                    "Open Acct Date": "2024-01-01",
+                }
+            ]
+        )
+        custom_rules = {"LF": {"item_code_prefixes": ["LF"]}}
+
+        original_supabase_get = process_data._supabase_get
+        process_data._supabase_get = lambda *args, **kwargs: []
+        try:
+            cards = process_data.calc_debtor_cards(
+                sales,
+                debtors,
+                ["CJ"],
+                "Jun 26",
+                new_sku_groups_config=custom_rules,
+            )
+        finally:
+            process_data._supabase_get = original_supabase_get
+
+        debtor = cards["CJ"]["debtors"][0]
+        self.assertEqual(debtor["new_sku_count"], 1)
+        self.assertEqual(debtor["new_sku_status"].get("LF"), "new")
+
     def test_sku_rules_config_respects_empty_new_sku_groups(self):
         rules = process_data.normalise_sku_rules_config(
             {"version": 3, "updated_at": "2026-07-02", "new_sku_groups": {}}

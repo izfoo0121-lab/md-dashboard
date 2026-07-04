@@ -88,17 +88,17 @@ assert.deepStrictEqual(
 );
 assert.deepStrictEqual(
   Array.from(entries, entry => entry.kpi),
-  [true, true, false, false, false, false, false],
-  'only first-time New SKU items should count toward the New SKU KPI',
+  [true, true, false, true, false, false, false],
+  'configured New SKU items bought this month should count toward the New SKU KPI',
 );
 assert.deepStrictEqual(
   Array.from(entries, entry => entry.status),
-  ['new', 'new', 'none', 'current', 'none', 'none', 'other'],
-  'right-side chips should distinguish KPI-new, current-month non-KPI, prior-month, unpurchased, and Other SKU',
+  ['new', 'new', 'none', 'new', 'none', 'none', 'other'],
+  'right-side chips should distinguish current-month KPI, prior-month, unpurchased, and Other SKU',
 );
 
 const existingOnlyDebtor = {
-  new_sku_count: 0,
+  new_sku_count: 2,
   new_sku_status: { LF: 'existing', TR20: 'existing' },
   month_breakdown: {
     'Jul 26': [
@@ -116,13 +116,13 @@ assert.deepStrictEqual(
 );
 assert.deepStrictEqual(
   Array.from(existingEntries, entry => entry.kpi),
-  [false, false, false, false, false, false],
-  'existing New SKU items should be visible but excluded from KPI count',
+  [false, false, false, false, true, true],
+  'configured New SKU items bought this month should be visible and included in KPI count',
 );
 assert.deepStrictEqual(
   Array.from(existingEntries, entry => entry.status),
-  ['none', 'none', 'none', 'none', 'current', 'current'],
-  'current-month New SKU purchases should be visible even when they are excluded from KPI count',
+  ['none', 'none', 'none', 'none', 'new', 'new'],
+  'current-month New SKU purchases should carry the KPI status even if older payload statuses said existing',
 );
 
 const priorOnlyDebtor = {

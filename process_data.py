@@ -3663,17 +3663,18 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 except Exception:
                     pass
 
-            # 新增SKU — count groups where didn't buy last 3 months but bought this month
+            # New SKU KPI counts configured New SKU groups bought this month.
+            # CMLT is excluded before matching and appears as "Other" in the UI.
             new_sku_status = {}
             new_sku_count  = 0
             for grp, rule in new_sku_groups.items():
                 grp_rows = _new_sku_kpi_rows(_history_rows[_new_sku_rule_mask(_history_rows, rule)])
                 bought_this  = cur_m in grp_rows[_inv_col].values
                 bought_past  = any(m in grp_rows[_inv_col].values for m in [prev1_m, prev2_m, prev3_m])
-                if bought_this and not bought_past:
+                if bought_this:
                     new_sku_status[grp] = "new"   # counts!
                     new_sku_count += 1
-                elif bought_past or bought_this:
+                elif bought_past:
                     new_sku_status[grp] = "existing"
                 else:
                     new_sku_status[grp] = "none"
