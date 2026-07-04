@@ -45,6 +45,8 @@ const context = {
           TR12: { item_code_prefixes: ['TR-002', 'TR12'] },
           LF: { item_code_prefixes: ['LF'] },
           TR20: { item_code_prefixes: ['TR20'] },
+          EVO: { item_codes: ['EVO'], item_groups: ['EVO'] },
+          'BISON-R': { item_codes: ['BISON-R'], item_groups: ['BISON-R'] },
         },
       },
     },
@@ -78,22 +80,22 @@ const debtor = {
 const entries = context.newSkuItemChipEntries(debtor);
 assert.deepStrictEqual(
   Array.from(entries, entry => entry.label),
-  ['SUKUN', 'CMP', 'CMX', 'TR12', 'LF', 'TR20', '其他'],
+  ['SUKUN', 'CMP', 'CMX', 'TR12', 'LF', 'TR20', 'EVO', 'BISON-R', '其他'],
   'right-side chips should show every configured New SKU item plus CMLT as other when present',
 );
 assert.deepStrictEqual(
   Array.from(entries, entry => entry.item),
-  ['SUKUN', 'CMP', 'CMX', 'TR12', 'LF', 'TR20', 'CMLT'],
+  ['SUKUN', 'CMP', 'CMX', 'TR12', 'LF', 'TR20', 'EVO', 'BISON-R', 'CMLT'],
   'chip metadata should preserve the displayed item bucket for tooltip/export safety',
 );
 assert.deepStrictEqual(
   Array.from(entries, entry => entry.kpi),
-  [true, true, false, true, false, false, false],
+  [true, true, false, true, false, false, false, false, false],
   'configured New SKU items bought this month should count toward the New SKU KPI',
 );
 assert.deepStrictEqual(
   Array.from(entries, entry => entry.status),
-  ['new', 'new', 'none', 'new', 'none', 'none', 'other'],
+  ['new', 'new', 'none', 'new', 'none', 'none', 'none', 'none', 'other'],
   'right-side chips should distinguish current-month KPI, prior-month, unpurchased, and Other SKU',
 );
 
@@ -111,17 +113,17 @@ const existingOnlyDebtor = {
 const existingEntries = context.newSkuItemChipEntries(existingOnlyDebtor);
 assert.deepStrictEqual(
   Array.from(existingEntries, entry => entry.label),
-  ['SUKUN', 'CMP', 'CMX', 'TR12', 'LF', 'TR20'],
+  ['SUKUN', 'CMP', 'CMX', 'TR12', 'LF', 'TR20', 'EVO', 'BISON-R'],
   'right-side chips should still show every configured New SKU item even when the KPI count is zero',
 );
 assert.deepStrictEqual(
   Array.from(existingEntries, entry => entry.kpi),
-  [false, false, false, false, true, true],
+  [false, false, false, false, true, true, false, false],
   'configured New SKU items bought this month should be visible and included in KPI count',
 );
 assert.deepStrictEqual(
   Array.from(existingEntries, entry => entry.status),
-  ['none', 'none', 'none', 'none', 'new', 'new'],
+  ['none', 'none', 'none', 'none', 'new', 'new', 'none', 'none'],
   'current-month New SKU purchases should carry the KPI status even if older payload statuses said existing',
 );
 
@@ -140,5 +142,27 @@ assert.strictEqual(
   'existing',
   'New SKU items bought only in the prior three months should show the 3-month purchased status',
 );
+
+const repeatCurrentDebtor = {
+  new_sku_count: 0,
+  new_sku_status: { EVO: 'existing', 'BISON-R': 'existing' },
+  month_breakdown: {
+    'Jul 26': [
+      { item: 'EVO', ctn: 1 },
+      { item: 'BISON-R', ctn: 1 },
+    ],
+    'Jun 26': [
+      { item: 'EVO', ctn: 10 },
+      { item: 'BISON-R', ctn: 2 },
+    ],
+  },
+};
+
+const repeatEntries = context.newSkuItemChipEntries(repeatCurrentDebtor);
+for (const label of ['EVO', 'BISON-R']) {
+  const entry = repeatEntries.find(item => item.label === label);
+  assert.strictEqual(entry.kpi, false, `${label} should not count KPI when bought in the prior three months`);
+  assert.strictEqual(entry.status, 'existing', `${label} should show the 3-month purchased status when repeated`);
+}
 
 console.log('sales_new_sku_item_chips.test.cjs passed');

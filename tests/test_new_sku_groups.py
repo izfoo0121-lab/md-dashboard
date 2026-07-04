@@ -125,7 +125,7 @@ class NewSkuGroupTests(unittest.TestCase):
         self.assertEqual(debtor["new_sku_total"], 1)
         self.assertEqual(debtor["new_sku_status"].get("TEST"), "new")
 
-    def test_debtor_cards_count_configured_new_sku_current_month_even_if_bought_before(self):
+    def test_debtor_cards_do_not_count_new_sku_if_bought_in_prior_three_months(self):
         sales = pd.DataFrame(
             [
                 {
@@ -188,8 +188,8 @@ class NewSkuGroupTests(unittest.TestCase):
             process_data._supabase_get = original_supabase_get
 
         debtor = cards["CJ"]["debtors"][0]
-        self.assertEqual(debtor["new_sku_count"], 1)
-        self.assertEqual(debtor["new_sku_status"].get("LF"), "new")
+        self.assertEqual(debtor["new_sku_count"], 0)
+        self.assertEqual(debtor["new_sku_status"].get("LF"), "existing")
 
     def test_sku_rules_config_respects_empty_new_sku_groups(self):
         rules = process_data.normalise_sku_rules_config(

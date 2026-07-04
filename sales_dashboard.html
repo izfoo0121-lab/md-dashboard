@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <script>
-const SALES_DASHBOARD_BUILD = '20260704-214502';
+const SALES_DASHBOARD_BUILD = '20260704-235305';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
@@ -1716,14 +1716,14 @@ function newSkuCurrentItemList(debtor, group, rule) {
 function newSkuEntryStatus(debtor, statuses, group, rule) {
   const mapped = newSkuMappedStatus(statuses, group);
   const curMonth = DATA?.current_month || '';
-  if (newSkuGroupCtnInMonth(debtor, group, curMonth, rule) > 0) {
-    return 'new';
-  }
   const priorMonths = [-1, -2, -3]
     .map(offset => shiftedMonthLabel(curMonth, offset))
     .filter(Boolean);
+  const boughtThis = newSkuGroupCtnInMonth(debtor, group, curMonth, rule) > 0;
   const boughtPast = priorMonths.some(month => newSkuGroupCtnInMonth(debtor, group, month, rule) > 0);
+  if (boughtThis && !boughtPast) return 'new';
   if (boughtPast || mapped === 'existing') return 'existing';
+  if (mapped === 'new') return 'new';
   return 'none';
 }
 
