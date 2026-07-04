@@ -449,6 +449,7 @@ DEFAULT_NEW_SKU_GROUPS = {
     "BISON-R": {"item_codes": ["BISON-R", "BISON R"], "item_groups": ["BISON-R", "BISON R"]},
     "BISON-M": {"item_codes": ["BISON-M", "BISON M"], "item_groups": ["BISON-M", "BISON M"]},
 }
+NEW_SKU_KPI_EXCLUDED_CODES = {"CMLT"}
 
 DEFAULT_SKU_RULES = {
     "version": 2,
@@ -1572,6 +1573,17 @@ def _new_sku_rule_mask(rows, rule):
     if item_group_prefixes:
         mask = mask | group_series.map(lambda value: _starts_with_any(value, item_group_prefixes))
     return mask
+
+
+def _new_sku_kpi_rows(rows):
+    """Rows that may contribute to New SKU KPI. CMLT is shown as Other only."""
+    if rows.empty:
+        return rows
+    excluded = pd.Series(False, index=rows.index)
+    for col in ("item_code", "item_group"):
+        if col in rows.columns:
+            excluded = excluded | _series_norm(rows, col).isin(NEW_SKU_KPI_EXCLUDED_CODES)
+    return rows[~excluded]
 
 
 LINKED_CAMPAIGN_NUMERATOR = "linked_conversion_repeat"
@@ -3643,7 +3655,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             new_sku_status = {}
             new_sku_count  = 0
             for grp, rule in new_sku_groups.items():
-                grp_rows = _history_rows[_new_sku_rule_mask(_history_rows, rule)]
+                grp_rows = _new_sku_kpi_rows(_history_rows[_new_sku_rule_mask(_history_rows, rule)])
                 bought_this  = cur_m in grp_rows[_inv_col].values
                 bought_past  = any(m in grp_rows[_inv_col].values for m in [prev1_m, prev2_m, prev3_m])
                 if bought_this and not bought_past:

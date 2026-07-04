@@ -131,6 +131,62 @@ class NewSkuGroupTests(unittest.TestCase):
         self.assertEqual(rules["version"], 3)
         self.assertEqual(rules["new_sku_groups"], {})
 
+    def test_cmlt_is_other_sku_and_does_not_count_new_sku_kpi(self):
+        sales = pd.DataFrame(
+            [
+                {
+                    "debtor_code": "300-CMLT",
+                    "company_name": "CMLT Shop",
+                    "agent": "CJ",
+                    "item_group": "CMLT",
+                    "item_code": "CMLT",
+                    "paid_on": "Jun 26",
+                    "tranx_mth_full": "Jun 26",
+                    "qty_ctn": 1,
+                    "date_parsed": pd.Timestamp("2026-06-05"),
+                    "local_subtotal": 100,
+                    "rm_ctn": 100,
+                    "rm_ctn_rebate": 0,
+                    "sales_type": "Target",
+                }
+            ]
+        )
+        debtors = pd.DataFrame(
+            [
+                {
+                    "Code": "300-CMLT",
+                    "Company Name": "CMLT Shop",
+                    "Agent": "CJ",
+                    "Debtor Type": "SH-Shop",
+                    "Active": "Checked",
+                    "Open Acct Date": "2024-01-01",
+                }
+            ]
+        )
+        custom_rules = {
+            "OTHER": {
+                "item_codes": ["CMLT"],
+                "item_groups": ["CMLT"],
+            }
+        }
+
+        original_supabase_get = process_data._supabase_get
+        process_data._supabase_get = lambda *args, **kwargs: []
+        try:
+            cards = process_data.calc_debtor_cards(
+                sales,
+                debtors,
+                ["CJ"],
+                "Jun 26",
+                new_sku_groups_config=custom_rules,
+            )
+        finally:
+            process_data._supabase_get = original_supabase_get
+
+        debtor = cards["CJ"]["debtors"][0]
+        self.assertEqual(debtor["new_sku_count"], 0)
+        self.assertNotEqual(debtor["new_sku_status"].get("OTHER"), "new")
+
 
 if __name__ == "__main__":
     unittest.main()

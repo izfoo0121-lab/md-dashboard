@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <script>
-const SALES_DASHBOARD_BUILD = '20260703-164312';
+const SALES_DASHBOARD_BUILD = '20260704-101533';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
@@ -208,6 +208,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .sku-section{margin-top:8px;}
 .sku-section-lbl{font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
 .sku-row{display:flex;gap:4px;flex-wrap:wrap;}
+.debtor-sku-panels{display:grid;grid-template-columns:minmax(0,1fr) minmax(190px,.72fr);gap:8px;align-items:start;margin-top:8px;}
+.debtor-sku-panels .sku-section{margin-top:0;}
+.new-sku-panel{min-height:58px;padding:7px 9px;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.24);border-radius:8px;}
+.new-sku-panel-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px;}
+.new-sku-panel-count{font-family:var(--display);font-size:18px;color:var(--purple);letter-spacing:.03em;line-height:1;}
+.new-sku-row{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;}
+.new-sku-chip{font-family:var(--mono);font-size:9px;background:rgba(167,139,250,.2);color:var(--purple);border:1px solid rgba(167,139,250,.32);padding:3px 7px;border-radius:8px;font-weight:600;line-height:1.1;max-width:100%;overflow-wrap:anywhere;}
+.new-sku-chip.other{background:rgba(240,192,64,.14);color:var(--accent);border-color:rgba(240,192,64,.34);}
+@media(max-width:640px){.debtor-sku-panels{grid-template-columns:1fr;}.new-sku-row{justify-content:flex-start;}}
 
 /* Status badge inline */
 .status-inline{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:10px;}
@@ -1581,6 +1590,89 @@ function zlbSalesTypeForBrand(debtor, brand) {
 
 function visibleZlbStatusEntries(debtor) {
   return visibleZlbBrandKeys().map(brand => [brand, zlbStatusForBrand(debtor, brand)]);
+}
+
+const OTHER_SKU_ITEM_CODES = new Set(['CMLT']);
+
+function newSkuNormCode(value) {
+  return String(value || '').trim().toUpperCase().replace(/\s+/g, ' ');
+}
+
+function newSkuRulesSnapshot() {
+  return DATA?.config?.sku_rules_snapshot
+    || DATA?.config?.sku_rules
+    || DATA?.sku_rules_snapshot
+    || {};
+}
+
+function newSkuConfiguredGroups() {
+  return newSkuRulesSnapshot()?.new_sku_groups || {};
+}
+
+function newSkuRuleForGroup(group) {
+  const wanted = newSkuNormCode(group);
+  const groups = newSkuConfiguredGroups();
+  const direct = groups?.[group] || groups?.[wanted];
+  if (direct) return direct;
+  const matchedKey = Object.keys(groups).find(key => newSkuNormCode(key) === wanted);
+  return matchedKey ? groups[matchedKey] : { item_codes: [wanted], item_groups: [wanted] };
+}
+
+function newSkuRuleValues(rule, field) {
+  return Array.isArray(rule?.[field])
+    ? rule[field].map(newSkuNormCode).filter(Boolean)
+    : [];
+}
+
+function newSkuRowCode(row) {
+  return newSkuNormCode(row?.item || row?.item_code);
+}
+
+function newSkuRowGroup(row) {
+  return newSkuNormCode(row?.item_group || row?.group || row?.brand || row?.item || row?.item_code);
+}
+
+function newSkuRuleMatchesRow(rule, row) {
+  const code = newSkuRowCode(row);
+  const group = newSkuRowGroup(row);
+  const itemCodes = newSkuRuleValues(rule, 'item_codes');
+  const itemGroups = newSkuRuleValues(rule, 'item_groups');
+  const itemCodePrefixes = newSkuRuleValues(rule, 'item_code_prefixes');
+  const itemGroupPrefixes = newSkuRuleValues(rule, 'item_group_prefixes');
+  if (itemCodes.includes(code)) return true;
+  if (itemGroups.includes(group)) return true;
+  if (itemCodePrefixes.some(prefix => code.startsWith(prefix))) return true;
+  if (itemGroupPrefixes.some(prefix => group.startsWith(prefix))) return true;
+  return false;
+}
+
+function newSkuCurrentRows(debtor) {
+  const rows = debtor?.month_breakdown?.[DATA?.current_month || ''];
+  return Array.isArray(rows) ? rows : [];
+}
+
+function newSkuItemChipEntries(debtor) {
+  const rows = newSkuCurrentRows(debtor);
+  const statuses = debtor?.new_sku_status || {};
+  const seen = new Set();
+  const entries = [];
+  Object.entries(statuses).forEach(([group, status]) => {
+    if (status !== 'new') return;
+    const rule = newSkuRuleForGroup(group);
+    rows.filter(row => newSkuRuleMatchesRow(rule, row)).forEach(row => {
+      const item = newSkuRowCode(row);
+      if (!item || OTHER_SKU_ITEM_CODES.has(item) || seen.has(item)) return;
+      seen.add(item);
+      entries.push({ label: item, item, group: newSkuNormCode(group), kpi: true });
+    });
+  });
+  rows.forEach(row => {
+    const item = newSkuRowCode(row);
+    if (!OTHER_SKU_ITEM_CODES.has(item) || seen.has(item)) return;
+    seen.add(item);
+    entries.push({ label: '其他', item, group: 'OTHER', kpi: false });
+  });
+  return entries;
 }
 
 function monthSlug(monthLabel) {
@@ -5093,6 +5185,21 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
         ${tierLbl ? `<span style="font-size:6px;color:${tcolor};line-height:1;font-weight:600;">${tierLbl}</span>` : ''}
       </div>`;
     }).join('');
+    const newSkuEntries = newSkuItemChipEntries(d);
+    const newSkuHtml = newSkuEntries.map(entry => {
+      const title = entry.kpi
+        ? `新增SKU KPI · ${entry.item}`
+        : `其他SKU · ${entry.item} · 不计KPI`;
+      return `<span class="new-sku-chip ${entry.kpi ? '' : 'other'}" title="${campEsc(title)}">${campEsc(entry.label)}</span>`;
+    }).join('');
+    const newSkuPanelHtml = newSkuEntries.length ? `
+      <div class="sku-section new-sku-panel">
+        <div class="new-sku-panel-top">
+          <div class="sku-section-lbl">新增SKU ITEM</div>
+          <div class="new-sku-panel-count">+${Number(d.new_sku_count || 0)}</div>
+        </div>
+        <div class="new-sku-row">${newSkuHtml}</div>
+      </div>` : '';
 
     // Phone — clean null/nan
     const phone = d.phone && d.phone !== 'nan' && d.phone !== 'None' && d.phone.trim() !== '' ? d.phone.trim() : '';
@@ -5150,29 +5257,17 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
           </div>
         </div>
 
-        <div class="sku-section">
+        <div class="debtor-sku-panels">
+          <div class="sku-section">
           <div class="sku-section-lbl">ZLB Brand · Last: ${d.last_purchase_date||'—'} &nbsp;
             <span style="color:var(--green)">●</span>当月购买
             <span style="color:var(--accent)">●</span>3个月内购买
             <span style="color:var(--red)">●</span>还未购买
           </div>
-          <div class="sku-row">${skuHtml}</div>
+            <div class="sku-row">${skuHtml}</div>
+          </div>
+          ${newSkuPanelHtml}
         </div>
-
-        ${d.new_sku_count > 0 ? (() => {
-          const addedSkus = Object.entries(d.new_sku_status || {})
-            .filter(([,st]) => st === 'new')
-            .map(([grp]) => grp);
-          return `<div style="margin-top:8px;padding:7px 10px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
-            <div>
-              <div style="font-family:var(--mono);font-size:8px;color:var(--purple);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">✨ 新增SKU 本月</div>
-              <div style="display:flex;gap:4px;flex-wrap:wrap;">${addedSkus.map(s =>
-                `<span style="font-family:var(--mono);font-size:10px;background:rgba(167,139,250,.2);color:var(--purple);padding:2px 8px;border-radius:10px;font-weight:500;">${s}</span>`
-              ).join('')}</div>
-            </div>
-            <div style="font-family:var(--display);font-size:22px;color:var(--purple);letter-spacing:.03em;">+${d.new_sku_count}</div>
-          </div>`;
-        })() : ''}
 
         ${(() => {
           const flag = getFlag(currentAgent, d.debtor_code);
