@@ -437,7 +437,8 @@ DEFAULT_SKU_TRACE_CONFIG = [
 ]
 
 DEFAULT_NEW_SKU_GROUPS = {
-    "SUKUN": {"item_code_prefixes": ["SKN"], "item_groups": ["SUKUN"]},
+    "SKNR": {"item_codes": ["SKNR"]},
+    "SKNW": {"item_codes": ["SKNW"]},
     "EVO": {"item_codes": ["EVO"], "item_groups": ["EVO"]},
     "CM": {"item_codes": ["CM-002"]},
     "CMP": {"item_codes": ["CMP"], "item_groups": ["CMP"]},
@@ -450,6 +451,12 @@ DEFAULT_NEW_SKU_GROUPS = {
     "BISON-M": {"item_codes": ["BISON-M", "BISON M"], "item_groups": ["BISON-M", "BISON M"]},
 }
 NEW_SKU_KPI_EXCLUDED_CODES = {"CMLT"}
+LEGACY_NEW_SKU_GROUP_EXPANSIONS = {
+    "SUKUN": {
+        "SKNR": {"item_codes": ["SKNR"]},
+        "SKNW": {"item_codes": ["SKNW"]},
+    },
+}
 
 DEFAULT_SKU_RULES = {
     "version": 2,
@@ -1500,11 +1507,18 @@ def _normalise_sku_rule(rule):
 
 
 def normalise_new_sku_groups(rule_map):
-    return {
-        _norm_code(key): _normalise_sku_rule(rule)
-        for key, rule in (rule_map or {}).items()
-        if _norm_code(key)
-    }
+    groups = {}
+    for key, rule in (rule_map or {}).items():
+        norm_key = _norm_code(key)
+        if not norm_key:
+            continue
+        legacy_expansion = LEGACY_NEW_SKU_GROUP_EXPANSIONS.get(norm_key)
+        if legacy_expansion:
+            for expanded_key, expanded_rule in legacy_expansion.items():
+                groups.setdefault(expanded_key, _normalise_sku_rule(expanded_rule))
+            continue
+        groups[norm_key] = _normalise_sku_rule(rule)
+    return groups
 
 
 def normalise_sku_rules_config(config):
@@ -1582,7 +1596,14 @@ def _new_sku_kpi_rows(rows):
     excluded = pd.Series(False, index=rows.index)
     for col in ("item_code", "item_group"):
         if col in rows.columns:
-            excluded = excluded | _series_norm(rows, col).isin(NEW_SKU_KPI_EXCLUDED_CODES)
+            values = _series_norm(rows, col)
+            for code in NEW_SKU_KPI_EXCLUDED_CODES:
+                excluded = (
+                    excluded
+                    | (values == code)
+                    | values.str.startswith(f"{code}-")
+                    | values.str.startswith(f"{code} ")
+                )
     return rows[~excluded]
 
 

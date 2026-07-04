@@ -67,6 +67,72 @@ class NewSkuGroupTests(unittest.TestCase):
             with self.subTest(group=group):
                 self.assertEqual(debtor["new_sku_status"].get(group), "new")
 
+    def test_legacy_sukun_new_sku_config_splits_into_sknr_and_sknw(self):
+        groups = process_data.normalise_new_sku_groups(process_data.DEFAULT_NEW_SKU_GROUPS)
+        self.assertEqual(len(groups), 12)
+        self.assertIn("SKNR", groups)
+        self.assertIn("SKNW", groups)
+        self.assertNotIn("SUKUN", groups)
+
+        sales = pd.DataFrame(
+            [
+                {
+                    "debtor_code": "300-SUKUN-SPLIT",
+                    "company_name": "Sukun Split Shop",
+                    "agent": "CJ",
+                    "item_group": "SUKUN",
+                    "item_code": item_code,
+                    "paid_on": "Jun 26",
+                    "tranx_mth_full": "Jun 26",
+                    "qty_ctn": 1,
+                    "date_parsed": pd.Timestamp("2026-06-05"),
+                    "local_subtotal": 100,
+                    "rm_ctn": 100,
+                    "rm_ctn_rebate": 0,
+                    "sales_type": "Target",
+                }
+                for item_code in ("SKNR", "SKNW")
+            ]
+        )
+        debtors = pd.DataFrame(
+            [
+                {
+                    "Code": "300-SUKUN-SPLIT",
+                    "Company Name": "Sukun Split Shop",
+                    "Agent": "CJ",
+                    "Debtor Type": "SH-Shop",
+                    "Active": "Checked",
+                    "Open Acct Date": "2024-01-01",
+                }
+            ]
+        )
+        legacy_rules = {
+            "SUKUN": {
+                "item_code_prefixes": ["SKN"],
+                "item_groups": ["SUKUN"],
+            }
+        }
+
+        original_supabase_get = process_data._supabase_get
+        process_data._supabase_get = lambda *args, **kwargs: []
+        try:
+            cards = process_data.calc_debtor_cards(
+                sales,
+                debtors,
+                ["CJ"],
+                "Jun 26",
+                new_sku_groups_config=legacy_rules,
+            )
+        finally:
+            process_data._supabase_get = original_supabase_get
+
+        debtor = cards["CJ"]["debtors"][0]
+        self.assertEqual(debtor["new_sku_count"], 2)
+        self.assertEqual(debtor["new_sku_total"], 2)
+        self.assertEqual(debtor["new_sku_status"].get("SKNR"), "new")
+        self.assertEqual(debtor["new_sku_status"].get("SKNW"), "new")
+        self.assertNotIn("SUKUN", debtor["new_sku_status"])
+
     def test_debtor_cards_accept_custom_new_sku_group_config(self):
         sales = pd.DataFrame(
             [

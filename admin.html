@@ -4204,7 +4204,7 @@ function renderSkuRulesPreview() {
     </div>
     ${adminRuleMapHtml('Brand Targets', snapshot.brand_targets)}
     ${adminRuleMapHtml('ZLB Brands', snapshot.zlb_brands)}
-    ${adminRuleMapHtml('New SKU Groups', snapshot.new_sku_groups)}
+    ${adminRuleMapHtml('New SKU Groups', adminNormalizeRuleMap(snapshot.new_sku_groups))}
     <div style="font-family:var(--display);font-size:15px;letter-spacing:.04em;margin:8px 0;">SKU Trace Defaults</div>
     ${traceRows.map(row => `<div class="sku-trace-row" style="grid-template-columns:180px 1fr 90px;">
       <div>${kpiAdminEscape(row?.label || '')}</div>
@@ -4233,6 +4233,11 @@ function adminNormalizeRuleMap(rowsOrMap) {
   return rows.reduce((out, row) => {
     const key = String(row?.key || '').trim().toUpperCase();
     if (!key) return out;
+    if (key === 'SUKUN') {
+      if (!out.SKNR) out.SKNR = { item_codes: ['SKNR'] };
+      if (!out.SKNW) out.SKNW = { item_codes: ['SKNW'] };
+      return out;
+    }
     const rule = {
       item_codes: adminParseRuleList(row.item_codes),
       item_code_prefixes: adminParseRuleList(row.item_code_prefixes),

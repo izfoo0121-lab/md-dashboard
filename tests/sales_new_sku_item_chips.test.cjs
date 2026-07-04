@@ -32,6 +32,14 @@ assert(
   renderDebtorCard.includes('new-sku-dot'),
   'debtor card should render New SKU items as status dots like the ZLB brand chips',
 );
+assert(
+  renderDebtorCard.includes('newSkuPanelCountLabel'),
+  'debtor card should render the New SKU panel count through a dedicated label helper',
+);
+assert(
+  renderDebtorCard.includes('Math.max(Number(d.new_sku_total || 0), newSkuCatalogEntryTotal)'),
+  'debtor card should prefer the expanded New SKU catalog total when old payloads still say 11',
+);
 
 const context = {
   DATA: {
@@ -59,6 +67,21 @@ const helperStart = salesHtml.indexOf('const ZLB_IFACE_REMOVED_FROM_MONTH');
 const helperEnd = salesHtml.indexOf('function monthSlug', helperStart);
 assert(helperStart >= 0 && helperEnd > helperStart, 'dashboard helper block should be extractable');
 vm.runInContext(salesHtml.slice(helperStart, helperEnd), context);
+const configuredGroups = Array.from(Object.keys(context.newSkuConfiguredGroups()));
+assert.deepStrictEqual(
+  configuredGroups.slice(0, 2),
+  ['SKNR', 'SKNW'],
+  'legacy SUKUN New SKU config should expand into separate SKNR and SKNW KPI items',
+);
+assert(
+  !configuredGroups.includes('SUKUN'),
+  'legacy SUKUN should not remain as a single New SKU KPI bucket',
+);
+assert.strictEqual(
+  context.newSkuPanelCountLabel(2, 12),
+  '2/12',
+  'New SKU panel count should display as x/12 without a KPI prefix',
+);
 
 const debtor = {
   new_sku_count: 2,
@@ -80,23 +103,45 @@ const debtor = {
 const entries = context.newSkuItemChipEntries(debtor);
 assert.deepStrictEqual(
   Array.from(entries, entry => entry.label),
-  ['SUKUN', 'CMP', 'CMX', 'TR12', 'LF', 'TR20', 'EVO', 'BISON-R', '其他'],
-  'right-side chips should show every configured New SKU item plus CMLT as other when present',
+  ['SKNR', 'SKNW', 'CMP', 'CMX', 'TR12', 'LF', 'TR20', 'EVO', 'BISON-R', '其他'],
+  'right-side chips should split SUKUN into SKNR/SKNW plus CMLT as other when present',
 );
 assert.deepStrictEqual(
   Array.from(entries, entry => entry.item),
-  ['SUKUN', 'CMP', 'CMX', 'TR12', 'LF', 'TR20', 'EVO', 'BISON-R', 'CMLT'],
+  ['SKNR', 'SKNW', 'CMP', 'CMX', 'TR12', 'LF', 'TR20', 'EVO', 'BISON-R', 'CMLT'],
   'chip metadata should preserve the displayed item bucket for tooltip/export safety',
 );
 assert.deepStrictEqual(
   Array.from(entries, entry => entry.kpi),
-  [true, true, false, true, false, false, false, false, false],
+  [true, true, true, false, true, false, false, false, false, false],
   'configured New SKU items bought this month should count toward the New SKU KPI',
 );
 assert.deepStrictEqual(
   Array.from(entries, entry => entry.status),
-  ['new', 'new', 'none', 'new', 'none', 'none', 'none', 'none', 'other'],
+  ['new', 'new', 'new', 'none', 'new', 'none', 'none', 'none', 'none', 'other'],
   'right-side chips should distinguish current-month KPI, prior-month, unpurchased, and Other SKU',
+);
+assert.strictEqual(
+  context.newSkuKpiEntryCount({ ...debtor, new_sku_count: 0 }, entries),
+  4,
+  'computed New SKU KPI count should come from chip statuses, not stale payload counts',
+);
+
+const groupedOtherDebtor = {
+  new_sku_count: 0,
+  new_sku_status: {},
+  month_breakdown: {
+    'Jul 26': [
+      { item_code: 'CMLT-001', item_group: 'CMLT', ctn: 2 },
+    ],
+  },
+};
+
+const groupedOtherEntries = context.newSkuItemChipEntries(groupedOtherDebtor);
+assert.deepStrictEqual(
+  Array.from(groupedOtherEntries.slice(-1), entry => [entry.label, entry.item, entry.group, entry.kpi, entry.status]),
+  [['其他', 'CMLT-001', 'OTHER', false, 'other']],
+  'CMLT item groups should render as Other SKU even when the item code is more specific',
 );
 
 const existingOnlyDebtor = {
@@ -113,17 +158,17 @@ const existingOnlyDebtor = {
 const existingEntries = context.newSkuItemChipEntries(existingOnlyDebtor);
 assert.deepStrictEqual(
   Array.from(existingEntries, entry => entry.label),
-  ['SUKUN', 'CMP', 'CMX', 'TR12', 'LF', 'TR20', 'EVO', 'BISON-R'],
+  ['SKNR', 'SKNW', 'CMP', 'CMX', 'TR12', 'LF', 'TR20', 'EVO', 'BISON-R'],
   'right-side chips should still show every configured New SKU item even when the KPI count is zero',
 );
 assert.deepStrictEqual(
   Array.from(existingEntries, entry => entry.kpi),
-  [false, false, false, false, true, true, false, false],
+  [false, false, false, false, false, true, true, false, false],
   'configured New SKU items bought this month should be visible and included in KPI count',
 );
 assert.deepStrictEqual(
   Array.from(existingEntries, entry => entry.status),
-  ['none', 'none', 'none', 'none', 'new', 'new', 'none', 'none'],
+  ['none', 'none', 'none', 'none', 'none', 'new', 'new', 'none', 'none'],
   'current-month New SKU purchases should carry the KPI status even if older payload statuses said existing',
 );
 

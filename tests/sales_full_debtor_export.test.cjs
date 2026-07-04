@@ -95,6 +95,9 @@ const context = {
   formatCampaignFocPackage() {
     return 'FOC: SKNR x 2 packs';
   },
+  newSkuKpiEntryCount(debtor) {
+    return debtor.debtor_code === '300-A001' ? 12 : 0;
+  },
 };
 vm.createContext(context);
 vm.runInContext([
@@ -134,6 +137,7 @@ assert.strictEqual(rows[1]['Birthday'], '04 Nov');
 assert.strictEqual(rows[1]['Birthday This Month'], '');
 assert.strictEqual(rows[0]['Current Month CTN'], 7);
 assert.strictEqual(rows[0]['M-1 CTN'], 3);
+assert.strictEqual(rows[0]['New SKU Count'], 12, 'full debtor export should use computed New SKU KPI count');
 assert.strictEqual(rows[0]['Active Campaigns'], 'SUKUN FOC');
 assert.strictEqual(rows[0]['Campaign FOC Package / Notes'], 'FOC: SKNR x 2 packs');
 assert.strictEqual(rows[0]['Flag Status / Reason'], 'cant_contact');
@@ -156,6 +160,7 @@ const fallbackContext = {
   getFlag: context.getFlag,
   visibleDebtorCampaigns: context.visibleDebtorCampaigns,
   formatCampaignFocPackage: context.formatCampaignFocPackage,
+  newSkuKpiEntryCount: context.newSkuKpiEntryCount,
 };
 vm.createContext(fallbackContext);
 vm.runInContext([

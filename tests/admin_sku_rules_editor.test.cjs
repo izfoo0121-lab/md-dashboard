@@ -90,6 +90,21 @@ vm.createContext(context);
   'downloadSkuRulesConfig',
 ].forEach(name => vm.runInContext(extractFunction(name), context));
 
+const expandedLegacyRules = context.adminNormalizeRuleMap({
+  SUKUN: { item_code_prefixes: ['SKN'], item_groups: ['SUKUN'] },
+  CMX: { item_codes: ['CMX'], item_groups: ['CMX'] },
+});
+assert.deepEqual(
+  Object.keys(expandedLegacyRules),
+  ['SKNR', 'SKNW', 'CMX'],
+  'admin should expand legacy SUKUN New SKU config into separate SKNR/SKNW rules',
+);
+assert.equal(
+  expandedLegacyRules.SUKUN,
+  undefined,
+  'admin should not keep SUKUN as a single New SKU KPI bucket',
+);
+
 context.renderNewSkuRulesEditor();
 assert.match(elements.get('new-sku-rules-editor').innerHTML, /CMX/, 'editor should render rules from the active snapshot');
 

@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <script>
-const SALES_DASHBOARD_BUILD = '20260704-235305';
+const SALES_DASHBOARD_BUILD = '20260705-003654';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
@@ -1610,8 +1610,23 @@ function newSkuRulesSnapshot() {
     || {};
 }
 
+function newSkuExpandedGroups(groups = {}) {
+  const expanded = {};
+  Object.entries(groups || {}).forEach(([group, rule]) => {
+    const key = newSkuNormCode(group);
+    if (!key) return;
+    if (key === 'SUKUN') {
+      if (!expanded.SKNR) expanded.SKNR = { item_codes: ['SKNR'] };
+      if (!expanded.SKNW) expanded.SKNW = { item_codes: ['SKNW'] };
+      return;
+    }
+    expanded[key] = rule || {};
+  });
+  return expanded;
+}
+
 function newSkuConfiguredGroups() {
-  return newSkuRulesSnapshot()?.new_sku_groups || {};
+  return newSkuExpandedGroups(newSkuRulesSnapshot()?.new_sku_groups || {});
 }
 
 function newSkuRuleForGroup(group) {
@@ -1635,6 +1650,21 @@ function newSkuRowCode(row) {
 
 function newSkuRowGroup(row) {
   return newSkuNormCode(row?.item_group || row?.group || row?.brand || row?.item || row?.item_code);
+}
+
+function newSkuOtherValueMatches(value) {
+  const normalized = newSkuNormCode(value);
+  if (!normalized) return false;
+  return Array.from(OTHER_SKU_ITEM_CODES)
+    .some(code => normalized === code || normalized.startsWith(`${code}-`) || normalized.startsWith(`${code} `));
+}
+
+function newSkuIsOtherRow(row) {
+  return newSkuOtherValueMatches(newSkuRowCode(row)) || newSkuOtherValueMatches(newSkuRowGroup(row));
+}
+
+function newSkuOtherItem(row) {
+  return newSkuRowCode(row) || newSkuRowGroup(row) || 'CMLT';
 }
 
 function newSkuRuleMatchesRow(rule, row) {
@@ -1663,7 +1693,11 @@ function newSkuCurrentRows(debtor) {
 function newSkuRuleEntries(statuses = {}) {
   const configured = newSkuConfiguredGroups();
   if (configured && Object.keys(configured).length) return Object.entries(configured);
-  return Object.keys(statuses || {}).map(group => [group, newSkuRuleForGroup(group)]);
+  const statusRules = {};
+  Object.keys(statuses || {}).forEach(group => {
+    statusRules[group] = newSkuRuleForGroup(group);
+  });
+  return Object.entries(newSkuExpandedGroups(statusRules));
 }
 
 function newSkuStatusForGroup(statuses, group) {
@@ -1750,12 +1784,23 @@ function newSkuItemChipEntries(debtor) {
   });
   const seenOther = new Set();
   rows.forEach(row => {
-    const item = newSkuRowCode(row);
-    if (!OTHER_SKU_ITEM_CODES.has(item) || seenOther.has(item)) return;
+    const item = newSkuOtherItem(row);
+    if (!newSkuIsOtherRow(row) || seenOther.has(item)) return;
     seenOther.add(item);
     entries.push({ label: '其他', item, group: 'OTHER', kpi: false, status: 'other' });
   });
   return entries;
+}
+
+function newSkuPanelCountLabel(kpiCount, catalogTotal) {
+  const count = Number(kpiCount || 0);
+  const total = Number(catalogTotal || 0);
+  return total ? `${count}/${total}` : `${count}`;
+}
+
+function newSkuKpiEntryCount(debtor, entries = null) {
+  const source = Array.isArray(entries) ? entries : newSkuItemChipEntries(debtor);
+  return source.filter(entry => entry.kpi).length;
 }
 
 function monthSlug(monthLabel) {
@@ -4864,7 +4909,7 @@ function buildFullDebtorExportRows(agent, data) {
       'M-2 CTN': numericExportValue(debtor.ctn_prev2),
       'M-3 CTN': numericExportValue(debtor.ctn_prev3),
       'Last Purchase Date': safeExportText(debtor.last_purchase_date || debtor.last_order_date || debtor.last_visit_date),
-      'New SKU Count': numericExportValue(debtor.new_sku_count),
+      'New SKU Count': numericExportValue(newSkuKpiEntryCount(debtor)),
       'Active Campaigns': campaignNamesForDebtorExport(debtor),
       'Campaign FOC Package / Notes': campaignFocForDebtorExport(debtor),
       'Flag Status / Reason': flag ? safeExportText(flag.reason || flag.status || 'flagged') : '',
@@ -5356,9 +5401,9 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
       </div>`;
     }).join('');
     const newSkuEntries = newSkuItemChipEntries(d);
-    const newSkuKpiCount = newSkuEntries.filter(entry => entry.kpi).length;
-    const newSkuCatalogTotal = Number(d.new_sku_total || 0)
-      || newSkuEntries.filter(entry => entry.status !== 'other').length;
+    const newSkuKpiCount = newSkuKpiEntryCount(d, newSkuEntries);
+    const newSkuCatalogEntryTotal = newSkuEntries.filter(entry => entry.status !== 'other').length;
+    const newSkuCatalogTotal = Math.max(Number(d.new_sku_total || 0), newSkuCatalogEntryTotal);
     const newSkuHtml = newSkuEntries.map(entry => {
       const status = entry.status || (entry.kpi ? 'new' : 'other');
       const cls = status === 'new' || status === 'current'
@@ -5389,7 +5434,7 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
       <div class="sku-section new-sku-panel">
         <div class="new-sku-panel-top">
           <div class="sku-section-lbl">新增SKU ITEM</div>
-          <div class="new-sku-panel-count">KPI ${newSkuKpiCount}${newSkuCatalogTotal ? `/${newSkuCatalogTotal}` : ''}</div>
+          <div class="new-sku-panel-count">${newSkuPanelCountLabel(newSkuKpiCount, newSkuCatalogTotal)}</div>
         </div>
         <div class="new-sku-row">${newSkuHtml}</div>
       </div>` : '';
@@ -5607,7 +5652,7 @@ function renderDebtors() {
     }
     if (filters.special === 'drop'     && !d.volume_drop_pct)    return false;
     if (filters.special === 'gain' && !((d.ctn_cur || 0) > (d.ctn_prev1 || 0))) return false;
-    if (filters.special === 'newsku'   && !(d.new_sku_count > 0)) return false;
+    if (filters.special === 'newsku'   && !(newSkuKpiEntryCount(d) > 0)) return false;
     if (filters.special === 'no_ccom'  && !isNoCcomBuyer(d)) return false;
     if (filters.special === 'no3m'     && !isThreeMonthNoCcomOrder(d)) return false;
     if (filters.special === 'flagged'   && !getFlag(currentAgent, d.debtor_code)) return false;
@@ -5724,7 +5769,7 @@ function renderDebtors() {
     }
     if (filters.special === 'drop'    && !d.volume_drop_pct) continue;
     if (filters.special === 'gain'    && !((d.ctn_cur || 0) > (d.ctn_prev1 || 0))) continue;
-    if (filters.special === 'newsku'  && !(d.new_sku_count > 0)) continue;
+    if (filters.special === 'newsku'  && !(newSkuKpiEntryCount(d) > 0)) continue;
     if (filters.special === 'no_ccom' && !isNoCcomBuyer(d)) continue;
     if (filters.special === 'no3m'    && !isThreeMonthNoCcomOrder(d)) continue;
     if (filters.special === 'flagged' && !getFlag(currentAgent, d.debtor_code)) continue;
