@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <script>
-const SALES_DASHBOARD_BUILD = '20260705-003654';
+const SALES_DASHBOARD_BUILD = '20260705-011059';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
@@ -1659,6 +1659,13 @@ function newSkuOtherValueMatches(value) {
     .some(code => normalized === code || normalized.startsWith(`${code}-`) || normalized.startsWith(`${code} `));
 }
 
+function newSkuOtherBucketCode(value) {
+  const normalized = newSkuNormCode(value);
+  if (!normalized) return '';
+  return Array.from(OTHER_SKU_ITEM_CODES)
+    .find(code => normalized === code || normalized.startsWith(`${code}-`) || normalized.startsWith(`${code} `)) || '';
+}
+
 function newSkuIsOtherRow(row) {
   return newSkuOtherValueMatches(newSkuRowCode(row)) || newSkuOtherValueMatches(newSkuRowGroup(row));
 }
@@ -1785,9 +1792,15 @@ function newSkuItemChipEntries(debtor) {
   const seenOther = new Set();
   rows.forEach(row => {
     const item = newSkuOtherItem(row);
-    if (!newSkuIsOtherRow(row) || seenOther.has(item)) return;
-    seenOther.add(item);
-    entries.push({ label: '其他', item, group: 'OTHER', kpi: false, status: 'other' });
+    const bucket = newSkuOtherBucketCode(item) || newSkuOtherBucketCode(newSkuRowGroup(row));
+    if (!bucket || seenOther.has(bucket)) return;
+    seenOther.add(bucket);
+    entries.push({ label: '其他', item, source_items: [item], group: 'OTHER', kpi: false, status: 'other' });
+  });
+  Array.from(OTHER_SKU_ITEM_CODES).forEach(code => {
+    if (seenOther.has(code)) return;
+    seenOther.add(code);
+    entries.push({ label: '其他', item: code, source_items: [code], group: 'OTHER', kpi: false, status: 'other' });
   });
   return entries;
 }

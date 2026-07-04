@@ -158,18 +158,23 @@ const existingOnlyDebtor = {
 const existingEntries = context.newSkuItemChipEntries(existingOnlyDebtor);
 assert.deepStrictEqual(
   Array.from(existingEntries, entry => entry.label),
-  ['SKNR', 'SKNW', 'CMP', 'CMX', 'TR12', 'LF', 'TR20', 'EVO', 'BISON-R'],
-  'right-side chips should still show every configured New SKU item even when the KPI count is zero',
+  ['SKNR', 'SKNW', 'CMP', 'CMX', 'TR12', 'LF', 'TR20', 'EVO', 'BISON-R', '其他'],
+  'right-side chips should still show every configured New SKU item plus the Other bucket even when CMLT was not bought',
 );
 assert.deepStrictEqual(
   Array.from(existingEntries, entry => entry.kpi),
-  [false, false, false, false, false, true, true, false, false],
+  [false, false, false, false, false, true, true, false, false, false],
   'configured New SKU items bought this month should be visible and included in KPI count',
 );
 assert.deepStrictEqual(
   Array.from(existingEntries, entry => entry.status),
-  ['none', 'none', 'none', 'none', 'none', 'new', 'new', 'none', 'none'],
-  'current-month New SKU purchases should carry the KPI status even if older payload statuses said existing',
+  ['none', 'none', 'none', 'none', 'none', 'new', 'new', 'none', 'none', 'other'],
+  'current-month New SKU purchases should carry the KPI status while CMLT remains Other',
+);
+assert.deepStrictEqual(
+  Array.from(existingEntries.slice(-1), entry => [entry.label, entry.item, entry.group, entry.kpi, entry.status]),
+  [['其他', 'CMLT', 'OTHER', false, 'other']],
+  'Other bucket should be present as CMLT even when the debtor has no CMLT current-month row',
 );
 
 const priorOnlyDebtor = {
