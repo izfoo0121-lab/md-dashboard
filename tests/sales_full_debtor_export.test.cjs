@@ -40,10 +40,12 @@ const context = {
               debtor_type: 'SH-Shop',
               phone: '+601111',
               area: 'GRP 2A',
-              account_status: 'account_active',
               status: 'active',
               vip: true,
-              birthday: true,
+              birth_date_raw: '2018-06-27 00:00:00',
+              birth_day: 27,
+              birth_month: 6,
+              birthday_this_month: true,
               ctn_cur: 7,
               ctn_prev1: 3,
               ctn_prev2: 2,
@@ -57,8 +59,10 @@ const context = {
               company_name: 'KEDAI B',
               debtor_type: 'FL-Freelancer',
               phone: '+602222',
-              account_status: 'account_inactive',
               status: 'pending',
+              birth_day: 4,
+              birth_month: 11,
+              birthday_this_month: false,
               ctn_cur: 0,
               ctn_prev1: 0,
               ctn_prev2: 0,
@@ -103,6 +107,11 @@ vm.runInContext([
   extractFunction('campaignNamesForDebtorExport'),
   extractFunction('campaignFocForDebtorExport'),
   extractFunction('numericExportValue'),
+  extractFunction('exportMonthName'),
+  extractFunction('debtorBirthdayExportValue'),
+  extractFunction('debtorBirthdayThisMonthExportValue'),
+  extractFunction('debtorAccountStatusExportValue'),
+  extractFunction('debtorAreaExportValue'),
   extractFunction('buildFullDebtorExportRows'),
 ].join('\n'), context);
 
@@ -116,6 +125,13 @@ assert.deepStrictEqual(
 );
 assert.strictEqual(rows[0]['Agent'], 'BEN');
 assert.strictEqual(rows[0]['Company Name'], 'KEDAI A');
+assert.strictEqual(rows[0]['Area'], 'GRP 2A');
+assert.strictEqual(rows[0]['Account Status'], 'active');
+assert.strictEqual(rows[0]['Birthday'], '27 Jun');
+assert.strictEqual(rows[0]['Birthday This Month'], 'Y');
+assert.strictEqual(rows[1]['Account Status'], 'pending');
+assert.strictEqual(rows[1]['Birthday'], '04 Nov');
+assert.strictEqual(rows[1]['Birthday This Month'], '');
 assert.strictEqual(rows[0]['Current Month CTN'], 7);
 assert.strictEqual(rows[0]['M-1 CTN'], 3);
 assert.strictEqual(rows[0]['Active Campaigns'], 'SUKUN FOC');
@@ -153,6 +169,11 @@ vm.runInContext([
   extractFunction('campaignNamesForDebtorExport'),
   extractFunction('campaignFocForDebtorExport'),
   extractFunction('numericExportValue'),
+  extractFunction('exportMonthName'),
+  extractFunction('debtorBirthdayExportValue'),
+  extractFunction('debtorBirthdayThisMonthExportValue'),
+  extractFunction('debtorAccountStatusExportValue'),
+  extractFunction('debtorAreaExportValue'),
   extractFunction('csvExportValue'),
   extractFunction('rowsToCsv'),
   extractFunction('exportRowsAsCsv'),

@@ -3235,7 +3235,7 @@ def build_debtor_info(debtor_df):
     """Build debtor lookup dict from Debtor Maintenance DataFrame.
     Extracted from calc_debtor_cards() so it can be shared with calc_brand_commission
     and calc_newbie_scheme.
-    Returns: {debtor_code: {name, phone, vip, birth_date, open_date, type, agent, dm_active, has_bonus_point}}
+    Returns: {debtor_code: {name, phone, vip, birth_date, open_date, type, agent, area, dm_active, has_bonus_point}}
     """
     debtor_info = {}
     if debtor_df.empty:
@@ -3252,6 +3252,7 @@ def build_debtor_info(debtor_df):
     OPEN_COL   = next((c for c in cols if 'Open Acct' in c or 'Open' in c), None)
     BIRTH_COL  = next((c for c in cols if 'Birth' in c), None)
     AGENT_COL  = next((c for c in cols if c.strip() == 'Agent'), None)
+    AREA_COL   = next((c for c in cols if c.strip() == 'Area'), None)
     ACTIVE_COL = next((c for c in cols if c.strip() == 'Active'), None)
     BONUS_POINT_COL = next((c for c in cols if c.strip() == 'Has Bonus Point'), None)
 
@@ -3268,6 +3269,8 @@ def build_debtor_info(debtor_df):
         type_raw  = '' if type_raw.lower() in ('nan', 'none') else type_raw
         agent_raw = str(row.get(AGENT_COL, '') if AGENT_COL else '').strip()
         agent_raw = '' if agent_raw.lower() in ('nan', 'none') else agent_raw
+        area_raw = str(row.get(AREA_COL, '') if AREA_COL else '').strip()
+        area_raw = '' if area_raw.lower() in ('nan', 'none') else area_raw
 
         dm_active = True
         if ACTIVE_COL:
@@ -3287,6 +3290,7 @@ def build_debtor_info(debtor_df):
             "open_date":  row.get(OPEN_COL, None)  if OPEN_COL  else None,
             "type":       type_raw,
             "agent":      agent_raw,
+            "area":       area_raw,
             "dm_active":  dm_active,
             "has_bonus_point": has_bonus_point,
         }
@@ -3615,6 +3619,14 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
 
             # Debtor info
             info = debtor_info.get(dcode, {})
+            area_code = info.get("area", "")
+            for _area_rows in (d_all_invoice_rows, d_rows):
+                if area_code or _area_rows.empty or "area_code" not in _area_rows.columns:
+                    continue
+                _area_values = _area_rows["area_code"].dropna().astype(str).str.strip()
+                _area_values = _area_values[~_area_values.str.lower().isin(["", "nan", "none"])]
+                if not _area_values.empty:
+                    area_code = _area_values.iloc[0]
 
             # New debtor (open date within 90 days)
             is_new = False
@@ -3702,6 +3714,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 "debtor_code":        dcode,
                 "company_name":       info.get("name", dcode),
                 "phone":              info.get("phone", ""),
+                "area_code":          area_code,
                 "debtor_type":        info.get("type", ""),
                 "vip":                info.get("vip", False),
                 "has_bonus_point":    info.get("has_bonus_point", False),

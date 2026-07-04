@@ -46,6 +46,7 @@ class NewSkuGroupTests(unittest.TestCase):
                     "Company Name": "New SKU Shop",
                     "Agent": "CJ",
                     "Debtor Type": "SH-Shop",
+                    "Area": "GRP 2A",
                     "Active": "Checked",
                     "Open Acct Date": "2024-01-01",
                 }
@@ -60,6 +61,7 @@ class NewSkuGroupTests(unittest.TestCase):
             process_data._supabase_get = original_supabase_get
 
         debtor = cards["CJ"]["debtors"][0]
+        self.assertEqual(debtor["area_code"], "GRP 2A")
         self.assertEqual(debtor["new_sku_count"], 4)
         for group in ("CMX", "CMP", "BISON-R", "BISON-M"):
             with self.subTest(group=group):

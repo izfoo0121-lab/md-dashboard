@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <script>
-const SALES_DASHBOARD_BUILD = '20260704-105852';
+const SALES_DASHBOARD_BUILD = '20260704-112525';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
@@ -4694,6 +4694,45 @@ function numericExportValue(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function exportMonthName(monthNumber) {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const n = Number(monthNumber);
+  return Number.isFinite(n) && n >= 1 && n <= 12 ? months[n - 1] : '';
+}
+
+function debtorBirthdayExportValue(debtor) {
+  if (!debtor) return '';
+  let day = Number(debtor.birth_day);
+  let month = Number(debtor.birth_month);
+  if (!Number.isFinite(day) || !Number.isFinite(month)) {
+    const raw = safeExportText(debtor.birth_date_raw || debtor.birth_date || debtor.birthday_date);
+    const m = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/) || raw.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/);
+    if (m) {
+      if (m[1].length === 4) {
+        month = Number(m[2]);
+        day = Number(m[3]);
+      } else {
+        day = Number(m[1]);
+        month = Number(m[2]);
+      }
+    }
+  }
+  const monthName = exportMonthName(month);
+  return Number.isFinite(day) && monthName ? `${String(day).padStart(2, '0')} ${monthName}` : '';
+}
+
+function debtorBirthdayThisMonthExportValue(debtor) {
+  return (debtor?.birthday_this_month || debtor?.birthday || debtor?.is_birthday) ? 'Y' : '';
+}
+
+function debtorAccountStatusExportValue(debtor) {
+  return safeExportText(debtor?.account_status || debtor?.dm_status || debtor?.status_label || debtor?.status);
+}
+
+function debtorAreaExportValue(debtor) {
+  return safeExportText(debtor?.area || debtor?.area_code || debtor?.debtor_area || debtor?.sales_area || debtor?.area_group || debtor?.group);
+}
+
 function csvExportValue(value) {
   const text = safeExportText(value);
   const escaped = text.replace(/"/g, '""');
@@ -4765,11 +4804,12 @@ function buildFullDebtorExportRows(agent, data) {
       'Company Name': safeExportText(debtor.company_name || debtor.name || debtor.debtor_name),
       'Debtor Type': safeExportText(debtor.debtor_type || debtor.type),
       'Phone': safeExportText(debtor.phone || debtor.phone1 || debtor.mobile),
-      'Area': safeExportText(debtor.area || debtor.area_code || debtor.group || debtor.debtor_area),
-      'Account Status': safeExportText(debtor.account_status || debtor.status_label),
+      'Area': debtorAreaExportValue(debtor),
+      'Account Status': debtorAccountStatusExportValue(debtor),
       'Dashboard Status': safeExportText(debtor.status),
       'VIP': debtor.vip ? 'Y' : '',
-      'Birthday': (debtor.birthday || debtor.is_birthday) ? 'Y' : '',
+      'Birthday': debtorBirthdayExportValue(debtor),
+      'Birthday This Month': debtorBirthdayThisMonthExportValue(debtor),
       'Current Month CTN': numericExportValue(debtor.ctn_cur),
       'M-1 CTN': numericExportValue(debtor.ctn_prev1),
       'M-2 CTN': numericExportValue(debtor.ctn_prev2),
@@ -4797,7 +4837,7 @@ function exportFullDebtorListExcel() {
 
   const columnWidths = [
     { wch: 10 }, { wch: 14 }, { wch: 36 }, { wch: 18 }, { wch: 16 },
-    { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 5 }, { wch: 8 },
+    { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 5 }, { wch: 12 }, { wch: 12 },
     { wch: 14 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 16 },
     { wch: 12 }, { wch: 30 }, { wch: 36 }, { wch: 20 }, { wch: 42 },
   ];
