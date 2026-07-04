@@ -43,6 +43,8 @@ const context = {
           CMP: { item_codes: ['CMP'], item_groups: ['CMP'] },
           CMX: { item_codes: ['CMX'], item_groups: ['CMX'] },
           TR12: { item_code_prefixes: ['TR-002', 'TR12'] },
+          LF: { item_code_prefixes: ['LF'] },
+          TR20: { item_code_prefixes: ['TR20'] },
         },
       },
     },
@@ -76,18 +78,51 @@ const debtor = {
 const entries = context.newSkuItemChipEntries(debtor);
 assert.deepStrictEqual(
   Array.from(entries, entry => entry.label),
-  ['SKNR', 'SKNW', 'CMP', '其他'],
-  'right-side chips should show actual New SKU items plus CMLT as other, not non-new SKU groups',
+  ['SKNR', 'SKNW', 'CMP', 'TR-002', '其他'],
+  'right-side chips should show actual configured New SKU items bought this month plus CMLT as other',
 );
 assert.deepStrictEqual(
   Array.from(entries, entry => entry.item),
-  ['SKNR', 'SKNW', 'CMP', 'CMLT'],
+  ['SKNR', 'SKNW', 'CMP', 'TR-002', 'CMLT'],
   'chip metadata should preserve the source item code for tooltip/export safety',
 );
 assert.deepStrictEqual(
   Array.from(entries, entry => entry.kpi),
-  [true, true, true, false],
-  'CMLT should be visible as Other but excluded from New SKU KPI count',
+  [true, true, true, false, false],
+  'only first-time New SKU items should count toward the New SKU KPI',
+);
+assert.deepStrictEqual(
+  Array.from(entries, entry => entry.status),
+  ['new', 'new', 'new', 'existing', 'other'],
+  'right-side chips should distinguish KPI-new, existing New SKU, and Other SKU',
+);
+
+const existingOnlyDebtor = {
+  new_sku_count: 0,
+  new_sku_status: { LF: 'existing', TR20: 'existing' },
+  month_breakdown: {
+    'Jul 26': [
+      { item: 'LF-002', ctn: 5 },
+      { item: 'TR20', ctn: 3 },
+    ],
+  },
+};
+
+const existingEntries = context.newSkuItemChipEntries(existingOnlyDebtor);
+assert.deepStrictEqual(
+  Array.from(existingEntries, entry => entry.label),
+  ['LF-002', 'TR20'],
+  'right-side chips should still show configured New SKU items even when the KPI count is zero',
+);
+assert.deepStrictEqual(
+  Array.from(existingEntries, entry => entry.kpi),
+  [false, false],
+  'existing New SKU items should be visible but excluded from KPI count',
+);
+assert.deepStrictEqual(
+  Array.from(existingEntries, entry => entry.status),
+  ['existing', 'existing'],
+  'existing New SKU items should carry an existing status for styling and tooltips',
 );
 
 console.log('sales_new_sku_item_chips.test.cjs passed');

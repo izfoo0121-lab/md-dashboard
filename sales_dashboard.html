@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <script>
-const SALES_DASHBOARD_BUILD = '20260704-101533';
+const SALES_DASHBOARD_BUILD = '20260704-104133';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
@@ -215,7 +215,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .new-sku-panel-count{font-family:var(--display);font-size:18px;color:var(--purple);letter-spacing:.03em;line-height:1;}
 .new-sku-row{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;}
 .new-sku-chip{font-family:var(--mono);font-size:9px;background:rgba(167,139,250,.2);color:var(--purple);border:1px solid rgba(167,139,250,.32);padding:3px 7px;border-radius:8px;font-weight:600;line-height:1.1;max-width:100%;overflow-wrap:anywhere;}
-.new-sku-chip.other{background:rgba(240,192,64,.14);color:var(--accent);border-color:rgba(240,192,64,.34);}
+.new-sku-chip.existing{background:rgba(240,192,64,.14);color:var(--accent);border-color:rgba(240,192,64,.34);}
+.new-sku-chip.current{background:rgba(77,166,255,.12);color:var(--blue);border-color:rgba(77,166,255,.3);}
+.new-sku-chip.other{background:rgba(107,114,128,.12);color:var(--muted);border-color:rgba(107,114,128,.28);}
 @media(max-width:640px){.debtor-sku-panels{grid-template-columns:1fr;}.new-sku-row{justify-content:flex-start;}}
 
 /* Status badge inline */
@@ -1651,26 +1653,58 @@ function newSkuCurrentRows(debtor) {
   return Array.isArray(rows) ? rows : [];
 }
 
+function newSkuRuleEntries(statuses = {}) {
+  const configured = newSkuConfiguredGroups();
+  if (configured && Object.keys(configured).length) return Object.entries(configured);
+  return Object.keys(statuses || {}).map(group => [group, newSkuRuleForGroup(group)]);
+}
+
+function newSkuStatusForGroup(statuses, group) {
+  const wanted = newSkuNormCode(group);
+  const direct = statuses?.[group] || statuses?.[wanted];
+  if (direct) return direct;
+  const matchedKey = Object.keys(statuses || {}).find(key => newSkuNormCode(key) === wanted);
+  return matchedKey ? statuses[matchedKey] : '';
+}
+
+function newSkuEntryStatus(statuses, group) {
+  const status = String(newSkuStatusForGroup(statuses, group) || '').toLowerCase();
+  if (status === 'new') return 'new';
+  if (status === 'existing') return 'existing';
+  return 'current';
+}
+
+function newSkuGroupForRow(row, statuses = {}) {
+  const matched = newSkuRuleEntries(statuses)
+    .find(([, rule]) => newSkuRuleMatchesRow(rule, row));
+  return matched ? matched[0] : '';
+}
+
 function newSkuItemChipEntries(debtor) {
   const rows = newSkuCurrentRows(debtor);
   const statuses = debtor?.new_sku_status || {};
   const seen = new Set();
   const entries = [];
-  Object.entries(statuses).forEach(([group, status]) => {
-    if (status !== 'new') return;
-    const rule = newSkuRuleForGroup(group);
-    rows.filter(row => newSkuRuleMatchesRow(rule, row)).forEach(row => {
-      const item = newSkuRowCode(row);
-      if (!item || OTHER_SKU_ITEM_CODES.has(item) || seen.has(item)) return;
-      seen.add(item);
-      entries.push({ label: item, item, group: newSkuNormCode(group), kpi: true });
+  rows.forEach(row => {
+    const item = newSkuRowCode(row);
+    if (!item || OTHER_SKU_ITEM_CODES.has(item) || seen.has(item)) return;
+    const group = newSkuGroupForRow(row, statuses);
+    if (!group) return;
+    const status = newSkuEntryStatus(statuses, group);
+    seen.add(item);
+    entries.push({
+      label: item,
+      item,
+      group: newSkuNormCode(group),
+      kpi: status === 'new',
+      status,
     });
   });
   rows.forEach(row => {
     const item = newSkuRowCode(row);
     if (!OTHER_SKU_ITEM_CODES.has(item) || seen.has(item)) return;
     seen.add(item);
-    entries.push({ label: '其他', item, group: 'OTHER', kpi: false });
+    entries.push({ label: '其他', item, group: 'OTHER', kpi: false, status: 'other' });
   });
   return entries;
 }
@@ -5187,16 +5221,21 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
     }).join('');
     const newSkuEntries = newSkuItemChipEntries(d);
     const newSkuHtml = newSkuEntries.map(entry => {
-      const title = entry.kpi
+      const status = entry.status || (entry.kpi ? 'new' : 'other');
+      const title = status === 'new'
         ? `新增SKU KPI · ${entry.item}`
-        : `其他SKU · ${entry.item} · 不计KPI`;
-      return `<span class="new-sku-chip ${entry.kpi ? '' : 'other'}" title="${campEsc(title)}">${campEsc(entry.label)}</span>`;
+        : status === 'existing'
+          ? `新增SKU已买过 · ${entry.item} · 不计KPI`
+          : status === 'other'
+            ? `其他SKU · ${entry.item} · 不计KPI`
+            : `新增SKU当月购买 · ${entry.item} · 不计KPI`;
+      return `<span class="new-sku-chip ${campEsc(status)}" title="${campEsc(title)}">${campEsc(entry.label)}</span>`;
     }).join('');
     const newSkuPanelHtml = newSkuEntries.length ? `
       <div class="sku-section new-sku-panel">
         <div class="new-sku-panel-top">
           <div class="sku-section-lbl">新增SKU ITEM</div>
-          <div class="new-sku-panel-count">+${Number(d.new_sku_count || 0)}</div>
+          <div class="new-sku-panel-count">+${Number(d.new_sku_count || 0)} KPI</div>
         </div>
         <div class="new-sku-row">${newSkuHtml}</div>
       </div>` : '';
