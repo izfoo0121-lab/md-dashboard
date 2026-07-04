@@ -29,8 +29,8 @@ assert(
   'debtor card should render right-side New SKU item chips from a dedicated helper',
 );
 assert(
-  renderDebtorCard.includes('new-sku-panel'),
-  'debtor card should place New SKU item chips in a separate right-side panel',
+  renderDebtorCard.includes('new-sku-dot'),
+  'debtor card should render New SKU items as status dots like the ZLB brand chips',
 );
 
 const context = {
@@ -78,23 +78,23 @@ const debtor = {
 const entries = context.newSkuItemChipEntries(debtor);
 assert.deepStrictEqual(
   Array.from(entries, entry => entry.label),
-  ['SKNR', 'SKNW', 'CMP', 'TR-002', '其他'],
-  'right-side chips should show actual configured New SKU items bought this month plus CMLT as other',
+  ['SUKUN', 'CMP', 'CMX', 'TR12', 'LF', 'TR20', '其他'],
+  'right-side chips should show every configured New SKU item plus CMLT as other when present',
 );
 assert.deepStrictEqual(
   Array.from(entries, entry => entry.item),
-  ['SKNR', 'SKNW', 'CMP', 'TR-002', 'CMLT'],
-  'chip metadata should preserve the source item code for tooltip/export safety',
+  ['SUKUN', 'CMP', 'CMX', 'TR12', 'LF', 'TR20', 'CMLT'],
+  'chip metadata should preserve the displayed item bucket for tooltip/export safety',
 );
 assert.deepStrictEqual(
   Array.from(entries, entry => entry.kpi),
-  [true, true, true, false, false],
+  [true, true, false, false, false, false, false],
   'only first-time New SKU items should count toward the New SKU KPI',
 );
 assert.deepStrictEqual(
   Array.from(entries, entry => entry.status),
-  ['new', 'new', 'new', 'existing', 'other'],
-  'right-side chips should distinguish KPI-new, existing New SKU, and Other SKU',
+  ['new', 'new', 'none', 'current', 'none', 'none', 'other'],
+  'right-side chips should distinguish KPI-new, current-month non-KPI, prior-month, unpurchased, and Other SKU',
 );
 
 const existingOnlyDebtor = {
@@ -111,18 +111,34 @@ const existingOnlyDebtor = {
 const existingEntries = context.newSkuItemChipEntries(existingOnlyDebtor);
 assert.deepStrictEqual(
   Array.from(existingEntries, entry => entry.label),
-  ['LF-002', 'TR20'],
-  'right-side chips should still show configured New SKU items even when the KPI count is zero',
+  ['SUKUN', 'CMP', 'CMX', 'TR12', 'LF', 'TR20'],
+  'right-side chips should still show every configured New SKU item even when the KPI count is zero',
 );
 assert.deepStrictEqual(
   Array.from(existingEntries, entry => entry.kpi),
-  [false, false],
+  [false, false, false, false, false, false],
   'existing New SKU items should be visible but excluded from KPI count',
 );
 assert.deepStrictEqual(
   Array.from(existingEntries, entry => entry.status),
-  ['existing', 'existing'],
-  'existing New SKU items should carry an existing status for styling and tooltips',
+  ['none', 'none', 'none', 'none', 'current', 'current'],
+  'current-month New SKU purchases should be visible even when they are excluded from KPI count',
+);
+
+const priorOnlyDebtor = {
+  new_sku_count: 0,
+  new_sku_status: { LF: 'existing' },
+  month_breakdown: {
+    'Jul 26': [],
+    'Jun 26': [{ item: 'LF-002', ctn: 4 }],
+  },
+};
+
+const priorEntries = context.newSkuItemChipEntries(priorOnlyDebtor);
+assert.strictEqual(
+  priorEntries.find(entry => entry.label === 'LF').status,
+  'existing',
+  'New SKU items bought only in the prior three months should show the 3-month purchased status',
 );
 
 console.log('sales_new_sku_item_chips.test.cjs passed');
