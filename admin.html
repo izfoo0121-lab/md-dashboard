@@ -540,6 +540,15 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
           <button class="small-btn" type="button" onclick="addNewSkuRuleRow()">+ Add SKU Group</button>
           <button class="small-btn" type="button" onclick="downloadSkuRulesConfig()">Download sku_rules.json</button>
         </div>
+        <div style="border-top:1px solid var(--border);margin:14px 0 10px;"></div>
+        <div style="font-family:var(--display);font-size:16px;letter-spacing:.04em;margin-bottom:6px;">其他SKU（不计KPI）</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);margin-bottom:10px;">
+          These items appear in the debtor card Other SKU box, but never count toward 新增SKU KPI.
+        </div>
+        <div id="other-sku-rules-editor"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+          <button class="small-btn" type="button" onclick="addOtherSkuRuleRow()">+ Add Other SKU</button>
+        </div>
       </div>
 
       <div class="admin-card" style="margin-top:12px;">
@@ -1404,6 +1413,9 @@ const DEFAULT_BRANDS = Object.keys(DEFAULT_BRAND_CONFIG);
 const BRANDS = DEFAULT_BRANDS;
 const DEFAULT_PENETRATION_AUTO_BRANDS = ['iFACE','CMP','BISON','TR20'];
 const DEFAULT_ZLB_BRANDS = ['SUKUN','EVO','BISON','LAM+LWM'];
+const DEFAULT_OTHER_SKU_GROUPS = {
+  OTHER: { label: '其他', item_codes: ['CMLT'], item_groups: ['CMLT'] },
+};
 const AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','YI'];
 const MD_ADMIN_GROUP = 'grp2a';
 const ADMIN_AGENT_GROUPS = Object.freeze(Object.fromEntries(AGENTS.map(agent => [agent, MD_ADMIN_GROUP])));
@@ -4039,6 +4051,7 @@ function renderSKUForms() {
   renderInhouseCodes();
   renderSkuTraceConfig();
   renderNewSkuRulesEditor();
+  if (typeof renderOtherSkuRulesEditor === 'function') renderOtherSkuRulesEditor();
   renderSkuRulesPreview();
 }
 
@@ -4205,6 +4218,7 @@ function renderSkuRulesPreview() {
     ${adminRuleMapHtml('Brand Targets', snapshot.brand_targets)}
     ${adminRuleMapHtml('ZLB Brands', snapshot.zlb_brands)}
     ${adminRuleMapHtml('New SKU Groups', adminNormalizeRuleMap(snapshot.new_sku_groups))}
+    ${adminRuleMapHtml('Other SKU Groups (No KPI)', adminNormalizeRuleMap(snapshot.other_sku_groups || DEFAULT_OTHER_SKU_GROUPS))}
     <div style="font-family:var(--display);font-size:15px;letter-spacing:.04em;margin:8px 0;">SKU Trace Defaults</div>
     ${traceRows.map(row => `<div class="sku-trace-row" style="grid-template-columns:180px 1fr 90px;">
       <div>${kpiAdminEscape(row?.label || '')}</div>
@@ -4217,6 +4231,7 @@ function renderSkuRulesPreview() {
 function adminSkuRuleListFromMap(ruleMap) {
   return Object.entries(ruleMap || {}).map(([key, rule]) => ({
     key: String(key || '').trim().toUpperCase(),
+    label: String(rule?.label || '').trim(),
     item_codes: Array.isArray(rule?.item_codes) ? [...rule.item_codes] : [],
     item_code_prefixes: Array.isArray(rule?.item_code_prefixes) ? [...rule.item_code_prefixes] : [],
     item_groups: Array.isArray(rule?.item_groups) ? [...rule.item_groups] : [],
@@ -4243,8 +4258,10 @@ function adminNormalizeRuleMap(rowsOrMap) {
       item_code_prefixes: adminParseRuleList(row.item_code_prefixes),
       item_groups: adminParseRuleList(row.item_groups),
     };
+    const label = String(row?.label || '').trim();
+    if (label) rule.label = label;
     Object.keys(rule).forEach(field => {
-      if (!rule[field].length) delete rule[field];
+      if (Array.isArray(rule[field]) && !rule[field].length) delete rule[field];
     });
     out[key] = rule;
     return out;
@@ -4257,11 +4274,12 @@ function adminEditableSkuRules() {
     || CONFIG.sku_rules_snapshot
     || DASH_DATA?.config?.sku_rules_snapshot
     || DASH_DATA?.sku_rules_snapshot
-    || { version: 2, updated_at: new Date().toISOString().slice(0, 10), new_sku_groups: {} };
+    || { version: 2, updated_at: new Date().toISOString().slice(0, 10), new_sku_groups: {}, other_sku_groups: DEFAULT_OTHER_SKU_GROUPS };
   const rules = JSON.parse(JSON.stringify(source));
   rules.version = rules.version || 2;
   rules.updated_at = rules.updated_at || new Date().toISOString().slice(0, 10);
   rules.new_sku_groups = adminNormalizeRuleMap(rules.new_sku_groups || {});
+  rules.other_sku_groups = adminNormalizeRuleMap(rules.other_sku_groups || DEFAULT_OTHER_SKU_GROUPS);
   CONFIG.sku_rules = rules;
   return rules;
 }
@@ -4272,6 +4290,18 @@ function syncNewSkuRulesToConfig(rows) {
     ...base,
     updated_at: new Date().toISOString().slice(0, 10),
     new_sku_groups: adminNormalizeRuleMap(rows),
+  };
+  CONFIG.sku_rules = next;
+  CONFIG.sku_rules_snapshot = next;
+  return next;
+}
+
+function syncOtherSkuRulesToConfig(rows) {
+  const base = adminEditableSkuRules();
+  const next = {
+    ...base,
+    updated_at: new Date().toISOString().slice(0, 10),
+    other_sku_groups: adminNormalizeRuleMap(rows),
   };
   CONFIG.sku_rules = next;
   CONFIG.sku_rules_snapshot = next;
@@ -4339,6 +4369,74 @@ function removeNewSkuRule(idx) {
   rows.splice(idx, 1);
   syncNewSkuRulesToConfig(rows);
   renderNewSkuRulesEditor();
+  renderSkuRulesPreview();
+  updateRawJSON();
+}
+
+function renderOtherSkuRulesEditor() {
+  const el = document.getElementById('other-sku-rules-editor');
+  if (!el) return;
+  const rules = adminEditableSkuRules();
+  const rows = adminSkuRuleListFromMap(rules.other_sku_groups);
+  if (!rows.length) {
+    el.innerHTML = '<div class="ap-empty">No 其他SKU rules yet. Add a non-KPI SKU group to start.</div>';
+    return;
+  }
+  el.innerHTML = `
+    <div class="sku-trace-row" style="grid-template-columns:120px 100px 1fr 1fr 1fr 34px;font-family:var(--mono);font-size:9px;color:var(--ink3);">
+      <div>Bucket</div>
+      <div>Label</div>
+      <div>Item Codes</div>
+      <div>Code Prefixes</div>
+      <div>Item Groups</div>
+      <div></div>
+    </div>
+    ${rows.map((row, idx) => `
+      <div class="sku-trace-row" style="grid-template-columns:120px 100px 1fr 1fr 1fr 34px;">
+        <input value="${kpiAdminEscape(row.key)}" oninput="updateOtherSkuRuleField(${idx}, 'key', this.value)" placeholder="OTHER">
+        <input value="${kpiAdminEscape(row.label || '')}" oninput="updateOtherSkuRuleField(${idx}, 'label', this.value)" placeholder="其他">
+        <input value="${kpiAdminEscape((row.item_codes || []).join(', '))}" oninput="updateOtherSkuRuleField(${idx}, 'item_codes', this.value)" placeholder="CMLT">
+        <input value="${kpiAdminEscape((row.item_code_prefixes || []).join(', '))}" oninput="updateOtherSkuRuleField(${idx}, 'item_code_prefixes', this.value)" placeholder="CMLT">
+        <input value="${kpiAdminEscape((row.item_groups || []).join(', '))}" oninput="updateOtherSkuRuleField(${idx}, 'item_groups', this.value)" placeholder="CMLT">
+        <button class="sku-trace-remove" type="button" onclick="removeOtherSkuRule(${idx})" title="Remove">x</button>
+      </div>
+    `).join('')}
+  `;
+}
+
+function updateOtherSkuRuleField(idx, field, value) {
+  const rows = adminSkuRuleListFromMap(adminEditableSkuRules().other_sku_groups);
+  if (!rows[idx]) return;
+  if (field === 'key') rows[idx].key = String(value || '').trim().toUpperCase();
+  else if (field === 'label') rows[idx].label = String(value || '').trim();
+  else if (['item_codes', 'item_code_prefixes', 'item_groups'].includes(field)) rows[idx][field] = adminParseRuleList(value);
+  syncOtherSkuRulesToConfig(rows);
+  renderSkuRulesPreview();
+  updateRawJSON();
+}
+
+function addOtherSkuRuleRow() {
+  const rows = adminSkuRuleListFromMap(adminEditableSkuRules().other_sku_groups);
+  let suffix = rows.length + 1;
+  let key = `OTHER ${suffix}`;
+  const keys = new Set(rows.map(row => row.key));
+  while (keys.has(key)) {
+    suffix += 1;
+    key = `OTHER ${suffix}`;
+  }
+  rows.push({ key, label: '其他', item_codes: [], item_code_prefixes: [], item_groups: [] });
+  syncOtherSkuRulesToConfig(rows);
+  renderOtherSkuRulesEditor();
+  renderSkuRulesPreview();
+  updateRawJSON();
+}
+
+function removeOtherSkuRule(idx) {
+  const rows = adminSkuRuleListFromMap(adminEditableSkuRules().other_sku_groups);
+  if (!rows[idx]) return;
+  rows.splice(idx, 1);
+  syncOtherSkuRulesToConfig(rows);
+  renderOtherSkuRulesEditor();
   renderSkuRulesPreview();
   updateRawJSON();
 }

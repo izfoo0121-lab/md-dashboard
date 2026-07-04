@@ -264,6 +264,8 @@ class NewSkuGroupTests(unittest.TestCase):
 
         self.assertEqual(rules["version"], 3)
         self.assertEqual(rules["new_sku_groups"], {})
+        self.assertEqual(rules["other_sku_groups"]["OTHER"]["item_codes"], ["CMLT"])
+        self.assertEqual(rules["other_sku_groups"]["OTHER"]["label"], "其他")
 
     def test_cmlt_is_other_sku_and_does_not_count_new_sku_kpi(self):
         sales = pd.DataFrame(
@@ -298,10 +300,19 @@ class NewSkuGroupTests(unittest.TestCase):
             ]
         )
         custom_rules = {
-            "OTHER": {
-                "item_codes": ["CMLT"],
-                "item_groups": ["CMLT"],
-            }
+            "new_sku_groups": {
+                "CMLT-KPI": {
+                    "item_codes": ["CMLT"],
+                    "item_groups": ["CMLT"],
+                }
+            },
+            "other_sku_groups": {
+                "OTHER": {
+                    "label": "其他",
+                    "item_codes": ["CMLT"],
+                    "item_groups": ["CMLT"],
+                }
+            },
         }
 
         original_supabase_get = process_data._supabase_get
@@ -319,7 +330,7 @@ class NewSkuGroupTests(unittest.TestCase):
 
         debtor = cards["CJ"]["debtors"][0]
         self.assertEqual(debtor["new_sku_count"], 0)
-        self.assertNotEqual(debtor["new_sku_status"].get("OTHER"), "new")
+        self.assertNotEqual(debtor["new_sku_status"].get("CMLT-KPI"), "new")
 
 
 if __name__ == "__main__":

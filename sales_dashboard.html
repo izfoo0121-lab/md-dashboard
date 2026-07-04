@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <script>
-const SALES_DASHBOARD_BUILD = '20260705-011059';
+const SALES_DASHBOARD_BUILD = '20260705-014913';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
@@ -209,10 +209,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .sku-section-lbl{font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
 .sku-row{display:flex;gap:4px;flex-wrap:wrap;}
 .debtor-sku-panels{display:grid;grid-template-columns:minmax(0,1fr) minmax(190px,.72fr);gap:8px;align-items:start;margin-top:8px;}
+.debtor-sku-side{display:flex;flex-direction:column;gap:8px;}
 .debtor-sku-panels .sku-section{margin-top:0;}
 .new-sku-panel{min-height:58px;padding:7px 9px;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.24);border-radius:8px;}
+.other-sku-panel{min-height:46px;background:rgba(107,114,128,.06);border-color:rgba(107,114,128,.24);}
 .new-sku-panel-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px;}
 .new-sku-panel-count{font-family:var(--mono);font-size:10px;color:var(--purple);font-weight:700;line-height:1;}
+.other-sku-panel .new-sku-panel-count{color:var(--muted);}
 .new-sku-row{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-start;}
 .new-sku-dot{width:48px;min-width:48px;height:36px;padding:0 3px;font-size:7px;overflow:hidden;overflow-wrap:anywhere;}
 .new-sku-dot.other{background:rgba(107,114,128,.12);color:var(--muted);border:1px solid rgba(107,114,128,.28);}
@@ -1597,7 +1600,9 @@ function visibleZlbStatusEntries(debtor) {
   return visibleZlbBrandKeys().map(brand => [brand, zlbStatusForBrand(debtor, brand)]);
 }
 
-const OTHER_SKU_ITEM_CODES = new Set(['CMLT']);
+const DEFAULT_OTHER_SKU_GROUPS = {
+  OTHER: { label: '其他', item_codes: ['CMLT'], item_groups: ['CMLT'] },
+};
 
 function newSkuNormCode(value) {
   return String(value || '').trim().toUpperCase().replace(/\s+/g, ' ');
@@ -1629,6 +1634,18 @@ function newSkuConfiguredGroups() {
   return newSkuExpandedGroups(newSkuRulesSnapshot()?.new_sku_groups || {});
 }
 
+function otherSkuConfiguredGroups() {
+  const configured = newSkuRulesSnapshot()?.other_sku_groups;
+  const source = configured && Object.keys(configured).length ? configured : DEFAULT_OTHER_SKU_GROUPS;
+  const groups = {};
+  Object.entries(source || {}).forEach(([group, rule]) => {
+    const key = newSkuNormCode(group);
+    if (!key) return;
+    groups[key] = rule || {};
+  });
+  return groups;
+}
+
 function newSkuRuleForGroup(group) {
   const wanted = newSkuNormCode(group);
   const groups = newSkuConfiguredGroups();
@@ -1652,22 +1669,12 @@ function newSkuRowGroup(row) {
   return newSkuNormCode(row?.item_group || row?.group || row?.brand || row?.item || row?.item_code);
 }
 
-function newSkuOtherValueMatches(value) {
-  const normalized = newSkuNormCode(value);
-  if (!normalized) return false;
-  return Array.from(OTHER_SKU_ITEM_CODES)
-    .some(code => normalized === code || normalized.startsWith(`${code}-`) || normalized.startsWith(`${code} `));
-}
-
-function newSkuOtherBucketCode(value) {
-  const normalized = newSkuNormCode(value);
-  if (!normalized) return '';
-  return Array.from(OTHER_SKU_ITEM_CODES)
-    .find(code => normalized === code || normalized.startsWith(`${code}-`) || normalized.startsWith(`${code} `)) || '';
+function otherSkuRuleEntries() {
+  return Object.entries(otherSkuConfiguredGroups());
 }
 
 function newSkuIsOtherRow(row) {
-  return newSkuOtherValueMatches(newSkuRowCode(row)) || newSkuOtherValueMatches(newSkuRowGroup(row));
+  return otherSkuRuleEntries().some(([, rule]) => newSkuRuleMatchesRow(rule, row));
 }
 
 function newSkuOtherItem(row) {
@@ -1754,6 +1761,13 @@ function newSkuCurrentItemList(debtor, group, rule) {
   return items;
 }
 
+function newSkuRulePrimaryItem(group, rule) {
+  const itemCodes = newSkuRuleValues(rule, 'item_codes');
+  const itemPrefixes = newSkuRuleValues(rule, 'item_code_prefixes');
+  const itemGroups = newSkuRuleValues(rule, 'item_groups');
+  return itemCodes[0] || itemPrefixes[0] || itemGroups[0] || newSkuNormCode(group);
+}
+
 function newSkuEntryStatus(debtor, statuses, group, rule) {
   const mapped = newSkuMappedStatus(statuses, group);
   const curMonth = DATA?.current_month || '';
@@ -1769,7 +1783,6 @@ function newSkuEntryStatus(debtor, statuses, group, rule) {
 }
 
 function newSkuItemChipEntries(debtor) {
-  const rows = newSkuCurrentRows(debtor);
   const statuses = debtor?.new_sku_status || {};
   const seenGroups = new Set();
   const entries = [];
@@ -1789,20 +1802,41 @@ function newSkuItemChipEntries(debtor) {
       status,
     });
   });
-  const seenOther = new Set();
-  rows.forEach(row => {
-    const item = newSkuOtherItem(row);
-    const bucket = newSkuOtherBucketCode(item) || newSkuOtherBucketCode(newSkuRowGroup(row));
-    if (!bucket || seenOther.has(bucket)) return;
-    seenOther.add(bucket);
-    entries.push({ label: '其他', item, source_items: [item], group: 'OTHER', kpi: false, status: 'other' });
-  });
-  Array.from(OTHER_SKU_ITEM_CODES).forEach(code => {
-    if (seenOther.has(code)) return;
-    seenOther.add(code);
-    entries.push({ label: '其他', item: code, source_items: [code], group: 'OTHER', kpi: false, status: 'other' });
-  });
   return entries;
+}
+
+function otherSkuEntryStatus(debtor, group, rule) {
+  const curMonth = DATA?.current_month || '';
+  const priorMonths = [-1, -2, -3]
+    .map(offset => shiftedMonthLabel(curMonth, offset))
+    .filter(Boolean);
+  const boughtThis = newSkuGroupCtnInMonth(debtor, group, curMonth, rule) > 0;
+  const boughtPast = priorMonths.some(month => newSkuGroupCtnInMonth(debtor, group, month, rule) > 0);
+  if (boughtThis) return 'current';
+  if (boughtPast) return 'existing';
+  return 'none';
+}
+
+function otherSkuDisplayLabel(group, rule) {
+  const label = String(rule?.label || '').trim();
+  if (label) return label;
+  const key = newSkuNormCode(group);
+  return key === 'OTHER' || key === 'CMLT' ? '其他' : newSkuDisplayLabel(group, rule);
+}
+
+function otherSkuItemChipEntries(debtor) {
+  return otherSkuRuleEntries().map(([group, rule]) => {
+    const currentItems = newSkuCurrentItemList(debtor, group, rule);
+    const item = currentItems[0] || newSkuRulePrimaryItem(group, rule);
+    return {
+      label: otherSkuDisplayLabel(group, rule),
+      item,
+      source_items: currentItems.length ? currentItems : [item],
+      group: newSkuNormCode(group),
+      kpi: false,
+      status: otherSkuEntryStatus(debtor, group, rule),
+    };
+  });
 }
 
 function newSkuPanelCountLabel(kpiCount, catalogTotal) {
@@ -5414,27 +5448,25 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
       </div>`;
     }).join('');
     const newSkuEntries = newSkuItemChipEntries(d);
+    const otherSkuEntries = otherSkuItemChipEntries(d);
     const newSkuKpiCount = newSkuKpiEntryCount(d, newSkuEntries);
-    const newSkuCatalogEntryTotal = newSkuEntries.filter(entry => entry.status !== 'other').length;
+    const newSkuCatalogEntryTotal = newSkuEntries.length;
     const newSkuCatalogTotal = Math.max(Number(d.new_sku_total || 0), newSkuCatalogEntryTotal);
-    const newSkuHtml = newSkuEntries.map(entry => {
-      const status = entry.status || (entry.kpi ? 'new' : 'other');
+    const renderSkuStatusDot = (entry, options = {}) => {
+      const status = entry.status || (entry.kpi ? 'new' : 'none');
       const cls = status === 'new' || status === 'current'
         ? 'sku-green'
         : status === 'existing'
           ? 'sku-yellow'
-          : status === 'other'
-            ? 'other'
-            : 'sku-red';
+          : 'sku-red';
+      const noun = options.other ? '其他SKU' : '新增SKU';
       const title = status === 'new'
-        ? `新增SKU KPI · ${entry.item} · 当月首次购买`
+        ? `${noun} KPI · ${entry.item} · 当月首次购买`
         : status === 'current'
-          ? `新增SKU当月购买 · ${entry.item} · 不计KPI`
+          ? `${noun}当月购买 · ${entry.item} · 不计KPI`
           : status === 'existing'
-            ? `新增SKU3个月内购买 · ${entry.item} · 不计KPI`
-          : status === 'other'
-            ? `其他SKU · ${entry.item} · 不计KPI`
-            : `新增SKU未购买 · ${entry.item}`;
+            ? `${noun}3个月内购买 · ${entry.item} · 不计KPI`
+            : `${noun}未购买 · ${entry.item}${options.other ? ' · 不计KPI' : ''}`;
       const sourceItems = Array.isArray(entry.source_items) && entry.source_items.length
         ? `<span style="font-size:6px;line-height:1;color:var(--muted);">${campEsc(entry.source_items.join(','))}</span>`
         : '';
@@ -5442,7 +5474,9 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
         <span style="font-size:7px;line-height:1.1;text-align:center;">${campEsc(entry.label)}</span>
         ${entry.kpi ? '<span class="new-sku-kpi-mark">KPI</span>' : sourceItems}
       </div>`;
-    }).join('');
+    };
+    const newSkuHtml = newSkuEntries.map(entry => renderSkuStatusDot(entry)).join('');
+    const otherSkuHtml = otherSkuEntries.map(entry => renderSkuStatusDot(entry, { other: true })).join('');
     const newSkuPanelHtml = newSkuEntries.length ? `
       <div class="sku-section new-sku-panel">
         <div class="new-sku-panel-top">
@@ -5451,6 +5485,14 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
         </div>
         <div class="new-sku-row">${newSkuHtml}</div>
       </div>` : '';
+    const otherSkuPanelHtml = otherSkuEntries.length ? `
+      <div class="sku-section new-sku-panel other-sku-panel">
+        <div class="new-sku-panel-top">
+          <div class="sku-section-lbl">其他 SKU · 不计KPI</div>
+        </div>
+        <div class="new-sku-row">${otherSkuHtml}</div>
+      </div>` : '';
+    const skuRightPanelsHtml = [newSkuPanelHtml, otherSkuPanelHtml].filter(Boolean).join('');
 
     // Phone — clean null/nan
     const phone = d.phone && d.phone !== 'nan' && d.phone !== 'None' && d.phone.trim() !== '' ? d.phone.trim() : '';
@@ -5517,7 +5559,7 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
           </div>
             <div class="sku-row">${skuHtml}</div>
           </div>
-          ${newSkuPanelHtml}
+          ${skuRightPanelsHtml ? `<div class="debtor-sku-side">${skuRightPanelsHtml}</div>` : ''}
         </div>
 
         ${(() => {
@@ -6971,6 +7013,11 @@ function trendCard() {
   </div>`;
 }
 
+function kpiTargetValue(item) {
+  const target = Number(item?.target);
+  return Number.isFinite(target) && target > 0 ? target : null;
+}
+
 function renderKPI() {
   if (!currentAgent || !DATA) return;
   const kpi = DATA.agents[currentAgent]?.kpi || {};
@@ -7041,7 +7088,8 @@ function renderKPI() {
   const SECTION_LABELS = { A:'A — 销售 (35%)', B:'B — 其它有关销售 (36%)', C:'C — Marketing Support' };
   let sectionsHtml = '';
   const shouldShowKpiItem = item => {
-    if (!item || item.excluded === true) return false;
+    if (!item || item.excluded === true || item.target_missing === true) return false;
+    if (kpiTargetValue(item) === null) return false;
     const maxScore = Number(item.max_score ?? (Number(item.weight || 0) * 100));
     return Number.isFinite(maxScore) && maxScore > 0;
   };
@@ -7061,8 +7109,9 @@ function renderKPI() {
         const hasActualOverride = isCampaignKpi && item.override_actual !== null && item.override_actual !== undefined && item.override_actual !== '';
         const finalActual = item.final_actual ?? item.actual;
         const autoActual = item.auto_actual ?? item.actual;
+        const targetValue = kpiTargetValue(item);
         const distributionDeductNote = isDistributionKpi && Number(item.distribution_removed_target || 0) > 0
-          ? ` · listed ${item.distribution_listed_target ?? item.target} - manager off ${item.distribution_removed_target}`
+          ? ` · listed ${item.distribution_listed_target ?? targetValue} - manager off ${item.distribution_removed_target}`
           : '';
         const sourceLabel =
           item.source === 'manual_override' ? 'Override' :
@@ -7071,19 +7120,19 @@ function renderKPI() {
           item.source === 'management_delivery_upload' ? 'Delivery list' :
           item.source === 'agent_self_report' ? 'Self-report' :
           isManual ? 'Manual' : '';
-        const actualLine = item.target != null
+        const actualLine = targetValue !== null
           ? (isCampaignKpi
               ? (isDistributionKpi
-                  ? `Delivered: ${finalActual ?? '—'} / ${item.target}${distributionDeductNote} · ${hasActualOverride ? `Auto ${autoActual ?? 0} → Override ${item.override_actual}` : `Auto delivered ${autoActual ?? finalActual ?? 0}`}`
-                  : `Actual: ${finalActual ?? '—'} / ${item.target} · ${hasActualOverride ? `Auto ${autoActual ?? 0} → Override ${item.override_actual}` : `Auto ${autoActual ?? finalActual ?? 0}`}`)
-              : `${item.actual ?? '—'} / ${item.target} · ${(item.pct||0).toFixed(1)}%`)
+                  ? `Delivered: ${finalActual ?? '—'} / ${targetValue}${distributionDeductNote} · ${hasActualOverride ? `Auto ${autoActual ?? 0} → Override ${item.override_actual}` : `Auto delivered ${autoActual ?? finalActual ?? 0}`}`
+                  : `Actual: ${finalActual ?? '—'} / ${targetValue} · ${hasActualOverride ? `Auto ${autoActual ?? 0} → Override ${item.override_actual}` : `Auto ${autoActual ?? finalActual ?? 0}`}`)
+              : `${item.actual ?? '—'} / ${targetValue} · ${(item.pct||0).toFixed(1)}%`)
           : `Score: ${item.actual ?? '—'} pts`;
 
         return `<div class="kpi-item-row">
           <div>
             <div class="kpi-item-lbl">${item.label}</div>
             <div class="kpi-item-sub">${actualLine}</div>
-            ${item.target != null ? `<div class="kpi-item-bar-bg"><div class="kpi-item-bar-fill" style="width:${barW}%;background:${col}"></div></div>` : ''}
+            ${targetValue !== null ? `<div class="kpi-item-bar-bg"><div class="kpi-item-bar-fill" style="width:${barW}%;background:${col}"></div></div>` : ''}
           </div>
           <div>
             ${canEdit
@@ -8446,11 +8495,10 @@ async function saveEventCount() {
   }
   // Update display immediately
   if (DATA.agents[currentAgent]?.kpi?.items?.event) {
-    DATA.agents[currentAgent].kpi.items.event.actual = val;
-    DATA.agents[currentAgent].kpi.items.event.pct =
-      (DATA.agents[currentAgent].kpi.items.event.target || 1) > 0
-        ? Math.min(val / DATA.agents[currentAgent].kpi.items.event.target * 100, 100)
-        : 0;
+    const eventItem = DATA.agents[currentAgent].kpi.items.event;
+    const eventTarget = kpiTargetValue(eventItem);
+    eventItem.actual = val;
+    eventItem.pct = eventTarget !== null ? Math.min(val / eventTarget * 100, 100) : 0;
   }
   document.getElementById('event-sheet-overlay').classList.remove('open');
   document.body.style.overflow = '';

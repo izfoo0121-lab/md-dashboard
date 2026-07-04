@@ -451,6 +451,9 @@ DEFAULT_NEW_SKU_GROUPS = {
     "BISON-M": {"item_codes": ["BISON-M", "BISON M"], "item_groups": ["BISON-M", "BISON M"]},
 }
 NEW_SKU_KPI_EXCLUDED_CODES = {"CMLT"}
+DEFAULT_OTHER_SKU_GROUPS = {
+    "OTHER": {"label": "其他", "item_codes": ["CMLT"], "item_groups": ["CMLT"]},
+}
 LEGACY_NEW_SKU_GROUP_EXPANSIONS = {
     "SUKUN": {
         "SKNR": {"item_codes": ["SKNR"]},
@@ -462,6 +465,7 @@ DEFAULT_SKU_RULES = {
     "version": 2,
     "updated_at": "2026-07-02",
     "new_sku_groups": DEFAULT_NEW_SKU_GROUPS,
+    "other_sku_groups": DEFAULT_OTHER_SKU_GROUPS,
     "sku_trace_defaults": DEFAULT_SKU_TRACE_CONFIG,
 }
 
@@ -1496,6 +1500,9 @@ def _normalise_sku_rule(rule):
             "item_groups": _clean_rule_list(rule.get("item_groups")),
             "item_group_prefixes": _clean_rule_list(rule.get("item_group_prefixes")),
         }
+        label = str(rule.get("label") or "").strip()
+        if label:
+            normalized["label"] = label
     else:
         normalized = {
             "item_codes": _clean_rule_list(rule),
@@ -1528,6 +1535,8 @@ def normalise_sku_rules_config(config):
     rules["updated_at"] = rules.get("updated_at") or DEFAULT_SKU_RULES["updated_at"]
     group_source = rules.get("new_sku_groups") if "new_sku_groups" in rules else DEFAULT_SKU_RULES["new_sku_groups"]
     rules["new_sku_groups"] = normalise_new_sku_groups(group_source or {})
+    other_source = rules.get("other_sku_groups") if "other_sku_groups" in rules else DEFAULT_SKU_RULES["other_sku_groups"]
+    rules["other_sku_groups"] = normalise_new_sku_groups(other_source or {})
     if "sku_trace_defaults" not in rules:
         rules["sku_trace_defaults"] = DEFAULT_SKU_TRACE_CONFIG
     return rules
@@ -1543,7 +1552,7 @@ def load_sku_rules_config(targets=None):
             (targets.get("config") or {}).get("sku_rules_snapshot") if isinstance(targets.get("config"), dict) else None,
         ])
     for source in target_sources:
-        if isinstance(source, dict) and "new_sku_groups" in source:
+        if isinstance(source, dict) and ("new_sku_groups" in source or "other_sku_groups" in source):
             return normalise_sku_rules_config(source)
 
     if SKU_RULES_FILE.exists():
@@ -1589,8 +1598,8 @@ def _new_sku_rule_mask(rows, rule):
     return mask
 
 
-def _new_sku_kpi_rows(rows):
-    """Rows that may contribute to New SKU KPI. CMLT is shown as Other only."""
+def _new_sku_kpi_rows(rows, other_sku_groups=None):
+    """Rows that may contribute to New SKU KPI. Other SKU rules are shown only."""
     if rows.empty:
         return rows
     excluded = pd.Series(False, index=rows.index)
@@ -1604,6 +1613,8 @@ def _new_sku_kpi_rows(rows):
                     | values.str.startswith(f"{code}-")
                     | values.str.startswith(f"{code} ")
                 )
+    for rule in (other_sku_groups or {}).values():
+        excluded = excluded | _new_sku_rule_mask(rows, rule)
     return rows[~excluded]
 
 
@@ -3399,10 +3410,13 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
 
     # New SKU groups are config-driven. Admin can save targets.sku_rules,
     # and local runs can use config/sku_rules.json as a fallback.
-    if isinstance(new_sku_groups_config, dict) and "new_sku_groups" in new_sku_groups_config:
-        new_sku_groups = normalise_sku_rules_config(new_sku_groups_config)["new_sku_groups"]
+    if isinstance(new_sku_groups_config, dict) and ("new_sku_groups" in new_sku_groups_config or "other_sku_groups" in new_sku_groups_config):
+        sku_rules = normalise_sku_rules_config(new_sku_groups_config)
+        new_sku_groups = sku_rules["new_sku_groups"]
+        other_sku_groups = sku_rules["other_sku_groups"]
     else:
         new_sku_groups = normalise_new_sku_groups(new_sku_groups_config or DEFAULT_NEW_SKU_GROUPS)
+        other_sku_groups = normalise_new_sku_groups(DEFAULT_OTHER_SKU_GROUPS)
 
     result = {}
     active_agent_names = {str(a).strip().upper() for a in agents}
@@ -3690,7 +3704,10 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             new_sku_status = {}
             new_sku_count  = 0
             for grp, rule in new_sku_groups.items():
-                grp_rows = _new_sku_kpi_rows(_history_rows[_new_sku_rule_mask(_history_rows, rule)])
+                grp_rows = _new_sku_kpi_rows(
+                    _history_rows[_new_sku_rule_mask(_history_rows, rule)],
+                    other_sku_groups,
+                )
                 bought_this  = cur_m in grp_rows[_inv_col].values
                 bought_past  = any(m in grp_rows[_inv_col].values for m in [prev1_m, prev2_m, prev3_m])
                 if bought_this and not bought_past:
@@ -4988,13 +5005,20 @@ def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_cam
         new_sku_count = dc.get("total_new_sku", 0) or 0
         act_rate      = dc.get("activation_rate", 0) or 0
 
+        def target_or_none(value):
+            try:
+                target = float(value)
+            except (TypeError, ValueError):
+                return None
+            return target if target > 0 else None
+
         def bdata(brand):
             d = bc.get(brand, {})
             return {
                 "pen_actual":  d.get("penetration", {}).get("count", 0) or 0,
-                "pen_target":  d.get("penetration", {}).get("target", 1) or 1,
+                "pen_target":  target_or_none(d.get("penetration", {}).get("target")),
                 "ctn_actual":  d.get("ctn", {}).get("sold", 0) or 0,
-                "ctn_target":  d.get("ctn", {}).get("target", 1) or 1,
+                "ctn_target":  target_or_none(d.get("ctn", {}).get("target")),
             }
         bv = {b: bdata(b) for b in ["EVO","iFACE","SUKUN","BISON","TR20","LAM+LWM"]}
 
@@ -5060,7 +5084,15 @@ def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_cam
 
             if source == "auto":
                 actual = auto_actuals.get(key, 0)
-                target = auto_targets.get(key, 1)
+                target = auto_targets.get(key)
+                if target_or_none(target) is None:
+                    items_out[key] = {
+                        "label": label, "section": section, "weight": weight,
+                        "actual": actual, "target": None,
+                        "score": 0.0, "max_score": 0.0, "pct": 0,
+                        "source": source, "excluded": True, "target_missing": True,
+                    }
+                    continue
                 sc     = score_item(actual, target, weight)
                 pct    = round(actual / target * 100, 1) if target else 0
                 items_out[key] = {
