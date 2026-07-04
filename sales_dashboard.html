@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <script>
-const SALES_DASHBOARD_BUILD = '20260704-104133';
+const SALES_DASHBOARD_BUILD = '20260704-105852';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
@@ -4694,6 +4694,59 @@ function numericExportValue(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function csvExportValue(value) {
+  const text = safeExportText(value);
+  const escaped = text.replace(/"/g, '""');
+  return /[",\r\n]/.test(escaped) ? `"${escaped}"` : escaped;
+}
+
+function rowsToCsv(rows) {
+  if (!Array.isArray(rows) || !rows.length) return '\uFEFF';
+  const headers = Object.keys(rows[0]);
+  const lines = [headers.map(csvExportValue).join(',')];
+  rows.forEach(row => {
+    lines.push(headers.map(header => csvExportValue(row[header])).join(','));
+  });
+  return '\uFEFF' + lines.join('\r\n');
+}
+
+function downloadTextFile(filename, content, mimeType = 'text/plain;charset=utf-8;') {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+    a.remove();
+  }, 0);
+}
+
+function exportRowsAsCsv(rows, filename) {
+  downloadTextFile(filename, rowsToCsv(rows), 'text/csv;charset=utf-8;');
+}
+
+function exportRowsAsWorkbook(rows, sheetName, xlsxFilename, csvFilename, columnWidths) {
+  if (typeof XLSX !== 'undefined' && XLSX?.utils && typeof XLSX.writeFile === 'function') {
+    try {
+      const ws = XLSX.utils.json_to_sheet(rows);
+      if (Array.isArray(columnWidths) && columnWidths.length) ws['!cols'] = columnWidths;
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      XLSX.writeFile(wb, xlsxFilename);
+      return 'xlsx';
+    } catch (e) {
+      console.warn('[export] XLSX write failed; falling back to CSV:', e?.message || e);
+    }
+  }
+  const fallbackName = csvFilename || String(xlsxFilename || 'export.xlsx').replace(/\.xlsx$/i, '.csv');
+  exportRowsAsCsv(rows, fallbackName);
+  return 'csv';
+}
+
 function buildFullDebtorExportRows(agent, data) {
   const selectedAgent = safeExportText(agent || currentAgent);
   const agentData = data && data.agents && selectedAgent ? data.agents[selectedAgent] : null;
@@ -4732,10 +4785,6 @@ function buildFullDebtorExportRows(agent, data) {
 }
 
 function exportFullDebtorListExcel() {
-  if (typeof XLSX === 'undefined') {
-    alert('Excel export library not loaded yet. Try again in a moment.');
-    return;
-  }
   if (!currentAgent) {
     alert('Select an agent first.');
     return;
@@ -4746,19 +4795,17 @@ function exportFullDebtorListExcel() {
     return;
   }
 
-  const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [
+  const columnWidths = [
     { wch: 10 }, { wch: 14 }, { wch: 36 }, { wch: 18 }, { wch: 16 },
     { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 5 }, { wch: 8 },
     { wch: 14 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 16 },
     { wch: 12 }, { wch: 30 }, { wch: 36 }, { wch: 20 }, { wch: 42 },
   ];
 
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Full Debtor List');
   const monthPart = safeExportFilenamePart(DATA && DATA.current_month ? DATA.current_month : 'Current');
   const agentPart = safeExportFilenamePart(currentAgent);
-  XLSX.writeFile(wb, 'MD_Full_Debtor_List_' + agentPart + '_' + monthPart + '.xlsx');
+  const baseName = 'MD_Full_Debtor_List_' + agentPart + '_' + monthPart;
+  exportRowsAsWorkbook(rows, 'Full Debtor List', baseName + '.xlsx', baseName + '.csv', columnWidths);
 }
 
 function exportUnpurchasedExcel() {

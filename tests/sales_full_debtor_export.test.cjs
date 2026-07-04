@@ -127,4 +127,63 @@ assert.strictEqual(
   'full debtor export should not include other-agent debtor records'
 );
 
+const fallbackCalls = [];
+const fallbackContext = {
+  DATA: context.DATA,
+  currentAgent: 'BEN',
+  alert(message) {
+    fallbackCalls.push(['alert', message]);
+  },
+  downloadTextFile(filename, content, mimeType) {
+    fallbackCalls.push(['downloadTextFile', filename, content, mimeType]);
+  },
+  getFlag: context.getFlag,
+  visibleDebtorCampaigns: context.visibleDebtorCampaigns,
+  formatCampaignFocPackage: context.formatCampaignFocPackage,
+};
+vm.createContext(fallbackContext);
+vm.runInContext([
+  'var DATA = globalThis.DATA;',
+  'var currentAgent = globalThis.currentAgent;',
+  'var alert = globalThis.alert;',
+  'var downloadTextFile = globalThis.downloadTextFile;',
+  extractFunction('safeExportText'),
+  extractFunction('safeExportFilenamePart'),
+  extractFunction('fullDebtorExportCampaigns'),
+  extractFunction('campaignNamesForDebtorExport'),
+  extractFunction('campaignFocForDebtorExport'),
+  extractFunction('numericExportValue'),
+  extractFunction('csvExportValue'),
+  extractFunction('rowsToCsv'),
+  extractFunction('exportRowsAsCsv'),
+  extractFunction('exportRowsAsWorkbook'),
+  extractFunction('buildFullDebtorExportRows'),
+  extractFunction('exportFullDebtorListExcel'),
+].join('\n'), fallbackContext);
+
+vm.runInContext('exportFullDebtorListExcel()', fallbackContext);
+assert.strictEqual(
+  fallbackCalls[0]?.[0],
+  'downloadTextFile',
+  'full debtor export should fall back to CSV when the XLSX library is unavailable',
+);
+assert.strictEqual(
+  fallbackCalls[0]?.[1],
+  'MD_Full_Debtor_List_BEN_Jun_26.csv',
+  'CSV fallback should use the same agent/month filename base',
+);
+assert(
+  fallbackCalls[0]?.[2].startsWith('\uFEFFAgent,Debtor Code,Company Name'),
+  'CSV fallback should include a UTF-8 BOM and debtor export headers',
+);
+assert(
+  fallbackCalls[0]?.[2].includes('BEN,300-A001,KEDAI A'),
+  'CSV fallback should include the selected agent debtor rows',
+);
+assert.strictEqual(
+  fallbackCalls.some(call => call[0] === 'alert'),
+  false,
+  'missing XLSX should not block agents with an alert-only failure',
+);
+
 console.log('sales_full_debtor_export.test.cjs passed');
