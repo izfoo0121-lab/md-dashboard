@@ -2197,7 +2197,7 @@ def _price_points(series):
     return values
 
 
-def build_debtor_analysis_data(df, debtor_df, cur_month):
+def build_debtor_analysis_data(df, debtor_df, cur_month, allowed_agents=None):
     """
     Compact invoice-month dataset for debtor_analysis.html.
     One row per debtor x month x brand x sku x sales type.
@@ -2206,6 +2206,11 @@ def build_debtor_analysis_data(df, debtor_df, cur_month):
 
     month_order = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    allowed_agent_set = {
+        str(agent or "").strip().upper()
+        for agent in (allowed_agents or [])
+        if str(agent or "").strip()
+    }
 
     def month_key(label):
         try:
@@ -2224,13 +2229,15 @@ def build_debtor_analysis_data(df, debtor_df, cur_month):
             rec = {
                 "debtor_code": code,
                 "company_name": _safe_str(r.get("Company Name")),
-                "agent": _safe_str(r.get("Agent")),
+                "agent": _safe_str(r.get("Agent")).upper(),
                 "debtor_type": _safe_str(r.get("Debtor Type")),
                 "area": _safe_str(r.get("Area")),
                 "active": _safe_str(r.get("Active")),
                 "phone": _safe_str(r.get("Phone 1")),
             }
             meta[code] = rec
+            if allowed_agent_set and rec["agent"] not in allowed_agent_set:
+                continue
             if rec["area"] == SCOPE_AREA and rec["active"] == "Checked":
                 debtors.append(rec)
 
@@ -2240,6 +2247,10 @@ def build_debtor_analysis_data(df, debtor_df, cur_month):
         (df["debtor_code"] != "") &
         (df["tranx_mth_full"] != "")
     ].copy()
+    if allowed_agent_set:
+        canggih = canggih[
+            canggih["agent"].fillna("").astype(str).str.upper().str.strip().isin(allowed_agent_set)
+        ].copy()
 
     if canggih.empty:
         return {
@@ -6085,7 +6096,9 @@ def main():
     if explicit_month:
         log(f"   Historical regeneration: leaving {OUTPUT_FILE.name} and {DEBTOR_ANALYSIS_FILE.name} unchanged")
     else:
-        debtor_analysis = build_debtor_analysis_data(df_raw, debtor_df, cur_month)
+        debtor_analysis = build_debtor_analysis_data(
+            df_raw, debtor_df, cur_month, allowed_agents=all_agents
+        )
         write_dashboard_json(DEBTOR_ANALYSIS_FILE, debtor_analysis, indent=None, separators=(",", ":"))
         log(f"   Debtor analysis saved: {DEBTOR_ANALYSIS_FILE.name}")
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from pathlib import Path
 import json
+import os
 import re
 
 import pandas as pd
@@ -17,6 +18,9 @@ AGENT_MONTHLY_JS = Path(__file__).with_name("agent_monthly_revenue.js")
 SKU_GAP_JS = Path(__file__).with_name("sku_gap_opportunities.js")
 SKU_PENETRATION_JS = Path(__file__).with_name("sku_penetration_data.js")
 SKU_DEBTOR_HISTORY_JS = Path(__file__).with_name("sku_debtor_history.js")
+DASHBOARD_DATA_JSON = ROOT / "dashboard_data.json"
+REPORT_SCOPE = os.environ.get("MD_REPORT_SCOPE", "GRP 2A").strip() or "GRP 2A"
+ALL_SCOPE_VALUES = {"ALL", "ALL_GROUP", "PFMD", "*"}
 
 STATE_MAP = {
     "Terengganu": ["KF", "JAMES", "NMK"],
@@ -25,6 +29,65 @@ STATE_MAP = {
 }
 AGENT_STATE = {agent: state for state, agents in STATE_MAP.items() for agent in agents}
 MIRACLE_AGENTS = set(AGENT_STATE)
+
+
+def norm_agent(value):
+    return str(value or "").upper().strip()
+
+
+def norm_scope(value):
+    return str(value or "").upper().strip()
+
+
+def scope_is_all(scope=REPORT_SCOPE):
+    return norm_scope(scope) in ALL_SCOPE_VALUES
+
+
+def load_dashboard_agent_scope(path=DASHBOARD_DATA_JSON, scope=REPORT_SCOPE):
+    if scope_is_all(scope):
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    config = data.get("config") or {}
+    for key in ("all_agents", "active_agents"):
+        agents = config.get(key)
+        if isinstance(agents, list) and agents:
+            return {norm_agent(agent) for agent in agents if norm_agent(agent)}
+    agents = data.get("agents")
+    if isinstance(agents, dict) and agents:
+        return {norm_agent(agent) for agent in agents if norm_agent(agent)}
+    return None
+
+
+def state_for_agent(agent, fallback=""):
+    return AGENT_STATE.get(norm_agent(agent), fallback)
+
+
+def report_states(df):
+    present = {str(state or "").strip() for state in df.get("state", []) if str(state or "").strip()}
+    ordered = [state for state in STATE_MAP if state in present]
+    ordered.extend(sorted(state for state in present if state not in ordered))
+    return ordered
+
+
+def report_agents_by_state(df):
+    mapping = defaultdict(list)
+    if df.empty:
+        return mapping
+    for row in (
+        df[["state", "agent"]]
+        .dropna()
+        .drop_duplicates()
+        .sort_values(["state", "agent"])
+        .itertuples(index=False)
+    ):
+        state = str(row.state or "").strip()
+        agent = norm_agent(row.agent)
+        if state and agent and agent not in mapping[state]:
+            mapping[state].append(agent)
+    return mapping
 
 
 def money(value):
@@ -62,7 +125,7 @@ def build_trend(current_sales, current_qty, previous_metrics, current_customers=
     }
 
 
-def load_sales(miracle_only=True):
+def load_sales(miracle_only=True, scope=REPORT_SCOPE, allowed_agents=None):
     df = pd.read_excel(SALES_XLSX, sheet_name=0)
     df.columns = [str(c).strip() for c in df.columns]
     df = df.rename(columns={
@@ -77,8 +140,16 @@ def load_sales(miracle_only=True):
         "Local SubTotal": "sales",
         "QTY (CTN)": "qty_ctn",
     })
-    df["agent"] = df["agent"].astype(str).str.upper().str.strip()
-    if miracle_only:
+    df["agent"] = df["agent"].map(norm_agent)
+    df["area_code"] = df["area_code"].astype(str).str.strip()
+    allowed_agent_set = {
+        norm_agent(agent) for agent in (allowed_agents or []) if norm_agent(agent)
+    }
+    if not scope_is_all(scope):
+        df = df[df["area_code"].str.upper() == norm_scope(scope)].copy()
+    if allowed_agent_set:
+        df = df[df["agent"].isin(allowed_agent_set)].copy()
+    elif miracle_only:
         df = df[df["agent"].isin(MIRACLE_AGENTS)].copy()
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df["doc_no"] = df["doc_no"].astype(str).str.strip()
@@ -87,23 +158,31 @@ def load_sales(miracle_only=True):
     df["desc"] = df["desc"].astype(str).str.strip()
     df["sales"] = pd.to_numeric(df["sales"], errors="coerce").fillna(0)
     df["qty_ctn"] = pd.to_numeric(df["qty_ctn"], errors="coerce").fillna(0)
+    state_fallback = df["area_code"].where(df["area_code"].astype(bool), REPORT_SCOPE)
     df["state"] = df["agent"].map(AGENT_STATE)
+    df["state"] = df["state"].where(df["state"].notna() & (df["state"] != ""), state_fallback)
     return df[df["date"].notna()].copy()
 
 
-def load_debtors():
+def load_debtors(allowed_agents=None):
     df = pd.read_excel(DEBTOR_XLSX, sheet_name=0)
     df.columns = [str(c).strip() for c in df.columns]
+    allowed_agent_set = {
+        norm_agent(agent) for agent in (allowed_agents or []) if norm_agent(agent)
+    }
     debtors = {}
     for _, row in df.iterrows():
         code = str(row.get("Code") or "").strip()
         if not code:
             continue
+        agent = norm_agent(row.get("Agent"))
+        if allowed_agent_set and agent not in allowed_agent_set:
+            continue
         active = str(row.get("Active") or "").strip()
         debtors[code] = {
             "name": str(row.get("Company Name") or "").strip(),
             "type": str(row.get("Debtor Type") or "").strip(),
-            "agent": str(row.get("Agent") or "").strip(),
+            "agent": agent,
             "status": "Active" if active.lower() == "checked" else "Inactive",
         }
     return debtors
@@ -180,6 +259,8 @@ def build_strength(df, history_df=None):
     periods = sorted(df["period_key"].dropna().unique())
     period_labels = [(period, month_label(period)) for period in periods]
     period_labels.append(("all", f"{month_label(periods[0])}-{month_label(periods[-1])}" if periods else "All months"))
+    state_order = report_states(df)
+    agents_by_state = report_agents_by_state(df)
     for period, label in period_labels:
         view = period_frame(df, period)
         prev_period = periods[periods.index(period) - 1] if period in periods and periods.index(period) > 0 else None
@@ -201,7 +282,7 @@ def build_strength(df, history_df=None):
                     .itertuples(index=False)
                 )
             ]
-        for state in STATE_MAP:
+        for state in state_order:
             srows = view[view["state"] == state]
             if srows.empty:
                 continue
@@ -235,7 +316,8 @@ def build_strength(df, history_df=None):
                     trend, current_codes,
                 ])
 
-        for state, state_agents in STATE_MAP.items():
+        for state in state_order:
+            state_agents = agents_by_state.get(state, [])
             for agent in state_agents:
                 arows = view[view["agent"] == agent]
                 if arows.empty:
@@ -378,6 +460,14 @@ def build_monthly(df):
 
 def build_sku_gap(df, debtors):
     rows = df.copy()
+    visible_agents = {norm_agent(agent) for agent in rows["agent"].dropna().unique() if norm_agent(agent)}
+    agent_state = {}
+    if not rows.empty:
+        for row in rows[["agent", "state"]].dropna().drop_duplicates().itertuples(index=False):
+            agent = norm_agent(row.agent)
+            state = str(row.state or "").strip()
+            if agent and state and agent not in agent_state:
+                agent_state[agent] = state
     grouped = (
         rows.groupby(["period_key", "state", "agent", "debtor_code", "sku", "desc"], dropna=False)
         .agg(
@@ -398,8 +488,8 @@ def build_sku_gap(df, debtors):
     )
     debtor_meta = {}
     for code, debtor in debtors.items():
-        agent = str(debtor.get("agent") or "").upper().strip()
-        if agent not in MIRACLE_AGENTS:
+        agent = norm_agent(debtor.get("agent"))
+        if visible_agents and agent not in visible_agents:
             continue
         debtor_meta[code] = {
             "name": debtor["name"],
@@ -407,19 +497,19 @@ def build_sku_gap(df, debtors):
             "active": debtor["status"] == "Active",
             "maintAgent": agent,
             "maintType": debtor["type"],
-            "state": AGENT_STATE.get(agent, ""),
+            "state": agent_state.get(agent) or state_for_agent(agent, REPORT_SCOPE),
         }
 
     for code, name in debtor_names.items():
         debtor = debtors.get(code)
-        agent = str(debtor.get("agent") or "").upper().strip() if debtor else ""
+        agent = norm_agent(debtor.get("agent")) if debtor else ""
         debtor_meta[code] = {
             "name": debtor["name"] if debtor and debtor["name"] else str(name or ""),
             "status": debtor["status"] if debtor else "Missing",
             "active": debtor["status"] == "Active" if debtor else False,
             "maintAgent": agent,
             "maintType": debtor["type"] if debtor else "",
-            "state": AGENT_STATE.get(agent, ""),
+            "state": agent_state.get(agent) or state_for_agent(agent, REPORT_SCOPE),
             **debtor_meta.get(code, {}),
         }
 
@@ -475,7 +565,12 @@ def replace_index_data(data):
     )
     text = text.replace(
         "Source workbook: C:\\Users\\tgy_3\\Downloads\\20260519 MD Sales Report.xlsx.",
-        "Source workbook: C:\\Users\\tgy_3\\Desktop\\md-dashboard\\MD Sales Report.xlsx. Quantity uses column W, QTY(CTN).",
+        f"Source workbook: C:\\Users\\tgy_3\\Desktop\\md-dashboard\\MD Sales Report.xlsx. Scope: {REPORT_SCOPE}. Quantity uses column W, QTY(CTN).",
+    )
+    text = re.sub(
+        r"State split: .*?GRP 2A agents outside this mapping were excluded\.",
+        "State split follows the report scope; agents without a configured state stay under their source area.",
+        text,
     )
     text = text.replace("Sales, qty, customers, orders", "Sales, CTN, customers, orders")
     text = text.replace("${fmt.format(s.qty)} qty", "${fmt.format(s.qty)} CTN")
@@ -485,11 +580,12 @@ def replace_index_data(data):
 
 
 def main():
-    sales = load_sales()
-    all_sales = load_sales(miracle_only=False)
+    allowed_agents = load_dashboard_agent_scope()
+    sales = load_sales(miracle_only=False, scope=REPORT_SCOPE, allowed_agents=allowed_agents)
+    all_sales = sales
     sales["period_key"] = sales["date"].dt.strftime("%Y-%m")
     all_sales["period_key"] = all_sales["date"].dt.strftime("%Y-%m")
-    debtors = load_debtors()
+    debtors = load_debtors(allowed_agents=allowed_agents)
     strength_data = build_strength(sales, all_sales)
     replace_index_data(strength_data)
     SKU_DEBTOR_HISTORY_JS.write_text(
@@ -513,10 +609,10 @@ def main():
         encoding="utf-8",
     )
     SKU_PENETRATION_JS.write_text(
-        "window.skuPenetrationData = " + json.dumps(build_sku_gap(all_sales, debtors), ensure_ascii=False, separators=(",", ":")) + ";\n",
+        "window.skuPenetrationData = " + json.dumps(build_sku_gap(sales, debtors), ensure_ascii=False, separators=(",", ":")) + ";\n",
         encoding="utf-8",
     )
-    print("Rebuilt SKU strength report with QTY(CTN).")
+    print(f"Rebuilt SKU strength report with QTY(CTN), scope={REPORT_SCOPE}.")
 
 
 if __name__ == "__main__":

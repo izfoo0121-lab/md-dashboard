@@ -11,64 +11,53 @@ window.debtorStatusData = {
         "sales": 1194955.97
       },
       {
-        "state": "Kelantan",
-        "total": 375,
-        "active": 361,
-        "inactive": 0,
-        "missing": 14,
-        "activeRate": 96.3,
-        "sales": 408219.75
-      },
-      {
         "state": "Terengganu",
         "total": 267,
-        "active": 253,
+        "active": 252,
         "inactive": 0,
-        "missing": 14,
-        "activeRate": 94.8,
+        "missing": 15,
+        "activeRate": 94.4,
         "sales": 398656.0
+      },
+      {
+        "state": "GRP 2A",
+        "total": 114,
+        "active": 109,
+        "inactive": 0,
+        "missing": 5,
+        "activeRate": 95.6,
+        "sales": 222910.8
+      },
+      {
+        "state": "Kelantan",
+        "total": 1,
+        "active": 1,
+        "inactive": 0,
+        "missing": 0,
+        "activeRate": 100.0,
+        "sales": 733.0
       }
     ],
     "agentStatus": [
       {
-        "state": "Kelantan",
-        "agent": "BEN",
-        "total": 70,
-        "active": 68,
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "total": 114,
+        "active": 109,
         "inactive": 0,
-        "missing": 2,
-        "activeRate": 97.1,
-        "sales": 42372.0
-      },
-      {
-        "state": "Kelantan",
-        "agent": "JACKY",
-        "total": 79,
-        "active": 73,
-        "inactive": 0,
-        "missing": 6,
-        "activeRate": 92.4,
-        "sales": 178465.25
-      },
-      {
-        "state": "Kelantan",
-        "agent": "KI-MI",
-        "total": 123,
-        "active": 117,
-        "inactive": 0,
-        "missing": 6,
-        "activeRate": 95.1,
-        "sales": 51361.0
+        "missing": 5,
+        "activeRate": 95.6,
+        "sales": 222910.8
       },
       {
         "state": "Kelantan",
         "agent": "YI",
-        "total": 105,
-        "active": 105,
+        "total": 1,
+        "active": 1,
         "inactive": 0,
         "missing": 0,
         "activeRate": 100.0,
-        "sales": 136021.5
+        "sales": 733.0
       },
       {
         "state": "Pahang",
@@ -124,10 +113,10 @@ window.debtorStatusData = {
         "state": "Terengganu",
         "agent": "KF",
         "total": 126,
-        "active": 121,
+        "active": 120,
         "inactive": 0,
-        "missing": 5,
-        "activeRate": 96.0,
+        "missing": 6,
+        "activeRate": 95.2,
         "sales": 252362.0
       }
     ],
@@ -161,18 +150,18 @@ window.debtorStatusData = {
         "lastDate": "2025-10-29"
       },
       {
-        "state": "Kelantan",
-        "agent": "KI-MI",
-        "code": "300-KV184",
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-H076",
         "name": "",
         "maintAgent": "",
         "maintType": "",
         "status": "Missing",
-        "sales": 1407.0,
-        "qty": 34.0,
-        "docs": 3,
-        "topSku": "EVO",
-        "lastDate": "2025-10-20"
+        "sales": 1930.0,
+        "qty": 46.0,
+        "docs": 2,
+        "topSku": "CMP",
+        "lastDate": "2025-10-22"
       },
       {
         "state": "Pahang",
@@ -259,20 +248,6 @@ window.debtorStatusData = {
         "lastDate": "2025-10-29"
       },
       {
-        "state": "Kelantan",
-        "agent": "JACKY",
-        "code": "300-KT184",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 720.0,
-        "qty": 20.0,
-        "docs": 1,
-        "topSku": "TR-002",
-        "lastDate": "2025-10-28"
-      },
-      {
         "state": "Pahang",
         "agent": "KEE",
         "code": "300-WK033",
@@ -285,6 +260,34 @@ window.debtorStatusData = {
         "docs": 2,
         "topSku": "SKNW",
         "lastDate": "2025-10-23"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-H070",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 619.5,
+        "qty": 18.0,
+        "docs": 2,
+        "topSku": "BISON-R",
+        "lastDate": "2025-10-18"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-H271",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 607.7,
+        "qty": 16.0,
+        "docs": 2,
+        "topSku": "TR-002",
+        "lastDate": "2025-10-21"
       },
       {
         "state": "Pahang",
@@ -315,20 +318,6 @@ window.debtorStatusData = {
         "lastDate": "2025-10-15"
       },
       {
-        "state": "Kelantan",
-        "agent": "BEN",
-        "code": "300-KB073",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 531.0,
-        "qty": 16.0,
-        "docs": 2,
-        "topSku": "SKNR",
-        "lastDate": "2025-10-22"
-      },
-      {
         "state": "Pahang",
         "agent": "LEON",
         "code": "3EV-Q0203",
@@ -341,34 +330,6 @@ window.debtorStatusData = {
         "docs": 1,
         "topSku": "EVO",
         "lastDate": "2025-10-17"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "JACKY",
-        "code": "300-KT181",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 490.0,
-        "qty": 10.0,
-        "docs": 3,
-        "topSku": "CM-002",
-        "lastDate": "2025-10-30"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "KI-MI",
-        "code": "300-KM105",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 467.0,
-        "qty": 12.0,
-        "docs": 4,
-        "topSku": "IFACE DB",
-        "lastDate": "2025-10-25"
       },
       {
         "state": "Pahang",
@@ -397,20 +358,6 @@ window.debtorStatusData = {
         "docs": 1,
         "topSku": "TR-002",
         "lastDate": "2025-10-07"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "JACKY",
-        "code": "300-KT171",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 450.0,
-        "qty": 10.0,
-        "docs": 1,
-        "topSku": "SKNR",
-        "lastDate": "2025-10-17"
       },
       {
         "state": "Pahang",
@@ -455,32 +402,18 @@ window.debtorStatusData = {
         "lastDate": "2025-10-03"
       },
       {
-        "state": "Kelantan",
-        "agent": "JACKY",
-        "code": "300-KT182",
+        "state": "Terengganu",
+        "agent": "KF",
+        "code": "3EV-L0699",
         "name": "",
         "maintAgent": "",
         "maintType": "",
         "status": "Missing",
-        "sales": 343.0,
+        "sales": 302.0,
         "qty": 7.0,
-        "docs": 1,
-        "topSku": "CM-002",
-        "lastDate": "2025-10-17"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "JACKY",
-        "code": "300-KT183",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 294.0,
-        "qty": 6.0,
-        "docs": 1,
-        "topSku": "CMP",
-        "lastDate": "2025-10-17"
+        "docs": 2,
+        "topSku": "EVO",
+        "lastDate": "2025-10-14"
       },
       {
         "state": "Pahang",
@@ -525,18 +458,18 @@ window.debtorStatusData = {
         "lastDate": "2025-10-14"
       },
       {
-        "state": "Kelantan",
-        "agent": "JACKY",
-        "code": "300-KT185",
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-H064",
         "name": "",
         "maintAgent": "",
         "maintType": "",
         "status": "Missing",
-        "sales": 270.0,
-        "qty": 5.0,
+        "sales": 259.0,
+        "qty": 7.0,
         "docs": 1,
-        "topSku": "CM-002",
-        "lastDate": "2025-10-30"
+        "topSku": "SKNR",
+        "lastDate": "2025-10-08"
       },
       {
         "state": "Terengganu",
@@ -581,20 +514,6 @@ window.debtorStatusData = {
         "lastDate": "2025-10-22"
       },
       {
-        "state": "Kelantan",
-        "agent": "KI-MI",
-        "code": "3EV-J0411",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 222.0,
-        "qty": 6.0,
-        "docs": 2,
-        "topSku": "SKNR",
-        "lastDate": "2025-10-23"
-      },
-      {
         "state": "Pahang",
         "agent": "CJ",
         "code": "3EV-Q0215",
@@ -607,20 +526,6 @@ window.debtorStatusData = {
         "docs": 1,
         "topSku": "CMP",
         "lastDate": "2025-10-23"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "BEN",
-        "code": "3EV-J0110",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 202.0,
-        "qty": 4.0,
-        "docs": 1,
-        "topSku": "TR-002",
-        "lastDate": "2025-10-17"
       },
       {
         "state": "Terengganu",
@@ -693,34 +598,6 @@ window.debtorStatusData = {
         "lastDate": "2025-10-02"
       },
       {
-        "state": "Kelantan",
-        "agent": "KI-MI",
-        "code": "3EV-J0212",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 127.0,
-        "qty": 4.0,
-        "docs": 3,
-        "topSku": "IFACE B",
-        "lastDate": "2025-10-26"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "KI-MI",
-        "code": "300-KM104",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 112.0,
-        "qty": 4.0,
-        "docs": 1,
-        "topSku": "BISON-R",
-        "lastDate": "2025-10-03"
-      },
-      {
         "state": "Pahang",
         "agent": "CJ",
         "code": "300-J210",
@@ -775,6 +652,20 @@ window.debtorStatusData = {
         "docs": 2,
         "topSku": "CMX",
         "lastDate": "2025-10-23"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-JK094",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 76.0,
+        "qty": 2.0,
+        "docs": 1,
+        "topSku": "CM-002",
+        "lastDate": "2025-10-24"
       },
       {
         "state": "Pahang",
@@ -833,20 +724,6 @@ window.debtorStatusData = {
         "lastDate": "2025-10-23"
       },
       {
-        "state": "Kelantan",
-        "agent": "KI-MI",
-        "code": "300-KM023",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 37.0,
-        "qty": 1.0,
-        "docs": 1,
-        "topSku": "TR-002",
-        "lastDate": "2025-10-23"
-      },
-      {
         "state": "Terengganu",
         "agent": "KF",
         "code": "300-BY260",
@@ -874,15 +751,6 @@ window.debtorStatusData = {
         "sales": 1050105.41
       },
       {
-        "state": "Kelantan",
-        "total": 379,
-        "active": 367,
-        "inactive": 0,
-        "missing": 12,
-        "activeRate": 96.8,
-        "sales": 364438.5
-      },
-      {
         "state": "Terengganu",
         "total": 256,
         "active": 246,
@@ -890,48 +758,66 @@ window.debtorStatusData = {
         "missing": 10,
         "activeRate": 96.1,
         "sales": 347755.0
+      },
+      {
+        "state": "GRP 2A",
+        "total": 151,
+        "active": 145,
+        "inactive": 0,
+        "missing": 6,
+        "activeRate": 96.0,
+        "sales": 254130.51
+      },
+      {
+        "state": "Kelantan",
+        "total": 2,
+        "active": 2,
+        "inactive": 0,
+        "missing": 0,
+        "activeRate": 100.0,
+        "sales": 654.0
       }
     ],
     "agentStatus": [
       {
-        "state": "Kelantan",
-        "agent": "BEN",
-        "total": 69,
-        "active": 68,
+        "state": "GRP 2A",
+        "agent": "JW",
+        "total": 34,
+        "active": 33,
         "inactive": 0,
         "missing": 1,
-        "activeRate": 98.6,
-        "sales": 37358.1
+        "activeRate": 97.1,
+        "sales": 22740.5
       },
       {
-        "state": "Kelantan",
-        "agent": "JACKY",
-        "total": 83,
-        "active": 78,
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "total": 117,
+        "active": 112,
         "inactive": 0,
         "missing": 5,
-        "activeRate": 94.0,
-        "sales": 155186.5
+        "activeRate": 95.7,
+        "sales": 231390.01
       },
       {
         "state": "Kelantan",
         "agent": "KI-MI",
-        "total": 112,
-        "active": 106,
+        "total": 1,
+        "active": 1,
         "inactive": 0,
-        "missing": 6,
-        "activeRate": 94.6,
-        "sales": 48313.5
+        "missing": 0,
+        "activeRate": 100.0,
+        "sales": 186.0
       },
       {
         "state": "Kelantan",
         "agent": "YI",
-        "total": 116,
-        "active": 116,
+        "total": 1,
+        "active": 1,
         "inactive": 0,
         "missing": 0,
         "activeRate": 100.0,
-        "sales": 123580.4
+        "sales": 468.0
       },
       {
         "state": "Pahang",
@@ -1010,20 +896,6 @@ window.debtorStatusData = {
         "lastDate": "2025-11-13"
       },
       {
-        "state": "Kelantan",
-        "agent": "JACKY",
-        "code": "300-KT184",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 4442.5,
-        "qty": 110.0,
-        "docs": 3,
-        "topSku": "CM-002",
-        "lastDate": "2025-11-25"
-      },
-      {
         "state": "Terengganu",
         "agent": "JAMES",
         "code": "300-JS139",
@@ -1050,20 +922,6 @@ window.debtorStatusData = {
         "docs": 4,
         "topSku": "TR-002",
         "lastDate": "2025-11-26"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "KI-MI",
-        "code": "300-KV184",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 1530.0,
-        "qty": 37.0,
-        "docs": 2,
-        "topSku": "CMP",
-        "lastDate": "2025-11-17"
       },
       {
         "state": "Pahang",
@@ -1122,6 +980,20 @@ window.debtorStatusData = {
         "lastDate": "2025-11-14"
       },
       {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-H271",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 844.0,
+        "qty": 23.0,
+        "docs": 4,
+        "topSku": "TR-002",
+        "lastDate": "2025-11-25"
+      },
+      {
         "state": "Pahang",
         "agent": "KEE",
         "code": "300-WK033",
@@ -1164,18 +1036,46 @@ window.debtorStatusData = {
         "lastDate": "2025-11-28"
       },
       {
-        "state": "Kelantan",
-        "agent": "BEN",
-        "code": "300-KB073",
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-H076",
         "name": "",
         "maintAgent": "",
         "maintType": "",
         "status": "Missing",
-        "sales": 479.0,
+        "sales": 512.0,
         "qty": 12.0,
         "docs": 1,
-        "topSku": "SKNR",
+        "topSku": "CMP",
+        "lastDate": "2025-11-08"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-H124",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 480.0,
+        "qty": 10.0,
+        "docs": 1,
+        "topSku": "LF-002",
         "lastDate": "2025-11-05"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "3EV-Q0336",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 478.0,
+        "qty": 9.0,
+        "docs": 3,
+        "topSku": "CMP",
+        "lastDate": "2025-11-28"
       },
       {
         "state": "Pahang",
@@ -1206,20 +1106,6 @@ window.debtorStatusData = {
         "lastDate": "2025-11-08"
       },
       {
-        "state": "Kelantan",
-        "agent": "KI-MI",
-        "code": "300-KM105",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 372.0,
-        "qty": 9.0,
-        "docs": 6,
-        "topSku": "CM-002",
-        "lastDate": "2025-11-18"
-      },
-      {
         "state": "Pahang",
         "agent": "CJ",
         "code": "300-J234",
@@ -1248,6 +1134,20 @@ window.debtorStatusData = {
         "lastDate": "2025-11-25"
       },
       {
+        "state": "GRP 2A",
+        "agent": "JW",
+        "code": "300-JS125",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 360.0,
+        "qty": 10.0,
+        "docs": 1,
+        "topSku": "EVO",
+        "lastDate": "2025-11-17"
+      },
+      {
         "state": "Pahang",
         "agent": "LEON",
         "code": "300-D315",
@@ -1260,20 +1160,6 @@ window.debtorStatusData = {
         "docs": 1,
         "topSku": "CM-002",
         "lastDate": "2025-11-27"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "KI-MI",
-        "code": "3EV-J0237",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 316.0,
-        "qty": 8.0,
-        "docs": 1,
-        "topSku": "CM-002",
-        "lastDate": "2025-11-09"
       },
       {
         "state": "Pahang",
@@ -1346,18 +1232,18 @@ window.debtorStatusData = {
         "lastDate": "2025-11-12"
       },
       {
-        "state": "Kelantan",
-        "agent": "JACKY",
-        "code": "3EV-E0572",
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-H064",
         "name": "",
         "maintAgent": "",
         "maintType": "",
         "status": "Missing",
-        "sales": 188.0,
-        "qty": 4.0,
+        "sales": 185.0,
+        "qty": 5.0,
         "docs": 1,
         "topSku": "SKNR",
-        "lastDate": "2025-11-06"
+        "lastDate": "2025-11-12"
       },
       {
         "state": "Pahang",
@@ -1413,34 +1299,6 @@ window.debtorStatusData = {
         "qty": 3.0,
         "docs": 1,
         "topSku": "SKNR",
-        "lastDate": "2025-11-27"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "JACKY",
-        "code": "300-KT166",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 108.0,
-        "qty": 3.0,
-        "docs": 1,
-        "topSku": "EVO",
-        "lastDate": "2025-11-29"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "JACKY",
-        "code": "300-KT188",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 76.0,
-        "qty": 2.0,
-        "docs": 1,
-        "topSku": "BISON-R",
         "lastDate": "2025-11-27"
       },
       {
@@ -1542,48 +1400,6 @@ window.debtorStatusData = {
         "lastDate": "2025-11-24"
       },
       {
-        "state": "Kelantan",
-        "agent": "JACKY",
-        "code": "300-KT189",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 38.0,
-        "qty": 1.0,
-        "docs": 1,
-        "topSku": "BISON-R",
-        "lastDate": "2025-11-27"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "KI-MI",
-        "code": "3EV-E0098",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 37.0,
-        "qty": 1.0,
-        "docs": 1,
-        "topSku": "SKNR",
-        "lastDate": "2025-11-14"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "KI-MI",
-        "code": "3EV-J0476",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 37.0,
-        "qty": 1.0,
-        "docs": 1,
-        "topSku": "SKNR",
-        "lastDate": "2025-11-18"
-      },
-      {
         "state": "Terengganu",
         "agent": "KF",
         "code": "300-BY153",
@@ -1596,20 +1412,6 @@ window.debtorStatusData = {
         "docs": 1,
         "topSku": "EVO",
         "lastDate": "2025-11-27"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "KI-MI",
-        "code": "3EV-J0212",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 30.0,
-        "qty": 1.0,
-        "docs": 1,
-        "topSku": "IFACE B",
-        "lastDate": "2025-11-19"
       },
       {
         "state": "Pahang",
@@ -1641,10 +1443,10 @@ window.debtorStatusData = {
       {
         "state": "Terengganu",
         "total": 349,
-        "active": 340,
+        "active": 339,
         "inactive": 0,
-        "missing": 9,
-        "activeRate": 97.4,
+        "missing": 10,
+        "activeRate": 97.1,
         "sales": 562481.0
       },
       {
@@ -1655,9 +1457,38 @@ window.debtorStatusData = {
         "missing": 10,
         "activeRate": 97.2,
         "sales": 414637.45
+      },
+      {
+        "state": "GRP 2A",
+        "total": 163,
+        "active": 158,
+        "inactive": 0,
+        "missing": 5,
+        "activeRate": 96.9,
+        "sales": 250008.8
       }
     ],
     "agentStatus": [
+      {
+        "state": "GRP 2A",
+        "agent": "JW",
+        "total": 46,
+        "active": 45,
+        "inactive": 0,
+        "missing": 1,
+        "activeRate": 97.8,
+        "sales": 36576.0
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "total": 117,
+        "active": 113,
+        "inactive": 0,
+        "missing": 4,
+        "activeRate": 96.6,
+        "sales": 213432.8
+      },
       {
         "state": "Kelantan",
         "agent": "BEN",
@@ -1762,10 +1593,10 @@ window.debtorStatusData = {
         "state": "Terengganu",
         "agent": "NMK",
         "total": 101,
-        "active": 96,
+        "active": 95,
         "inactive": 0,
-        "missing": 5,
-        "activeRate": 95.0,
+        "missing": 6,
+        "activeRate": 94.1,
         "sales": 178190.0
       }
     ],
@@ -1911,6 +1742,20 @@ window.debtorStatusData = {
         "lastDate": "2025-12-26"
       },
       {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-H124",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 480.0,
+        "qty": 10.0,
+        "docs": 1,
+        "topSku": "LF-002",
+        "lastDate": "2025-12-22"
+      },
+      {
         "state": "Kelantan",
         "agent": "KI-MI",
         "code": "300-KM105",
@@ -1982,6 +1827,20 @@ window.debtorStatusData = {
       },
       {
         "state": "Terengganu",
+        "agent": "NMK",
+        "code": "3EV-L0699",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 235.0,
+        "qty": 5.0,
+        "docs": 1,
+        "topSku": "EVO",
+        "lastDate": "2025-12-05"
+      },
+      {
+        "state": "Terengganu",
         "agent": "JAMES",
         "code": "300-JS311",
         "name": "",
@@ -2007,6 +1866,20 @@ window.debtorStatusData = {
         "docs": 1,
         "topSku": "SKNR",
         "lastDate": "2025-12-16"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "JW",
+        "code": "300-JS125",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 216.0,
+        "qty": 6.0,
+        "docs": 1,
+        "topSku": "EVO",
+        "lastDate": "2025-12-17"
       },
       {
         "state": "Kelantan",
@@ -2079,6 +1952,34 @@ window.debtorStatusData = {
         "lastDate": "2025-12-09"
       },
       {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "3EV-Q0531",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 108.0,
+        "qty": 2.0,
+        "docs": 1,
+        "topSku": "CMP",
+        "lastDate": "2025-12-05"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "3EV-Q0551",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 108.0,
+        "qty": 2.0,
+        "docs": 1,
+        "topSku": "CM-002",
+        "lastDate": "2025-12-05"
+      },
+      {
         "state": "Pahang",
         "agent": "CJ",
         "code": "300-J211",
@@ -2119,6 +2020,20 @@ window.debtorStatusData = {
         "docs": 1,
         "topSku": "LC20",
         "lastDate": "2025-12-11"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-JK064",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 42.0,
+        "qty": 1.0,
+        "docs": 1,
+        "topSku": "CMP",
+        "lastDate": "2025-12-03"
       },
       {
         "state": "Kelantan",
@@ -2248,9 +2163,38 @@ window.debtorStatusData = {
         "missing": 6,
         "activeRate": 98.4,
         "sales": 473917.1
+      },
+      {
+        "state": "GRP 2A",
+        "total": 139,
+        "active": 135,
+        "inactive": 0,
+        "missing": 4,
+        "activeRate": 97.1,
+        "sales": 239091.91
       }
     ],
     "agentStatus": [
+      {
+        "state": "GRP 2A",
+        "agent": "JW",
+        "total": 32,
+        "active": 31,
+        "inactive": 0,
+        "missing": 1,
+        "activeRate": 96.9,
+        "sales": 25310.5
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "total": 107,
+        "active": 104,
+        "inactive": 0,
+        "missing": 3,
+        "activeRate": 97.2,
+        "sales": 213781.41
+      },
       {
         "state": "Kelantan",
         "agent": "BEN",
@@ -2518,6 +2462,34 @@ window.debtorStatusData = {
         "lastDate": "2026-01-07"
       },
       {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-H064",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 256.75,
+        "qty": 7.0,
+        "docs": 1,
+        "topSku": "SKNR",
+        "lastDate": "2026-01-28"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "JW",
+        "code": "300-JS125",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 252.0,
+        "qty": 7.0,
+        "docs": 1,
+        "topSku": "EVO",
+        "lastDate": "2026-01-06"
+      },
+      {
         "state": "Kelantan",
         "agent": "JACKY",
         "code": "3EV-E0572",
@@ -2616,6 +2588,20 @@ window.debtorStatusData = {
         "lastDate": "2026-01-13"
       },
       {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "3EV-Q0336",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 108.0,
+        "qty": 2.0,
+        "docs": 1,
+        "topSku": "CM-002",
+        "lastDate": "2026-01-16"
+      },
+      {
         "state": "Kelantan",
         "agent": "KI-MI",
         "code": "3EV-J0212",
@@ -2656,6 +2642,20 @@ window.debtorStatusData = {
         "docs": 1,
         "topSku": "EVO",
         "lastDate": "2026-01-17"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "3EV-Q0741",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 54.0,
+        "qty": 1.0,
+        "docs": 1,
+        "topSku": "CMP",
+        "lastDate": "2026-01-29"
       },
       {
         "state": "Pahang",
@@ -2715,9 +2715,38 @@ window.debtorStatusData = {
         "missing": 1,
         "activeRate": 99.7,
         "sales": 377124.33
+      },
+      {
+        "state": "GRP 2A",
+        "total": 138,
+        "active": 133,
+        "inactive": 0,
+        "missing": 5,
+        "activeRate": 96.4,
+        "sales": 250630.26
       }
     ],
     "agentStatus": [
+      {
+        "state": "GRP 2A",
+        "agent": "JW",
+        "total": 40,
+        "active": 39,
+        "inactive": 0,
+        "missing": 1,
+        "activeRate": 97.5,
+        "sales": 40564.75
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "total": 98,
+        "active": 94,
+        "inactive": 0,
+        "missing": 4,
+        "activeRate": 95.9,
+        "sales": 210065.51
+      },
       {
         "state": "Kelantan",
         "agent": "BEN",
@@ -2845,6 +2874,20 @@ window.debtorStatusData = {
         "lastDate": "2026-02-22"
       },
       {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-H064",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 560.8,
+        "qty": 14.0,
+        "docs": 3,
+        "topSku": "CM-002",
+        "lastDate": "2026-02-26"
+      },
+      {
         "state": "Pahang",
         "agent": "LEON",
         "code": "300-D270",
@@ -2859,6 +2902,20 @@ window.debtorStatusData = {
         "lastDate": "2026-02-09"
       },
       {
+        "state": "GRP 2A",
+        "agent": "JW",
+        "code": "300-JS125",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 504.0,
+        "qty": 14.0,
+        "docs": 1,
+        "topSku": "EVO",
+        "lastDate": "2026-02-22"
+      },
+      {
         "state": "Kelantan",
         "agent": "JACKY",
         "code": "300-KT193",
@@ -2870,6 +2927,34 @@ window.debtorStatusData = {
         "qty": 7.0,
         "docs": 3,
         "topSku": "JDB",
+        "lastDate": "2026-02-28"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-H124",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 480.0,
+        "qty": 10.0,
+        "docs": 1,
+        "topSku": "LF-002",
+        "lastDate": "2026-02-09"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-JK094",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 426.0,
+        "qty": 11.0,
+        "docs": 1,
+        "topSku": "TR-002",
         "lastDate": "2026-02-28"
       },
       {
@@ -2985,6 +3070,20 @@ window.debtorStatusData = {
         "lastDate": "2026-02-04"
       },
       {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-JK064",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 140.0,
+        "qty": 4.0,
+        "docs": 1,
+        "topSku": "TR-002",
+        "lastDate": "2026-02-09"
+      },
+      {
         "state": "Terengganu",
         "agent": "JAMES",
         "code": "3EV-L0012",
@@ -3028,9 +3127,38 @@ window.debtorStatusData = {
         "missing": 4,
         "activeRate": 98.9,
         "sales": 563633.93
+      },
+      {
+        "state": "GRP 2A",
+        "total": 153,
+        "active": 150,
+        "inactive": 0,
+        "missing": 3,
+        "activeRate": 98.0,
+        "sales": 478544.83
       }
     ],
     "agentStatus": [
+      {
+        "state": "GRP 2A",
+        "agent": "JW",
+        "total": 54,
+        "active": 53,
+        "inactive": 0,
+        "missing": 1,
+        "activeRate": 98.1,
+        "sales": 62379.0
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "total": 99,
+        "active": 97,
+        "inactive": 0,
+        "missing": 2,
+        "activeRate": 98.0,
+        "sales": 416165.83
+      },
       {
         "state": "Kelantan",
         "agent": "BEN",
@@ -3143,6 +3271,48 @@ window.debtorStatusData = {
       }
     ],
     "watchlist": [
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-JK094",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 1424.5,
+        "qty": 38.0,
+        "docs": 2,
+        "topSku": "TR-002",
+        "lastDate": "2026-03-23"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-JK064",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 700.0,
+        "qty": 20.0,
+        "docs": 3,
+        "topSku": "TR-002",
+        "lastDate": "2026-03-23"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "JW",
+        "code": "300-JS125",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 360.0,
+        "qty": 10.0,
+        "docs": 1,
+        "topSku": "EVO",
+        "lastDate": "2026-03-11"
+      },
       {
         "state": "Kelantan",
         "agent": "JACKY",
@@ -3299,9 +3469,38 @@ window.debtorStatusData = {
         "missing": 3,
         "activeRate": 99.2,
         "sales": 465706.01
+      },
+      {
+        "state": "GRP 2A",
+        "total": 147,
+        "active": 144,
+        "inactive": 0,
+        "missing": 3,
+        "activeRate": 98.0,
+        "sales": 272611.51
       }
     ],
     "agentStatus": [
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "total": 100,
+        "active": 97,
+        "inactive": 0,
+        "missing": 3,
+        "activeRate": 97.0,
+        "sales": 222482.51
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "SAM",
+        "total": 47,
+        "active": 47,
+        "inactive": 0,
+        "missing": 0,
+        "activeRate": 100.0,
+        "sales": 50129.0
+      },
       {
         "state": "Kelantan",
         "agent": "BEN",
@@ -3414,6 +3613,48 @@ window.debtorStatusData = {
       }
     ],
     "watchlist": [
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-H124",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 960.0,
+        "qty": 20.0,
+        "docs": 1,
+        "topSku": "LF-002",
+        "lastDate": "2026-04-01"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-JK064",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 345.0,
+        "qty": 9.0,
+        "docs": 2,
+        "topSku": "TR-002",
+        "lastDate": "2026-04-20"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-JK094",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 321.5,
+        "qty": 8.0,
+        "docs": 1,
+        "topSku": "SKNW",
+        "lastDate": "2026-04-06"
+      },
       {
         "state": "Terengganu",
         "agent": "JAMES",
@@ -3528,9 +3769,38 @@ window.debtorStatusData = {
         "missing": 0,
         "activeRate": 100.0,
         "sales": 519681.93
+      },
+      {
+        "state": "GRP 2A",
+        "total": 48,
+        "active": 48,
+        "inactive": 0,
+        "missing": 0,
+        "activeRate": 100.0,
+        "sales": 51323.2
       }
     ],
     "agentStatus": [
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "total": 1,
+        "active": 1,
+        "inactive": 0,
+        "missing": 0,
+        "activeRate": 100.0,
+        "sales": -450.0
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "SAM",
+        "total": 47,
+        "active": 47,
+        "inactive": 0,
+        "missing": 0,
+        "activeRate": 100.0,
+        "sales": 51773.2
+      },
       {
         "state": "Kelantan",
         "agent": "BEN",
@@ -3739,9 +4009,38 @@ window.debtorStatusData = {
         "missing": 2,
         "activeRate": 99.4,
         "sales": 552845.36
+      },
+      {
+        "state": "GRP 2A",
+        "total": 64,
+        "active": 64,
+        "inactive": 0,
+        "missing": 0,
+        "activeRate": 100.0,
+        "sales": 72864.9
       }
     ],
     "agentStatus": [
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "total": 1,
+        "active": 1,
+        "inactive": 0,
+        "missing": 0,
+        "activeRate": 100.0,
+        "sales": -207.0
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "SAM",
+        "total": 63,
+        "active": 63,
+        "inactive": 0,
+        "missing": 0,
+        "activeRate": 100.0,
+        "sales": 73071.9
+      },
       {
         "state": "Kelantan",
         "agent": "BEN",
@@ -3936,9 +4235,28 @@ window.debtorStatusData = {
         "missing": 2,
         "activeRate": 97.6,
         "sales": 26729.61
+      },
+      {
+        "state": "GRP 2A",
+        "total": 12,
+        "active": 10,
+        "inactive": 0,
+        "missing": 2,
+        "activeRate": 83.3,
+        "sales": 2339.0
       }
     ],
     "agentStatus": [
+      {
+        "state": "GRP 2A",
+        "agent": "SAM",
+        "total": 12,
+        "active": 10,
+        "inactive": 0,
+        "missing": 2,
+        "activeRate": 83.3,
+        "sales": 2339.0
+      },
       {
         "state": "Kelantan",
         "agent": "BEN",
@@ -4094,6 +4412,34 @@ window.debtorStatusData = {
         "lastDate": "2026-07-02"
       },
       {
+        "state": "GRP 2A",
+        "agent": "SAM",
+        "code": "3EV-B0368",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 108.0,
+        "qty": 2.0,
+        "docs": 1,
+        "topSku": "DPM EVO",
+        "lastDate": "2026-07-02"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "SAM",
+        "code": "3EV-B0364",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 100.0,
+        "qty": 2.0,
+        "docs": 1,
+        "topSku": "TR-002",
+        "lastDate": "2026-07-01"
+      },
+      {
         "state": "Kelantan",
         "agent": "KI-MI",
         "code": "3EV-B0362",
@@ -4179,62 +4525,101 @@ window.debtorStatusData = {
       {
         "state": "Terengganu",
         "total": 591,
-        "active": 557,
+        "active": 556,
         "inactive": 0,
-        "missing": 34,
-        "activeRate": 94.2,
+        "missing": 35,
+        "activeRate": 94.1,
         "sales": 5153667.0
       },
       {
         "state": "Kelantan",
-        "total": 579,
-        "active": 549,
+        "total": 520,
+        "active": 502,
         "inactive": 0,
-        "missing": 30,
-        "activeRate": 94.8,
-        "sales": 4166933.97
+        "missing": 18,
+        "activeRate": 96.5,
+        "sales": 3395662.72
+      },
+      {
+        "state": "GRP 2A",
+        "total": 291,
+        "active": 277,
+        "inactive": 0,
+        "missing": 14,
+        "activeRate": 95.2,
+        "sales": 2094455.72
       }
     ],
     "agentStatus": [
       {
+        "state": "GRP 2A",
+        "agent": "JW",
+        "total": 74,
+        "active": 73,
+        "inactive": 0,
+        "missing": 1,
+        "activeRate": 98.6,
+        "sales": 187570.75
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "total": 190,
+        "active": 179,
+        "inactive": 0,
+        "missing": 11,
+        "activeRate": 94.2,
+        "sales": 1729571.87
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "SAM",
+        "total": 81,
+        "active": 79,
+        "inactive": 0,
+        "missing": 2,
+        "activeRate": 97.5,
+        "sales": 177313.1
+      },
+      {
         "state": "Kelantan",
         "agent": "BEN",
-        "total": 111,
-        "active": 108,
+        "total": 94,
+        "active": 93,
         "inactive": 0,
-        "missing": 3,
-        "activeRate": 97.3,
-        "sales": 355080.4
+        "missing": 1,
+        "activeRate": 98.9,
+        "sales": 275350.3
       },
       {
         "state": "Kelantan",
         "agent": "JACKY",
-        "total": 138,
-        "active": 123,
+        "total": 130,
+        "active": 121,
         "inactive": 0,
-        "missing": 15,
-        "activeRate": 89.1,
-        "sales": 2008431.48
+        "missing": 9,
+        "activeRate": 93.1,
+        "sales": 1674779.73
       },
       {
         "state": "Kelantan",
         "agent": "KI-MI",
-        "total": 180,
-        "active": 168,
+        "total": 159,
+        "active": 151,
         "inactive": 0,
-        "missing": 12,
-        "activeRate": 93.3,
-        "sales": 556136.5
+        "missing": 8,
+        "activeRate": 95.0,
+        "sales": 456648.0
       },
       {
         "state": "Kelantan",
         "agent": "YI",
-        "total": 160,
-        "active": 160,
+        "total": 144,
+        "active": 144,
         "inactive": 0,
         "missing": 0,
         "activeRate": 100.0,
-        "sales": 1247285.59
+        "sales": 988884.69
       },
       {
         "state": "Pahang",
@@ -4300,38 +4685,24 @@ window.debtorStatusData = {
         "state": "Terengganu",
         "agent": "KF",
         "total": 246,
-        "active": 233,
+        "active": 232,
         "inactive": 0,
-        "missing": 13,
-        "activeRate": 94.7,
+        "missing": 14,
+        "activeRate": 94.3,
         "sales": 2532217.0
       },
       {
         "state": "Terengganu",
         "agent": "NMK",
         "total": 158,
-        "active": 149,
+        "active": 148,
         "inactive": 0,
-        "missing": 9,
-        "activeRate": 94.3,
+        "missing": 10,
+        "activeRate": 93.7,
         "sales": 1306345.0
       }
     ],
     "watchlist": [
-      {
-        "state": "Kelantan",
-        "agent": "JACKY",
-        "code": "300-KT184",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 11305.0,
-        "qty": 280.0,
-        "docs": 7,
-        "topSku": "CM-002",
-        "lastDate": "2025-12-15"
-      },
       {
         "state": "Pahang",
         "agent": "KW",
@@ -4345,6 +4716,20 @@ window.debtorStatusData = {
         "docs": 1,
         "topSku": "90",
         "lastDate": "2025-11-13"
+      },
+      {
+        "state": "Kelantan",
+        "agent": "JACKY",
+        "code": "300-KT184",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 6142.5,
+        "qty": 150.0,
+        "docs": 3,
+        "topSku": "CM-002",
+        "lastDate": "2025-12-15"
       },
       {
         "state": "Pahang",
@@ -4473,18 +4858,46 @@ window.debtorStatusData = {
         "lastDate": "2026-01-09"
       },
       {
-        "state": "Kelantan",
-        "agent": "KI-MI",
-        "code": "300-KV184",
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-H076",
         "name": "",
         "maintAgent": "",
         "maintType": "",
         "status": "Missing",
-        "sales": 2937.0,
-        "qty": 71.0,
+        "sales": 2442.0,
+        "qty": 58.0,
+        "docs": 3,
+        "topSku": "CMP",
+        "lastDate": "2025-11-08"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-H124",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 2400.0,
+        "qty": 50.0,
+        "docs": 4,
+        "topSku": "LF-002",
+        "lastDate": "2026-04-01"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-JK094",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 2248.0,
+        "qty": 59.0,
         "docs": 5,
-        "topSku": "EVO",
-        "lastDate": "2025-11-17"
+        "topSku": "TR-002",
+        "lastDate": "2026-04-06"
       },
       {
         "state": "Pahang",
@@ -4529,18 +4942,32 @@ window.debtorStatusData = {
         "lastDate": "2026-01-15"
       },
       {
-        "state": "Kelantan",
-        "agent": "KI-MI",
-        "code": "300-KM105",
+        "state": "GRP 2A",
+        "agent": "JW",
+        "code": "300-JS125",
         "name": "",
         "maintAgent": "",
         "maintType": "",
         "status": "Missing",
-        "sales": 1348.0,
-        "qty": 33.0,
-        "docs": 17,
-        "topSku": "CM-002",
-        "lastDate": "2026-01-13"
+        "sales": 1692.0,
+        "qty": 47.0,
+        "docs": 5,
+        "topSku": "EVO",
+        "lastDate": "2026-03-11"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-H271",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 1451.7,
+        "qty": 39.0,
+        "docs": 6,
+        "topSku": "TR-002",
+        "lastDate": "2025-11-25"
       },
       {
         "state": "Terengganu",
@@ -4555,6 +4982,34 @@ window.debtorStatusData = {
         "docs": 2,
         "topSku": "BISON-R",
         "lastDate": "2026-01-21"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-H064",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 1261.55,
+        "qty": 33.0,
+        "docs": 6,
+        "topSku": "SKNR",
+        "lastDate": "2026-02-26"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-JK064",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 1227.0,
+        "qty": 34.0,
+        "docs": 7,
+        "topSku": "TR-002",
+        "lastDate": "2026-04-20"
       },
       {
         "state": "Pahang",
@@ -4641,48 +5096,6 @@ window.debtorStatusData = {
         "lastDate": "2026-02-21"
       },
       {
-        "state": "Kelantan",
-        "agent": "BEN",
-        "code": "300-KB073",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 1010.0,
-        "qty": 28.0,
-        "docs": 3,
-        "topSku": "SKNR",
-        "lastDate": "2025-11-05"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "JACKY",
-        "code": "3EV-E0572",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 999.0,
-        "qty": 21.0,
-        "docs": 5,
-        "topSku": "SKNR",
-        "lastDate": "2026-04-13"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "JACKY",
-        "code": "300-KT166",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 928.0,
-        "qty": 23.0,
-        "docs": 2,
-        "topSku": "EVO",
-        "lastDate": "2026-06-03"
-      },
-      {
         "state": "Pahang",
         "agent": "LEON",
         "code": "300-D254",
@@ -4695,6 +5108,34 @@ window.debtorStatusData = {
         "docs": 4,
         "topSku": "SKNR",
         "lastDate": "2025-12-16"
+      },
+      {
+        "state": "Kelantan",
+        "agent": "JACKY",
+        "code": "300-KT166",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 820.0,
+        "qty": 20.0,
+        "docs": 1,
+        "topSku": "EVO",
+        "lastDate": "2026-06-03"
+      },
+      {
+        "state": "Kelantan",
+        "agent": "JACKY",
+        "code": "3EV-E0572",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 811.0,
+        "qty": 17.0,
+        "docs": 4,
+        "topSku": "SKNR",
+        "lastDate": "2026-04-13"
       },
       {
         "state": "Pahang",
@@ -4795,6 +5236,20 @@ window.debtorStatusData = {
         "lastDate": "2025-12-08"
       },
       {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "300-H070",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 619.5,
+        "qty": 18.0,
+        "docs": 2,
+        "topSku": "BISON-R",
+        "lastDate": "2025-10-18"
+      },
+      {
         "state": "Pahang",
         "agent": "CJ",
         "code": "300-J234",
@@ -4807,6 +5262,20 @@ window.debtorStatusData = {
         "docs": 3,
         "topSku": "SKNR",
         "lastDate": "2025-11-11"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "3EV-Q0336",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 586.0,
+        "qty": 11.0,
+        "docs": 4,
+        "topSku": "CMP",
+        "lastDate": "2026-01-16"
       },
       {
         "state": "Pahang",
@@ -4838,31 +5307,17 @@ window.debtorStatusData = {
       },
       {
         "state": "Kelantan",
-        "agent": "JACKY",
-        "code": "300-KT181",
+        "agent": "KI-MI",
+        "code": "300-KM105",
         "name": "",
         "maintAgent": "",
         "maintType": "",
         "status": "Missing",
-        "sales": 490.0,
-        "qty": 10.0,
-        "docs": 3,
+        "sales": 509.0,
+        "qty": 12.0,
+        "docs": 7,
         "topSku": "CM-002",
-        "lastDate": "2025-10-30"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "JACKY",
-        "code": "300-KT171",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 450.0,
-        "qty": 10.0,
-        "docs": 1,
-        "topSku": "SKNR",
-        "lastDate": "2025-10-17"
+        "lastDate": "2026-01-13"
       },
       {
         "state": "Pahang",
@@ -4949,20 +5404,6 @@ window.debtorStatusData = {
         "lastDate": "2026-05-02"
       },
       {
-        "state": "Kelantan",
-        "agent": "JACKY",
-        "code": "300-KT182",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 343.0,
-        "qty": 7.0,
-        "docs": 1,
-        "topSku": "CM-002",
-        "lastDate": "2025-10-17"
-      },
-      {
         "state": "Pahang",
         "agent": "CJ",
         "code": "3EV-Q0141",
@@ -4991,46 +5432,18 @@ window.debtorStatusData = {
         "lastDate": "2026-03-03"
       },
       {
-        "state": "Kelantan",
-        "agent": "KI-MI",
-        "code": "3EV-J0237",
+        "state": "Terengganu",
+        "agent": "KF",
+        "code": "3EV-L0699",
         "name": "",
         "maintAgent": "",
         "maintType": "",
         "status": "Missing",
-        "sales": 316.0,
-        "qty": 8.0,
-        "docs": 1,
-        "topSku": "CM-002",
-        "lastDate": "2025-11-09"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "KI-MI",
-        "code": "3EV-J0212",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 298.0,
-        "qty": 9.0,
-        "docs": 8,
-        "topSku": "IFACE B",
-        "lastDate": "2026-01-22"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "JACKY",
-        "code": "300-KT183",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 294.0,
-        "qty": 6.0,
-        "docs": 1,
-        "topSku": "CMP",
-        "lastDate": "2025-10-17"
+        "sales": 302.0,
+        "qty": 7.0,
+        "docs": 2,
+        "topSku": "EVO",
+        "lastDate": "2025-10-14"
       },
       {
         "state": "Pahang",
@@ -5089,20 +5502,6 @@ window.debtorStatusData = {
         "lastDate": "2026-02-26"
       },
       {
-        "state": "Kelantan",
-        "agent": "JACKY",
-        "code": "300-KT185",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 270.0,
-        "qty": 5.0,
-        "docs": 1,
-        "topSku": "CM-002",
-        "lastDate": "2025-10-30"
-      },
-      {
         "state": "Pahang",
         "agent": "KW",
         "code": "300-C232",
@@ -5129,20 +5528,6 @@ window.debtorStatusData = {
         "docs": 1,
         "topSku": "SKNR",
         "lastDate": "2026-07-01"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "KI-MI",
-        "code": "3EV-J0411",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 259.0,
-        "qty": 7.0,
-        "docs": 3,
-        "topSku": "SKNR",
-        "lastDate": "2025-12-12"
       },
       {
         "state": "Pahang",
@@ -5215,6 +5600,20 @@ window.debtorStatusData = {
         "lastDate": "2025-10-29"
       },
       {
+        "state": "Terengganu",
+        "agent": "NMK",
+        "code": "3EV-L0699",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 235.0,
+        "qty": 5.0,
+        "docs": 1,
+        "topSku": "EVO",
+        "lastDate": "2025-12-05"
+      },
+      {
         "state": "Pahang",
         "agent": "CJ",
         "code": "3EV-Q0215",
@@ -5227,20 +5626,6 @@ window.debtorStatusData = {
         "docs": 1,
         "topSku": "CMP",
         "lastDate": "2025-10-23"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "BEN",
-        "code": "3EV-J0110",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 202.0,
-        "qty": 4.0,
-        "docs": 1,
-        "topSku": "TR-002",
-        "lastDate": "2025-10-17"
       },
       {
         "state": "Terengganu",
@@ -5328,31 +5713,17 @@ window.debtorStatusData = {
       },
       {
         "state": "Kelantan",
-        "agent": "JACKY",
-        "code": "300-KT188",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 114.0,
-        "qty": 3.0,
-        "docs": 2,
-        "topSku": "BISON-R",
-        "lastDate": "2025-12-09"
-      },
-      {
-        "state": "Kelantan",
         "agent": "KI-MI",
-        "code": "300-KM104",
+        "code": "3EV-J0212",
         "name": "",
         "maintAgent": "",
         "maintType": "",
         "status": "Missing",
-        "sales": 112.0,
+        "sales": 141.0,
         "qty": 4.0,
-        "docs": 1,
-        "topSku": "BISON-R",
-        "lastDate": "2025-10-03"
+        "docs": 4,
+        "topSku": "EVO",
+        "lastDate": "2026-01-22"
       },
       {
         "state": "Terengganu",
@@ -5367,6 +5738,48 @@ window.debtorStatusData = {
         "docs": 1,
         "topSku": "SKNR",
         "lastDate": "2025-11-27"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "3EV-Q0531",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 108.0,
+        "qty": 2.0,
+        "docs": 1,
+        "topSku": "CMP",
+        "lastDate": "2025-12-05"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "KEAN",
+        "code": "3EV-Q0551",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 108.0,
+        "qty": 2.0,
+        "docs": 1,
+        "topSku": "CM-002",
+        "lastDate": "2025-12-05"
+      },
+      {
+        "state": "GRP 2A",
+        "agent": "SAM",
+        "code": "3EV-B0368",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 108.0,
+        "qty": 2.0,
+        "docs": 1,
+        "topSku": "DPM EVO",
+        "lastDate": "2026-07-02"
       },
       {
         "state": "Terengganu",
@@ -5409,34 +5822,6 @@ window.debtorStatusData = {
         "docs": 1,
         "topSku": "IFACE R",
         "lastDate": "2026-04-12"
-      },
-      {
-        "state": "Kelantan",
-        "agent": "KI-MI",
-        "code": "3EV-B0362",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 100.0,
-        "qty": 2.0,
-        "docs": 1,
-        "topSku": "SKNR",
-        "lastDate": "2026-07-01"
-      },
-      {
-        "state": "Pahang",
-        "agent": "CJ",
-        "code": "3EV-Q0019",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 94.0,
-        "qty": 2.0,
-        "docs": 1,
-        "topSku": "EVO",
-        "lastDate": "2025-10-02"
       }
     ]
   }
