@@ -8018,6 +8018,10 @@ function normalizeFocUnit(value) {
 }
 
 function inferSukunListingFocUnit(value) {
+  const root = typeof window !== 'undefined' ? window : globalThis;
+  if (root.PFMDCampaignEngine?.listing?.inferSukunListingFocUnit) {
+    return root.PFMDCampaignEngine.listing.inferSukunListingFocUnit(value);
+  }
   const raw = String(value || '').trim().toLowerCase();
   if (!raw) return '';
   if (raw.includes('条') || raw.includes('ctn') || raw.includes('carton')) return 'ctn';
@@ -8026,6 +8030,10 @@ function inferSukunListingFocUnit(value) {
 }
 
 function buildSukunListingFocPackage(sknQty, sknrQty, sknwQty) {
+  const root = typeof window !== 'undefined' ? window : globalThis;
+  if (root.PFMDCampaignEngine?.listing?.buildSukunListingFocPackage) {
+    return root.PFMDCampaignEngine.listing.buildSukunListingFocPackage(sknQty, sknrQty, sknwQty);
+  }
   const unit = inferSukunListingFocUnit(sknQty);
   if (!unit) return {};
   const sknr = parseFloat(sknrQty) || 0;
@@ -8123,6 +8131,12 @@ function campaignListingPreviewStats(existingRows, uploadedRows, mode) {
 }
 
 function parseCampaignUploadRows(headers, rows, opts = {}) {
+  const root = typeof window !== 'undefined' ? window : globalThis;
+  const groupMap = opts.groupMap || (typeof readBrandPenetrationAgentGroupMap === 'function' ? readBrandPenetrationAgentGroupMap() : {});
+  const defaultGroup = opts.defaultGroup ?? (typeof brandPenetrationDefaultGroup === 'function' ? brandPenetrationDefaultGroup() : '');
+  if (root.PFMDCampaignEngine?.listing?.parseCampaignUploadRows) {
+    return root.PFMDCampaignEngine.listing.parseCampaignUploadRows(headers, rows, { groupMap, defaultGroup });
+  }
   const normalizedHeaders = (headers || []).map(h => String(h || '').trim().toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' '));
   const findHeader = (...names) => normalizedHeaders.findIndex(h => names.some(name => h === name || h.includes(name)));
   const ci    = findHeader('debtor code', 'code');
@@ -8142,15 +8156,13 @@ function parseCampaignUploadRows(headers, rows, opts = {}) {
   const notei = normalizedHeaders.findIndex(h => h === 'notes' || h.includes('note'));
   const groupi = findHeader('group', 'team', 'cat group');
   const reasoni = findHeader('eligibility reason', 'eligible reason', 'reason');
-  const brandPenGroupMap = opts.groupMap || (typeof readBrandPenetrationAgentGroupMap === 'function' ? readBrandPenetrationAgentGroupMap() : {});
-  const brandPenDefaultGroup = opts.defaultGroup ?? (typeof brandPenetrationDefaultGroup === 'function' ? brandPenetrationDefaultGroup() : '');
   if (ci < 0) return [];
 
   return (rows || []).filter(r => r?.[ci] && String(r[ci]).trim() && String(r[ci]).toLowerCase() !== 'nan')
     .map(r => {
       const agent = agi >= 0 ? String(r[agi] || '').trim().toUpperCase() : '';
       const reason = reasoni >= 0 ? String(r[reasoni] || '').trim() : '';
-      const group = groupi >= 0 ? String(r[groupi] || '').trim().toUpperCase() : (brandPenGroupMap[agent] || brandPenDefaultGroup || '');
+      const group = groupi >= 0 ? String(r[groupi] || '').trim().toUpperCase() : (groupMap[agent] || defaultGroup || '');
       const note = notei >= 0 ? String(r[notei] || '').trim() : '';
       const sukunNote = sknQtyi >= 0 ? String(r[sknQtyi] || '').trim() : '';
       const sukunPackage = buildSukunListingFocPackage(
@@ -9001,88 +9013,6 @@ function previewCampFile(input) {
     preview.innerHTML = campaignUploadSummaryHtml(_campFileDebtors);
     if (parsedCats.length) {
       renderCatRules(parsedCats);
-      document.getElementById('cat-rules-section').style.display = 'block';
-    } else {
-      document.getElementById('cat-rules-section').style.display = 'none';
-    }
-    return;
-
-    const normalizedHeaders = headers.map(h => String(h || '').trim().toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' '));
-    const findHeader = (...names) => normalizedHeaders.findIndex(h => names.some(name => h === name || h.includes(name)));
-    const ci    = findHeader('debtor code', 'code');
-    const ni    = findHeader('debtor name', 'company name', 'company', 'name');
-    const cati  = findHeader('cat', 'category', 'rebate');
-    const agi   = findHeader('agent');
-    const foci1 = findHeader('foc item 1', 'foc item', 'foc sku', 'item');
-    const qty1  = findHeader('foc qty 1', 'foc qty', 'qty 1', 'qty1', 'qty');
-    const unit1 = findHeader('foc unit 1', 'foc unit', 'unit 1', 'unit');
-    const foci2 = findHeader('foc item 2');
-    const qty2  = findHeader('foc qty 2', 'qty 2', 'qty2');
-    const unit2 = findHeader('foc unit 2', 'unit 2');
-    const sknQtyi = findHeader('skn qty');
-    const sknri = findHeader('sknr');
-    const sknwi = findHeader('sknw');
-    const appi  = headers.findIndex(h=>h.includes('approval'));
-    const notei = headers.findIndex(h=>h==='notes'||h.includes('note'));
-    const groupi = findHeader('group', 'team', 'cat group');
-    const reasoni = findHeader('eligibility reason', 'eligible reason', 'reason');
-    const brandPenGroupMap = readBrandPenetrationAgentGroupMap();
-    const brandPenDefaultGroup = brandPenetrationDefaultGroup();
-
-    _campFileDebtors = rows.filter(r=>r[ci]&&String(r[ci]).trim()&&String(r[ci]).toLowerCase()!=='nan')
-      .map(r=>{
-        const agent = agi>=0 ? String(r[agi]||'').trim().toUpperCase() : '';
-        const reason = reasoni>=0 ? String(r[reasoni]||'').trim() : '';
-        const group = groupi>=0 ? String(r[groupi]||'').trim().toUpperCase() : (brandPenGroupMap[agent] || brandPenDefaultGroup || '');
-        const note = notei>=0 ? String(r[notei]||'').trim() : '';
-        const sukunNote = sknQtyi>=0 ? String(r[sknQtyi]||'').trim() : '';
-        const sukunPackage = buildSukunListingFocPackage(
-          sukunNote,
-          sknri>=0 ? r[sknri] : '',
-          sknwi>=0 ? r[sknwi] : ''
-        );
-        const hasSukunPackage = !!(sukunPackage.foc_item || sukunPackage.foc_item_2);
-        return {
-          code:     String(r[ci]||'').trim(),
-          name:     String(r[ni]||'').trim(),
-          agent,
-          cat:      cati>=0 ? String(r[cati]||'').trim().toUpperCase() : '',
-          cat_group: group,
-          group,
-          eligibility_reason: reason,
-          promo_logic: reason,
-          foc_item: hasSukunPackage ? (sukunPackage.foc_item || '') : (foci1>=0 ? String(r[foci1]||'').trim().toUpperCase() : ''),
-          foc_qty:  hasSukunPackage ? (sukunPackage.foc_qty || 0) : (qty1>=0  ? parseFloat(r[qty1])||0 : 0),
-          foc_unit: hasSukunPackage ? (sukunPackage.foc_unit || '') : (unit1>=0 ? normalizeFocUnit(r[unit1]) : ''),
-          foc_item2:hasSukunPackage ? (sukunPackage.foc_item2 || '') : (foci2>=0 ? String(r[foci2]||'').trim().toUpperCase() : ''),
-          foc_qty2: hasSukunPackage ? (sukunPackage.foc_qty2 || 0) : (qty2>=0  ? parseFloat(r[qty2])||0 : 0),
-          foc_unit2: hasSukunPackage ? (sukunPackage.foc_unit2 || '') : (unit2>=0 ? normalizeFocUnit(r[unit2]) : ''),
-          foc_item_2:hasSukunPackage ? (sukunPackage.foc_item_2 || '') : (foci2>=0 ? String(r[foci2]||'').trim().toUpperCase() : ''),
-          foc_qty_2: hasSukunPackage ? (sukunPackage.foc_qty_2 || 0) : (qty2>=0  ? parseFloat(r[qty2])||0 : 0),
-          foc_unit_2: hasSukunPackage ? (sukunPackage.foc_unit_2 || '') : (unit2>=0 ? normalizeFocUnit(r[unit2]) : ''),
-          approval: appi>=0  ? String(r[appi]||'').trim().toUpperCase() === 'TRUE' : false,
-          notes:    note || sukunNote || reason,
-        };
-      });
-
-    // Detect unique categories
-    const cats = [...new Set(_campFileDebtors.map(d=>d.cat).filter(Boolean))].sort();
-    const catInfo = cats.length ? ` — Categories: ${cats.join(', ')}` : '';
-    preview.textContent = `✓ ${_campFileDebtors.length} debtors loaded${catInfo}`;
-
-    const missingPkg = _campFileDebtors.filter(d => !formatFocPackage(d)).length;
-    const packageCounts = _campFileDebtors.reduce((acc, d) => {
-      const label = formatFocPackage(d) || 'campaign default';
-      acc[label] = (acc[label] || 0) + 1;
-      return acc;
-    }, {});
-    const packageSummary = Object.entries(packageCounts).slice(0, 5)
-      .map(([label, count]) => `${kpiAdminEscape(label)} (${count})`).join(' &middot; ');
-    preview.innerHTML = `✓ ${_campFileDebtors.length} debtors loaded${kpiAdminEscape(catInfo)}<br><span style="color:#666;">Packages: ${packageSummary || 'campaign default'}${missingPkg ? ` &middot; ${missingPkg} use campaign default` : ''}</span>`;
-
-    // Auto-populate category rules UI
-    if (cats.length) {
-      renderCatRules(cats);
       document.getElementById('cat-rules-section').style.display = 'block';
     } else {
       document.getElementById('cat-rules-section').style.display = 'none';

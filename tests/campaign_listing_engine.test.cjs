@@ -19,6 +19,72 @@ assert.strictEqual(
   listing.formatFocPackage({ foc_item: 'sknr', foc_qty: 2, foc_unit: 'packet', foc_item2: 'sknw', foc_qty2: 1, foc_unit2: 'carton' }),
   'SKNR x 2 packs + SKNW x 1 ctn',
 );
+assert.strictEqual(listing.inferSukunListingFocUnit('派4包FOC'), 'packs');
+assert.strictEqual(listing.inferSukunListingFocUnit('派4条FOC'), 'ctn');
+assert.strictEqual(listing.inferSukunListingFocUnit('4 pkt'), 'packs');
+assert.strictEqual(listing.inferSukunListingFocUnit('4 cartons'), 'ctn');
+assert.deepStrictEqual(
+  plain(listing.buildSukunListingFocPackage('派4包FOC', 2, 2)),
+  {
+    foc_item: 'SKNR',
+    foc_qty: 2,
+    foc_unit: 'packs',
+    foc_item2: 'SKNW',
+    foc_qty2: 2,
+    foc_unit2: 'packs',
+    foc_item_2: 'SKNW',
+    foc_qty_2: 2,
+    foc_unit_2: 'packs',
+  },
+);
+assert.deepStrictEqual(
+  plain(listing.buildSukunListingFocPackage('派4条FOC', 2, 2)),
+  {
+    foc_item: 'SKNR',
+    foc_qty: 2,
+    foc_unit: 'ctn',
+    foc_item2: 'SKNW',
+    foc_qty2: 2,
+    foc_unit2: 'ctn',
+    foc_item_2: 'SKNW',
+    foc_qty_2: 2,
+    foc_unit_2: 'ctn',
+  },
+);
+
+const parsedUpload = listing.parseCampaignUploadRows(
+  ['debtor_code', 'company name', 'agent', 'category', 'skn qty', 'sknr', 'sknw', 'eligibility reason', 'notes', 'approval'],
+  [
+    ['300-D004', 'Shop D', 'ben', 'vip', '派4包FOC', 2, 2, 'New account', 'Manual note', 'TRUE'],
+    ['nan', 'Ignored', 'cj', '', '', '', '', '', '', ''],
+    ['', 'Blank ignored', 'cj', '', '', '', '', '', '', ''],
+  ],
+  { groupMap: { BEN: 'GRP2A' }, defaultGroup: 'MIRACLE' },
+);
+assert.deepStrictEqual(
+  plain(parsedUpload),
+  [{
+    code: '300-D004',
+    name: 'Shop D',
+    agent: 'BEN',
+    cat: 'VIP',
+    cat_group: 'GRP2A',
+    group: 'GRP2A',
+    eligibility_reason: 'New account',
+    promo_logic: 'New account',
+    foc_item: 'SKNR',
+    foc_qty: 2,
+    foc_unit: 'packs',
+    foc_item2: 'SKNW',
+    foc_qty2: 2,
+    foc_unit2: 'packs',
+    foc_item_2: 'SKNW',
+    foc_qty_2: 2,
+    foc_unit_2: 'packs',
+    approval: true,
+    notes: 'Manual note',
+  }],
+);
 
 assert.deepStrictEqual(
   plain(listing.campaignListingPreviewStats(existingListing, uploadedListing, 'merge')),
