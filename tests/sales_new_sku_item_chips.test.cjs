@@ -69,7 +69,7 @@ const context = {
           'BISON-R': { item_codes: ['BISON-R'], item_groups: ['BISON-R'] },
         },
         other_sku_groups: {
-          OTHER: { label: '其他', item_codes: ['CMLT'], item_groups: ['CMLT'] },
+          OTHER: { label: 'CMLT', item_codes: ['CMLT'], item_groups: ['CMLT'] },
         },
       },
     },
@@ -145,7 +145,7 @@ assert.strictEqual(
 const otherEntries = context.otherSkuItemChipEntries(debtor);
 assert.deepStrictEqual(
   Array.from(otherEntries, entry => [entry.label, entry.item, entry.group, entry.kpi, entry.status]),
-  [['其他', 'CMLT', 'OTHER', false, 'current']],
+  [['CMLT', 'CMLT', 'OTHER', false, 'current']],
   'CMLT should render in the separate Other SKU panel as current-month non-KPI',
 );
 
@@ -162,7 +162,7 @@ const groupedOtherDebtor = {
 const groupedOtherEntries = context.otherSkuItemChipEntries(groupedOtherDebtor);
 assert.deepStrictEqual(
   Array.from(groupedOtherEntries, entry => [entry.label, entry.item, entry.group, entry.kpi, entry.status]),
-  [['其他', 'CMLT-001', 'OTHER', false, 'current']],
+  [['CMLT-001', 'CMLT-001', 'OTHER', false, 'current']],
   'CMLT item groups should render as Other SKU even when the item code is more specific',
 );
 
@@ -195,7 +195,7 @@ assert.deepStrictEqual(
 );
 assert.deepStrictEqual(
   Array.from(context.otherSkuItemChipEntries(existingOnlyDebtor), entry => [entry.label, entry.item, entry.group, entry.kpi, entry.status]),
-  [['其他', 'CMLT', 'OTHER', false, 'none']],
+  [['CMLT', 'CMLT', 'OTHER', false, 'none']],
   'Other bucket should be present in its own panel even when the debtor has no CMLT row',
 );
 

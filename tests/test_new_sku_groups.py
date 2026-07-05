@@ -265,7 +265,7 @@ class NewSkuGroupTests(unittest.TestCase):
         self.assertEqual(rules["version"], 3)
         self.assertEqual(rules["new_sku_groups"], {})
         self.assertEqual(rules["other_sku_groups"]["OTHER"]["item_codes"], ["CMLT"])
-        self.assertEqual(rules["other_sku_groups"]["OTHER"]["label"], "其他")
+        self.assertEqual(rules["other_sku_groups"]["OTHER"]["label"], "CMLT")
 
     def test_cmlt_is_other_sku_and_does_not_count_new_sku_kpi(self):
         sales = pd.DataFrame(
@@ -308,7 +308,7 @@ class NewSkuGroupTests(unittest.TestCase):
             },
             "other_sku_groups": {
                 "OTHER": {
-                    "label": "其他",
+                    "label": "CMLT",
                     "item_codes": ["CMLT"],
                     "item_groups": ["CMLT"],
                 }

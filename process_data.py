@@ -452,7 +452,7 @@ DEFAULT_NEW_SKU_GROUPS = {
 }
 NEW_SKU_KPI_EXCLUDED_CODES = {"CMLT"}
 DEFAULT_OTHER_SKU_GROUPS = {
-    "OTHER": {"label": "其他", "item_codes": ["CMLT"], "item_groups": ["CMLT"]},
+    "OTHER": {"label": "CMLT", "item_codes": ["CMLT"], "item_groups": ["CMLT"]},
 }
 LEGACY_NEW_SKU_GROUP_EXPANSIONS = {
     "SUKUN": {
@@ -3700,7 +3700,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
 
             # New SKU KPI counts configured groups bought this month only when
             # the debtor did not buy that group in the prior three months.
-            # CMLT is excluded before matching and appears as "Other" in the UI.
+            # CMLT is excluded before matching and appears in the Other SKU panel.
             new_sku_status = {}
             new_sku_count  = 0
             for grp, rule in new_sku_groups.items():

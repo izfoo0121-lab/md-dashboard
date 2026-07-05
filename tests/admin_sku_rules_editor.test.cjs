@@ -59,13 +59,13 @@ const context = {
         CMX: { item_codes: ['CMX'], item_groups: ['CMX'] },
       },
       other_sku_groups: {
-        OTHER: { label: '其他', item_codes: ['CMLT'], item_groups: ['CMLT'] },
+        OTHER: { label: 'CMLT', item_codes: ['CMLT'], item_groups: ['CMLT'] },
       },
     },
   },
   DASH_DATA: {},
   DEFAULT_OTHER_SKU_GROUPS: {
-    OTHER: { label: '其他', item_codes: ['CMLT'], item_groups: ['CMLT'] },
+    OTHER: { label: 'CMLT', item_codes: ['CMLT'], item_groups: ['CMLT'] },
   },
   document: {
     createElement(tag) { return makeElement(tag); },
@@ -156,7 +156,7 @@ assert.deepEqual(
 );
 assert.match(
   elements.get('sku-rules-preview').innerHTML,
-  /Other SKU Groups \(No KPI\)/,
+  /Other SKU Groups/,
   'preview should show Other SKU groups separately from New SKU KPI groups',
 );
 

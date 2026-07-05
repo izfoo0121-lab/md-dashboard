@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <script>
-const SALES_DASHBOARD_BUILD = '20260705-082645';
+const SALES_DASHBOARD_BUILD = '20260705-083737';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
@@ -1601,7 +1601,7 @@ function visibleZlbStatusEntries(debtor) {
 }
 
 const DEFAULT_OTHER_SKU_GROUPS = {
-  OTHER: { label: '其他', item_codes: ['CMLT'], item_groups: ['CMLT'] },
+  OTHER: { label: 'CMLT', item_codes: ['CMLT'], item_groups: ['CMLT'] },
 };
 
 function newSkuNormCode(value) {
@@ -1817,11 +1817,13 @@ function otherSkuEntryStatus(debtor, group, rule) {
   return 'none';
 }
 
-function otherSkuDisplayLabel(group, rule) {
+function otherSkuDisplayLabel(group, rule, item) {
+  const itemLabel = newSkuNormCode(item);
+  if (itemLabel) return itemLabel;
   const label = String(rule?.label || '').trim();
-  if (label) return label;
+  if (label && newSkuNormCode(label) !== '其他') return label;
   const key = newSkuNormCode(group);
-  return key === 'OTHER' || key === 'CMLT' ? '其他' : newSkuDisplayLabel(group, rule);
+  return key === 'OTHER' ? newSkuRulePrimaryItem(group, rule) : newSkuDisplayLabel(group, rule);
 }
 
 function otherSkuItemChipEntries(debtor) {
@@ -1829,7 +1831,7 @@ function otherSkuItemChipEntries(debtor) {
     const currentItems = newSkuCurrentItemList(debtor, group, rule);
     const item = currentItems[0] || newSkuRulePrimaryItem(group, rule);
     return {
-      label: otherSkuDisplayLabel(group, rule),
+      label: otherSkuDisplayLabel(group, rule, item),
       item,
       source_items: currentItems.length ? currentItems : [item],
       group: newSkuNormCode(group),
@@ -5460,13 +5462,20 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
           ? 'sku-yellow'
           : 'sku-red';
       const noun = options.other ? '其他SKU' : '新增SKU';
-      const title = status === 'new'
-        ? `${noun} KPI · ${entry.item} · 当月首次购买`
-        : status === 'current'
-          ? `${noun}当月购买 · ${entry.item} · 不计KPI`
-          : status === 'existing'
-            ? `${noun}3个月内购买 · ${entry.item} · 不计KPI`
-            : `${noun}未购买 · ${entry.item}${options.other ? ' · 不计KPI' : ''}`;
+      let title = '';
+      if (options.other) {
+        if (status === 'current') title = `${noun}当月购买 · ${entry.item}`;
+        else if (status === 'existing') title = `${noun}3个月内购买 · ${entry.item}`;
+        else title = `${noun}未购买 · ${entry.item}`;
+      } else if (status === 'new') {
+        title = `${noun} KPI · ${entry.item} · 当月首次购买`;
+      } else if (status === 'current') {
+        title = `${noun}当月购买 · ${entry.item} · 不计KPI`;
+      } else if (status === 'existing') {
+        title = `${noun}3个月内购买 · ${entry.item} · 不计KPI`;
+      } else {
+        title = `${noun}未购买 · ${entry.item}`;
+      }
       return `<div class="sku-dot new-sku-dot ${campEsc(cls)}" title="${campEsc(title)}">
         <span style="font-size:7px;line-height:1.1;text-align:center;">${campEsc(entry.label)}</span>
       </div>`;
@@ -5484,7 +5493,7 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
     const otherSkuPanelHtml = otherSkuEntries.length ? `
       <div class="sku-section new-sku-panel other-sku-panel">
         <div class="new-sku-panel-top">
-          <div class="sku-section-lbl">其他 SKU · 不计KPI</div>
+          <div class="sku-section-lbl">其他 SKU</div>
         </div>
         <div class="new-sku-row">${otherSkuHtml}</div>
       </div>` : '';
