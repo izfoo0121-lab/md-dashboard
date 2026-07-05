@@ -8,6 +8,7 @@ Usage in process_data.py:
   targets = load_targets()  # Returns dict identical to targets.json shape
 """
 import json
+import os
 from pathlib import Path
 from datetime import datetime
 
@@ -23,7 +24,7 @@ SUPABASE_KEY = "sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw"
 
 BASE_DIR = Path(__file__).parent
 TARGETS_FILE = BASE_DIR / "targets.json"
-BACKUP_FILE = BASE_DIR / "targets.json.bak"
+BACKUP_FILE = Path(os.getenv("MD_TARGETS_CACHE_FILE", str(BASE_DIR / ".cache" / "targets.latest.json")))
 
 
 def _log(msg):
@@ -209,19 +210,14 @@ def load_targets_from_file():
 
 
 def save_file_backup(targets):
-    """Write targets dict to local targets.json for backup/audit."""
+    """Write live targets to an untracked local cache for backup/audit."""
     try:
-        # Back up existing file first
-        if TARGETS_FILE.exists():
-            with open(TARGETS_FILE, encoding="utf-8") as src:
-                with open(BACKUP_FILE, "w", encoding="utf-8") as dst:
-                    dst.write(src.read())
-        # Write fresh
-        with open(TARGETS_FILE, "w", encoding="utf-8") as f:
+        BACKUP_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(BACKUP_FILE, "w", encoding="utf-8") as f:
             json.dump(targets, f, indent=2, ensure_ascii=False)
-        _log(f"  Wrote targets.json backup ({len(targets)} sections)")
+        _log(f"  Wrote targets cache: {BACKUP_FILE.name} ({len(targets)} sections)")
     except Exception as e:
-        _log(f"⚠ Backup save failed: {e}")
+        _log(f"WARNING: Targets cache save failed: {e}")
 
 
 def sync_to_supabase(targets):

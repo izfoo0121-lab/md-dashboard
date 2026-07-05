@@ -1,0 +1,18 @@
+# Local runtime/cache artifacts
+.cache/
+__pycache__/
+*.py[cod]
+
+# Logs and local backups
+*.log
+*.bak
+orphan_debtors.csv
+
+# Local source workbooks and ad-hoc exports
+*.xlsx
+*.xls
+powerbi_exports/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db

@@ -1,4 +1,6 @@
 import unittest
+import json
+import tempfile
 from pathlib import Path
 import sys
 
@@ -33,6 +35,34 @@ class TargetsLoaderTests(unittest.TestCase):
         self.assertTrue(result["agents"]["JW"]["archived"])
         self.assertEqual(result["agents"]["SAM"]["inherits_from"], "JW")
         self.assertEqual(result["agents"]["SAM"]["inherit_from_month"], "Jul-26")
+
+    def test_save_file_backup_writes_cache_without_mutating_tracked_targets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            tracked_targets = tmp_path / "targets.json"
+            cache_backup = tmp_path / ".cache" / "targets.latest.json"
+            tracked_targets.write_text('{"tracked": true}', encoding="utf-8")
+
+            original_targets_file = targets_loader.TARGETS_FILE
+            original_backup_file = targets_loader.BACKUP_FILE
+            try:
+                targets_loader.TARGETS_FILE = tracked_targets
+                targets_loader.BACKUP_FILE = cache_backup
+
+                targets_loader.save_file_backup({
+                    "_loaded_at": "2026-07-05T12:00:00",
+                    "agents": {"XIAN": {"active": True}},
+                })
+            finally:
+                targets_loader.TARGETS_FILE = original_targets_file
+                targets_loader.BACKUP_FILE = original_backup_file
+
+            self.assertEqual(json.loads(tracked_targets.read_text(encoding="utf-8")), {"tracked": True})
+            self.assertTrue(cache_backup.exists())
+            self.assertEqual(
+                json.loads(cache_backup.read_text(encoding="utf-8"))["agents"],
+                {"XIAN": {"active": True}},
+            )
 
 
 if __name__ == "__main__":

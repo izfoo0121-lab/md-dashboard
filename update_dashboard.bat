@@ -156,24 +156,64 @@ if %errorlevel% neq 0 echo WARNING: save_history_json.py failed ^(non-critical^)
 echo Done.
 echo.
 
+REM -- Step 5a: Smoke tests --------------------------------
+echo [5a/5] Running smoke tests...
+%PYTHON% -m unittest discover -s tests -p "test_*.py"
+if %errorlevel% neq 0 (
+    echo ERROR: Python smoke tests failed. Nothing was committed or pushed.
+    pause & exit /b 1
+)
+where node >nul 2>&1
+if %errorlevel% neq 0 (
+    echo ERROR: Node.js not found, cannot run dashboard smoke tests.
+    pause & exit /b 1
+)
+node tests\sales_dashboard_version.test.cjs
+if %errorlevel% neq 0 (
+    echo ERROR: sales dashboard version smoke test failed.
+    pause & exit /b 1
+)
+node tests\admin_group2a_scope.test.cjs
+if %errorlevel% neq 0 (
+    echo ERROR: admin group2a scope smoke test failed.
+    pause & exit /b 1
+)
+node tests\sales_new_sku_item_chips.test.cjs
+if %errorlevel% neq 0 (
+    echo ERROR: New SKU item chip smoke test failed.
+    pause & exit /b 1
+)
+echo Done.
+echo.
+
 REM -- Step 5: Push to GitHub -------------------------------
 echo [5/5] Pushing to GitHub...
-git add dashboard_data.json debtor_analysis_data.json history.json targets.json dashboard_version.json
+git add dashboard_data.json debtor_analysis_data.json history.json dashboard_version.json
 git add process_data.py targets_loader.py
 git add sales_dashboard.html management.html admin.html admin_context.js
 git add accounts.html campaign_audit.html stock.html stock_calendar.html debtor_analysis.html debtor_map.html index.html
 git add data_*.json months_index.json 2>nul
 git add reports\miracle-2a-sku-strength\index.html reports\miracle-2a-sku-strength\penetration.html reports\miracle-2a-sku-strength\gap_opportunities.html reports\miracle-2a-sku-strength\debtor_status.js reports\miracle-2a-sku-strength\agent_monthly_revenue.js reports\miracle-2a-sku-strength\sku_debtor_history.js reports\miracle-2a-sku-strength\sku_gap_opportunities.js reports\miracle-2a-sku-strength\sku_penetration_data.js reports\miracle-2a-sku-strength\build_report_data.py 2>nul
+git diff --cached --quiet
+if %errorlevel%==0 (
+    echo No staged dashboard changes to commit.
+    goto SUCCESS
+)
 if "%MONTH_OVERRIDE%"=="" (
     git commit -m "Daily update %date% %time%"
 ) else (
     git commit -m "Regenerate %MONTH_OVERRIDE% - %date% %time%"
+)
+if %errorlevel% neq 0 (
+    echo ERROR: Git commit failed!
+    pause & exit /b 1
 )
 git push origin HEAD:main
 if %errorlevel% neq 0 (
     echo ERROR: Git push failed!
     pause & exit /b 1
 )
+:SUCCESS
 echo Done.
 echo.
 
