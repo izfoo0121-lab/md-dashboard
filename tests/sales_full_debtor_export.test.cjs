@@ -40,6 +40,9 @@ const context = {
               debtor_type: 'SH-Shop',
               phone: '+601111',
               area: 'GRP 2A',
+              account_status: 'account_active',
+              account_status_label: 'Active',
+              account_active: true,
               status: 'active',
               vip: true,
               birth_date_raw: '2018-06-27 00:00:00',
@@ -129,7 +132,7 @@ assert.deepStrictEqual(
 assert.strictEqual(rows[0]['Agent'], 'BEN');
 assert.strictEqual(rows[0]['Company Name'], 'KEDAI A');
 assert.strictEqual(rows[0]['Area'], 'GRP 2A');
-assert.strictEqual(rows[0]['Account Status'], 'active');
+assert.strictEqual(rows[0]['Account Status'], 'Active');
 assert.strictEqual(rows[0]['Birthday'], '27 Jun');
 assert.strictEqual(rows[0]['Birthday This Month'], 'Y');
 assert.strictEqual(rows[1]['Account Status'], 'pending');

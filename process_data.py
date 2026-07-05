@@ -462,7 +462,7 @@ LEGACY_NEW_SKU_GROUP_EXPANSIONS = {
 }
 
 DEFAULT_SKU_RULES = {
-    "version": 2,
+    "version": 3,
     "updated_at": "2026-07-02",
     "new_sku_groups": DEFAULT_NEW_SKU_GROUPS,
     "other_sku_groups": DEFAULT_OTHER_SKU_GROUPS,
@@ -3682,6 +3682,8 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             days_to_bday = None
             birthday_this_month = False
             birth_month = None  # store raw birth month (1-12) for frontend to check per selected month
+            birth_day = None
+            birth_date_raw = None
             if birth_date and pd.notnull(birth_date):
                 try:
                     bd = _parse_birth_date(birth_date)
@@ -3689,6 +3691,8 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                         birth_date = None
                     else:
                         birth_month = int(bd.month)  # always store this
+                        birth_day = int(bd.day)
+                        birth_date_raw = str(bd)
                     today_d = date.today()
                     next_bday = bd.replace(year=today_d.year).date()
                     if next_bday < today_d:
@@ -3750,12 +3754,21 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                     invoice_rows=d_all_invoice_rows
                 )
 
+            account_active = bool(info.get("dm_active", True))
+            account_status = "account_active" if account_active else "account_inactive"
+
             debtor_cards.append({
                 "debtor_code":        dcode,
                 "company_name":       info.get("name", dcode),
                 "phone":              info.get("phone", ""),
+                "area":               area_code,
                 "area_code":          area_code,
+                "type":               info.get("type", ""),
                 "debtor_type":        info.get("type", ""),
+                "dm_active":          account_active,
+                "account_active":     account_active,
+                "account_status":     account_status,
+                "account_status_label": "Active" if account_active else "Inactive",
                 "vip":                info.get("vip", False),
                 "has_bonus_point":    info.get("has_bonus_point", False),
                 "is_new":             is_new,
@@ -3768,10 +3781,11 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                     and (ctn_cur   or 0) == 0
                 ),
                 "birthday_this_month": birthday_this_month,
-                "birth_date_raw":     str(_parse_birth_date(birth_date)) if birth_date and pd.notnull(birth_date) and _parse_birth_date(birth_date) is not None else None,
+                "birth_date":         birth_date_raw,
+                "birth_date_raw":     birth_date_raw,
                 "days_to_birthday":   days_to_bday,
                 "birth_month":        birth_month,
-                "birth_day":          (_parse_birth_date(info.get("birth_date")) or pd.NaT).day if _parse_birth_date(info.get("birth_date")) is not None and not pd.isnull(_parse_birth_date(info.get("birth_date"))) else None,
+                "birth_day":          birth_day,
                 "status":             status,
                 "last_purchase_date": last_date_str,
                 "ctn_cur":            ctn_cur,

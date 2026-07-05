@@ -31,6 +31,7 @@ const context = {
     config: {
       sku_rules_snapshot: {
         new_sku_groups: {
+          SUKUN: { item_code_prefixes: ['SKN'], item_groups: ['SUKUN'] },
           TEST: { item_codes: ['XYZ-001'], item_code_prefixes: ['XYZ-P'], item_groups: ['XYZGROUP'] }
         }
       }
@@ -47,6 +48,12 @@ vm.createContext(context);
 [
   'shiftedMonthLabel',
   'normalizeSkuItemCode',
+  'newSkuNormCode',
+  'newSkuRulesSnapshot',
+  'newSkuExpandedGroups',
+  'newSkuConfiguredGroups',
+  'newSkuRuleValues',
+  'newSkuDisplayLabel',
   'getConfiguredNewSkuItems',
   'getConfiguredNewSkuPrefixes',
   'getDebtorPurchaseBreakdown',
@@ -58,6 +65,12 @@ vm.createContext(context);
   'summarizeDebtorSkuRecency',
   'matchesSkuRecencyMode'
 ].forEach(name => vm.runInContext(extractFunction(name), context));
+
+const configuredItems = context.getConfiguredNewSkuItems();
+assert(configuredItems.includes('SKNR'), 'legacy SUKUN config should expose SKNR as a selectable SKU item');
+assert(configuredItems.includes('SKNW'), 'legacy SUKUN config should expose SKNW as a selectable SKU item');
+assert(!configuredItems.includes('SUKUN'), 'legacy SUKUN group should not appear as a selectable SKU item');
+assert(!configuredItems.includes('SKN'), 'technical SKU prefixes should not appear as selectable SKU items');
 
 const catalog = context.getUnpurchasedSkuCatalog([
   {

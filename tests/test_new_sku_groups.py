@@ -9,6 +9,11 @@ import process_data
 
 
 class NewSkuGroupTests(unittest.TestCase):
+    def test_default_sku_rules_schema_is_current(self):
+        self.assertEqual(process_data.DEFAULT_SKU_RULES["version"], 3)
+        self.assertEqual(len(process_data.DEFAULT_SKU_RULES["new_sku_groups"]), 12)
+        self.assertIn("other_sku_groups", process_data.DEFAULT_SKU_RULES)
+
     def test_zlb_brands_keep_iface_before_july_cutoff_only(self):
         configured = ["SUKUN", "EVO", "BISON", "LAM+LWM"]
 

@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <script>
-const SALES_DASHBOARD_BUILD = '20260705-083737';
+const SALES_DASHBOARD_BUILD = '20260705-092928';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
@@ -3568,21 +3568,20 @@ function normalizeSkuItemCode(value) {
 }
 
 function getConfiguredNewSkuItems() {
-  const snapshot = DATA?.config?.sku_rules_snapshot
-    || DATA?.config?.sku_rules
-    || DATA?.sku_rules_snapshot
-    || {};
-  const groups = snapshot?.new_sku_groups || {};
+  const groups = typeof newSkuConfiguredGroups === 'function'
+    ? newSkuConfiguredGroups()
+    : ((DATA?.config?.sku_rules_snapshot || DATA?.config?.sku_rules || DATA?.sku_rules_snapshot || {})?.new_sku_groups || {});
   const values = new Set();
   const add = value => {
     const code = normalizeSkuItemCode(value);
     if (code) values.add(code);
   };
-  Object.values(groups).forEach(rule => {
+  Object.entries(groups).forEach(([group, rule]) => {
     if (Array.isArray(rule)) {
       rule.forEach(add);
       return;
     }
+    if (typeof newSkuDisplayLabel === 'function') add(newSkuDisplayLabel(group, rule));
     (rule?.item_codes || []).forEach(add);
     (rule?.item_code_prefixes || []).forEach(add);
   });
@@ -4869,7 +4868,15 @@ function debtorBirthdayThisMonthExportValue(debtor) {
 }
 
 function debtorAccountStatusExportValue(debtor) {
-  return safeExportText(debtor?.account_status || debtor?.dm_status || debtor?.status_label || debtor?.status);
+  const label = safeExportText(debtor?.account_status_label || debtor?.dm_status_label || debtor?.status_label);
+  if (label) return label;
+  const raw = safeExportText(debtor?.account_status || debtor?.dm_status);
+  const norm = raw.toLowerCase().replace(/[\s-]+/g, '_');
+  if (['account_active', 'active', 'checked', 'true', '1', 'yes'].includes(norm)) return 'Active';
+  if (['account_inactive', 'inactive', 'unchecked', 'false', '0', 'no'].includes(norm)) return 'Inactive';
+  if (debtor?.account_active === true || debtor?.dm_active === true) return 'Active';
+  if (debtor?.account_active === false || debtor?.dm_active === false) return 'Inactive';
+  return safeExportText(raw || debtor?.status);
 }
 
 function debtorAreaExportValue(debtor) {
