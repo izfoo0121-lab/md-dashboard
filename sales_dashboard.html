@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <script>
-const SALES_DASHBOARD_BUILD = '20260705-014913';
+const SALES_DASHBOARD_BUILD = '20260705-082645';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
@@ -5467,12 +5467,8 @@ function renderDebtorCard(d, runNo, extraHtml = '') {
           : status === 'existing'
             ? `${noun}3个月内购买 · ${entry.item} · 不计KPI`
             : `${noun}未购买 · ${entry.item}${options.other ? ' · 不计KPI' : ''}`;
-      const sourceItems = Array.isArray(entry.source_items) && entry.source_items.length
-        ? `<span style="font-size:6px;line-height:1;color:var(--muted);">${campEsc(entry.source_items.join(','))}</span>`
-        : '';
       return `<div class="sku-dot new-sku-dot ${campEsc(cls)}" title="${campEsc(title)}">
         <span style="font-size:7px;line-height:1.1;text-align:center;">${campEsc(entry.label)}</span>
-        ${entry.kpi ? '<span class="new-sku-kpi-mark">KPI</span>' : sourceItems}
       </div>`;
     };
     const newSkuHtml = newSkuEntries.map(entry => renderSkuStatusDot(entry)).join('');

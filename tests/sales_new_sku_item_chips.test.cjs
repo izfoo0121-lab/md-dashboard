@@ -44,6 +44,14 @@ assert(
   renderDebtorCard.includes('Math.max(Number(d.new_sku_total || 0), newSkuCatalogEntryTotal)'),
   'debtor card should prefer the expanded New SKU catalog total when old payloads still say 11',
 );
+assert(
+  !renderDebtorCard.includes('new-sku-kpi-mark'),
+  'New SKU chips should not show a visible KPI subtitle under the SKU label',
+);
+assert(
+  !renderDebtorCard.includes('sourceItems'),
+  'Other SKU chips should not show item codes as a visible subtitle under the bucket label',
+);
 
 const context = {
   DATA: {
