@@ -30,6 +30,59 @@ def _log(msg):
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
 
 
+def _norm_agent_code(value):
+    return str(value or "").strip().upper()
+
+
+def apply_agent_replacements(targets):
+    """Apply configured agent archive/replacement rules to loaded targets."""
+    if not isinstance(targets, dict):
+        return targets
+
+    replacements = targets.get("agent_replacements") or {}
+    agents = targets.setdefault("agents", {})
+    if not isinstance(replacements, dict) or not isinstance(agents, dict):
+        return targets
+
+    for predecessor, raw_cfg in replacements.items():
+        old_agent = _norm_agent_code(predecessor)
+        successor = ""
+        from_month = ""
+
+        if isinstance(raw_cfg, str):
+            successor = _norm_agent_code(raw_cfg)
+        elif isinstance(raw_cfg, dict):
+            successor = _norm_agent_code(
+                raw_cfg.get("successor")
+                or raw_cfg.get("replaced_by")
+                or raw_cfg.get("agent")
+            )
+            from_month = str(
+                raw_cfg.get("from_month")
+                or raw_cfg.get("inherit_from_month")
+                or raw_cfg.get("month")
+                or ""
+            ).strip()
+
+        if not old_agent or not successor or not from_month:
+            continue
+
+        old_cfg = agents.setdefault(old_agent, {})
+        if isinstance(old_cfg, dict):
+            old_cfg["active"] = False
+            old_cfg["archived"] = True
+            old_cfg["archived_from_month"] = from_month
+
+        new_cfg = agents.setdefault(successor, {})
+        if isinstance(new_cfg, dict):
+            new_cfg["active"] = True
+            new_cfg["archived"] = False
+            new_cfg["inherits_from"] = old_agent
+            new_cfg["inherit_from_month"] = from_month
+
+    return targets
+
+
 def load_targets_from_supabase():
     """Fetch all targets tables and assemble into targets.json-shaped dict.
     Returns None if fails.
@@ -241,8 +294,8 @@ def sync_to_supabase(targets):
             sb.table("targets_monthly").upsert(rows[i:i+100]).execute()
 
     # 3. Static config (brand_config, etc.)
-    for key in ["brand_config", "group_brand_config", "inhouse_codes",
-                "kpi_weights", "newbie_scheme", "sku_trace_config"]:
+    for key in ["agent_replacements", "brand_config", "group_brand_config",
+                "inhouse_codes", "kpi_weights", "newbie_scheme", "sku_trace_config"]:
         if key in targets:
             sb.table("targets_static").upsert({
                 "key": key, "value": targets[key]
@@ -295,12 +348,13 @@ def load_targets():
     _log("Loading targets...")
     t = load_targets_from_supabase()
     if t is not None:
+        t = apply_agent_replacements(t)
         # Write backup for offline reliability
         save_file_backup(t)
         return t
     # Fallback to file
     _log("  Falling back to local file")
-    return load_targets_from_file()
+    return apply_agent_replacements(load_targets_from_file())
 
 
 if __name__ == "__main__":

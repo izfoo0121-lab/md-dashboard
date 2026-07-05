@@ -43,6 +43,8 @@ assert.equal(html.includes('function removeNewSkuRule'), true, 'desktop admin sh
 assert.equal(html.includes('function renderOtherSkuRulesEditor'), true, 'desktop admin should define Other SKU editor renderer');
 assert.equal(html.includes('function updateOtherSkuRuleField'), true, 'desktop admin should let Other SKU fields update CONFIG.sku_rules');
 assert.equal(html.includes('function downloadSkuRulesConfig'), true, 'desktop admin should export sku_rules.json for local pipeline fallback');
+assert.equal(html.includes('function applyAgentReplacementsToConfig'), true, 'desktop admin should apply configured agent replacements');
+assert.match(html, /staticKeys[\s\S]*agent_replacements/, 'desktop admin should persist agent replacement rules through targets_static static config');
 assert.match(html, /staticKeys[\s\S]*sku_rules/, 'desktop admin should persist SKU rules through targets_static static config');
 
 const elements = new Map([
@@ -103,7 +105,23 @@ vm.createContext(context);
   'addOtherSkuRuleRow',
   'removeOtherSkuRule',
   'downloadSkuRulesConfig',
+  'applyAgentReplacementsToConfig',
 ].forEach(name => vm.runInContext(extractFunction(name), context));
+
+const replacementConfig = {
+  agents: {
+    KEAN: { active: true },
+    XIAN: { active: true },
+  },
+  agent_replacements: {
+    KEAN: { successor: 'XIAN', from_month: 'Jul-26' },
+  },
+};
+context.applyAgentReplacementsToConfig(replacementConfig);
+assert.equal(replacementConfig.agents.KEAN.active, false, 'agent replacement should deactivate predecessor');
+assert.equal(replacementConfig.agents.KEAN.archived, true, 'agent replacement should archive predecessor');
+assert.equal(replacementConfig.agents.XIAN.inherits_from, 'KEAN', 'agent replacement should mark successor inheritance');
+assert.equal(replacementConfig.agents.XIAN.inherit_from_month, 'Jul-26', 'agent replacement should preserve effective month');
 
 const expandedLegacyRules = context.adminNormalizeRuleMap({
   SUKUN: { item_code_prefixes: ['SKN'], item_groups: ['SUKUN'] },

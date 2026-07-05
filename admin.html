@@ -2597,6 +2597,9 @@ function applyGroupBrandConfigText() {
 
 function normalizeAdminConfigDefaults() {
   if (!CONFIG) return;
+  CONFIG.agent_replacements = (CONFIG.agent_replacements && typeof CONFIG.agent_replacements === 'object')
+    ? CONFIG.agent_replacements
+    : {};
   CONFIG.brand_config = CONFIG.brand_config || {};
   if (!Object.keys(CONFIG.brand_config).length) {
     CONFIG.brand_config = adminDefaultBrandConfig();
@@ -2620,7 +2623,42 @@ function normalizeAdminConfigDefaults() {
     const code = String(agent || '').trim().toUpperCase();
     if (cfg && !cfg.default_group && ADMIN_AGENT_GROUPS[code]) cfg.default_group = MD_ADMIN_GROUP;
   });
+  applyAgentReplacementsToConfig(CONFIG);
   CONFIG.group_brand_config = normalizeGroupBrandConfig(CONFIG.group_brand_config, { preserveTargets: true });
+}
+
+function applyAgentReplacementsToConfig(cfg) {
+  if (!cfg || typeof cfg !== 'object') return cfg;
+  const replacements = (cfg.agent_replacements && typeof cfg.agent_replacements === 'object')
+    ? cfg.agent_replacements
+    : {};
+  cfg.agents = cfg.agents || {};
+
+  Object.entries(replacements).forEach(([predecessor, raw]) => {
+    const oldAgent = String(predecessor || '').trim().toUpperCase();
+    let successor = '';
+    let fromMonth = '';
+    if (typeof raw === 'string') {
+      successor = String(raw || '').trim().toUpperCase();
+    } else if (raw && typeof raw === 'object') {
+      successor = String(raw.successor || raw.replaced_by || raw.agent || '').trim().toUpperCase();
+      fromMonth = String(raw.from_month || raw.inherit_from_month || raw.month || '').trim();
+    }
+    if (!oldAgent || !successor || !fromMonth) return;
+
+    cfg.agents[oldAgent] = cfg.agents[oldAgent] || {};
+    cfg.agents[oldAgent].active = false;
+    cfg.agents[oldAgent].archived = true;
+    cfg.agents[oldAgent].archived_from_month = fromMonth;
+
+    cfg.agents[successor] = cfg.agents[successor] || {};
+    cfg.agents[successor].active = true;
+    cfg.agents[successor].archived = false;
+    cfg.agents[successor].inherits_from = oldAgent;
+    cfg.agents[successor].inherit_from_month = fromMonth;
+  });
+
+  return cfg;
 }
 
 function buildDefaultConfig() {
@@ -5772,7 +5810,7 @@ async function saveAllToSupabase() {
   await upsert('targets_group_brand', gbtRows, 'brand');
 
   // ── 6. STATIC CONFIG (JSON blobs) ─────────────────────
-  const staticKeys = ['brand_config', 'group_brand_config', 'penetration_auto_brands', 'zlb_brands', 'inhouse_codes',
+  const staticKeys = ['agent_replacements', 'brand_config', 'group_brand_config', 'penetration_auto_brands', 'zlb_brands', 'inhouse_codes',
                       'kpi_weights', 'newbie_scheme', 'sku_trace_config', 'sku_rules'];
   const staticRows = [];
   staticKeys.forEach(key => {
@@ -10550,8 +10588,8 @@ function closeArchiveModal() {
 function confirmArchive() {
   if (!_archiveTarget) return;
 
-  const existingSuccessor = document.getElementById('archive-successor').value.trim();
-  const newSuccessor      = document.getElementById('archive-new-agent').value.trim();
+  const existingSuccessor = document.getElementById('archive-successor').value.trim().toUpperCase();
+  const newSuccessor      = document.getElementById('archive-new-agent').value.trim().toUpperCase();
   const fromMonth         = document.getElementById('archive-from-month').value.trim();
 
   const successor = newSuccessor || existingSuccessor;
@@ -10589,6 +10627,8 @@ function confirmArchive() {
   }
   CONFIG.agents[successor].inherits_from     = _archiveTarget;
   CONFIG.agents[successor].inherit_from_month = fromMonth;
+  CONFIG.agent_replacements = CONFIG.agent_replacements || {};
+  CONFIG.agent_replacements[_archiveTarget] = { successor, from_month: fromMonth };
 
   closeArchiveModal();
   renderAgentForms();
