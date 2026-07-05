@@ -1,6 +1,6 @@
 (function(root) {
   const engine = root.PFMDCampaignEngine || {};
-  const requiredModules = ['model', 'validation', 'mapper', 'repository', 'admin'];
+  const requiredModules = ['model', 'listing', 'validation', 'mapper', 'repository', 'admin'];
   const missing = requiredModules.filter(function(name) {
     return !engine[name];
   });

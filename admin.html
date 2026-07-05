@@ -169,6 +169,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="admin_context.js"></script>
 <script src="campaign_engine/campaign_model.js"></script>
+<script src="campaign_engine/campaign_listing.js"></script>
 <script src="campaign_engine/campaign_validation.js"></script>
 <script src="campaign_engine/campaign_db_mapper.js"></script>
 <script src="campaign_engine/campaign_repository.js"></script>
@@ -8002,6 +8003,10 @@ function clearCampFile() {
 }
 
 function normalizeFocUnit(value) {
+  const root = typeof window !== 'undefined' ? window : globalThis;
+  if (root.PFMDCampaignEngine?.listing?.normalizeFocUnit) {
+    return root.PFMDCampaignEngine.listing.normalizeFocUnit(value);
+  }
   const raw = String(value || '').trim().toLowerCase();
   const units = {
     ctn: 'ctn', carton: 'ctn', cartons: 'ctn',
@@ -8043,6 +8048,10 @@ function buildSukunListingFocPackage(sknQty, sknrQty, sknwQty) {
 }
 
 function formatFocPackage(row = {}, fallback = {}) {
+  const root = typeof window !== 'undefined' ? window : globalThis;
+  if (root.PFMDCampaignEngine?.listing?.formatFocPackage) {
+    return root.PFMDCampaignEngine.listing.formatFocPackage(row, fallback);
+  }
   const item1 = String(row.foc_item || fallback.default_foc_item || '').trim().toUpperCase();
   const qty1 = parseFloat(row.foc_qty ?? fallback.default_foc_qty ?? 0) || 0;
   const unit1 = normalizeFocUnit(row.foc_unit || fallback.default_foc_unit || '');
@@ -8055,17 +8064,26 @@ function formatFocPackage(row = {}, fallback = {}) {
 }
 
 function campaignDebtorCode(row) {
-  return String(row?.code || row?.debtor_code || '').trim().toUpperCase();
+  const root = typeof window !== 'undefined' ? window : globalThis;
+  return root.PFMDCampaignEngine?.listing?.campaignDebtorCode
+    ? root.PFMDCampaignEngine.listing.campaignDebtorCode(row)
+    : String(row?.code || row?.debtor_code || '').trim().toUpperCase();
 }
 
 function campaignPackageSignature(row) {
-  return formatFocPackage(row || {}).toUpperCase();
+  const root = typeof window !== 'undefined' ? window : globalThis;
+  return root.PFMDCampaignEngine?.listing?.campaignPackageSignature
+    ? root.PFMDCampaignEngine.listing.campaignPackageSignature(row)
+    : formatFocPackage(row || {}).toUpperCase();
 }
 
 function mergeCampaignDebtorListings(existingRows, uploadedRows, mode) {
+  const root = typeof window !== 'undefined' ? window : globalThis;
+  if (root.PFMDCampaignEngine?.listing?.mergeCampaignDebtorListings) {
+    return root.PFMDCampaignEngine.listing.mergeCampaignDebtorListings(existingRows, uploadedRows, mode);
+  }
   const uploaded = (uploadedRows || []).filter(row => campaignDebtorCode(row));
   if (mode === 'replace') return uploaded.map(row => ({ ...row }));
-
   const byCode = new Map();
   (existingRows || []).forEach(row => {
     const code = campaignDebtorCode(row);
@@ -8079,18 +8097,15 @@ function mergeCampaignDebtorListings(existingRows, uploadedRows, mode) {
 }
 
 function campaignListingPreviewStats(existingRows, uploadedRows, mode) {
+  const root = typeof window !== 'undefined' ? window : globalThis;
+  if (root.PFMDCampaignEngine?.listing?.campaignListingPreviewStats) {
+    return root.PFMDCampaignEngine.listing.campaignListingPreviewStats(existingRows, uploadedRows, mode);
+  }
   const existing = (existingRows || []).filter(row => campaignDebtorCode(row));
   const uploaded = (uploadedRows || []).filter(row => campaignDebtorCode(row));
   const existingByCode = new Map(existing.map(row => [campaignDebtorCode(row), row]));
   const uploadedCodes = new Set(uploaded.map(row => campaignDebtorCode(row)));
-  const stats = {
-    current: existing.length,
-    uploaded: uploaded.length,
-    add: 0,
-    update: 0,
-    remove: 0,
-    packageChanged: 0
-  };
+  const stats = { current: existing.length, uploaded: uploaded.length, add: 0, update: 0, remove: 0, packageChanged: 0 };
   uploaded.forEach(row => {
     const code = campaignDebtorCode(row);
     const old = existingByCode.get(code);

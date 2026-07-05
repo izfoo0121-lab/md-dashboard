@@ -63,6 +63,7 @@ async function testAdminSupabaseFetchPreservesStatusForEngineRetry() {
 
 const expectedEngineScripts = [
   'campaign_engine/campaign_model.js',
+  'campaign_engine/campaign_listing.js',
   'campaign_engine/campaign_validation.js',
   'campaign_engine/campaign_db_mapper.js',
   'campaign_engine/campaign_repository.js',
