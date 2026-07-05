@@ -122,6 +122,7 @@ vm.runInContext(extractBlock('const DEFAULT_GROUP_BRAND_CONFIG', 'function rende
   'normalizeGroupBrandKey',
   'normalizeGroupBrandCodes',
   'normalizeGroupBrandConfig',
+  'applyAgentReplacementsToConfig',
   'normalizeAdminConfigDefaults',
   'renderBrandSkuBehaviorSummary',
   'renderBrandBehaviorConfig',
