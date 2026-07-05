@@ -87,6 +87,16 @@ assert.deepStrictEqual(
 );
 
 assert.deepStrictEqual(
+  listing.parseCsvText('debtor_code,debtor_name,notes\n300-A001,"SHOP, GOOD","Line 1, urgent"\n300-A002,"Multi\nLine Shop","Needs ""quote"" check"'),
+  [
+    ['debtor_code', 'debtor_name', 'notes'],
+    ['300-A001', 'SHOP, GOOD', 'Line 1, urgent'],
+    ['300-A002', 'Multi\nLine Shop', 'Needs "quote" check'],
+  ],
+  'CSV parser should preserve quoted commas, newlines, and escaped quotes',
+);
+
+assert.deepStrictEqual(
   plain(listing.campaignListingPreviewStats(existingListing, uploadedListing, 'merge')),
   { current: 2, uploaded: 2, add: 1, update: 1, remove: 0, packageChanged: 1 },
 );

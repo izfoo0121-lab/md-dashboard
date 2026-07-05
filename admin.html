@@ -9021,9 +9021,12 @@ function previewCampFile(input) {
 
   if (file.name.endsWith('.csv')) {
     reader.onload = e => {
-      const lines   = e.target.result.split('\n').filter(l=>l.trim());
-      const headers = lines[0].split(',').map(h=>h.trim().replace(/"/g,'').toLowerCase());
-      const rows    = lines.slice(1).map(line=>line.split(',').map(x=>x.trim().replace(/"/g,'')));
+      const root = typeof window !== 'undefined' ? window : globalThis;
+      const parsed = root.PFMDCampaignEngine?.listing?.parseCsvText
+        ? root.PFMDCampaignEngine.listing.parseCsvText(e.target.result)
+        : e.target.result.split('\n').filter(l=>l.trim()).map(line=>line.split(',').map(x=>x.trim().replace(/"/g,'')));
+      const headers = (parsed[0] || []).map(h=>String(h||'').trim().toLowerCase());
+      const rows    = parsed.slice(1);
       processRows(headers, rows);
     };
     reader.readAsText(file);

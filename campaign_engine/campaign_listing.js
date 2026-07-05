@@ -214,6 +214,48 @@
       });
   }
 
+  function parseCsvText(csvText) {
+    const input = String(csvText == null ? '' : csvText);
+    const rows = [];
+    let row = [];
+    let field = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < input.length; i += 1) {
+      const ch = input[i];
+      const next = input[i + 1];
+      if (inQuotes) {
+        if (ch === '"' && next === '"') {
+          field += '"';
+          i += 1;
+        } else if (ch === '"') {
+          inQuotes = false;
+        } else {
+          field += ch;
+        }
+      } else if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        row.push(field);
+        field = '';
+      } else if (ch === '\n' || ch === '\r') {
+        row.push(field);
+        rows.push(row);
+        row = [];
+        field = '';
+        if (ch === '\r' && next === '\n') i += 1;
+      } else {
+        field += ch;
+      }
+    }
+
+    if (field !== '' || row.length) {
+      row.push(field);
+      rows.push(row);
+    }
+    return rows.filter(r => r.some(cell => text(cell)));
+  }
+
   return {
     buildSukunListingFocPackage,
     campaignDebtorCode,
@@ -223,6 +265,7 @@
     inferSukunListingFocUnit,
     mergeCampaignDebtorListings,
     normalizeFocUnit,
+    parseCsvText,
     parseCampaignUploadRows,
   };
 });
