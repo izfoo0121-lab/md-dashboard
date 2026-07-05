@@ -77,6 +77,31 @@ class DistributionCampaignKpiTests(unittest.TestCase):
         self.assertEqual(exclusions[("camp1", "BEN")], {"300-B001"})
         self.assertNotIn(("camp1", "CJ"), exclusions)
 
+    def test_fetch_campaign_deliveries_does_not_require_claim_stage_column(self):
+        requested_paths = []
+        original_get = process_data._supabase_get
+
+        def fake_get(path):
+            requested_paths.append(path)
+            if path.startswith("campaign_deliveries?"):
+                return [
+                    {"campaign_id": "camp1", "agent": "XIAN", "debtor_code": "300-A001"},
+                ]
+            if path.startswith("claims?"):
+                return []
+            return []
+
+        process_data._supabase_get = fake_get
+        try:
+            deliveries, exclusions = process_data.fetch_campaign_deliveries("Jul 26")
+        finally:
+            process_data._supabase_get = original_get
+
+        self.assertEqual(deliveries, {("camp1", "XIAN"): ["300-A001"]})
+        self.assertEqual(exclusions, {})
+        self.assertTrue(any(path.startswith("claims?") for path in requested_paths))
+        self.assertFalse(any("stage" in path for path in requested_paths))
+
     def test_none_campaign_numerator_is_tracking_only(self):
         items = process_data.build_per_campaign_kpi_items(
             agent_code="XIAN",

@@ -167,7 +167,7 @@ def fetch_campaign_deliveries(cur_month):
     try:
         month_q = urllib.parse.quote(str(cur_month), safe="")
         rows = _supabase_get(f"campaign_deliveries?select=campaign_id,debtor_code,agent&month=eq.{month_q}")
-        claim_rows = _supabase_get(f"claims?select=camp_id,debtor_code,agent,actor,status,stage&month=eq.{month_q}")
+        claim_rows = _supabase_get(f"claims?select=camp_id,debtor_code,agent,actor,status&month=eq.{month_q}")
         claim_keys = set()
         for r in claim_rows or []:
             actor = (r.get("actor") or "agent").lower()
