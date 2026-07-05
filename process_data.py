@@ -1477,6 +1477,14 @@ def _norm_code(value):
     return str(value or "").strip().upper()
 
 
+def _eightcom_mask(rows):
+    """Return a boolean mask for 8COM rows using the same normalization everywhere."""
+    idx = getattr(rows, "index", [])
+    if rows is None or "item_group" not in getattr(rows, "columns", []):
+        return pd.Series(False, index=idx, dtype=bool)
+    return rows["item_group"].map(_norm_code) == EIGHTCOM_GROUP
+
+
 def _clean_rule_list(value):
     if isinstance(value, (list, tuple, set)):
         raw = value
@@ -1830,7 +1838,7 @@ def calc_sku_trace(df, sku_trace_config, agents, cur_month):
         work["qty_ctn"] = 0
     work["qty_ctn"] = pd.to_numeric(work["qty_ctn"], errors="coerce").fillna(0)
     work["_item_norm"] = work["item_code"].map(_norm_code)
-    work = work[work["item_group"].map(_norm_code) != EIGHTCOM_GROUP]
+    work = work[~_eightcom_mask(work)]
 
     if not agent_list:
         agent_list = sorted(a for a in work["agent"].dropna().astype(str).str.strip().unique() if a)
@@ -2243,7 +2251,7 @@ def build_debtor_analysis_data(df, debtor_df, cur_month, allowed_agents=None):
 
     canggih = df[
         (df["area_code"] == SCOPE_AREA) &
-        (df["item_group"] != EIGHTCOM_GROUP) &
+        (~_eightcom_mask(df)) &
         (df["debtor_code"] != "") &
         (df["tranx_mth_full"] != "")
     ].copy()
@@ -2414,19 +2422,22 @@ def calc_sales_progression(df, targets, agents, cur_month):
     # Paid rows this month
     paid = df[df["paid_on"] == cur_month].copy()
 
-    # Split Canggih vs 8COM
-    canggih_paid  = paid[paid["item_group"] != EIGHTCOM_GROUP]
-    eightcom_paid = paid[paid["item_group"] == EIGHTCOM_GROUP]
+    # Split Canggih vs 8COM. Normalize item_group so source casing/spaces do not
+    # leak 8COM rows into CCOM performance.
+    paid_eightcom = _eightcom_mask(paid)
+    canggih_paid  = paid[~paid_eightcom]
+    eightcom_paid = paid[paid_eightcom]
 
     # All rows for unpaid calc
-    eightcom_all = df[df["item_group"] == EIGHTCOM_GROUP]
+    all_eightcom = _eightcom_mask(df)
+    eightcom_all = df[all_eightcom]
 
     # Working days for avg calculation
     wd = calc_working_days(targets=None, cur_month=cur_month)
     elapsed_days = max(wd["elapsed_working_days"], 1)
 
     # All Canggih for 4-month SKU trend
-    canggih_all = df[df["item_group"] != EIGHTCOM_GROUP]
+    canggih_all = df[~all_eightcom]
 
     # 4-month labels for trend (current + prev 3)
     from datetime import date
@@ -2572,7 +2583,7 @@ def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_con
         debtor_info = {}
 
     # Canggih only
-    canggih = df[df["item_group"] != EIGHTCOM_GROUP].copy()
+    canggih = df[~_eightcom_mask(df)].copy()
 
     # Use invoice-month column if available (for penetration lookback)
     inv_col = "tranx_mth_full" if "tranx_mth_full" in canggih.columns else "paid_on"
@@ -2803,7 +2814,7 @@ def calc_newbie_scheme(df, targets, agents, cur_month, debtor_info=None, manual_
 
     # Canggih paid this month
     canggih_paid_cur = df[
-        (df["item_group"] != EIGHTCOM_GROUP) &
+        (~_eightcom_mask(df)) &
         (df["paid_on"] == cur_month)
     ]
 
@@ -2924,8 +2935,9 @@ def calc_aging(df, agents, cur_month):
     today = date.today()
 
     # Canggih
-    canggih = df[df["item_group"] != EIGHTCOM_GROUP]
-    eightcom = df[df["item_group"] == EIGHTCOM_GROUP]
+    df_eightcom = _eightcom_mask(df)
+    canggih = df[~df_eightcom]
+    eightcom = df[df_eightcom]
 
     result = {}
 
@@ -3391,12 +3403,13 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
         log(f"WARNING: Could not fetch patronage baselines: {e}")
 
     # Canggih paid transactions
+    df_eightcom = _eightcom_mask(df)
     canggih_paid = df[
-        (df["item_group"] != EIGHTCOM_GROUP) &
+        (~df_eightcom) &
         (df["paid_on"] != "")
     ]
-    canggih_invoiced = df[df["item_group"] != EIGHTCOM_GROUP]
-    eightcom_invoiced = df[df["item_group"] == EIGHTCOM_GROUP]
+    canggih_invoiced = df[~df_eightcom]
+    eightcom_invoiced = df[df_eightcom]
 
     # Build debtor lookup from Debtor Maintenance (via shared helper)
     debtor_info = build_debtor_info(debtor_df)
@@ -3545,6 +3558,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             eightcom_ctn_cur = round(float(d_eightcom_invoice_rows[d_eightcom_invoice_rows[_8_col] == cur_m]["qty_ctn"].sum()), 2) if not d_eightcom_invoice_rows.empty else 0.0
             eightcom_ctn_prev1 = round(float(d_eightcom_invoice_rows[d_eightcom_invoice_rows[_8_col] == prev1_m]["qty_ctn"].sum()), 2) if not d_eightcom_invoice_rows.empty else 0.0
             eightcom_ctn_prev2 = round(float(d_eightcom_invoice_rows[d_eightcom_invoice_rows[_8_col] == prev2_m]["qty_ctn"].sum()), 2) if not d_eightcom_invoice_rows.empty else 0.0
+            eightcom_ctn_prev3 = round(float(d_eightcom_invoice_rows[d_eightcom_invoice_rows[_8_col] == prev3_m]["qty_ctn"].sum()), 2) if not d_eightcom_invoice_rows.empty else 0.0
 
             def item_breakdown(month_label):
                 if _history_rows.empty:
@@ -3806,9 +3820,11 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 "canggih_ctn_cur":    ctn_cur,
                 "canggih_ctn_prev1":  ctn_prev1,
                 "canggih_ctn_prev2":  ctn_prev2,
+                "canggih_ctn_prev3":  ctn_prev3,
                 "eightcom_ctn_cur":   eightcom_ctn_cur,
                 "eightcom_ctn_prev1": eightcom_ctn_prev1,
                 "eightcom_ctn_prev2": eightcom_ctn_prev2,
+                "eightcom_ctn_prev3": eightcom_ctn_prev3,
                 "avg_ctn_3m":         avg_ctn,
                 "month_breakdown":    month_breakdown,
                 "unpurchased_breakdown": unpurchased_breakdown,
@@ -3937,7 +3953,7 @@ def calc_group_brand_targets(df, targets, cur_month, group_brand_config):
     """Team-level CTN totals vs targets for 7 brand groups."""
     log("Calculating Group Brand Targets...")
     paid = df[df["paid_on"] == cur_month]
-    canggih_paid = paid[paid["item_group"] != EIGHTCOM_GROUP]
+    canggih_paid = paid[~_eightcom_mask(paid)]
     gb_targets = targets.get("group_brand_targets", {})
     result = {}
     for brand, codes in group_brand_config.items():
@@ -4349,7 +4365,7 @@ def calc_brand_campaigns(df, targets, agents, cur_month, prev_months, brand_conf
         return []
 
     # All canggih rows
-    canggih = df[df["item_group"] != EIGHTCOM_GROUP].copy()
+    canggih = df[~_eightcom_mask(df)].copy()
     prev_paid = canggih[canggih["paid_on"].isin(prev_months)]
 
     results = []
@@ -4482,7 +4498,7 @@ def _calc_prev_month_ctn(df, prev_months, cur_month=None):
     """
     if df is None or not prev_months or not cur_month: return 0
     try:
-        canggih = df[df["item_group"] != EIGHTCOM_GROUP]
+        canggih = df[~_eightcom_mask(df)]
         # Use tranx_mth_full if present (robust), fallback to tranx_mth
         col = "tranx_mth_full" if "tranx_mth_full" in canggih.columns else "tranx_mth"
         mask = canggih[col].isin(prev_months) & (canggih["paid_on"] == cur_month)
@@ -4499,7 +4515,7 @@ def _calc_cur_month_invoiced_paid(df, cur_month):
     """
     if df is None or not cur_month: return 0
     try:
-        canggih = df[df["item_group"] != EIGHTCOM_GROUP]
+        canggih = df[~_eightcom_mask(df)]
         col = "tranx_mth_full" if "tranx_mth_full" in canggih.columns else "tranx_mth"
         mask = (canggih[col] == cur_month) & (canggih["paid_on"] == cur_month)
         return round(float(canggih[mask]["qty_ctn"].sum()), 2)
@@ -4511,7 +4527,7 @@ def _calc_total_sales_ctn(df, cur_month):
     """Sum all (paid + unpaid) canggih CTN for current month (invoice basis)."""
     if df is None: return 0
     try:
-        canggih = df[df["item_group"] != EIGHTCOM_GROUP]
+        canggih = df[~_eightcom_mask(df)]
         col = "tranx_mth_full" if "tranx_mth_full" in canggih.columns else "paid_on"
         return round(float(canggih[canggih[col] == cur_month]["qty_ctn"].sum()), 2)
     except: return 0
@@ -5295,7 +5311,7 @@ def calc_agent_activity_daily(df, agents, cur_month):
         return {}
 
     rows = df[
-        (df["item_group"] != EIGHTCOM_GROUP) &
+        (~_eightcom_mask(df)) &
         (df["date_parsed"].notna()) &
         (df["date_parsed"].dt.month == month_idx) &
         (df["date_parsed"].dt.year == year)

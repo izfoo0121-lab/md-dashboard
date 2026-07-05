@@ -62,6 +62,67 @@ class ManagementProgressDataTests(unittest.TestCase):
         self.assertEqual(dpm["agents"]["CJ"]["paid_ctn"], 0)
         self.assertEqual(dpm["agents"]["CJ"]["target_ctn"], 0)
 
+    def test_debtor_cards_track_m3_8com_without_counting_as_canggih(self):
+        sales = pd.DataFrame([
+            {
+                "agent": "CJ",
+                "debtor_code": "300-8COM",
+                "company_name": "8COM Only Shop",
+                "item_group": "8com ",
+                "item_code": "JDB",
+                "tranx_mth_full": "Apr 26",
+                "paid_on": "Apr 26",
+                "sales_type": "Target",
+                "qty_ctn": 5,
+                "date_parsed": pd.Timestamp("2026-04-05"),
+                "local_subtotal": 100,
+                "rm_ctn": 20,
+                "rm_ctn_rebate": 0,
+            },
+        ])
+        debtors = pd.DataFrame([
+            {
+                "Code": "300-8COM",
+                "Company Name": "8COM Only Shop",
+                "Agent": "CJ",
+                "Debtor Type": "SH-Shop",
+                "Area": "GRP 2A",
+                "Active": "Checked",
+                "Open Acct Date": "2024-01-01",
+            }
+        ])
+
+        original_supabase_get = process_data._supabase_get
+        process_data._supabase_get = lambda *args, **kwargs: []
+        try:
+            cards = process_data.calc_debtor_cards(sales, debtors, ["CJ"], "Jul 26")
+        finally:
+            process_data._supabase_get = original_supabase_get
+
+        debtor = cards["CJ"]["debtors"][0]
+        self.assertEqual(debtor["eightcom_ctn_prev3"], 5)
+        self.assertEqual(debtor["ctn_prev3"], 0)
+        self.assertEqual(debtor["canggih_ctn_prev3"], 0)
+
+    def test_sales_progression_normalizes_8com_item_group_boundary(self):
+        df = pd.DataFrame([
+            {
+                "agent": "CJ",
+                "debtor_code": "300-8COM",
+                "doc_no": "INV-8",
+                "item_group": "8com ",
+                "item_code": "JDB",
+                "paid_on": "Jul 26",
+                "sales_type": "Target",
+                "qty_ctn": 7,
+            },
+        ])
+
+        result = process_data.calc_sales_progression(df, {"agents": {}}, ["CJ"], "Jul 26")
+
+        self.assertEqual(result["CJ"]["total_canggih_ctn"], 0)
+        self.assertEqual(result["CJ"]["eightcom_paid_ctn"], 7)
+
     def test_calc_conversion_campaign_group_progress_ranks_groups_and_agents(self):
         debtor_cards = {
             "BEN": {"debtors": [

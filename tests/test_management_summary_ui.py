@@ -325,6 +325,15 @@ class ManagementSummaryUiTests(unittest.TestCase):
         self.assertIn(".ov-team-summary{grid-template-columns:repeat(7,minmax(100px,1fr));", html)
         self.assertNotIn(".ov-totals,.dr-stats{grid-template-columns:1fr;}", html)
 
+    def test_management_has_8com_monitor_without_internal_kpi_wording(self):
+        html = (ROOT / "management.html").read_text(encoding="utf-8")
+        self.assertIn('data-tab="eightcom"', html)
+        self.assertIn("renderAgentProgressEightcom", html)
+        self.assertIn("mgmtEightcomAgentStats", html)
+        self.assertIn("CCOM 空白", html)
+        self.assertNotIn("不计KPI", html)
+        self.assertNotIn("不计CCOM", html)
+
     def test_agent_drill_back_restores_previous_overview_scroll(self):
         self.assertIn("MGMT_OVERVIEW_SCROLL_Y", self.drill_js)
         self.assertIn("restoreOverviewScroll", self.drill_js)

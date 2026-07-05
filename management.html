@@ -516,6 +516,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:10
           <button class="ap-tab" data-tab="kpi" onclick="setAgentProgressTab('kpi')">KPI</button>
           <button class="ap-tab" data-tab="zlb" onclick="setAgentProgressTab('zlb')">ZLB</button>
           <button class="ap-tab" data-tab="sku" onclick="setAgentProgressTab('sku')">SKU Trace</button>
+          <button class="ap-tab" data-tab="eightcom" onclick="setAgentProgressTab('eightcom')">8COM</button>
           <button class="ap-tab" data-tab="campaigns" onclick="setAgentProgressTab('campaigns')">Campaigns</button>
         </div>
       </div>
@@ -1194,6 +1195,7 @@ function renderAgentProgressBoard() {
     kpi: renderAgentProgressKpi,
     zlb: renderAgentProgressZlb,
     sku: renderAgentProgressSkuTrace,
+    eightcom: renderAgentProgressEightcom,
     campaigns: renderAgentProgressCampaigns,
   };
   const renderer = tabs[AGENT_PROGRESS_TAB] || tabs.sales;
@@ -1621,6 +1623,107 @@ function renderAgentProgressZlb(D) {
     '90px 96px 120px 96px 96px 120px 96px 96px 86px 96px 72px',
     ['代理','本月购买顾客','新增渗透/目标','未购买/总户口',`上月条数 ${prevMonth || ''}`,'本月条数','前三个月平均','三个月最低条数','状态','奖金','顾客'],
     rows + zlbTotalRow
+  );
+}
+
+function mgmtNumber(value) {
+  const num = Number(value || 0);
+  return Number.isFinite(num) ? num : 0;
+}
+
+function mgmtCcomCtnForPeriod(debtor, key) {
+  const direct = debtor?.[`canggih_ctn_${key}`];
+  const fallback = key === 'cur' ? debtor?.ctn_cur
+    : key === 'prev1' ? debtor?.ctn_prev1
+    : key === 'prev2' ? debtor?.ctn_prev2
+    : debtor?.ctn_prev3;
+  return mgmtNumber(direct ?? fallback);
+}
+
+function mgmtEightcomCtnForPeriod(debtor, key) {
+  return mgmtNumber(debtor?.[`eightcom_ctn_${key}`]);
+}
+
+function mgmtEightcomEligibleDebtors(D, agent) {
+  return (D?.agents?.[agent]?.debtor_cards?.debtors || [])
+    .filter(debtor => debtor.dm_active !== false && !mgmtIsPersonal(debtor));
+}
+
+function mgmtEightcomThreeMonthCtn(debtor) {
+  return mgmtEightcomCtnForPeriod(debtor, 'prev1')
+    + mgmtEightcomCtnForPeriod(debtor, 'prev2')
+    + mgmtEightcomCtnForPeriod(debtor, 'prev3');
+}
+
+function mgmtCcomThreeMonthCtn(debtor) {
+  return mgmtCcomCtnForPeriod(debtor, 'prev1')
+    + mgmtCcomCtnForPeriod(debtor, 'prev2')
+    + mgmtCcomCtnForPeriod(debtor, 'prev3');
+}
+
+function mgmtEightcomSample(debtors) {
+  const names = (debtors || [])
+    .slice(0, 3)
+    .map(debtor => debtor.company_name || debtor.debtor_code)
+    .filter(Boolean);
+  const extra = Math.max(0, (debtors || []).length - names.length);
+  return names.length ? `${names.join(', ')}${extra ? ` +${extra}` : ''}` : '-';
+}
+
+function mgmtEightcomAgentStats(D, agent) {
+  const debtors = mgmtEightcomEligibleDebtors(D, agent);
+  const current8 = debtors.filter(debtor => mgmtEightcomCtnForPeriod(debtor, 'cur') > 0);
+  const currentNoCcom = current8.filter(debtor => mgmtCcomCtnForPeriod(debtor, 'cur') <= 0);
+  const threeMonth8 = debtors.filter(debtor => mgmtEightcomThreeMonthCtn(debtor) > 0);
+  const threeMonthNoCcom = threeMonth8.filter(debtor => mgmtCcomThreeMonthCtn(debtor) <= 0);
+  return {
+    currentCtn: current8.reduce((sum, debtor) => sum + mgmtEightcomCtnForPeriod(debtor, 'cur'), 0),
+    threeMonthCtn: debtors.reduce((sum, debtor) => sum + mgmtEightcomThreeMonthCtn(debtor), 0),
+    currentBuyers: current8.length,
+    currentNoCcom: currentNoCcom.length,
+    threeMonthNoCcom: threeMonthNoCcom.length,
+    currentNoCcomRows: currentNoCcom,
+    threeMonthNoCcomRows: threeMonthNoCcom,
+  };
+}
+
+function renderAgentProgressEightcom(D) {
+  const agents = apAgents(D);
+  if (!agents.length) return `<div class="ap-empty">No agent data for this month.</div>`;
+  const statsByAgent = agents.map(agent => [agent, mgmtEightcomAgentStats(D, agent)]);
+  const totals = statsByAgent.reduce((out, [, stat]) => {
+    out.currentCtn += stat.currentCtn;
+    out.threeMonthCtn += stat.threeMonthCtn;
+    out.currentBuyers += stat.currentBuyers;
+    out.currentNoCcom += stat.currentNoCcom;
+    out.threeMonthNoCcom += stat.threeMonthNoCcom;
+    return out;
+  }, { currentCtn: 0, threeMonthCtn: 0, currentBuyers: 0, currentNoCcom: 0, threeMonthNoCcom: 0 });
+
+  const summary = `<div class="ap-summary-grid">
+    <div class="ap-summary"><div class="ap-summary-val">${fn(totals.currentCtn)}</div><div class="ap-summary-lbl">本月 8COM CTN</div></div>
+    <div class="ap-summary"><div class="ap-summary-val">${fn(totals.currentBuyers)}</div><div class="ap-summary-lbl">本月 8COM 买家</div></div>
+    <div class="ap-summary"><div class="ap-summary-val">${fn(totals.currentNoCcom)}</div><div class="ap-summary-lbl">本月 CCOM 空白</div></div>
+    <div class="ap-summary"><div class="ap-summary-val">${fn(totals.threeMonthNoCcom)}</div><div class="ap-summary-lbl">3M CCOM 空白</div></div>
+  </div>`;
+
+  const rows = statsByAgent.map(([agent, stat]) => {
+    const currentSample = mgmtEightcomSample(stat.currentNoCcomRows);
+    const threeMonthSample = mgmtEightcomSample(stat.threeMonthNoCcomRows);
+    return `<div class="ap-row" style="grid-template-columns:90px repeat(5,minmax(120px,1fr));">
+      <div class="ap-cell ap-agent" onclick="openDrill(${JSON.stringify(agent)})">${mgmtEsc(agent)}</div>
+      <div class="ap-cell"><div class="ap-kpi">${fn(stat.currentCtn)}</div><div class="ap-sub">本月 8COM CTN</div></div>
+      <div class="ap-cell"><div class="ap-kpi">${fn(stat.currentBuyers)}</div><div class="ap-sub">8COM 买家</div></div>
+      <div class="ap-cell"><div class="ap-kpi ${stat.currentNoCcom ? 'ap-pace' : 'ap-hit'}">${fn(stat.currentNoCcom)}</div><div class="ap-sub">${mgmtEsc(currentSample)}</div></div>
+      <div class="ap-cell"><div class="ap-kpi">${fn(stat.threeMonthCtn)}</div><div class="ap-sub">过去3个月 8COM CTN</div></div>
+      <div class="ap-cell"><div class="ap-kpi ${stat.threeMonthNoCcom ? 'ap-pace' : 'ap-hit'}">${fn(stat.threeMonthNoCcom)}</div><div class="ap-sub">${mgmtEsc(threeMonthSample)}</div></div>
+    </div>`;
+  }).join('');
+
+  return summary + apTable(
+    '90px repeat(5,minmax(120px,1fr))',
+    ['Agent','本月 8COM CTN','本月 8COM 买家','本月 CCOM 空白','3M 8COM CTN','3M CCOM 空白'],
+    rows
   );
 }
 
