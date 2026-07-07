@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <script>
-const SALES_DASHBOARD_BUILD = '20260705-115300';
+const SALES_DASHBOARD_BUILD = '20260707-133608';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
@@ -454,6 +454,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
             style="background:rgba(255,255,255,.08);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:8px;padding:3px 6px;border-radius:6px;cursor:pointer;">☾ Dark</button>
           <button id="content-size-toggle" onclick="cycleContentSize()" title="Adjust dashboard content size"
             style="background:rgba(255,255,255,.08);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:8px;padding:3px 6px;border-radius:6px;cursor:pointer;">A Normal</button>
+          <button id="btn-force-refresh" onclick="forceRefreshDashboard()" title="Clear dashboard cache and load latest data"
+            style="background:rgba(40,167,100,.1);border:1px solid rgba(40,167,100,.32);color:var(--green);font-family:var(--mono);font-size:8px;padding:3px 6px;border-radius:6px;cursor:pointer;">Refresh</button>
           <button id="btn-manual-sync" onclick="manualSync()" title="Re-sync from Gist and Supabase"
             style="background:rgba(77,166,255,.1);border:1px solid rgba(77,166,255,.3);color:var(--blue);font-family:var(--mono);font-size:8px;padding:3px 6px;border-radius:6px;cursor:pointer;">🔃 Sync</button>
           <button onclick="doAgentLogout()" title="Log out (return to PIN gate)"
@@ -1083,6 +1085,47 @@ function doAgentLogout() {
   sessionStorage.removeItem('md_auth');
   sessionStorage.removeItem('md_agent');
   location.reload();
+}
+
+// ── Force Refresh ─────────────────────────────────────────────────────────
+// Clears read-only dashboard caches, then reloads the active month data.
+function clearDashboardDataCaches() {
+  try { DEBTOR_ANALYSIS_CACHE = undefined; } catch {}
+  try { MONTH_SNAPSHOT_CACHE = {}; } catch {}
+  try {
+    localStorage.removeItem('md_gist_cache');
+    localStorage.removeItem('md_gist_cache_ts');
+  } catch (e) {
+    console.warn('[forceRefreshDashboard] local cache clear skipped:', e);
+  }
+}
+
+function setRefreshButtonState(isRefreshing) {
+  const btn = document.getElementById('btn-force-refresh');
+  if (!btn) return;
+  btn.disabled = !!isRefreshing;
+  btn.textContent = isRefreshing ? 'Refreshing...' : 'Refresh';
+  btn.style.opacity = isRefreshing ? '.65' : '1';
+}
+
+async function forceRefreshDashboard() {
+  clearDashboardDataCaches();
+  setRefreshButtonState(true);
+  try {
+    if (await refreshIfStaleDashboardVersion()) return;
+    const targetSlug = CURRENT_MONTH_SLUG || monthSlug(DATA?.current_month || '') || 'current';
+    if (typeof switchMonth === 'function' && targetSlug) {
+      await switchMonth(targetSlug);
+    } else if (typeof loadData === 'function') {
+      await loadData();
+    }
+    if (typeof updateSyncStatus === 'function') updateSyncStatus();
+  } catch (e) {
+    console.warn('[forceRefreshDashboard] failed:', e);
+    try { location.reload(); } catch {}
+  } finally {
+    setRefreshButtonState(false);
+  }
 }
 
 // ── Manual Sync ───────────────────────────────────────────────────────────
@@ -1896,6 +1939,17 @@ function buildDashboardVersionReloadUrl(currentHref, latestVersion) {
   return url.toString();
 }
 
+function cleanDashboardCacheBusterParam() {
+  try {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('v')) return;
+    url.searchParams.delete('v');
+    window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+  } catch (e) {
+    console.warn('[SalesDashboard] clean cache-buster skipped', e);
+  }
+}
+
 async function refreshIfStaleDashboardVersion() {
   try {
     const r = await fetch(`${SALES_DASHBOARD_VERSION_PATH}?v=${Date.now()}`, { cache: 'no-store' });
@@ -2323,6 +2377,7 @@ async function switchMonth(slug) {
       filters = { status:'all', special:null, pending_activation:null, type:'all', brand:'all' };
       renderNoAgentState();
     }
+    cleanDashboardCacheBusterParam();
     updateFutureViewBanner();
     return;
   }
@@ -2389,6 +2444,7 @@ async function switchMonth(slug) {
       nonvipTypeFilter = 'all';
       renderNoAgentState();
     }
+    cleanDashboardCacheBusterParam();
     updateFutureViewBanner();
   } catch(e) {
     alert(`Could not load data for ${requestedSlug}: ${e.message}`);
@@ -2437,6 +2493,7 @@ async function loadData() {
       if (dayProg) dayProg.textContent = 'Future view · data pending';
     }
     loadMonthIndex(months); // load month dropdown after data ready
+    cleanDashboardCacheBusterParam();
   } catch(e) {
     document.body.innerHTML = `<div style="padding:40px;text-align:center;font-family:monospace;color:#ff5f5f;">
       ❌ Could not load dashboard data<br>
