@@ -3356,6 +3356,13 @@ function getBulkTargetWideValue(agent, col) {
   return current;
 }
 
+function getBulkTargetTemplateAgents() {
+  return getMdAdminScopedAgents(Object.keys(CONFIG?.agents || {}), {
+    includeArchived: false,
+    includeInactive: false,
+  });
+}
+
 function normalizeWideTargetValue(rawValue, col, result, lineNo) {
   const raw = String(rawValue ?? '').trim();
   if (raw === '') return { skip: true };
@@ -3382,7 +3389,7 @@ function parseTargetsWideCsv(lines, rawHeader, delimiter = ',') {
   const colMap = getBulkTargetWideColumnMap(month);
   const columnDefs = rawHeader.map((header, idx) => idx === agentIdx ? null : colMap.get(normalizedHeader[idx]) || null);
   const unknownHeaders = new Set();
-  const scopedAgents = getMdAdminScopedAgents(Object.keys(CONFIG?.agents || {}), { includeArchived: true, includeInactive: true });
+  const scopedAgents = getBulkTargetTemplateAgents();
   const knownAgents = new Set(scopedAgents.map(a => a.toUpperCase()));
 
   lines.slice(1).forEach((line, idx) => {
@@ -3453,7 +3460,7 @@ function parseTargetsCsv(text) {
   const campaignKeys = getBulkImportCampaignKeys(getBulkImportMonth());
   const activeCampKeys = new Set(campaignKeys.map(c => c.key));
   const activeCampLegacyKeys = new Set(campaignKeys.map(c => c.legacyKey));
-  const scopedAgents = getMdAdminScopedAgents(Object.keys(CONFIG?.agents || {}), { includeArchived: true, includeInactive: true });
+  const scopedAgents = getBulkTargetTemplateAgents();
   const knownAgents = new Set(scopedAgents.map(a => a.toUpperCase()));
   const knownKpi = new Set(BULK_TARGET_KPI_KEYS);
   const bulkBrands = adminBrandKeys({includeAgentTargets:true});
@@ -3651,7 +3658,7 @@ function csvEscape(value) {
 
 function downloadTargetsRowTemplate() {
   const month = getBulkImportMonth();
-  const agents = Object.keys(CONFIG?.agents || {}).filter(agent => CONFIG.agents[agent]?.active !== false).sort();
+  const agents = getBulkTargetTemplateAgents();
   const columns = getBulkTargetWideColumns(month);
   const rows = [['agent', ...columns.map(col => col.header)]];
   agents.forEach(agent => {
@@ -3671,7 +3678,7 @@ function downloadTargetsRowTemplate() {
 
 function downloadTargetsTemplate() {
   const month = getBulkImportMonth();
-  const agents = Object.keys(CONFIG?.agents || {}).filter(agent => CONFIG.agents[agent]?.active !== false).sort();
+  const agents = getBulkTargetTemplateAgents();
   const campaigns = getBulkImportCampaignKeys(month);
   const rows = [['agent','field_type','field_key','value']];
   agents.forEach(agent => {

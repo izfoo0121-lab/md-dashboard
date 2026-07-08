@@ -59,6 +59,23 @@ var CONFIG = {
       kpi_targets: {},
       campaign_targets: {},
     },
+    KEAN: {
+      active: true,
+      archived: true,
+      default_group: 'grp2a',
+      sales_progression: { normal_t1: 999 },
+      brand_commission: {},
+      kpi_targets: {},
+      campaign_targets: {},
+    },
+    OLD: {
+      active: false,
+      default_group: 'grp2a',
+      sales_progression: { normal_t1: 888 },
+      brand_commission: {},
+      kpi_targets: {},
+      campaign_targets: {},
+    },
   },
 };
 var LAST_TARGETS_IMPORT = null;
@@ -109,11 +126,18 @@ ${extractFunction('getBulkTargetWideColumns')}
 ${extractFunction('getBulkTargetWideColumnMap')}
 ${extractFunction('isTargetsWideCsvHeader')}
 ${extractFunction('getBulkTargetWideValue')}
+${extractFunction('getBulkTargetTemplateAgents')}
 ${extractFunction('normalizeWideTargetValue')}
 ${extractFunction('parseTargetsWideCsv')}
 ${extractFunction('parseTargetsCsv')}
 ${extractFunction('applyTargetsImport')}
 `, context);
+
+assert.strictEqual(
+  JSON.stringify(context.getBulkTargetTemplateAgents()),
+  JSON.stringify(['BEN', 'CJ']),
+  'Row/System target templates should exclude archived and inactive agents'
+);
 
 const wideHeaders = context.getBulkTargetWideColumns('Jun 26').map(col => col.header);
 assert(wideHeaders.includes('normal_t1'), 'Row template should include Normal T1 target');
