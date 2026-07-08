@@ -9701,7 +9701,7 @@ async function _fetchExistingClaims(month, campId, agents, codes) {
   // Query: all delivered claims for this month+camp where agent IN (...) AND debtor_code IN (...)
   const agentsFilter = agents.map(a => `"${a}"`).join(',');
   const codesFilter  = codes.map(c => `"${c.toUpperCase()}"`).join(',');
-  const url = `${SUPABASE_URL}/rest/v1/claims?select=agent,camp_id,debtor_code,status,stage&month=eq.${encodeURIComponent(month)}&agent=in.(${agentsFilter})&debtor_code=in.(${codesFilter})&stage=eq.1`;
+  const url = `${SUPABASE_URL}/rest/v1/claims?select=agent,camp_id,debtor_code,status&month=eq.${encodeURIComponent(month)}&agent=in.(${agentsFilter})&debtor_code=in.(${codesFilter})`;
   try {
     const r = await fetch(url, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
@@ -9872,6 +9872,21 @@ async function previewBulkMark() {
   return window._pendingBulkMark;
 }
 
+function buildBulkClaimRows(pending, ts) {
+  return (pending?.toCreate || []).map(v => ({
+    month: pending.month,
+    agent: v.agent,
+    camp_id: pending.campId,
+    debtor_code: v.code,
+    status: 'verified',
+    remark: pending.remark || 'Bulk mark',
+    bulk: true,
+    actor: 'admin',
+    camp_type: pending.campType || null,
+    ts
+  }));
+}
+
 async function confirmBulkMark() {
   const pending = window._pendingBulkMark;
   if (!pending || !pending.toCreate.length) {
@@ -9893,25 +9908,13 @@ async function confirmBulkMark() {
   // Supabase `ts` column is timestamptz — needs ISO format, not display format
   const ts = now.toISOString();
 
-  const rows = pending.toCreate.map(v => ({
-    month: pending.month,
-    agent: v.agent,
-    camp_id: pending.campId,
-    debtor_code: v.code,
-    status: 'verified',
-    remark: pending.remark || 'Bulk mark',
-    bulk: true,
-    actor: 'admin',
-    camp_type: pending.campType || null,
-    stage: 1,
-    ts
-  }));
+  const rows = buildBulkClaimRows(pending, ts);
 
   resultEl.style.color = 'var(--muted)';
   resultEl.textContent = `⏳ Saving ${rows.length} claims to Supabase...`;
 
   try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/claims?on_conflict=month,agent,camp_id,debtor_code,stage`, {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/claims?on_conflict=month,agent,camp_id,debtor_code`, {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_KEY,
