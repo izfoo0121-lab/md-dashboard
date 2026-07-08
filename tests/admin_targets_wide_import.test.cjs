@@ -92,6 +92,7 @@ const DEFAULT_BRAND_CONFIG = {
 const DEFAULT_BRANDS = Object.keys(DEFAULT_BRAND_CONFIG);
 const DEFAULT_PENETRATION_AUTO_BRANDS = ['iFACE','CMP','BISON','TR20'];
 const DEFAULT_ZLB_BRANDS = ['SUKUN','EVO','BISON','LAM+LWM'];
+const ADMIN_ZLB_EXCLUDED_BRANDS = new Set(['CMP']);
 const BULK_TARGET_KPI_KEYS = ['new_accounts','vip_count','reactivation','new_sku','activation_rate','event'];
 const AGENTS = ['BEN','CJ'];
 ${extractBlock('const MD_ADMIN_GROUP', 'const BRAND_PEN_GROUP_MAP_KEY')}
@@ -120,6 +121,8 @@ ${extractFunction('adminBrandListFromValue')}
 ${extractFunction('adminBrandSortKey')}
 ${extractFunction('adminSortBrandKeys')}
 ${extractFunction('adminConfiguredBrandList')}
+${extractFunction('adminIsZlbExcludedBrand')}
+${extractFunction('adminConfiguredZlbBrands')}
 ${extractFunction('adminBrandKeys')}
 ${extractFunction('normalizeTargetsWideHeader')}
 ${extractFunction('getBulkTargetWideColumns')}

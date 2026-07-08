@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <script>
-const SALES_DASHBOARD_BUILD = '20260707-133608';
+const SALES_DASHBOARD_BUILD = '20260708-161343';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
@@ -1507,6 +1507,7 @@ const BRAND_COLORS = {
   'BISON':'#f0c040','TR20':'#3ddc84','LAM+LWM':'#ff9a3c'
 };
 const ZLB_IFACE_REMOVED_FROM_MONTH = 'Jul 26';
+const ZLB_EXCLUDED_BRANDS = new Set(['CMP']);
 const DEFAULT_VISIBLE_ZLB_BRANDS = ['SUKUN', 'EVO', 'BISON', 'TR20', 'LAM+LWM'];
 
 function zlbBrandKey(brand) {
@@ -1517,10 +1518,14 @@ function zlbBrandKey(brand) {
   return upper;
 }
 
+function isExcludedZlbBrand(brand) {
+  return ZLB_EXCLUDED_BRANDS.has(zlbBrandKey(brand));
+}
+
 function configuredZlbBrandKeys() {
   const configured = DATA?.config?.zlb_brands;
   if (!Array.isArray(configured) || configured.length === 0) return null;
-  const keys = configured.map(zlbBrandKey).filter(Boolean);
+  const keys = configured.map(zlbBrandKey).filter(key => key && !isExcludedZlbBrand(key));
   return keys.length ? new Set(keys) : null;
 }
 
@@ -1533,7 +1538,7 @@ function visibleZlbBrandKeys() {
   const keys = [];
   source.forEach(brand => {
     const key = zlbBrandKey(brand);
-    if (!key || seen.has(key)) return;
+    if (!key || seen.has(key) || isExcludedZlbBrand(key)) return;
     seen.add(key);
     keys.push(key);
   });

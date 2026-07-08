@@ -529,6 +529,11 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
       <div class="sec-sub">Manage item code lists. Changes apply on next daily update.</div>
 
       <div class="sec-divider">ZLB Brand</div>
+      <div class="admin-card" style="margin-bottom:12px;">
+        <div id="zlb-brand-effective-preview"></div>
+      </div>
+
+      <div class="sec-divider">Brand Item Mapping (Global)</div>
       <div id="brand-sku-forms"></div>
 
       <div class="admin-card" style="margin-top:12px;">
@@ -1414,6 +1419,8 @@ const DEFAULT_BRANDS = Object.keys(DEFAULT_BRAND_CONFIG);
 const BRANDS = DEFAULT_BRANDS;
 const DEFAULT_PENETRATION_AUTO_BRANDS = ['iFACE','CMP','BISON','TR20'];
 const DEFAULT_ZLB_BRANDS = ['SUKUN','EVO','BISON','LAM+LWM'];
+const ZLB_IFACE_REMOVED_FROM_MONTH = 'Jul 26';
+const ADMIN_ZLB_EXCLUDED_BRANDS = new Set(['CMP']);
 const DEFAULT_OTHER_SKU_GROUPS = {
   OTHER: { label: 'CMLT', item_codes: ['CMLT'], item_groups: ['CMLT'] },
 };
@@ -1767,7 +1774,7 @@ function initAdminWorkingMonth() {
 function updateAdminMonthScope() {
   const month = getAdminWorkingMonth();
   const scope = document.getElementById('admin-month-scope');
-  if (scope) scope.textContent = `Month-scoped tabs use ${month}; global tabs are SKU Config, Agent PINs, Cloud Sync, and brand config`;
+  if (scope) scope.textContent = `Month-scoped tabs use ${month}; SKU item mapping is global, ZLB preview follows the working month`;
   try { updateAdminHistoricalMonthGuard(); } catch (_) {}
   try { if (typeof updateSaveStatus === 'function') updateSaveStatus(); } catch (_) {}
 }
@@ -1795,6 +1802,7 @@ async function adminWorkingMonthSelectChanged(nextMonth) {
 
   try {
     renderAgentForms();
+    renderSKUForms();
     renderKPIWeights();
     _populateGroupSpMonths();
     loadGroupSpOverride();
@@ -2475,6 +2483,61 @@ function adminConfiguredBrandList(key, fallback) {
   return adminBrandListFromValue(CONFIG?.[key], defaultList);
 }
 
+function adminIsZlbExcludedBrand(brand) {
+  return ADMIN_ZLB_EXCLUDED_BRANDS.has(adminBrandKey(brand).toUpperCase());
+}
+
+function adminConfiguredZlbBrands() {
+  return adminConfiguredBrandList('zlb_brands', DEFAULT_ZLB_BRANDS)
+    .filter(brand => !adminIsZlbExcludedBrand(brand));
+}
+
+function adminEffectiveZlbBrands(month = getAdminWorkingMonth()) {
+  const brands = adminConfiguredZlbBrands();
+  const seen = new Set(brands.map(brand => adminBrandKey(brand).toUpperCase()));
+  const selectedKey = adminMonthSortKey(month);
+  const cutoffKey = adminMonthSortKey(ZLB_IFACE_REMOVED_FROM_MONTH);
+  if (Number.isFinite(selectedKey) && Number.isFinite(cutoffKey) && selectedKey < cutoffKey && !seen.has('IFACE')) {
+    return ['iFACE', ...brands];
+  }
+  return brands;
+}
+
+function adminBrandCodesForMapping(brand) {
+  const key = adminBrandKey(brand);
+  const config = CONFIG?.brand_config || {};
+  const direct = config[key] || config[brand] || config[String(brand || '').toUpperCase()];
+  if (Array.isArray(direct) && direct.length) return direct.filter(Boolean);
+  const matchedKey = Object.keys(config).find(name => adminBrandKey(name).toUpperCase() === key.toUpperCase());
+  const matched = matchedKey ? config[matchedKey] : null;
+  if (Array.isArray(matched) && matched.length) return matched.filter(Boolean);
+  return DEFAULT_BRAND_CONFIG[key] ? [...DEFAULT_BRAND_CONFIG[key]] : [];
+}
+
+function renderEffectiveZlbBrandPreview() {
+  const el = document.getElementById('zlb-brand-effective-preview');
+  if (!el) return;
+  const month = getAdminWorkingMonth();
+  const brands = adminEffectiveZlbBrands(month);
+  el.innerHTML = `
+    <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);margin-bottom:10px;">
+      Effective for <b style="color:var(--blue);">${kpiAdminEscape(month || 'selected month')}</b>.
+      Group Brand Target is managed in its own tab.
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
+      ${brands.map(brand => {
+        const codes = adminBrandCodesForMapping(brand);
+        return `
+          <div style="border:1px solid var(--border);border-radius:8px;background:var(--bg);padding:10px 12px;">
+            <div style="font-family:var(--display);font-size:15px;letter-spacing:.04em;color:var(--accent);">${kpiAdminEscape(brand)}</div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:6px;">${codes.map(kpiAdminEscape).join(', ') || 'No item mapping yet'}</div>
+          </div>
+        `;
+      }).join('') || `<div style="font-family:var(--mono);font-size:10px;color:var(--ink3);">No ZLB brands configured.</div>`}
+    </div>
+  `;
+}
+
 function adminBrandSortKey(brand) {
   const key = adminBrandKey(brand).toUpperCase();
   const idx = DEFAULT_BRANDS.findIndex(item => adminBrandKey(item).toUpperCase() === key);
@@ -2491,7 +2554,7 @@ function adminBrandKeys(opts = {}) {
   const configured = Object.keys(CONFIG?.brand_config || {});
   keys.push(...(configured.length ? configured : DEFAULT_BRANDS));
   keys.push(...adminConfiguredBrandList('penetration_auto_brands', DEFAULT_PENETRATION_AUTO_BRANDS));
-  keys.push(...adminConfiguredBrandList('zlb_brands', DEFAULT_ZLB_BRANDS));
+  keys.push(...adminConfiguredZlbBrands());
   if (opts.includeAgentTargets) {
     Object.values(CONFIG?.agents || {}).forEach(agent => {
       keys.push(...Object.keys(agent?.brand_commission || {}));
@@ -4082,6 +4145,8 @@ function refreshArchiveList() {
 function renderSKUForms() {
   const bc = CONFIG.brand_config || {};
   const brandKeys = adminSortBrandKeys(Object.keys(bc).length ? Object.keys(bc) : DEFAULT_BRANDS);
+
+  renderEffectiveZlbBrandPreview();
 
   document.getElementById('brand-sku-forms').innerHTML = `
     <div class="admin-card" style="margin-bottom:10px;">
@@ -6687,7 +6752,7 @@ function renderBrandBehaviorConfig() {
   const el = document.getElementById('brand-behavior-config');
   if (!el) return;
   const autoBrands = adminConfiguredBrandList('penetration_auto_brands', DEFAULT_PENETRATION_AUTO_BRANDS);
-  const zlbBrands = adminConfiguredBrandList('zlb_brands', DEFAULT_ZLB_BRANDS);
+  const zlbBrands = adminConfiguredZlbBrands();
   el.innerHTML = `
     <div class="input-row">
       <div class="field-wrap">
@@ -6710,10 +6775,12 @@ function renderBrandBehaviorConfig() {
 
 function updateBrandBehaviorList(key, value) {
   if (!['penetration_auto_brands', 'zlb_brands'].includes(key)) return;
-  CONFIG[key] = adminBrandListFromValue(value, []);
+  CONFIG[key] = adminBrandListFromValue(value, [])
+    .filter(brand => key !== 'zlb_brands' || !adminIsZlbExcludedBrand(brand));
   normalizeAdminConfigDefaults();
   renderBrandBehaviorConfig();
   renderBrandSkuBehaviorSummary();
+  renderEffectiveZlbBrandPreview();
   renderAdminBrandSKU();
   updateRawJSON();
 }

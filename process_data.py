@@ -388,6 +388,7 @@ DEFAULT_BRAND_CONFIG = {
 DEFAULT_PENETRATION_AUTO_BRANDS = ["iFACE", "CMP", "BISON", "TR20"]
 DEFAULT_ZLB_BRANDS = ["SUKUN", "EVO", "BISON", "LAM+LWM"]
 ZLB_IFACE_REMOVED_FROM_MONTH = "Jul 26"
+ZLB_EXCLUDED_BRANDS = {"CMP"}
 
 IFACE_ITEM_CODES = ["IFACE B", "IFACE M", "IFACE R", "IFACE DB"]
 IFACE_PK_POOL_RATE = 3.5
@@ -665,7 +666,11 @@ def _clean_brand_sequence(values, default_values=None):
 
 
 def zlb_brands_for_month(cur_month, zlb_brands=None):
-    brands = _clean_brand_sequence(zlb_brands, DEFAULT_ZLB_BRANDS)
+    brands = [
+        brand
+        for brand in _clean_brand_sequence(zlb_brands, DEFAULT_ZLB_BRANDS)
+        if _brand_penetration_key(brand) not in ZLB_EXCLUDED_BRANDS
+    ]
     month_key = _month_sort_key(cur_month)
     cutoff_key = _month_sort_key(ZLB_IFACE_REMOVED_FROM_MONTH)
     if month_key and cutoff_key and month_key < cutoff_key:

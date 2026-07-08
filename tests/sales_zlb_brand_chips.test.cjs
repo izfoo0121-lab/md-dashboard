@@ -104,13 +104,8 @@ const dynamicEntries = salesContext.visibleZlbStatusEntries(dynamicZlbDebtor);
 const dynamicBrands = Array.from(dynamicEntries, ([grp]) => grp);
 assert.deepStrictEqual(
   dynamicBrands,
-  ['SUKUN', 'CMP'],
-  'debtor card ZLB chips should follow the admin ZLB Brand order even when payload sku_status is missing a newly configured brand',
-);
-assert.strictEqual(
-  Object.fromEntries(dynamicEntries).CMP,
-  'new_penetration',
-  'a newly configured ZLB brand should be synthesized from month_breakdown when old payloads omit sku_status for that brand',
+  ['SUKUN'],
+  'debtor card ZLB chips should filter CMP because CMP belongs to Group Brand Target, not ZLB',
 );
 
 const skuGroupsBlock = extractPythonBlock(processData, '# ZLB brand groups shown on debtor cards', '# New SKU groups');

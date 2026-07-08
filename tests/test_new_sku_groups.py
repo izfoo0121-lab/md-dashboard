@@ -15,13 +15,15 @@ class NewSkuGroupTests(unittest.TestCase):
         self.assertIn("other_sku_groups", process_data.DEFAULT_SKU_RULES)
 
     def test_zlb_brands_keep_iface_before_july_cutoff_only(self):
-        configured = ["SUKUN", "EVO", "BISON", "LAM+LWM"]
+        configured = ["SUKUN", "CMP", "EVO", "BISON", "LAM+LWM"]
 
         self.assertEqual(
             process_data.zlb_brands_for_month("Jun 26", configured)[0],
             "iFACE",
         )
         self.assertNotIn("iFACE", process_data.zlb_brands_for_month("Jul 26", configured))
+        self.assertNotIn("CMP", process_data.zlb_brands_for_month("Jul 26", configured))
+        self.assertNotIn("CMP", process_data.zlb_brands_for_month("Jun 26", configured))
 
     def test_debtor_cards_count_new_matrix_skus_individually(self):
         rows = []

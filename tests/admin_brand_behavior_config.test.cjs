@@ -41,6 +41,7 @@ function makeElement(id) {
 }
 
 assert.equal(html.includes('id="brand-behavior-config"'), true, 'Admin should expose brand behavior config controls');
+assert.equal(html.includes('id="zlb-brand-effective-preview"'), true, 'Admin should expose an effective ZLB brand preview');
 assert.match(html, /penetration_auto_brands/, 'Admin should persist configurable auto brand list');
 assert.match(html, /zlb_brands/, 'Admin should persist configurable ZLB brand list');
 
@@ -48,6 +49,7 @@ const elements = new Map([
   ['brand-behavior-config', makeElement('brand-behavior-config')],
   ['brand-sku-behavior-summary', makeElement('brand-sku-behavior-summary')],
   ['admin-brand-sku-status', makeElement('admin-brand-sku-status')],
+  ['zlb-brand-effective-preview', makeElement('zlb-brand-effective-preview')],
   ['brand-sku-forms', makeElement('brand-sku-forms')],
 ]);
 
@@ -65,6 +67,8 @@ const context = {
   DEFAULT_BRANDS: ['iFACE', 'SUKUN', 'CMP', 'EVO', 'BISON', 'TR20', 'LAM+LWM'],
   DEFAULT_PENETRATION_AUTO_BRANDS: ['iFACE', 'CMP', 'BISON', 'TR20'],
   DEFAULT_ZLB_BRANDS: ['SUKUN', 'EVO', 'BISON', 'LAM+LWM'],
+  ZLB_IFACE_REMOVED_FROM_MONTH: 'Jul 26',
+  ADMIN_ZLB_EXCLUDED_BRANDS: new Set(['CMP']),
   CONFIG: {
     brand_config: {
       iFACE: ['IFACE B'],
@@ -96,6 +100,13 @@ const context = {
     getElementById(id) { return elements.get(id) || null; },
   },
   updateRawJSON() {},
+  getAdminWorkingMonth() { return context.ADMIN_ACTIVE_MONTH || 'Jul 26'; },
+  adminMonthSortKey(month) {
+    const [mon, yy] = String(month || '').split(' ');
+    const idx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(mon);
+    return idx < 0 ? NaN : (2000 + parseInt(yy || '0', 10)) * 12 + idx + 1;
+  },
+  ADMIN_ACTIVE_MONTH: 'Jul 26',
   console,
   renderInhouseCodes() {},
   renderSkuTraceConfig() {},
@@ -119,6 +130,11 @@ vm.runInContext(extractBlock('const DEFAULT_GROUP_BRAND_CONFIG', 'function rende
   'adminBrandSortKey',
   'adminSortBrandKeys',
   'adminConfiguredBrandList',
+  'adminIsZlbExcludedBrand',
+  'adminConfiguredZlbBrands',
+  'adminEffectiveZlbBrands',
+  'adminBrandCodesForMapping',
+  'renderEffectiveZlbBrandPreview',
   'normalizeGroupBrandKey',
   'normalizeGroupBrandCodes',
   'normalizeGroupBrandConfig',
@@ -140,9 +156,27 @@ assert.match(
 );
 assert.match(
   elements.get('brand-behavior-config').innerHTML,
-  /SUKUN, CMP, BISON/,
-  'Admin editor should show configured ZLB brand list',
+  /SUKUN, BISON/,
+  'Admin editor should show configured ZLB brand list without CMP',
 );
+assert.doesNotMatch(
+  elements.get('brand-behavior-config').innerHTML,
+  /SUKUN, CMP, BISON/,
+  'CMP should not be accepted as a ZLB brand because it belongs to Group Brand Target',
+);
+
+context.renderSKUForms();
+let zlbPreviewHtml = elements.get('zlb-brand-effective-preview').innerHTML;
+assert.match(zlbPreviewHtml, /Effective for[\s\S]*Jul 26/, 'ZLB preview should name the working month');
+assert.match(zlbPreviewHtml, /SUKUN/, 'Jul ZLB preview should show configured ZLB brands');
+assert.doesNotMatch(zlbPreviewHtml, /iFACE/, 'Jul ZLB preview should not show historical iFACE');
+assert.doesNotMatch(zlbPreviewHtml, /CMP/, 'Jul ZLB preview should not show CMP as a ZLB brand');
+
+context.ADMIN_ACTIVE_MONTH = 'Jun 26';
+context.renderSKUForms();
+zlbPreviewHtml = elements.get('zlb-brand-effective-preview').innerHTML;
+assert.match(zlbPreviewHtml, /iFACE/, 'Historical ZLB preview should retain iFACE before Jul 26');
+assert.doesNotMatch(zlbPreviewHtml, /CMP/, 'Historical ZLB preview should still exclude CMP');
 
 context.renderAdminBrandSKU();
 const tableHtml = elements.get('admin-brand-sku-status').innerHTML;
@@ -156,7 +190,7 @@ assert.doesNotMatch(autoSummary, /SUKUN/, 'Summary should not list SUKUN as Auto
 context.updateBrandBehaviorList('penetration_auto_brands', 'CMP, TR20');
 assert.deepEqual(context.CONFIG.penetration_auto_brands, ['CMP', 'TR20']);
 context.updateBrandBehaviorList('zlb_brands', 'SUKUN, CMP, CMX');
-assert.deepEqual(context.CONFIG.zlb_brands, ['SUKUN', 'CMP', 'CMX']);
+assert.deepEqual(context.CONFIG.zlb_brands, ['SUKUN', 'CMX']);
 
 context.CONFIG.brand_config = {
   'BAD" onclick="alert(1)': ['SKU"><img src=x>'],
