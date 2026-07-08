@@ -53,6 +53,7 @@ const context = {
 };
 vm.createContext(context);
 vm.runInContext(helperBlock, context);
+vm.runInContext(extractFunction('applyAgentReplacementsToConfig'), context);
 
 assert.strictEqual(context.normalizeAdminGroup('GRP 2A'), 'grp2a');
 assert.strictEqual(context.normalizeAdminGroup('grp 2a'), 'grp2a');
@@ -96,5 +97,32 @@ assert.deepStrictEqual(
 
 assert.match(extractFunction('buildDefaultConfig'), /default_group:\s*MD_ADMIN_GROUP/, 'Default md agents should carry group2a metadata');
 assert.match(extractFunction('addAgent'), /default_group:\s*MD_ADMIN_GROUP/, 'Agents added in md admin should be group2a by default');
+
+const replacementConfig = {
+  agents: {
+    KEAN: { active: true },
+    XIAN: { active: true },
+  },
+  agent_replacements: {
+    KEAN: { successor: 'XIAN', from_month: 'Jul-26' },
+  },
+};
+context.applyAgentReplacementsToConfig(replacementConfig);
+assert.strictEqual(
+  replacementConfig.agents.XIAN.default_group,
+  'grp2a',
+  'Agent replacement successors should inherit the md-dashboard group so they remain visible in Agent Targets'
+);
+context.CONFIG = replacementConfig;
+assert.strictEqual(
+  context.isMdAdminScopedAgent('XIAN'),
+  true,
+  'A replacement successor like XIAN should be visible in the md-dashboard Agent Targets list'
+);
+assert.match(
+  extractFunction('confirmArchive'),
+  /ensureReplacementSuccessorGroup\(CONFIG,\s*_archiveTarget,\s*successor\)/,
+  'Archive & Replace should write group metadata when creating a successor agent'
+);
 
 console.log('admin_group2a_scope.test.cjs passed');

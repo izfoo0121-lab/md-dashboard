@@ -22,6 +22,14 @@ function extractFunction(name) {
   throw new Error(`Could not extract ${name}`);
 }
 
+function extractBlock(startMarker, endMarker) {
+  const start = html.indexOf(startMarker);
+  assert(start >= 0, `${startMarker} should exist`);
+  const end = html.indexOf(endMarker, start);
+  assert(end > start, `${endMarker} should appear after ${startMarker}`);
+  return html.slice(start, end);
+}
+
 function makeElement(id) {
   return {
     id,
@@ -53,6 +61,7 @@ const elements = new Map([
   ['sku-rules-preview', makeElement('sku-rules-preview')],
 ]);
 const context = {
+  AGENTS: ['BEN', 'CJ', 'JACKY', 'JAMES', 'JW', 'KEAN', 'KEE', 'KF', 'KI-MI', 'KW', 'LEON', 'NMK', 'SAM', 'YI'],
   CONFIG: {
     sku_rules_snapshot: {
       version: 2,
@@ -83,6 +92,7 @@ const context = {
 };
 context.window = context;
 vm.createContext(context);
+vm.runInContext(extractBlock('const MD_ADMIN_GROUP', 'const BRAND_PEN_GROUP_MAP_KEY'), context);
 
 [
   'kpiAdminEscape',

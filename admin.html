@@ -1452,6 +1452,17 @@ function getMdAdminScopedAgents(agentList, opts = {}) {
     .filter(agent => isMdAdminScopedAgent(agent, CONFIG?.agents?.[agent]))
     .sort((a, b) => a.localeCompare(b));
 }
+
+function ensureReplacementSuccessorGroup(cfg, predecessor, successor) {
+  const oldAgent = String(predecessor || '').trim().toUpperCase();
+  const nextAgent = String(successor || '').trim().toUpperCase();
+  const agents = cfg?.agents || {};
+  const successorCfg = agents[nextAgent];
+  if (!oldAgent || !nextAgent || !successorCfg || successorCfg.default_group || successorCfg.group) return;
+  const oldCfg = agents[oldAgent] || {};
+  const inheritedGroup = oldCfg.default_group || oldCfg.group || ADMIN_AGENT_GROUPS[oldAgent] || '';
+  if (inheritedGroup) successorCfg.default_group = normalizeAdminGroup(inheritedGroup);
+}
 const BRAND_PEN_GROUP_MAP_KEY = 'md_brand_penetration_agent_group_map';
 const BULK_TARGET_KPI_KEYS = ['new_accounts','vip_count','reactivation','new_sku','activation_rate','event'];
 const DEFAULT_SKU_TRACE_CONFIG = [
@@ -2655,6 +2666,7 @@ function applyAgentReplacementsToConfig(cfg) {
     cfg.agents[successor] = cfg.agents[successor] || {};
     cfg.agents[successor].active = true;
     cfg.agents[successor].archived = false;
+    ensureReplacementSuccessorGroup(cfg, oldAgent, successor);
     cfg.agents[successor].inherits_from = oldAgent;
     cfg.agents[successor].inherit_from_month = fromMonth;
   });
@@ -10573,6 +10585,7 @@ function confirmArchive() {
     CONFIG.agents[successor].active   = true;
     CONFIG.agents[successor].archived = false;
   }
+  ensureReplacementSuccessorGroup(CONFIG, _archiveTarget, successor);
   CONFIG.agents[successor].inherits_from     = _archiveTarget;
   CONFIG.agents[successor].inherit_from_month = fromMonth;
   CONFIG.agent_replacements = CONFIG.agent_replacements || {};
