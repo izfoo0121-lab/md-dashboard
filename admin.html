@@ -114,6 +114,15 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
 .sku-trace-row{display:grid;grid-template-columns:minmax(130px,1fr) minmax(180px,1.4fr) 96px 34px;gap:8px;align-items:end;padding:8px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--bg);}
 .sku-trace-row input{width:100%;box-sizing:border-box;}
 .sku-trace-remove{height:34px;border:1px solid rgba(200,56,26,.35);background:rgba(200,56,26,.07);color:var(--accent);border-radius:8px;cursor:pointer;}
+.sku-rule-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;}
+.new-sku-rule-card{border:1px solid var(--border);background:var(--bg);border-radius:10px;padding:10px;}
+.sku-rule-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+.sku-rule-title{font-family:var(--display);font-size:15px;letter-spacing:.04em;color:var(--ink);}
+.sku-rule-fields{display:grid;grid-template-columns:1fr;gap:8px;}
+.sku-rule-field{display:block;}
+.sku-rule-field span{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:3px;}
+.sku-rule-field input{width:100%;box-sizing:border-box;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--ink);font-family:var(--mono);font-size:11px;padding:8px 9px;}
+.sku-rule-field input::placeholder{color:rgba(107,114,128,.55);}
 .sku-add-input{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:12px;padding:7px 10px;border-radius:8px;}
 .sku-add-btn{background:var(--blue);border:none;color:#fff;font-family:var(--mono);font-size:11px;padding:7px 14px;border-radius:8px;cursor:pointer;}
 
@@ -4494,22 +4503,34 @@ function renderNewSkuRulesEditor() {
     return;
   }
   el.innerHTML = `
-    <div class="sku-trace-row" style="grid-template-columns:130px 1fr 1fr 1fr 34px;font-family:var(--mono);font-size:9px;color:var(--ink3);">
-      <div>Group</div>
-      <div>Item Codes</div>
-      <div>Code Prefixes</div>
-      <div>Item Groups</div>
-      <div></div>
+    <div class="sku-rule-grid">
+      ${rows.map((row, idx) => `
+        <div class="new-sku-rule-card">
+          <div class="sku-rule-card-head">
+            <div class="sku-rule-title">${kpiAdminEscape(row.key)}</div>
+            <button class="sku-trace-remove" type="button" onclick="removeNewSkuRule(${idx})" title="Remove">x</button>
+          </div>
+          <div class="sku-rule-fields">
+            <label class="sku-rule-field">
+              <span>Group</span>
+              <input value="${kpiAdminEscape(row.key)}" oninput="updateNewSkuRuleField(${idx}, 'key', this.value)" placeholder="SKU group">
+            </label>
+            <label class="sku-rule-field">
+              <span>Exact item codes</span>
+              <input value="${kpiAdminEscape((row.item_codes || []).join(', '))}" oninput="updateNewSkuRuleField(${idx}, 'item_codes', this.value)" placeholder="Optional">
+            </label>
+            <label class="sku-rule-field">
+              <span>Starts with</span>
+              <input value="${kpiAdminEscape((row.item_code_prefixes || []).join(', '))}" oninput="updateNewSkuRuleField(${idx}, 'item_code_prefixes', this.value)" placeholder="Optional">
+            </label>
+            <label class="sku-rule-field">
+              <span>Item groups</span>
+              <input value="${kpiAdminEscape((row.item_groups || []).join(', '))}" oninput="updateNewSkuRuleField(${idx}, 'item_groups', this.value)" placeholder="Optional">
+            </label>
+          </div>
+        </div>
+      `).join('')}
     </div>
-    ${rows.map((row, idx) => `
-      <div class="sku-trace-row" style="grid-template-columns:130px 1fr 1fr 1fr 34px;">
-        <input value="${kpiAdminEscape(row.key)}" oninput="updateNewSkuRuleField(${idx}, 'key', this.value)" placeholder="CMX">
-        <input value="${kpiAdminEscape((row.item_codes || []).join(', '))}" oninput="updateNewSkuRuleField(${idx}, 'item_codes', this.value)" placeholder="CMX, CMP">
-        <input value="${kpiAdminEscape((row.item_code_prefixes || []).join(', '))}" oninput="updateNewSkuRuleField(${idx}, 'item_code_prefixes', this.value)" placeholder="TR20, SKN">
-        <input value="${kpiAdminEscape((row.item_groups || []).join(', '))}" oninput="updateNewSkuRuleField(${idx}, 'item_groups', this.value)" placeholder="BISON-R">
-        <button class="sku-trace-remove" type="button" onclick="removeNewSkuRule(${idx})" title="Remove">x</button>
-      </div>
-    `).join('')}
   `;
 }
 

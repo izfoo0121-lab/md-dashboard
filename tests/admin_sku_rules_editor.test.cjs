@@ -51,6 +51,9 @@ assert.equal(html.includes('function removeNewSkuRule'), true, 'desktop admin sh
 assert.equal(html.includes('function renderOtherSkuRulesEditor'), true, 'desktop admin should define Other SKU editor renderer');
 assert.equal(html.includes('function updateOtherSkuRuleField'), true, 'desktop admin should let Other SKU fields update CONFIG.sku_rules');
 assert.equal(html.includes('function downloadSkuRulesConfig'), true, 'desktop admin should export sku_rules.json for local pipeline fallback');
+assert.equal(html.includes('placeholder="TR20, SKN"'), false, 'New SKU editor should not show example SKU values as empty-field placeholders');
+assert.equal(html.includes('placeholder="BISON-R"'), false, 'New SKU editor should not make empty item-group fields look populated');
+assert.equal(html.includes('new-sku-rule-card'), true, 'New SKU editor should use readable cards instead of raw spreadsheet-style rows');
 assert.equal(html.includes('function applyAgentReplacementsToConfig'), true, 'desktop admin should apply configured agent replacements');
 assert.match(html, /staticKeys[\s\S]*agent_replacements/, 'desktop admin should persist agent replacement rules through targets_static static config');
 assert.match(html, /staticKeys[\s\S]*sku_rules/, 'desktop admin should persist SKU rules through targets_static static config');
@@ -150,6 +153,8 @@ assert.equal(
 
 context.renderNewSkuRulesEditor();
 assert.match(elements.get('new-sku-rules-editor').innerHTML, /CMX/, 'editor should render rules from the active snapshot');
+assert.match(elements.get('new-sku-rules-editor').innerHTML, /Exact item codes/, 'editor should label exact item-code matches');
+assert.match(elements.get('new-sku-rules-editor').innerHTML, /Starts with/, 'editor should label prefix matches without using examples as fake values');
 context.renderOtherSkuRulesEditor();
 assert.match(elements.get('other-sku-rules-editor').innerHTML, /CMLT/, 'Other SKU editor should render the default non-KPI bucket');
 
