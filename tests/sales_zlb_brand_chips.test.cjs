@@ -8,7 +8,10 @@ const salesHtml = fs.readFileSync(path.join(root, 'sales_dashboard.html'), 'utf8
 const processData = fs.readFileSync(path.join(root, 'process_data.py'), 'utf8');
 
 function extractFunction(source, name) {
-  const start = source.indexOf(`function ${name}`);
+  const syncStart = source.indexOf(`function ${name}`);
+  const asyncStart = source.indexOf(`async function ${name}`);
+  const candidates = [syncStart, asyncStart].filter(idx => idx >= 0);
+  const start = candidates.length ? Math.min(...candidates) : -1;
   assert(start >= 0, `${name} should exist`);
   const bodyStart = source.indexOf('{', source.indexOf(')', start));
   assert(bodyStart >= 0, `${name} should have a function body`);
@@ -53,6 +56,10 @@ assert(
 assert(
   salesHtml.includes("const ZLB_IFACE_REMOVED_FROM_MONTH = 'Jul 26'"),
   'sales dashboard should make the IFACE removal month explicit',
+);
+assert(
+  salesHtml.includes('targets_static?select=key,value'),
+  'sales dashboard should fetch live static config from Supabase so Admin ZLB edits apply without regenerating JSON',
 );
 
 const salesContext = {
@@ -108,14 +115,74 @@ assert.deepStrictEqual(
   'debtor card ZLB chips should filter CMP because CMP belongs to Group Brand Target, not ZLB',
 );
 
-const skuGroupsBlock = extractPythonBlock(processData, '# ZLB brand groups shown on debtor cards', '# New SKU groups');
-assert(
-  processData.includes('ZLB_IFACE_REMOVED_FROM_MONTH = "Jul 26"'),
-  'process_data should make the IFACE removal month explicit',
-);
-assert(
-  skuGroupsBlock.includes('zlb_brands_for_month'),
-  'process_data debtor-card SKU/ZLB groups should apply the month cutoff before generating sku_status',
-);
+(async () => {
+  const liveContext = {
+    DATA: {
+      current_month: 'Jul 26',
+      config: {
+        zlb_brands: ['SUKUN'],
+        brand_config: { SUKUN: ['SKNR', 'SKNW'] },
+      },
+    },
+    fetchedPath: '',
+    SALES_LIVE_STATIC_CONFIG_KEYS: ['brand_config', 'zlb_brands', 'sku_rules'],
+    SALES_LIVE_STATIC_CONFIG_CACHE: undefined,
+    fetchSupabaseJson: async path => {
+      liveContext.fetchedPath = path;
+      return [
+        { key: 'zlb_brands', value: ['SUKUN', 'iFACE'] },
+        { key: 'brand_config', value: { SUKUN: ['SKNR'], iFACE: ['IFACE R'] } },
+        { key: 'sku_rules', value: { version: 3, new_sku_groups: { CMX: { item_codes: ['CMX'] } } } },
+      ];
+    },
+    console: { warn() {} },
+  };
+  vm.createContext(liveContext);
+  vm.runInContext(extractFunction(salesHtml, 'monthSortKey'), liveContext);
+  vm.runInContext(extractFunction(salesHtml, 'shiftedMonthLabel'), liveContext);
+  vm.runInContext(salesHtml.slice(zlbHelperStart, zlbHelperEnd), liveContext);
+  [
+    'normalizeSalesLiveStaticRows',
+    'fetchSalesLiveStaticConfig',
+    'mergeSalesLiveStaticConfig',
+    'applySalesLiveStaticConfig',
+  ].forEach(name => vm.runInContext(extractFunction(salesHtml, name), liveContext));
 
-console.log('sales_zlb_brand_chips.test.cjs passed');
+  assert.strictEqual(
+    liveContext.isVisibleZlbBrandGroup('IFACE'),
+    false,
+    'Jul 26 static JSON without iFACE should initially hide IFACE',
+  );
+  await liveContext.applySalesLiveStaticConfig(liveContext.DATA);
+  assert.match(liveContext.fetchedPath, /targets_static\?select=key,value/, 'live static config fetch should query targets_static');
+  assert.deepStrictEqual(
+    liveContext.DATA.config.zlb_brands,
+    ['SUKUN', 'iFACE'],
+    'live static zlb_brands should override generated JSON config',
+  );
+  assert.deepStrictEqual(
+    liveContext.DATA.config.brand_config.iFACE,
+    ['IFACE R'],
+    'live static brand_config should merge into DATA.config',
+  );
+  assert.strictEqual(
+    liveContext.isVisibleZlbBrandGroup('IFACE'),
+    true,
+    'Jul 26 should show IFACE when Admin adds IFACE back to live ZLB config',
+  );
+
+  const skuGroupsBlock = extractPythonBlock(processData, '# ZLB brand groups shown on debtor cards', '# New SKU groups');
+  assert(
+    processData.includes('ZLB_IFACE_REMOVED_FROM_MONTH = "Jul 26"'),
+    'process_data should make the IFACE removal month explicit',
+  );
+  assert(
+    skuGroupsBlock.includes('zlb_brands_for_month'),
+    'process_data debtor-card SKU/ZLB groups should apply the month cutoff before generating sku_status',
+  );
+
+  console.log('sales_zlb_brand_chips.test.cjs passed');
+})().catch(err => {
+  console.error(err);
+  process.exit(1);
+});

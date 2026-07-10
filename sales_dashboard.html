@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <script>
-const SALES_DASHBOARD_BUILD = '20260708-161343';
+const SALES_DASHBOARD_BUILD = '20260710-083238';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
@@ -1092,6 +1092,7 @@ function doAgentLogout() {
 function clearDashboardDataCaches() {
   try { DEBTOR_ANALYSIS_CACHE = undefined; } catch {}
   try { MONTH_SNAPSHOT_CACHE = {}; } catch {}
+  try { SALES_LIVE_STATIC_CONFIG_CACHE = undefined; } catch {}
   try {
     localStorage.removeItem('md_gist_cache');
     localStorage.removeItem('md_gist_cache_ts');
@@ -1138,6 +1139,7 @@ async function manualSync() {
   if (stat) stat.textContent = 'syncing…';
 
   try {
+    await applySalesLiveStaticConfig(DATA, { force: true });
     // Re-fetch kpi_manual overrides
     if (typeof SupabaseKpiSync !== 'undefined' && DATA) {
       await SupabaseKpiSync.apply(DATA);
@@ -2154,6 +2156,48 @@ async function loadMonthSnapshotData(monthLabel) {
   return MONTH_SNAPSHOT_CACHE[slug];
 }
 
+const SALES_LIVE_STATIC_CONFIG_KEYS = ['brand_config', 'zlb_brands', 'sku_rules'];
+let SALES_LIVE_STATIC_CONFIG_CACHE = undefined;
+
+function normalizeSalesLiveStaticRows(rows) {
+  const out = {};
+  (Array.isArray(rows) ? rows : []).forEach(row => {
+    const key = String(row?.key || '').trim();
+    if (!SALES_LIVE_STATIC_CONFIG_KEYS.includes(key)) return;
+    if (row.value !== undefined && row.value !== null) out[key] = row.value;
+  });
+  return out;
+}
+
+async function fetchSalesLiveStaticConfig(opts = {}) {
+  if (!opts.force && SALES_LIVE_STATIC_CONFIG_CACHE !== undefined) return SALES_LIVE_STATIC_CONFIG_CACHE;
+  try {
+    const keys = SALES_LIVE_STATIC_CONFIG_KEYS.join(',');
+    const rows = await fetchSupabaseJson(`targets_static?select=key,value&key=in.(${keys})`);
+    SALES_LIVE_STATIC_CONFIG_CACHE = normalizeSalesLiveStaticRows(rows);
+  } catch (e) {
+    console.warn('[SalesLiveStaticConfig] fetch skipped:', e.message || e);
+    SALES_LIVE_STATIC_CONFIG_CACHE = {};
+  }
+  return SALES_LIVE_STATIC_CONFIG_CACHE;
+}
+
+function mergeSalesLiveStaticConfig(data, liveConfig) {
+  if (!data || !liveConfig || typeof liveConfig !== 'object') return data;
+  data.config = data.config || {};
+  SALES_LIVE_STATIC_CONFIG_KEYS.forEach(key => {
+    if (liveConfig[key] === undefined) return;
+    data.config[key] = liveConfig[key];
+    if (key === 'sku_rules') data.config.sku_rules_snapshot = liveConfig[key];
+  });
+  return data;
+}
+
+async function applySalesLiveStaticConfig(data, opts = {}) {
+  const liveConfig = await fetchSalesLiveStaticConfig(opts);
+  return mergeSalesLiveStaticConfig(data, liveConfig);
+}
+
 function monthSnapshotIndex(snapshotData, monthLabel) {
   const byDebtor = {};
   Object.entries(snapshotData?.agents || {}).forEach(([agent, agentData]) => {
@@ -2353,6 +2397,7 @@ async function switchMonth(slug) {
     DATA.current_month = monthLabelFromSlug(requestedSlug);
     DATA.is_future_view = true;
     CURRENT_MONTH_SLUG = requestedSlug;
+    await applySalesLiveStaticConfig(DATA);
     await SupabaseKpiSync.apply(DATA);
     await ensureBirthdayOverridesForMonth(DATA.current_month || '');
     await SalesLiveCampaignSync.apply(DATA);
@@ -2397,6 +2442,7 @@ async function switchMonth(slug) {
     DATA.is_future_view = false;
     CURRENT_MONTH_SLUG = requestedSlug;
     if (window.MDAdminContext) MDAdminContext.setWorkingMonth(DATA.current_month || requestedMonth, { silent: true });
+    await applySalesLiveStaticConfig(DATA);
     await enrichMonthBreakdownsFromAnalysis();
     await SupabaseKpiSync.apply(DATA);
     await ensureBirthdayOverridesForMonth(DATA.current_month || '');
@@ -2483,6 +2529,7 @@ async function loadData() {
       DATA.is_future_view = false;
     }
     if (window.MDAdminContext) MDAdminContext.setWorkingMonth(DATA.current_month || preferredMonth, { silent: true });
+    await applySalesLiveStaticConfig(DATA);
     await enrichMonthBreakdownsFromAnalysis();
     // Fetch kpi_manual overrides from Supabase BEFORE init() so first render shows correct values
     await SupabaseKpiSync.apply(DATA);

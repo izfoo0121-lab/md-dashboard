@@ -53,6 +53,7 @@ assert(html.includes('onclick="forceRefreshDashboard()"'), 'Refresh button shoul
 const clearContext = {
   DEBTOR_ANALYSIS_CACHE: { records: [{ debtor: '300-A001' }] },
   MONTH_SNAPSHOT_CACHE: { jul26: { current_month: 'Jul 26' } },
+  SALES_LIVE_STATIC_CONFIG_CACHE: { zlb_brands: ['SUKUN'] },
   localStorage: {
     removed: [],
     removeItem(key) { this.removed.push(key); },
@@ -72,6 +73,11 @@ assert.strictEqual(
   Object.keys(clearContext.MONTH_SNAPSHOT_CACHE).length,
   0,
   'Refresh should clear month snapshot cache so selected month JSON can be refetched'
+);
+assert.strictEqual(
+  clearContext.SALES_LIVE_STATIC_CONFIG_CACHE,
+  undefined,
+  'Refresh should clear live static config cache so Admin ZLB/SKU changes can be refetched'
 );
 assert.deepStrictEqual(
   clearContext.localStorage.removed,
