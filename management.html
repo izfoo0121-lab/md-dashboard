@@ -5548,18 +5548,114 @@ const MGMT_UNPURCHASED_BRAND_ITEMS = {
   'LAM+LWM': ['LAM','LWM'],
 };
 
+const MGMT_OTHER_SKU_PREFIX = 'OTHER_SKU:';
+const DEFAULT_MGMT_OTHER_SKU_GROUPS = {
+  OTHER: { label: 'CMLT', item_codes: ['CMLT'], item_groups: ['CMLT'] },
+};
+
+function mgmtSkuNorm(value) {
+  return String(value || '').trim().toUpperCase().replace(/\s+/g, ' ');
+}
+
+function mgmtSkuRulesSnapshot(D=CURRENT_DATA||DATA) {
+  return D?.config?.sku_rules_snapshot
+    || D?.config?.sku_rules
+    || D?.sku_rules_snapshot
+    || {};
+}
+
+function mgmtOtherSkuConfiguredGroups(D=CURRENT_DATA||DATA) {
+  const configured = mgmtSkuRulesSnapshot(D)?.other_sku_groups;
+  const source = configured && Object.keys(configured).length ? configured : DEFAULT_MGMT_OTHER_SKU_GROUPS;
+  const groups = {};
+  Object.entries(source || {}).forEach(([group, rule]) => {
+    const key = mgmtSkuNorm(group);
+    if (!key) return;
+    groups[key] = rule || {};
+  });
+  return groups;
+}
+
+function mgmtOtherSkuBrandKey(group) {
+  const key = mgmtSkuNorm(group);
+  return key ? `${MGMT_OTHER_SKU_PREFIX}${key}` : '';
+}
+
+function mgmtIsOtherSkuBrand(brand) {
+  return String(brand || '').startsWith(MGMT_OTHER_SKU_PREFIX);
+}
+
+function mgmtOtherSkuGroupFromBrand(brand) {
+  return mgmtSkuNorm(String(brand || '').slice(MGMT_OTHER_SKU_PREFIX.length));
+}
+
+function mgmtOtherSkuRule(D, brand) {
+  const group = mgmtOtherSkuGroupFromBrand(brand);
+  return mgmtOtherSkuConfiguredGroups(D)?.[group] || {};
+}
+
+function mgmtRuleValues(rule, field) {
+  return Array.isArray(rule?.[field])
+    ? rule[field].map(mgmtSkuNorm).filter(Boolean)
+    : [];
+}
+
+function mgmtRowCode(row) {
+  return mgmtSkuNorm(row?.item || row?.item_code);
+}
+
+function mgmtRowGroup(row) {
+  return mgmtSkuNorm(row?.item_group || row?.group || row?.brand || row?.item || row?.item_code);
+}
+
+function mgmtRuleMatchesRow(rule, row) {
+  const code = mgmtRowCode(row);
+  const group = mgmtRowGroup(row);
+  const itemCodes = mgmtRuleValues(rule, 'item_codes');
+  const itemGroups = mgmtRuleValues(rule, 'item_groups');
+  const itemCodePrefixes = mgmtRuleValues(rule, 'item_code_prefixes');
+  const itemGroupPrefixes = mgmtRuleValues(rule, 'item_group_prefixes');
+  return (code && itemCodes.includes(code))
+    || (group && itemGroups.includes(group))
+    || (code && itemCodePrefixes.some(prefix => code.startsWith(prefix)))
+    || (group && itemGroupPrefixes.some(prefix => group.startsWith(prefix)));
+}
+
+function mgmtUnpurchasedBrandKey(brand) {
+  const raw = String(brand || '').trim();
+  if (mgmtIsOtherSkuBrand(raw)) return raw;
+  return progressZlbUnpurchasedBrandKey(raw);
+}
+
+function mgmtUnpurchasedBrandLabel(brand) {
+  const D = CURRENT_DATA || DATA;
+  if (mgmtIsOtherSkuBrand(brand)) {
+    const rule = mgmtOtherSkuRule(D, brand);
+    return String(rule?.label || mgmtOtherSkuGroupFromBrand(brand) || 'Other SKU');
+  }
+  return progressZlbBrandLabel(brand);
+}
+
 function mgmtUnpurchasedBrands(D=CURRENT_DATA||DATA) {
   const configured = progressZlbBrands(D)
     .map(brand => progressZlbUnpurchasedBrandKey(brand))
     .filter(Boolean);
-  if (configured.length) return [...new Set(configured)].filter(Boolean);
-  return [...new Set(Object.keys(MGMT_UNPURCHASED_BRAND_ITEMS))]
+  const otherSkuBrands = Object.keys(mgmtOtherSkuConfiguredGroups(D)).map(mgmtOtherSkuBrandKey).filter(Boolean);
+  if (configured.length) return [...new Set([...configured, ...otherSkuBrands])].filter(Boolean);
+  return [...new Set([...Object.keys(MGMT_UNPURCHASED_BRAND_ITEMS), ...otherSkuBrands])]
     .filter(Boolean)
     .sort((a, b) => progressZlbBrandSortKey(a) - progressZlbBrandSortKey(b) || String(a).localeCompare(String(b)));
 }
 
 function mgmtUnpurchasedBrandItems(brand) {
   const D = CURRENT_DATA || DATA;
+  if (mgmtIsOtherSkuBrand(brand)) {
+    const rule = mgmtOtherSkuRule(D, brand);
+    return new Set([
+      ...mgmtRuleValues(rule, 'item_codes'),
+      ...mgmtRuleValues(rule, 'item_groups'),
+    ]);
+  }
   const upper = String(brand || '').trim().toUpperCase();
   const configKey = Object.keys(D?.config?.brand_config || {}).find(key => String(key).trim().toUpperCase() === upper);
   const configured = configKey ? (D.config.brand_config[configKey] || []) : [];
@@ -5567,6 +5663,16 @@ function mgmtUnpurchasedBrandItems(brand) {
   return new Set((configured.length ? configured : fallback)
     .map(item => String(item || '').trim().toUpperCase())
     .filter(Boolean));
+}
+
+function mgmtUnpurchasedBrandRowMatches(row, brand) {
+  if (mgmtIsOtherSkuBrand(brand)) {
+    return mgmtRuleMatchesRow(mgmtOtherSkuRule(CURRENT_DATA || DATA, brand), row);
+  }
+  const items = mgmtUnpurchasedBrandItems(brand);
+  const code = mgmtRowCode(row);
+  const group = mgmtRowGroup(row);
+  return (code && items.has(code)) || (group && items.has(group));
 }
 
 function movementChipHtml(label, active, onclick, color='var(--ink)') {
@@ -5632,7 +5738,6 @@ function mgmtMonthIndex(label) {
 }
 
 function mgmtBrandPurchaseStats(d, brand) {
-  const items = mgmtUnpurchasedBrandItems(brand);
   const mb = d.month_breakdown || {};
   const currentMonth = (CURRENT_DATA || DATA)?.current_month || '';
   const prevMonths = new Set(progressZlbPrevMonthLabels(CURRENT_DATA || DATA, 3));
@@ -5644,8 +5749,7 @@ function mgmtBrandPurchaseStats(d, brand) {
   let lastIdx = null;
   Object.entries(mb).forEach(([month, rows]) => {
     (rows || []).forEach(r => {
-      const item = String(r.item || '').trim().toUpperCase();
-      if (!items.has(item)) return;
+      if (!mgmtUnpurchasedBrandRowMatches(r, brand)) return;
       const ctn = Number(r.ctn || 0);
       if (ctn <= 0) return;
       total += ctn;
@@ -5720,7 +5824,7 @@ function mgmtUnpurchasedSummaryRows(baseRows, brand, type='all') {
   (baseRows || []).forEach(r => {
     if (selectedType !== 'all' && r.type !== selectedType) return;
     const agent = String(r.agent || '').trim() || 'Unknown';
-    const stats = r.brandStats?.[brand] || r.brandStats?.[progressZlbUnpurchasedBrandKey(brand)] || {};
+    const stats = r.brandStats?.[brand] || r.brandStats?.[mgmtUnpurchasedBrandKey(brand)] || {};
     const row = groups[agent] ||= { agent, totalDebtors: 0, currentBuyers: 0, unpurchased: 0 };
     row.totalDebtors += 1;
     if (Number(stats.currentMonthCtn || 0) > 0) row.currentBuyers += 1;
@@ -5778,7 +5882,7 @@ function mgmtUnpurchasedCard(r, index, showAgent) {
       <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">${mgmtEsc(d.debtor_code)} · ${mgmtEsc(r.type)}${d.phone ? ' · ' + mgmtEsc(d.phone) : ''}</div>
     </div>
     <div style="text-align:right;font-family:var(--mono);font-size:9px;color:var(--ink3);">
-      <div style="color:${isBuyers || boughtThisMonth ? 'var(--green)' : 'var(--accent)'};font-size:10px;">${isBuyers ? '本月购买' : '前三个月未购买'} ${mgmtEsc(progressZlbBrandLabel(mgmtUnpurchasedBrand))}</div>
+      <div style="color:${isBuyers || boughtThisMonth ? 'var(--green)' : 'var(--accent)'};font-size:10px;">${isBuyers ? '本月购买' : '前三个月未购买'} ${mgmtEsc(mgmtUnpurchasedBrandLabel(mgmtUnpurchasedBrand))}</div>
       <div>${isBuyers || boughtThisMonth ? `本月 ${fn(stat.currentMonthCtn || 0)} CTN` : `last: ${mgmtEsc(stat.lastMonth || 'none in lookback')}`}</div>
     </div>
   </div>`;
@@ -5801,7 +5905,7 @@ function renderMgmtUnpurchasedOverview() {
   const isBuyers = mgmtUnpurchasedView === 'buyers';
   const brandButtons = brands.map(brand => {
     const safe = brand.replace(/'/g, "\\'");
-    return `<button class="filter-chip ${brand === mgmtUnpurchasedBrand ? 'active' : ''}" onclick="setMgmtUnpurchasedBrand('${safe}')">${mgmtEsc(progressZlbBrandLabel(brand))} (${brandCounts[brand] || 0})</button>`;
+    return `<button class="filter-chip ${brand === mgmtUnpurchasedBrand ? 'active' : ''}" onclick="setMgmtUnpurchasedBrand('${safe}')">${mgmtEsc(mgmtUnpurchasedBrandLabel(brand))} (${brandCounts[brand] || 0})</button>`;
   }).join('');
   const viewButtons = [
     `<button class="filter-chip ${!isBuyers ? 'active' : ''}" onclick="setMgmtUnpurchasedView('unpurchased')">未购买</button>`,
@@ -5870,10 +5974,11 @@ function renderMgmtUnpurchasedOverview() {
     rows,
   };
 
+  const poolLabel = mgmtIsOtherSkuBrand(mgmtUnpurchasedBrand) ? 'SKU monitor pool' : 'ZLB penetration pool';
   el.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
       <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);background:rgba(255,255,255,.04);border-left:2px solid var(--accent);padding:7px 10px;border-radius:6px;">
-        ${rows.length} 个客户${isBuyers ? '本月购买' : '前三个月未购买'} ${mgmtEsc(progressZlbBrandLabel(mgmtUnpurchasedBrand))} · ${isBuyers ? '本月' : 'ZLB penetration pool'} · 不含Personal · across ${activeAgents.size} agents
+        ${rows.length} 个客户${isBuyers ? '本月购买' : '前三个月未购买'} ${mgmtEsc(mgmtUnpurchasedBrandLabel(mgmtUnpurchasedBrand))} · ${isBuyers ? '本月' : poolLabel} · 不含Personal · across ${activeAgents.size} agents
       </div>
       <div style="display:flex;gap:6px;">
         ${viewButtons}
@@ -5906,7 +6011,7 @@ function setMgmtUnpurchasedView(view) {
 }
 
 function setMgmtUnpurchasedBrand(brand) {
-  mgmtUnpurchasedBrand = progressZlbUnpurchasedBrandKey(brand);
+  mgmtUnpurchasedBrand = mgmtUnpurchasedBrandKey(brand);
   mgmtUnpurchasedType = 'all';
   mgmtUnpurchasedCombinedPage = 1;
   mgmtUnpurchasedAgentPages = {};
