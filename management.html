@@ -5666,20 +5666,21 @@ function mgmtBrandPurchaseStats(d, brand) {
   return { total, currentMonthCtn, prevLookbackCtn, lastMonth, monthsSince };
 }
 
-function mgmtGetAllUnpurchasedRows() {
+function mgmtGetAllUnpurchasedRows(options={}) {
   const D = CURRENT_DATA || DATA;
   const rows = [];
+  const ignoreAgentSearch = !!options.ignoreAgentSearch;
   Object.entries(D?.agents || {}).forEach(([agent, block]) => {
     const debtors = block?.debtor_cards?.debtors || [];
     debtors.forEach(d => {
       const type = mgmtDebtorType(d);
       if (!type || mgmtIsPersonal(d) || d.dm_active === false) return;
-      const search = mgmtUnpurchasedSearch.trim().toLowerCase();
+      const search = ignoreAgentSearch ? '' : mgmtUnpurchasedSearch.trim().toLowerCase();
       if (search &&
           !String(d.company_name || '').toLowerCase().includes(search) &&
           !String(d.debtor_code || '').toLowerCase().includes(search) &&
           !String(d.phone || '').toLowerCase().includes(search)) return;
-      if (mgmtUnpurchasedAgent !== 'all' && agent !== mgmtUnpurchasedAgent) return;
+      if (!ignoreAgentSearch && mgmtUnpurchasedAgent !== 'all' && agent !== mgmtUnpurchasedAgent) return;
       const brandStats = {};
       mgmtUnpurchasedBrands(D).forEach(brand => {
         brandStats[brand] = mgmtBrandPurchaseStats(d, brand);
@@ -5713,6 +5714,58 @@ function mgmtCurrentUnpurchasedRows() {
   return { rows, brandCounts, typeCounts, selectedBrandRows };
 }
 
+function mgmtUnpurchasedSummaryRows(baseRows, brand, type='all') {
+  const selectedType = String(type || 'all');
+  const groups = {};
+  (baseRows || []).forEach(r => {
+    if (selectedType !== 'all' && r.type !== selectedType) return;
+    const agent = String(r.agent || '').trim() || 'Unknown';
+    const stats = r.brandStats?.[brand] || r.brandStats?.[progressZlbUnpurchasedBrandKey(brand)] || {};
+    const row = groups[agent] ||= { agent, totalDebtors: 0, currentBuyers: 0, unpurchased: 0 };
+    row.totalDebtors += 1;
+    if (Number(stats.currentMonthCtn || 0) > 0) row.currentBuyers += 1;
+    if (Number(stats.prevLookbackCtn || 0) === 0) row.unpurchased += 1;
+  });
+  return Object.values(groups).sort((a, b) =>
+    b.unpurchased - a.unpurchased ||
+    b.totalDebtors - a.totalDebtors ||
+    a.agent.localeCompare(b.agent)
+  );
+}
+
+function renderMgmtUnpurchasedAgentSummary(summaryRows) {
+  const totals = (summaryRows || []).reduce((acc, row) => {
+    acc.totalDebtors += row.totalDebtors;
+    acc.currentBuyers += row.currentBuyers;
+    acc.unpurchased += row.unpurchased;
+    return acc;
+  }, { totalDebtors: 0, currentBuyers: 0, unpurchased: 0 });
+  const rows = [
+    { agent: 'TOTAL', ...totals },
+    ...(summaryRows || []),
+  ];
+  if (!totals.totalDebtors) {
+    return `<div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;font-family:var(--mono);font-size:10px;color:var(--ink3);">No agent SKU status for this filter.</div>`;
+  }
+  return `<div data-mgmt-sku-agent-summary style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:10px;background:rgba(255,255,255,.03);">
+    <div style="display:grid;grid-template-columns:minmax(88px,1fr) repeat(3,minmax(70px,.55fr));gap:1px;background:var(--border);font-family:var(--mono);font-size:9px;color:var(--ink3);">
+      <div style="background:var(--card);padding:7px 9px;">Agent</div>
+      <div style="background:var(--card);padding:7px 9px;text-align:right;">总户口</div>
+      <div style="background:var(--card);padding:7px 9px;text-align:right;color:var(--green);">本月购买</div>
+      <div style="background:var(--card);padding:7px 9px;text-align:right;color:var(--accent);">未购买</div>
+    </div>
+    ${rows.map(row => {
+      const isTotal = row.agent === 'TOTAL';
+      return `<div style="display:grid;grid-template-columns:minmax(88px,1fr) repeat(3,minmax(70px,.55fr));gap:1px;background:var(--border);font-family:var(--mono);font-size:10px;">
+        <div style="background:${isTotal ? 'rgba(0,0,0,.04)' : 'var(--bg)'};padding:7px 9px;font-weight:${isTotal ? '700' : '500'};">${mgmtEsc(row.agent)}</div>
+        <div style="background:${isTotal ? 'rgba(0,0,0,.04)' : 'var(--bg)'};padding:7px 9px;text-align:right;">${fi(row.totalDebtors)}</div>
+        <div style="background:${isTotal ? 'rgba(0,0,0,.04)' : 'var(--bg)'};padding:7px 9px;text-align:right;color:var(--green);">${fi(row.currentBuyers)}</div>
+        <div style="background:${isTotal ? 'rgba(0,0,0,.04)' : 'var(--bg)'};padding:7px 9px;text-align:right;color:var(--accent);">${fi(row.unpurchased)}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
 function mgmtUnpurchasedCard(r, index, showAgent) {
   const d = r.debtor;
   const stat = r.brandStats[mgmtUnpurchasedBrand] || {};
@@ -5742,6 +5795,8 @@ function renderMgmtUnpurchasedOverview() {
   const brands = mgmtUnpurchasedBrands(D);
   if (!brands.includes(mgmtUnpurchasedBrand)) mgmtUnpurchasedBrand = brands[0] || 'IFACE';
   const { rows, brandCounts, typeCounts, selectedBrandRows } = mgmtCurrentUnpurchasedRows();
+  const summaryBaseRows = mgmtGetAllUnpurchasedRows({ ignoreAgentSearch: true });
+  const agentSummaryRows = mgmtUnpurchasedSummaryRows(summaryBaseRows, mgmtUnpurchasedBrand, mgmtUnpurchasedType);
   const activeAgents = new Set(rows.map(r => r.agent));
   const isBuyers = mgmtUnpurchasedView === 'buyers';
   const brandButtons = brands.map(brand => {
@@ -5828,6 +5883,7 @@ function renderMgmtUnpurchasedOverview() {
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">${brandButtons}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">${typeButtons}</div>
+    ${renderMgmtUnpurchasedAgentSummary(agentSummaryRows)}
     <div style="display:grid;grid-template-columns:minmax(120px,180px) 1fr;gap:8px;margin-bottom:10px;">
       <select onchange="setMgmtUnpurchasedAgent(this.value)" style="font-family:var(--mono);font-size:11px;padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--ink);">${agentOptions}</select>
       <input value="${mgmtEsc(mgmtUnpurchasedSearch)}" oninput="setMgmtUnpurchasedSearch(this.value)" placeholder="Search name / code / phone" style="font-family:var(--mono);font-size:11px;padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--ink);">
