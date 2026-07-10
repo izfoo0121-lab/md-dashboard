@@ -175,6 +175,32 @@ class ProcessMonthOverrideTests(unittest.TestCase):
         self.assertEqual(active_agents, ["BEN"])
         self.assertEqual(inactive_agents, ["JW"])
 
+    def test_inherited_successor_keeps_archived_predecessor_in_dashboard_scope(self):
+        targets = {
+            "agents": {
+                "KEAN": {
+                    "active": False,
+                    "archived": True,
+                    "sales_progression": {"normal_t1": 700},
+                },
+                "XIAN": {
+                    "active": True,
+                    "archived": False,
+                    "inherits_from": "KEAN",
+                    "inherit_from_month": "Jul-26",
+                },
+            }
+        }
+        scoped_sales = pd.DataFrame({"agent": ["KEAN"]})
+
+        all_agents, active_agents, inactive_agents = process_data.resolve_dashboard_agents(
+            targets, scoped_sales
+        )
+
+        self.assertEqual(all_agents, ["XIAN"])
+        self.assertEqual(active_agents, ["XIAN"])
+        self.assertEqual(inactive_agents, [])
+
     def test_missing_monthly_targets_keep_sales_actuals_without_stale_targets(self):
         targets = {
             "agents": {

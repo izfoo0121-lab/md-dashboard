@@ -2396,15 +2396,27 @@ def _agent_config_has_dashboard_targets(cfg):
 def resolve_dashboard_agents(targets, scoped_df):
     """Return all/active/inactive agent lists for the GRP 2A dashboard output."""
     agents_cfg = (targets or {}).get("agents", {}) or {}
+    data_agents = []
+    if scoped_df is not None and "agent" in scoped_df.columns:
+        data_agents = sorted(a for a in scoped_df["agent"].dropna().unique().tolist() if a)
+    data_agent_set = set(data_agents)
+
+    def inherits_dashboard_scope(agent, cfg):
+        predecessor = cfg.get("inherits_from") if isinstance(cfg, dict) else None
+        if not predecessor:
+            return False
+        pred_cfg = agents_cfg.get(predecessor, {})
+        return _agent_config_has_dashboard_targets(pred_cfg) or predecessor in data_agent_set
+
     target_agents = [
         agent for agent, cfg in agents_cfg.items()
         if agent
         and not cfg.get("archived", False)
-        and _agent_config_has_dashboard_targets(cfg)
+        and (
+            _agent_config_has_dashboard_targets(cfg)
+            or inherits_dashboard_scope(agent, cfg)
+        )
     ]
-    data_agents = []
-    if scoped_df is not None and "agent" in scoped_df.columns:
-        data_agents = sorted(a for a in scoped_df["agent"].dropna().unique().tolist() if a)
     raw_agents = target_agents if target_agents else data_agents
     all_agents = list(raw_agents)
     active_agents = [
