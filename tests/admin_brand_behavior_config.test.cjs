@@ -42,6 +42,8 @@ function makeElement(id) {
 
 assert.equal(html.includes('id="brand-behavior-config"'), true, 'Admin should expose brand behavior config controls');
 assert.equal(html.includes('id="zlb-brand-effective-preview"'), true, 'Admin should expose an effective ZLB brand preview');
+assert.equal(html.includes('addZlbBrandConfig'), true, 'Admin ZLB section should expose an add control');
+assert.equal(html.includes('removeZlbBrandConfig'), true, 'Admin ZLB section should expose a remove control');
 assert.match(html, /penetration_auto_brands/, 'Admin should persist configurable auto brand list');
 assert.match(html, /zlb_brands/, 'Admin should persist configurable ZLB brand list');
 
@@ -50,6 +52,7 @@ const elements = new Map([
   ['brand-sku-behavior-summary', makeElement('brand-sku-behavior-summary')],
   ['admin-brand-sku-status', makeElement('admin-brand-sku-status')],
   ['zlb-brand-effective-preview', makeElement('zlb-brand-effective-preview')],
+  ['zlb-new-brand', makeElement('zlb-new-brand')],
   ['brand-sku-forms', makeElement('brand-sku-forms')],
 ]);
 
@@ -99,7 +102,7 @@ const context = {
   document: {
     getElementById(id) { return elements.get(id) || null; },
   },
-  updateRawJSON() {},
+  updateRawJSON() { context.rawUpdated = true; },
   getAdminWorkingMonth() { return context.ADMIN_ACTIVE_MONTH || 'Jul 26'; },
   adminMonthSortKey(month) {
     const [mon, yy] = String(month || '').split(' ');
@@ -134,7 +137,10 @@ vm.runInContext(extractBlock('const DEFAULT_GROUP_BRAND_CONFIG', 'function rende
   'adminConfiguredZlbBrands',
   'adminEffectiveZlbBrands',
   'adminBrandCodesForMapping',
+  'refreshZlbBrandConfigViews',
   'renderEffectiveZlbBrandPreview',
+  'addZlbBrandConfig',
+  'removeZlbBrandConfig',
   'normalizeGroupBrandKey',
   'normalizeGroupBrandCodes',
   'normalizeGroupBrandConfig',
@@ -169,8 +175,24 @@ context.renderSKUForms();
 let zlbPreviewHtml = elements.get('zlb-brand-effective-preview').innerHTML;
 assert.match(zlbPreviewHtml, /Effective for[\s\S]*Jul 26/, 'ZLB preview should name the working month');
 assert.match(zlbPreviewHtml, /SUKUN/, 'Jul ZLB preview should show configured ZLB brands');
+assert.match(zlbPreviewHtml, /id="zlb-new-brand"/, 'ZLB preview should include an add input in the ZLB section');
+assert.match(zlbPreviewHtml, /removeZlbBrandConfig/, 'ZLB preview should render remove controls for configured ZLB brands');
 assert.doesNotMatch(zlbPreviewHtml, /iFACE/, 'Jul ZLB preview should not show historical iFACE');
 assert.doesNotMatch(zlbPreviewHtml, /CMP/, 'Jul ZLB preview should not show CMP as a ZLB brand');
+
+elements.get('zlb-new-brand').value = 'CMX';
+context.addZlbBrandConfig();
+assert.deepEqual(context.CONFIG.zlb_brands, ['SUKUN', 'BISON', 'CMX'], 'Adding in ZLB section should update config.zlb_brands');
+assert.deepEqual(context.CONFIG.brand_config.CMX, [], 'Adding a new ZLB brand should create an empty global item mapping for it');
+assert.match(elements.get('brand-sku-forms').innerHTML, /CMX/, 'Adding a ZLB brand should refresh the global mapping editor');
+assert.strictEqual(context.rawUpdated, true, 'Adding a ZLB brand should mark raw JSON dirty');
+
+elements.get('zlb-new-brand').value = 'CMP';
+context.addZlbBrandConfig();
+assert.deepEqual(context.CONFIG.zlb_brands, ['SUKUN', 'BISON', 'CMX'], 'CMP should not be addable as a ZLB brand');
+
+context.removeZlbBrandConfig('BISON');
+assert.deepEqual(context.CONFIG.zlb_brands, ['SUKUN', 'CMX'], 'Removing in ZLB section should update config.zlb_brands');
 
 context.ADMIN_ACTIVE_MONTH = 'Jun 26';
 context.renderSKUForms();

@@ -534,6 +534,9 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
       </div>
 
       <div class="sec-divider">Brand Item Mapping (Global)</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);line-height:1.6;margin:-4px 0 10px;">
+        These mappings tell the dashboard which item codes belong to each brand. They feed ZLB chips, Brand Target auto/non-buyer checks, and campaign helpers. Add/remove ZLB display brands in the ZLB Brand box above.
+      </div>
       <div id="brand-sku-forms"></div>
 
       <div class="admin-card" style="margin-top:12px;">
@@ -2514,12 +2517,62 @@ function adminBrandCodesForMapping(brand) {
   return DEFAULT_BRAND_CONFIG[key] ? [...DEFAULT_BRAND_CONFIG[key]] : [];
 }
 
+function refreshZlbBrandConfigViews() {
+  renderSKUForms();
+  renderBrandBehaviorConfig();
+  renderBrandSkuBehaviorSummary();
+  renderAdminBrandSKU();
+}
+
+function addZlbBrandConfig() {
+  const inp = document.getElementById('zlb-new-brand');
+  const brand = adminBrandKey(inp?.value || '');
+  if (inp) inp.value = '';
+  if (!brand || adminIsZlbExcludedBrand(brand)) return;
+
+  const brands = adminConfiguredZlbBrands();
+  const key = adminBrandKey(brand).toUpperCase();
+  if (!brands.some(item => adminBrandKey(item).toUpperCase() === key)) {
+    brands.push(brand);
+  }
+  CONFIG.zlb_brands = brands;
+  CONFIG.brand_config = CONFIG.brand_config || {};
+  if (!CONFIG.brand_config[brand]) {
+    CONFIG.brand_config[brand] = DEFAULT_BRAND_CONFIG[brand] ? [...DEFAULT_BRAND_CONFIG[brand]] : [];
+  }
+  refreshZlbBrandConfigViews();
+  updateRawJSON();
+}
+
+function removeZlbBrandConfig(brand) {
+  const key = adminBrandKey(brand).toUpperCase();
+  if (!key) return;
+  CONFIG.zlb_brands = adminConfiguredZlbBrands()
+    .filter(item => adminBrandKey(item).toUpperCase() !== key);
+  refreshZlbBrandConfigViews();
+  updateRawJSON();
+}
+
 function renderEffectiveZlbBrandPreview() {
   const el = document.getElementById('zlb-brand-effective-preview');
   if (!el) return;
   const month = getAdminWorkingMonth();
+  const configured = adminConfiguredZlbBrands();
   const brands = adminEffectiveZlbBrands(month);
   el.innerHTML = `
+    <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);margin-bottom:8px;">Configured ZLB Brands</div>
+    <div class="sku-list" style="margin-bottom:10px;">
+      ${configured.map(brand => `
+        <div class="sku-chip">
+          ${kpiAdminEscape(brand)}
+          <button type="button" onclick="removeZlbBrandConfig(${kpiAdminEventArg(brand)})" title="Remove from ZLB">&times;</button>
+        </div>
+      `).join('') || `<div style="font-family:var(--mono);font-size:10px;color:var(--ink3);">No configured ZLB brands.</div>`}
+    </div>
+    <div class="sku-add-row" style="margin-bottom:12px;">
+      <input class="sku-add-input" id="zlb-new-brand" placeholder="Add ZLB brand e.g. SUKUN" style="text-transform:uppercase;">
+      <button class="sku-add-btn" type="button" onclick="addZlbBrandConfig()">Add ZLB</button>
+    </div>
     <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);margin-bottom:10px;">
       Effective for <b style="color:var(--blue);">${kpiAdminEscape(month || 'selected month')}</b>.
       Group Brand Target is managed in its own tab.
