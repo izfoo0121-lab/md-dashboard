@@ -620,6 +620,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
       <div style="overflow-x:auto;">
         <div id="admin-brand-sku-status" style="min-width:700px;"></div>
       </div>
+      <div id="admin-brand-sku-drilldown"></div>
     </div>
   </div>
 
@@ -6806,6 +6807,182 @@ function saveTargetsJSON() {
 }
 
 // ── Brand SKU Status (Admin) ───────────────────────────────────────────────
+function adminLatestSnapshotMonth(snaps) {
+  return Object.keys(snaps || {})
+    .filter(month => Number.isFinite(adminMonthSortKey(month)))
+    .sort((a, b) => adminMonthSortKey(a) - adminMonthSortKey(b))
+    .pop() || '';
+}
+
+function adminBrandSnapshotSelection() {
+  const snaps = CONFIG?.penetration_snapshots || {};
+  const workingMonth = typeof getAdminWorkingMonth === 'function' ? getAdminWorkingMonth() : '';
+  if (workingMonth && snaps[workingMonth]) {
+    return { month: workingMonth, snapshot: snaps[workingMonth], requestedMonth: workingMonth, fallback: false };
+  }
+  const latestMo = adminLatestSnapshotMonth(snaps);
+  return {
+    month: latestMo,
+    snapshot: latestMo ? snaps[latestMo] : {},
+    requestedMonth: workingMonth,
+    fallback: !!workingMonth && !!latestMo && workingMonth !== latestMo,
+  };
+}
+
+let ADMIN_BRAND_DRILLDOWN_STATE = null;
+
+function adminBrandPresetKey(brand) {
+  return adminBrandKey(brand).toUpperCase();
+}
+
+function adminBrandMatchValues(brand) {
+  const key = adminBrandPresetKey(brand);
+  const generated = DASH_DATA?.brand_penetration_presets?.[key] || {};
+  const cfg = typeof getBrandPenetrationPresetConfig === 'function' ? getBrandPenetrationPresetConfig(key) : {};
+  const values = generated.match_values || generated.qualifying_values || cfg.match_values || [key];
+  return [...new Set([key, ...values].map(brandPenetrationNormKey).filter(Boolean))];
+}
+
+function adminBrandDebtorCardLookup(agent) {
+  const out = {};
+  (DASH_DATA?.agents?.[agent]?.debtor_cards?.debtors || []).forEach(row => {
+    const code = brandPenetrationNormKey(row.debtor_code || row.code);
+    if (code) out[code] = row;
+  });
+  return out;
+}
+
+function adminBrandReason(brand, month, debtor, brandMonths) {
+  if (String(debtor.open_month || '').trim() === month) return 'New account';
+  if (!brandMonths.length) return `Never bought ${brand}`;
+  const lookback = typeof adminPreviousMonthLabels === 'function' ? adminPreviousMonthLabels(month, 3) : [];
+  return lookback.some(m => brandMonths.includes(m)) ? `Current month not bought ${brand}` : `3-month no ${brand}`;
+}
+
+function adminBrandCandidateArraysForData(data, brand, month) {
+  const sourceByBrand = data?.brand_penetration_candidates_by_month || {};
+  const preset = adminBrandPresetKey(brand);
+  const keys = [
+    brand,
+    preset,
+    String(brand || '').trim().toUpperCase(),
+    ...Object.keys(sourceByBrand).filter(key => adminBrandPresetKey(key) === preset),
+  ].filter(Boolean);
+  const seen = new Set();
+  const arrays = [];
+  keys.forEach(key => {
+    if (seen.has(key)) return;
+    seen.add(key);
+    const rows = sourceByBrand[key]?.[month];
+    if (Array.isArray(rows)) arrays.push(rows);
+  });
+  return arrays;
+}
+
+function adminBrandCandidateArrays(brand, month) {
+  return adminBrandCandidateArraysForData(DASH_DATA, brand, month);
+}
+
+function adminBrandNormalizeCandidateRow(row, agent, brand, month, debtorCards) {
+  const debtorCode = brandPenetrationNormKey(row.debtor_code || row.code);
+  const card = debtorCards[debtorCode] || {};
+  return {
+    debtor_code: debtorCode,
+    debtor_name: row.debtor_name || row.name || card.company_name || debtorCode,
+    debtor_type: row.debtor_type || card.debtor_type || '',
+    agent,
+    reason: row.eligibility_reason || row.promo_logic || row.notes || adminBrandReason(brand, month, row, []),
+    last_brand_purchase_month: row.last_brand_purchase_month || '',
+    last_any_purchase_date: row.last_any_purchase_date || card.last_purchase_date || '',
+    current_month_brand_ctn: Number(row.current_month_brand_ctn || 0),
+  };
+}
+
+function adminBrandGeneratedCandidateRows(agent, brand, month) {
+  const cleanAgent = brandPenetrationNormKey(agent);
+  const cleanBrand = adminBrandPresetKey(brand);
+  const debtorCards = adminBrandDebtorCardLookup(cleanAgent);
+  const arrays = adminBrandCandidateArrays(cleanBrand, month);
+  if (!arrays.length) return null;
+  return arrays.flat()
+    .filter(row => brandPenetrationNormKey(row.agent) === cleanAgent)
+    .map(row => adminBrandNormalizeCandidateRow(row, cleanAgent, cleanBrand, month, debtorCards))
+    .filter(row => row.debtor_code);
+}
+
+function adminBrandNonBuyerRows(agent, brand, month) {
+  const cleanAgent = brandPenetrationNormKey(agent);
+  const cleanBrand = adminBrandPresetKey(brand);
+  const generatedRows = adminBrandGeneratedCandidateRows(cleanAgent, cleanBrand, month);
+  if (Array.isArray(generatedRows)) return generatedRows;
+  const source = DASH_DATA?.brand_penetration_source;
+  if (!source || !Array.isArray(source.debtors) || !Array.isArray(source.purchases)) return null;
+  const matchSet = new Set(adminBrandMatchValues(cleanBrand));
+  if (!matchSet.size) return null;
+  const purchaseMonthsByDebtor = new Map();
+  source.purchases.forEach(row => {
+    const group = brandPenetrationNormKey(row.item_group);
+    const code = brandPenetrationNormKey(row.item_code);
+    if (!matchSet.has(group) && !matchSet.has(code)) return;
+    const debtorCode = brandPenetrationNormKey(row.debtor_code);
+    const paidMonth = String(row.month || '').trim();
+    if (!debtorCode || !paidMonth) return;
+    if (!purchaseMonthsByDebtor.has(debtorCode)) purchaseMonthsByDebtor.set(debtorCode, new Set());
+    purchaseMonthsByDebtor.get(debtorCode).add(paidMonth);
+  });
+
+  const debtorCards = adminBrandDebtorCardLookup(cleanAgent);
+  const rows = [];
+  source.debtors.forEach(debtor => {
+    const debtorCode = brandPenetrationNormKey(debtor.debtor_code || debtor.code);
+    if (!debtorCode || debtor.dm_active === false) return;
+    if (brandPenetrationNormKey(debtor.agent) !== cleanAgent) return;
+    if (brandPenetrationTypeExcluded(debtor.debtor_type, ['Personal', 'End User'])) return;
+    const brandMonths = [...(purchaseMonthsByDebtor.get(debtorCode) || new Set())]
+      .sort((a, b) => adminMonthSortKey(a) - adminMonthSortKey(b));
+    if (brandMonths.includes(month)) return;
+    const card = debtorCards[debtorCode] || {};
+    rows.push({
+      debtor_code: debtorCode,
+      debtor_name: debtor.debtor_name || card.company_name || debtorCode,
+      debtor_type: debtor.debtor_type || card.debtor_type || '',
+      agent: cleanAgent,
+      reason: adminBrandReason(cleanBrand, month, debtor, brandMonths),
+      last_brand_purchase_month: brandMonths.length ? brandMonths[brandMonths.length - 1] : '',
+      last_any_purchase_date: card.last_purchase_date || '',
+      current_month_brand_ctn: 0,
+    });
+  });
+  return rows.sort((a, b) => String(a.reason).localeCompare(String(b.reason)) || String(a.debtor_code).localeCompare(String(b.debtor_code)));
+}
+
+function adminBrandGeneratedCandidateCount(data, agent, brand, month) {
+  const arrays = adminBrandCandidateArraysForData(data, brand, month);
+  if (!arrays.length) return null;
+  const cleanAgent = brandPenetrationNormKey(agent);
+  return arrays.reduce((total, rows) => total + rows.filter(row => brandPenetrationNormKey(row.agent) === cleanAgent).length, 0);
+}
+
+function adminBrandNonBuyerCount(data, agent, brand, month) {
+  const byBrand = data?.agents?.[agent]?.brand_commission || {};
+  const requested = adminBrandPresetKey(brand);
+  const direct = byBrand[brand] || byBrand[requested] || byBrand[String(brand || '').trim()]
+    || byBrand[Object.keys(byBrand).find(key => adminBrandPresetKey(key) === requested)];
+  const value = direct?.non_buyers;
+  if (value != null && value !== '') return Number(value);
+  return adminBrandGeneratedCandidateCount(data, agent, brand, month || data?.current_month || getAdminWorkingMonth());
+}
+
+function adminBrandDisplayNonBuyer(agent, brand, month, snapshotValue) {
+  if (snapshotValue != null && snapshotValue !== '') {
+    const count = Number(snapshotValue);
+    return { hasCount: Number.isFinite(count), count, label: String(snapshotValue), source: 'snapshot' };
+  }
+  const count = adminBrandNonBuyerCount(DASH_DATA || {}, agent, brand, month);
+  if (Number.isFinite(count)) return { hasCount: true, count, label: String(count), source: 'generated' };
+  return { hasCount: false, count: null, label: 'No source', source: 'missing' };
+}
+
 function renderBrandSkuBehaviorSummary() {
   const el = document.getElementById('brand-sku-behavior-summary');
   if (!el) return;
@@ -6871,14 +7048,15 @@ function renderAdminBrandSKU() {
     .map(brand => adminBrandKey(brand).toUpperCase()));
   const agents   = getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}), { includeInactive: true });
 
-  // Get latest penetration snapshot
-  const snaps    = CONFIG.penetration_snapshots || {};
-  const latestMo = Object.keys(snaps).sort().pop();
-  const snap     = latestMo ? snaps[latestMo] : {};
+  const snapSelection = adminBrandSnapshotSelection();
+  const latestMo = snapSelection.month;
+  const snap = snapSelection.snapshot || {};
+  const requestedMonth = snapSelection.requestedMonth || latestMo;
 
   let html = `
     <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-bottom:8px;">
       Snapshot month: <b style="color:var(--blue);">${latestMo || 'None yet — run bat file'}</b>
+      ${snapSelection.fallback ? `<span style="color:var(--accent);margin-left:8px;">Working month ${kpiAdminEscape(requestedMonth)} has no penetration snapshot; showing ${kpiAdminEscape(latestMo)} snapshot.</span>` : ''}
     </div>
     <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px;">
     <thead>
@@ -6908,15 +7086,19 @@ function renderAdminBrandSKU() {
     const agSnap  = snap[agent] || {};
     const bg      = ri % 2 === 0 ? 'transparent' : 'rgba(0,0,0,.04)';
     html += `<tr style="background:${bg};border-bottom:1px solid var(--border);">
-      <td style="padding:7px 10px;font-weight:600;">${agent}</td>
+      <td style="padding:7px 10px;font-weight:600;">${kpiAdminEscape(agent)}</td>
       ${brands.map(brand => {
         const nonBuyers = agSnap[brand] ?? '—';
         const tgt       = bc[brand]?.penetration_target ?? '—';
+        const display   = adminBrandDisplayNonBuyer(agent, brand, requestedMonth, nonBuyers);
         const isAuto    = bc[brand]?.pen_auto;
         const col       = autoSet.has(adminBrandKey(brand).toUpperCase()) ? 'var(--blue)' : 'var(--ink3)';
         return `
-          <td style="padding:6px 8px;text-align:center;color:var(--accent);border-left:1px solid rgba(0,0,0,.08);">${nonBuyers}</td>
-          <td style="padding:6px 8px;text-align:center;font-weight:600;color:${col};">${tgt}</td>
+          <td style="padding:6px 8px;text-align:center;color:var(--accent);border-left:1px solid rgba(0,0,0,.08);">
+            ${display.hasCount ? `<button type="button" data-admin-brand-drilldown data-agent="${kpiAdminEscape(agent)}" data-brand="${kpiAdminEscape(brand)}" data-month="${kpiAdminEscape(requestedMonth)}" data-snapshot-count="${kpiAdminEscape(display.count)}"
+              style="background:rgba(230,57,70,.08);border:1px solid rgba(230,57,70,.18);border-radius:5px;color:var(--accent);font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;padding:3px 7px;min-width:34px;">${kpiAdminEscape(display.label)}</button>` : `<span title="No brand penetration source rows for this agent/month" style="display:inline-block;color:var(--ink3);font-size:8px;line-height:1.2;">${kpiAdminEscape(display.label)}</span>`}
+          </td>
+          <td style="padding:6px 8px;text-align:center;font-weight:600;color:${col};">${kpiAdminEscape(tgt)}</td>
           <td style="padding:6px 8px;text-align:center;font-size:9px;color:${isAuto===true?'var(--green)':isAuto===false?'var(--ink3)':'var(--muted)'};">
             ${isAuto===true?'⚡':isAuto===false?'✏':'—'}
           </td>`;
@@ -6929,6 +7111,151 @@ function renderAdminBrandSKU() {
 }
 
 // ── Public Holidays ────────────────────────────────────────────────────────
+function adminBrandDrilldownRowHtml(row) {
+  return `
+    <tr>
+      <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-weight:600;">${kpiAdminEscape(row.debtor_code)}</td>
+      <td style="padding:7px 8px;border-bottom:1px solid var(--border);">${kpiAdminEscape(row.debtor_name)}</td>
+      <td style="padding:7px 8px;border-bottom:1px solid var(--border);">${kpiAdminEscape(row.debtor_type)}</td>
+      <td style="padding:7px 8px;border-bottom:1px solid var(--border);">${kpiAdminEscape(row.reason)}</td>
+      <td style="padding:7px 8px;border-bottom:1px solid var(--border);text-align:center;">${kpiAdminEscape(row.last_brand_purchase_month || '-')}</td>
+      <td style="padding:7px 8px;border-bottom:1px solid var(--border);text-align:center;">${kpiAdminEscape(row.last_any_purchase_date || '-')}</td>
+    </tr>`;
+}
+
+function renderAdminBrandNonBuyerDrilldown() {
+  const el = document.getElementById('admin-brand-sku-drilldown');
+  if (!el) return;
+  const state = ADMIN_BRAND_DRILLDOWN_STATE;
+  if (!state) {
+    el.innerHTML = '';
+    return;
+  }
+  const rows = Array.isArray(state.rows) ? state.rows : [];
+  const snapshotCount = Number(state.snapshotCount);
+  const hasMismatch = Number.isFinite(snapshotCount) && rows.length !== snapshotCount;
+  const title = `${state.agent} / ${state.brand} / ${state.month}`;
+  el.innerHTML = `
+    <div class="admin-card" style="margin-top:12px;padding:12px 14px;">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:8px;">
+        <div>
+          <div style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ink);">${kpiAdminEscape(title)}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:3px;">Rows: ${kpiAdminEscape(rows.length)}${Number.isFinite(snapshotCount) ? ` &middot; Snapshot: ${kpiAdminEscape(snapshotCount)}` : ''}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button type="button" class="small-btn" onclick="exportAdminBrandNonBuyers()">Export CSV</button>
+          <button type="button" class="small-btn" onclick="closeAdminBrandNonBuyerDrilldown()">Close</button>
+        </div>
+      </div>
+      ${state.sourceMissing ? '<div style="font-family:var(--mono);font-size:9px;color:var(--accent);margin-bottom:8px;">Source rows are not available for this month/brand.</div>' : ''}
+      ${hasMismatch ? `<div style="font-family:var(--mono);font-size:9px;color:var(--accent);margin-bottom:8px;">Generated list count (${kpiAdminEscape(rows.length)}) differs from snapshot count (${kpiAdminEscape(snapshotCount)}).</div>` : ''}
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:9px;">
+          <thead>
+            <tr style="background:var(--surface);">
+              <th style="padding:7px 8px;text-align:left;border-bottom:1px solid var(--border);">Debtor Code</th>
+              <th style="padding:7px 8px;text-align:left;border-bottom:1px solid var(--border);">Debtor Name</th>
+              <th style="padding:7px 8px;text-align:left;border-bottom:1px solid var(--border);">Type</th>
+              <th style="padding:7px 8px;text-align:left;border-bottom:1px solid var(--border);">Reason</th>
+              <th style="padding:7px 8px;text-align:center;border-bottom:1px solid var(--border);">Last Brand Month</th>
+              <th style="padding:7px 8px;text-align:center;border-bottom:1px solid var(--border);">Last Any Purchase</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.length ? rows.map(adminBrandDrilldownRowHtml).join('') : '<tr><td colspan="6" style="padding:10px 8px;text-align:center;color:var(--ink3);">No non-buyer rows found.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function openAdminBrandNonBuyerDrilldown(agent, brand, month, snapshotCountRaw) {
+  const cleanAgent = brandPenetrationNormKey(agent);
+  const cleanBrand = adminBrandPresetKey(brand);
+  const cleanMonth = String(month || '').trim();
+  const rows = adminBrandNonBuyerRows(cleanAgent, cleanBrand, cleanMonth);
+  const snapshotCount = Number(snapshotCountRaw);
+  ADMIN_BRAND_DRILLDOWN_STATE = {
+    agent: cleanAgent,
+    brand: cleanBrand,
+    month: cleanMonth,
+    snapshotCount,
+    snapshotCountText: Number.isFinite(snapshotCount) ? String(snapshotCount) : String(snapshotCountRaw ?? ''),
+    rows: Array.isArray(rows) ? rows : [],
+    sourceMissing: rows === null,
+  };
+  renderAdminBrandNonBuyerDrilldown();
+}
+
+function openAdminBrandNonBuyerDrilldownFromButton(button) {
+  if (!button) return;
+  openAdminBrandNonBuyerDrilldown(
+    button.getAttribute('data-agent') || '',
+    button.getAttribute('data-brand') || '',
+    button.getAttribute('data-month') || '',
+    button.getAttribute('data-snapshot-count') || ''
+  );
+}
+
+function handleAdminBrandSkuStatusClick(event) {
+  const button = event?.target?.closest?.('[data-admin-brand-drilldown]');
+  if (!button) return;
+  event.preventDefault?.();
+  openAdminBrandNonBuyerDrilldownFromButton(button);
+}
+
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener('click', handleAdminBrandSkuStatusClick);
+}
+
+function closeAdminBrandNonBuyerDrilldown() {
+  ADMIN_BRAND_DRILLDOWN_STATE = null;
+  renderAdminBrandNonBuyerDrilldown();
+}
+
+function adminBrandCsvSafeValue(value) {
+  const text = String(value ?? '');
+  return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+}
+
+function adminBrandDrilldownCsvCell(value) {
+  return brandPenetrationCsvCell(adminBrandCsvSafeValue(value));
+}
+
+function exportAdminBrandNonBuyers() {
+  const state = ADMIN_BRAND_DRILLDOWN_STATE;
+  if (!state) {
+    alert('Open a brand non-buyer list first.');
+    return;
+  }
+  const rows = Array.isArray(state.rows) ? state.rows : [];
+  const headers = ['debtor_code', 'debtor_name', 'debtor_type', 'agent', 'reason', 'last_brand_purchase_month', 'last_any_purchase_date', 'current_month_brand_ctn'];
+  const summaryRows = [
+    ['summary_key', 'summary_value'],
+    ['month', state.month],
+    ['agent', state.agent],
+    ['brand', state.brand],
+    ['snapshot_count', state.snapshotCountText],
+    ['generated_count', rows.length],
+    ['source_missing', state.sourceMissing ? 'yes' : 'no'],
+    [],
+  ];
+  const csv = [...summaryRows, headers, ...rows.map(row => headers.map(header => row[header] ?? ''))]
+    .map(row => row.map(adminBrandDrilldownCsvCell).join(','))
+    .join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  const safeAgent = String(state.agent || 'agent').replace(/[^A-Za-z0-9_-]+/g, '_');
+  const safeBrand = String(state.brand || 'brand').replace(/[^A-Za-z0-9_-]+/g, '_');
+  const safeMonth = String(state.month || 'month').replace(/\s+/g, '').replace(/[^A-Za-z0-9_-]+/g, '_');
+  a.href = URL.createObjectURL(blob);
+  a.download = `brand_non_buyers_${safeAgent}_${safeBrand}_${safeMonth}.csv`;
+  document.body?.appendChild?.(a);
+  a.click();
+  a.remove?.();
+  if (typeof URL.revokeObjectURL === 'function') setTimeout(() => URL.revokeObjectURL(a.href), 500);
+}
+
 function renderHolidayList() {
   const el = document.getElementById('ph-list');
   if (!el) return;

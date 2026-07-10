@@ -6,7 +6,7 @@ const vm = require('vm');
 const html = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
 
 function extractFunction(name) {
-  const start = html.indexOf(`function ${name}`);
+  const start = html.indexOf(`function ${name}(`);
   assert(start >= 0, `${name} should exist`);
   const bodyStart = html.indexOf('{', html.indexOf(')', start));
   assert(bodyStart >= 0, `${name} should have a function body`);
@@ -51,6 +51,7 @@ const elements = new Map([
   ['brand-behavior-config', makeElement('brand-behavior-config')],
   ['brand-sku-behavior-summary', makeElement('brand-sku-behavior-summary')],
   ['admin-brand-sku-status', makeElement('admin-brand-sku-status')],
+  ['admin-brand-sku-drilldown', makeElement('admin-brand-sku-drilldown')],
   ['zlb-brand-effective-preview', makeElement('zlb-brand-effective-preview')],
   ['zlb-new-brand', makeElement('zlb-new-brand')],
   ['brand-sku-forms', makeElement('brand-sku-forms')],
@@ -86,6 +87,9 @@ const context = {
       'Jun 26': {
         BEN: { iFACE: 10, SUKUN: 20, CMP: 40, BISON: 0, TR20: 5 },
       },
+      'Sep 26': {
+        BEN: { iFACE: 99, SUKUN: 99, CMP: 99, BISON: 99, TR20: 99 },
+      },
     },
     agents: {
       BEN: {
@@ -99,8 +103,14 @@ const context = {
       },
     },
   },
+  DASH_DATA: {},
   document: {
     getElementById(id) { return elements.get(id) || null; },
+  },
+  Blob,
+  URL: {
+    createObjectURL() { return 'blob:test'; },
+    revokeObjectURL() {},
   },
   updateRawJSON() { context.rawUpdated = true; },
   getAdminWorkingMonth() { return context.ADMIN_ACTIVE_MONTH || 'Jul 26'; },
@@ -146,12 +156,36 @@ vm.runInContext(extractBlock('const DEFAULT_GROUP_BRAND_CONFIG', 'function rende
   'normalizeGroupBrandConfig',
   'applyAgentReplacementsToConfig',
   'normalizeAdminConfigDefaults',
+  'adminLatestSnapshotMonth',
+  'adminBrandSnapshotSelection',
+  'adminBrandPresetKey',
+  'adminBrandMatchValues',
+  'adminBrandDebtorCardLookup',
+  'adminBrandReason',
+  'adminBrandCandidateArraysForData',
+  'adminBrandCandidateArrays',
+  'adminBrandNormalizeCandidateRow',
+  'adminBrandGeneratedCandidateRows',
+  'adminBrandNonBuyerRows',
+  'adminBrandGeneratedCandidateCount',
+  'adminBrandNonBuyerCount',
+  'adminBrandDisplayNonBuyer',
   'renderBrandSkuBehaviorSummary',
   'renderBrandBehaviorConfig',
   'updateBrandBehaviorList',
   'renderAdminBrandSKU',
+  'adminBrandDrilldownRowHtml',
+  'renderAdminBrandNonBuyerDrilldown',
+  'openAdminBrandNonBuyerDrilldown',
+  'closeAdminBrandNonBuyerDrilldown',
+  'adminBrandCsvSafeValue',
+  'adminBrandDrilldownCsvCell',
+  'exportAdminBrandNonBuyers',
   'renderSKUForms',
   'skuChip',
+  'brandPenetrationNormKey',
+  'brandPenetrationTypeExcluded',
+  'brandPenetrationCsvCell',
 ].forEach(name => vm.runInContext(extractFunction(name), context));
 
 context.renderBrandBehaviorConfig();
@@ -205,9 +239,52 @@ const tableHtml = elements.get('admin-brand-sku-status').innerHTML;
 assert.match(tableHtml, /CMP/, 'Brand SKU status should render configured CMP column');
 assert.match(tableHtml, /SUKUN/, 'Brand SKU status should still render non-auto configured SUKUN column');
 assert.match(tableHtml, /Manual/, 'Brand SKU status should mark non-auto brands as Manual');
+assert.match(tableHtml, /Snapshot month:[\s\S]*Jun 26/, 'Brand SKU status should use the selected working month snapshot when available');
+assert.match(tableHtml, />40</, 'Brand SKU status should show the working month CMP non-buyer count');
+assert.doesNotMatch(tableHtml, /Working month Jun 26 has no penetration snapshot/, 'Brand SKU status should not warn when the selected month snapshot exists');
 assert.match(elements.get('brand-sku-behavior-summary').innerHTML, /CMP/, 'Summary should mention CMP as Auto');
 const autoSummary = elements.get('brand-sku-behavior-summary').innerHTML.split('Manual:')[0];
 assert.doesNotMatch(autoSummary, /SUKUN/, 'Summary should not list SUKUN as Auto');
+
+context.CONFIG.penetration_snapshots = {
+  'May 26': { BEN: { CMP: 88 } },
+};
+context.ADMIN_ACTIVE_MONTH = 'Jun 26';
+context.renderAdminBrandSKU();
+const fallbackHtml = elements.get('admin-brand-sku-status').innerHTML;
+assert.match(fallbackHtml, /Snapshot month:[\s\S]*May 26/, 'Brand SKU status should fall back to latest valid snapshot when working month is missing');
+assert.match(fallbackHtml, /Working month Jun 26 has no penetration snapshot; showing May 26 snapshot/, 'Brand SKU status should make fallback snapshot explicit');
+
+context.CONFIG.penetration_snapshots = {
+  'Jun 26': { BEN: { CMP: 1 } },
+};
+context.ADMIN_ACTIVE_MONTH = 'Jun 26';
+context.DASH_DATA = {
+  current_month: 'Jun 26',
+  brand_penetration_candidates_by_month: {
+    CMP: {
+      'Jun 26': [
+        { debtor_code: '300-A', debtor_name: 'Alpha Shop', agent: 'BEN', debtor_type: 'SH-Shop', eligibility_reason: '3-month no CMP' },
+        { debtor_code: '300-B', debtor_name: 'Other Agent', agent: 'CJ', debtor_type: 'SH-Shop', eligibility_reason: '3-month no CMP' },
+      ],
+    },
+  },
+  agents: {
+    BEN: {
+      debtor_cards: {
+        debtors: [{ debtor_code: '300-A', company_name: 'Alpha Shop Card', last_purchase_date: '10/06/2026' }],
+      },
+    },
+  },
+};
+context.renderAdminBrandSKU();
+const clickableHtml = elements.get('admin-brand-sku-status').innerHTML;
+assert.match(clickableHtml, /data-admin-brand-drilldown/, 'Brand SKU status should expose clickable Not Bought cells');
+context.openAdminBrandNonBuyerDrilldown('BEN', 'CMP', 'Jun 26', 1);
+const drilldownHtml = elements.get('admin-brand-sku-drilldown').innerHTML;
+assert.match(drilldownHtml, /BEN \/ CMP \/ Jun 26/, 'Brand SKU drilldown should show selected agent, brand, and month');
+assert.match(drilldownHtml, /300-A/, 'Brand SKU drilldown should list generated debtor candidates for the selected agent');
+assert.doesNotMatch(drilldownHtml, /300-B/, 'Brand SKU drilldown should not mix another agent into Group2A agent view');
 
 context.updateBrandBehaviorList('penetration_auto_brands', 'CMP, TR20');
 assert.deepEqual(context.CONFIG.penetration_auto_brands, ['CMP', 'TR20']);
