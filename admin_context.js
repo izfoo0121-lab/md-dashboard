@@ -108,8 +108,8 @@
   }
 
   function decorateLinks(root = document) {
-    const month = monthToSlug(getWorkingMonth());
-    if (!month || !root?.querySelectorAll) return;
+    const workingMonth = monthToSlug(getWorkingMonth());
+    if (!workingMonth || !root?.querySelectorAll) return;
     root.querySelectorAll('a[href]').forEach(a => {
       const href = a.getAttribute('href') || '';
       if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:')) return;
@@ -117,7 +117,10 @@
       if (!href.includes('.html')) return;
       try {
         const url = new URL(href, location.href);
-        url.searchParams.set('month', month);
+        const policy = String(a.dataset?.monthPolicy || '').trim().toLowerCase();
+        const linkMonth = policy === 'latest' ? monthToSlug(currentMonthLabel()) : workingMonth;
+        if (!linkMonth) return;
+        url.searchParams.set('month', linkMonth);
         a.setAttribute('href', url.href);
       } catch (_) {}
     });
