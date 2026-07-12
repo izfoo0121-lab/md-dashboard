@@ -3250,6 +3250,7 @@ function setNewbie(agent, val) {
   if (!CONFIG.agents[agent]) return;
   CONFIG.agents[agent].is_newbie = val;
   updateRawJSON();
+  renderNewbieForms();
 }
 function setKPI(agent, field, val) {
   if (!CONFIG.agents[agent]) return;
@@ -3772,6 +3773,7 @@ function applyTargetsImport() {
   });
   updateRawJSON();
   renderAgentForms();
+  renderNewbieForms();
   updateKPITotal();
   const result = document.getElementById('targets-import-result');
   if (result) result.innerHTML = `<div style="color:var(--green);font-weight:700;">Applied ${parsed.applyCount} rows to the form. Click SAVE ALL TARGETS below to persist to Supabase.</div>`;

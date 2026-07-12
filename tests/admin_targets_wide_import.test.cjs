@@ -104,8 +104,10 @@ function parseCampaignImportKey(fieldKey) {
     ? { key: fieldKey, campaignKey: fieldKey.replace(/^camp_/, '').replace(/_count$/, ''), legacy: false }
     : null;
 }
+var renderNewbieFormsCount = 0;
 function updateRawJSON() {}
 function renderAgentForms() {}
+function renderNewbieForms() { renderNewbieFormsCount += 1; }
 function updateKPITotal() {}
 var document = { getElementById: () => null };
 var alert = (msg) => { throw new Error(msg); };
@@ -133,6 +135,7 @@ ${extractFunction('getBulkTargetTemplateAgents')}
 ${extractFunction('normalizeWideTargetValue')}
 ${extractFunction('parseTargetsWideCsv')}
 ${extractFunction('parseTargetsCsv')}
+${extractFunction('setNewbie')}
 ${extractFunction('applyTargetsImport')}
 `, context);
 
@@ -178,6 +181,12 @@ assert(parsedExcelPaste.rows.some(r => r.agent === 'CJ' && r.field_type === 'fla
 context.LAST_TARGETS_IMPORT = parsed;
 context.applyTargetsImport();
 
+assert.strictEqual(
+  context.renderNewbieFormsCount,
+  1,
+  'Applying imported newbie flags or tier values should refresh the Newbie Scheme tab'
+);
+
 assert.strictEqual(context.CONFIG.agents.BEN.active, true, 'Active flag should apply');
 assert.strictEqual(context.CONFIG.agents.BEN.is_newbie, false, 'Newbie flag should apply');
 assert.strictEqual(context.CONFIG.agents.BEN.sales_progression.normal_t1, 930, 'Sales target should apply');
@@ -196,5 +205,13 @@ assert.strictEqual(context.CONFIG.agents.CJ.sales_progression.normal_t1, 222, 'B
 assert.strictEqual(context.CONFIG.agents.CJ.brand_commission.iFACE.penetration_target, 4, 'Nonblank wide cells should apply');
 assert.strictEqual(context.CONFIG.agents.CJ.brand_commission.iFACE.ctn_target, 50, 'Blank brand cells should keep existing values');
 assert.strictEqual(context.CONFIG.agents.CJ.kpi_targets.vip_count, 3, 'Nonblank KPI cells should apply');
+
+context.setNewbie('BEN', true);
+assert.strictEqual(context.CONFIG.agents.BEN.is_newbie, true, 'setNewbie should update the agent flag');
+assert.strictEqual(
+  context.renderNewbieFormsCount,
+  2,
+  'Toggling newbie from Agent Targets should refresh the Newbie Scheme tab'
+);
 
 console.log('admin_targets_wide_import.test.cjs passed');
