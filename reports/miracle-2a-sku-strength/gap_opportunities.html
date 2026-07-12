@@ -372,7 +372,7 @@
     const fmt = new Intl.NumberFormat("en-MY", { maximumFractionDigits: 2 });
     const rm = value => `RM ${fmt.format(value || 0)}`;
     const pct = value => `${Number(value || 0).toFixed(1)}%`;
-    const BUSINESS_TYPES = new Set(["D-Dealer/Distributor", "FL-Freelancer", "SH-Shop", "SL-Stall", "ST-Site"]);
+    const BUSINESS_TYPES = new Set(["D-Dealer/Distributor", "FL-Freelancer", "SH-Shop", "SL-Stall", "ST-Site", "Converter"]);
 
     function escapeHtml(value) {
       return String(value ?? "").replace(/[&<>"']/g, char => ({
@@ -515,7 +515,7 @@
       document.getElementById("sourceSkuSelect").innerHTML = `<option value="">Any SKU current buyer</option>${skuOptionsHtml}`;
       document.getElementById("targetSkuSelect").innerHTML = `<option value="">No missing SKU filter</option>${skuOptionsHtml}`;
       document.getElementById("typeSelect").innerHTML = `
-        <option value="business">Business types (Dealer, Freelancer, Shop, Stall, Site)</option>
+        <option value="business">Business types (Dealer, Freelancer, Shop, Stall, Site, Converter)</option>
         <option value="all">All types including Personal</option>
         ${typeOptions.map(type => `<option value="${escapeHtml(type)}">${escapeHtml(typeLabel(type))}</option>`).join("")}
       `;

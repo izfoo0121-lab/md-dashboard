@@ -5,13 +5,20 @@ from pathlib import Path
 import json
 import os
 import re
+import sys
 
 import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SALES_XLSX = ROOT / "MD Sales Report.xlsx"
-DEBTOR_XLSX = ROOT / "Debtor Maintenance.xlsx"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+import process_data as dashboard_processor
+
+
+SALES_XLSX = Path(os.environ.get("MD_SALES_FILE") or (ROOT / "MD Sales Report.xlsx")).expanduser()
+DEBTOR_XLSX = Path(os.environ.get("MD_DEBTOR_FILE") or (ROOT / "Debtor Maintenance.xlsx")).expanduser()
 INDEX_HTML = Path(__file__).with_name("index.html")
 DEBTOR_STATUS_JS = Path(__file__).with_name("debtor_status.js")
 AGENT_MONTHLY_JS = Path(__file__).with_name("agent_monthly_revenue.js")
@@ -29,10 +36,27 @@ STATE_MAP = {
 }
 AGENT_STATE = {agent: state for state, agents in STATE_MAP.items() for agent in agents}
 MIRACLE_AGENTS = set(AGENT_STATE)
+DEBTOR_TYPE_CANONICAL = {
+    "D-DEALER/DISTRIBUTOR": "D-Dealer/Distributor",
+    "FL-FREELANCER": "FL-Freelancer",
+    "SH-SHOP": "SH-Shop",
+    "SL-STALL": "SL-Stall",
+    "ST-SITE": "ST-Site",
+    "CONVERTER": "Converter",
+    "P-PERSONAL": "P-Personal",
+    "PERSONAL": "P-Personal",
+}
 
 
 def norm_agent(value):
     return str(value or "").upper().strip()
+
+
+def norm_debtor_type(value):
+    raw = str(value or "").strip()
+    if not raw or raw.lower() in {"nan", "none"}:
+        return ""
+    return DEBTOR_TYPE_CANONICAL.get(raw.upper(), raw)
 
 
 def norm_scope(value):
@@ -126,21 +150,22 @@ def build_trend(current_sales, current_qty, previous_metrics, current_customers=
 
 
 def load_sales(miracle_only=True, scope=REPORT_SCOPE, allowed_agents=None):
-    df = pd.read_excel(SALES_XLSX, sheet_name=0)
-    df.columns = [str(c).strip() for c in df.columns]
-    df = df.rename(columns={
-        "Doc. No.": "doc_no",
-        "Date": "date",
-        "Debtor Code": "debtor_code",
-        "Company Name": "company_name",
-        "Sales Agent": "agent",
-        "Area Code": "area_code",
-        "Item Code": "sku",
-        "Item Description": "desc",
-        "Local SubTotal": "sales",
-        "QTY (CTN)": "qty_ctn",
+    source = dashboard_processor.load_sales_report(SALES_XLSX)
+    df = pd.DataFrame({
+        "doc_no": source["doc_no"],
+        "date": source["date_parsed"],
+        "debtor_code": source["debtor_code"],
+        "company_name": source["company_name"],
+        "agent": source["agent"],
+        "area_code": source["area_code"],
+        "debtor_type": source["debtor_type"],
+        "sku": source["item_code"],
+        "desc": source["item_desc"],
+        "sales": source["local_subtotal"],
+        "qty_ctn": source["qty_ctn"],
     })
     df["agent"] = df["agent"].map(norm_agent)
+    df["debtor_type"] = df["debtor_type"].map(norm_debtor_type)
     df["area_code"] = df["area_code"].astype(str).str.strip()
     allowed_agent_set = {
         norm_agent(agent) for agent in (allowed_agents or []) if norm_agent(agent)
@@ -164,7 +189,7 @@ def load_sales(miracle_only=True, scope=REPORT_SCOPE, allowed_agents=None):
     return df[df["date"].notna()].copy()
 
 
-def load_debtors(allowed_agents=None):
+def load_debtors(allowed_agents=None, scope=REPORT_SCOPE):
     df = pd.read_excel(DEBTOR_XLSX, sheet_name=0)
     df.columns = [str(c).strip() for c in df.columns]
     allowed_agent_set = {
@@ -175,13 +200,16 @@ def load_debtors(allowed_agents=None):
         code = str(row.get("Code") or "").strip()
         if not code:
             continue
+        area = str(row.get("Area") or "").strip()
+        if not scope_is_all(scope) and norm_scope(area) != norm_scope(scope):
+            continue
         agent = norm_agent(row.get("Agent"))
         if allowed_agent_set and agent not in allowed_agent_set:
             continue
         active = str(row.get("Active") or "").strip()
         debtors[code] = {
             "name": str(row.get("Company Name") or "").strip(),
-            "type": str(row.get("Debtor Type") or "").strip(),
+            "type": norm_debtor_type(row.get("Debtor Type")),
             "agent": agent,
             "status": "Active" if active.lower() == "checked" else "Inactive",
         }
@@ -486,6 +514,16 @@ def build_sku_gap(df, debtors):
         .last()
         .to_dict()
     )
+    debtor_types = {}
+    if "debtor_type" in rows.columns:
+        typed_rows = rows[
+            rows["debtor_type"].fillna("").astype(str).str.strip() != ""
+        ].sort_values("date")
+        if not typed_rows.empty:
+            debtor_types = {
+                code: norm_debtor_type(value)
+                for code, value in typed_rows.groupby("debtor_code")["debtor_type"].last().to_dict().items()
+            }
     debtor_meta = {}
     for code, debtor in debtors.items():
         agent = norm_agent(debtor.get("agent"))
@@ -496,7 +534,7 @@ def build_sku_gap(df, debtors):
             "status": debtor["status"],
             "active": debtor["status"] == "Active",
             "maintAgent": agent,
-            "maintType": debtor["type"],
+            "maintType": debtor["type"] or debtor_types.get(code, ""),
             "state": agent_state.get(agent) or state_for_agent(agent, REPORT_SCOPE),
         }
 
@@ -508,7 +546,7 @@ def build_sku_gap(df, debtors):
             "status": debtor["status"] if debtor else "Missing",
             "active": debtor["status"] == "Active" if debtor else False,
             "maintAgent": agent,
-            "maintType": debtor["type"] if debtor else "",
+            "maintType": (debtor["type"] if debtor else "") or debtor_types.get(code, ""),
             "state": agent_state.get(agent) or state_for_agent(agent, REPORT_SCOPE),
             **debtor_meta.get(code, {}),
         }

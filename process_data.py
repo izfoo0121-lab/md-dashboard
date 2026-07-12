@@ -3,7 +3,7 @@
 MD Sales Dashboard — process_data.py  (Phase 2)
 ================================================
 Reads:
-  - MD Sales Report (.xlsx)        — columns A:Z, sheet 'MD'
+  - MD Sales Report (.xlsx)        — columns detected by normalized headers
   - Debtor Maintenance (.xlsx)     — existing Phase 1 source
   - targets.json                   — monthly targets set via Admin Page
 
@@ -12,7 +12,7 @@ Outputs:
 
 Scope: GRP 2A (Miracle & SS2) only.
 
-Column reference (MD Sales Report):
+Legacy column reference (newer exports may insert Debtor Type after PAID ON):
   A=Tranx Mth  B=Doc No     C=Date (invoice)  D=Debtor Code  E=Company Name
   F=Sales Agent G=Area Code  H=Item Group      I=Item Code    J=Item Description
   K=UOM        L=Smallest Qty M=Unit Price     N=Discount     O=Local SubTotal
@@ -317,8 +317,33 @@ def _maybe_take_patronage_snapshot(today, debtor_info, agents_list):
 # ── Config ────────────────────────────────────────────────────────────────────
 
 BASE_DIR        = Path(__file__).parent
-SALES_FILE      = BASE_DIR / "MD Sales Report.xlsx"
-DEBTOR_FILE     = BASE_DIR / "Debtor Maintenance.xlsx"
+
+
+def resolve_input_path(env_name, default_name):
+    configured = str(os.environ.get(env_name) or "").strip()
+    return Path(configured).expanduser() if configured else BASE_DIR / default_name
+
+
+def source_file_metadata(path):
+    resolved = Path(path).expanduser().resolve()
+    if not resolved.exists():
+        return {
+            "path": str(resolved),
+            "exists": False,
+            "size_bytes": 0,
+            "modified_at": "",
+        }
+    stat = resolved.stat()
+    return {
+        "path": str(resolved),
+        "exists": True,
+        "size_bytes": int(stat.st_size),
+        "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat(timespec="seconds"),
+    }
+
+
+SALES_FILE      = resolve_input_path("MD_SALES_FILE", "MD Sales Report.xlsx")
+DEBTOR_FILE     = resolve_input_path("MD_DEBTOR_FILE", "Debtor Maintenance.xlsx")
 TARGETS_FILE    = BASE_DIR / "targets.json"
 CAMPAIGNS_FILE  = BASE_DIR / "campaigns.json"
 SKU_RULES_FILE  = BASE_DIR / "config" / "sku_rules.json"
@@ -330,6 +355,49 @@ SCOPE_AREA      = "GRP 2A"
 
 # 8COM item group identifier
 EIGHTCOM_GROUP  = "8COM"
+
+DEBTOR_TYPE_CANONICAL = {
+    "D-DEALER/DISTRIBUTOR": "D-Dealer/Distributor",
+    "FL-FREELANCER": "FL-Freelancer",
+    "SH-SHOP": "SH-Shop",
+    "SL-STALL": "SL-Stall",
+    "ST-SITE": "ST-Site",
+    "CONVERTER": "Converter",
+    "P-PERSONAL": "P-Personal",
+    "PERSONAL": "P-Personal",
+}
+BUSINESS_DEBTOR_TYPES = {
+    "D-Dealer/Distributor",
+    "FL-Freelancer",
+    "SH-Shop",
+    "SL-Stall",
+    "ST-Site",
+    "Converter",
+}
+
+
+def normalize_debtor_type(value):
+    raw = str(value or "").strip()
+    if not raw or raw.lower() in {"nan", "none"}:
+        return ""
+    return DEBTOR_TYPE_CANONICAL.get(raw.upper(), raw)
+
+
+def classify_debtor_type(value):
+    normalized = normalize_debtor_type(value)
+    if normalized == "P-Personal":
+        return "personal"
+    if normalized in BUSINESS_DEBTOR_TYPES:
+        return "business"
+    return "review_required"
+
+
+def is_personal_debtor_type(value):
+    return classify_debtor_type(value) == "personal"
+
+
+def is_business_debtor_type(value):
+    return classify_debtor_type(value) == "business"
 
 # EVO commission thresholds — date-based rule:
 #   Invoice date ≤ 2026-04-07: rm_ctn ≥ RM 36
@@ -2069,55 +2137,167 @@ def calc_conversion_campaign_group_progress(debtor_cards, campaigns):
 
 # ── Load MD Sales Report ──────────────────────────────────────────────────────
 
-def load_sales_report():
-    log(f"Loading MD Sales Report: {SALES_FILE}")
-    if not SALES_FILE.exists():
-        log(f"❌ File not found: {SALES_FILE}")
+SALES_HEADER_ALIASES = {
+    "TRANXMTH": "tranx_mth",
+    "DOCNO": "doc_no",
+    "DATE": "date",
+    "DOCDATE": "date",
+    "DEBTORCODE": "debtor_code",
+    "COMPANYNAME": "company_name",
+    "SALESAGENT": "agent",
+    "AREACODE": "area_code",
+    "ITEMGROUP": "item_group",
+    "ITEMCODE": "item_code",
+    "ITEMDESCRIPTION": "item_desc",
+    "DESCRIPTION": "item_desc",
+    "UOM": "uom",
+    "SMALLESTQTY": "smallest_qty",
+    "UNITPRICE": "unit_price",
+    "DISCOUNT": "discount",
+    "LOCALSUBTOTAL": "local_subtotal",
+    "REBATE": "rebate",
+    "PAIDON": "paid_on",
+    "DEBTORTYPE": "debtor_type",
+    "UNIQCODE": "uniq_code",
+    "RMCTN": "rm_ctn",
+    "RMCTNREBATE": "rm_ctn_rebate",
+    "SALESTYPE": "sales_type",
+    "COMMRATE": "comm_rate",
+    "QTYCTN": "qty_ctn",
+    "QTYMC": "qty_mc",
+    "RMMC": "rm_mc",
+    "SHOPPRICECOMM": "shop_price_comm",
+}
+
+SALES_INTERNAL_COLUMNS = list(dict.fromkeys(SALES_HEADER_ALIASES.values()))
+SALES_REQUIRED_COLUMNS = {
+    "doc_no",
+    "date",
+    "debtor_code",
+    "company_name",
+    "agent",
+    "area_code",
+    "item_group",
+    "item_code",
+    "local_subtotal",
+    "paid_on",
+    "sales_type",
+    "qty_ctn",
+}
+SALES_CACHE_VERSION = 1
+SALES_CACHE_FILE = BASE_DIR / ".cache" / "md_sales_report.pkl"
+
+
+def _normalise_sales_header(value):
+    return re.sub(r"[^A-Z0-9]+", "", str(value or "").strip().upper())
+
+
+def _sales_source_fingerprint(path):
+    resolved = Path(path).expanduser().resolve()
+    stat = resolved.stat()
+    return {
+        "version": SALES_CACHE_VERSION,
+        "source": str(resolved),
+        "size": int(stat.st_size),
+        "mtime_ns": int(stat.st_mtime_ns),
+    }
+
+
+def _sales_cache_meta_path(cache_path):
+    return Path(str(cache_path) + ".meta.json")
+
+
+def _load_sales_cache(sales_file, cache_path):
+    cache_path = Path(cache_path)
+    meta_path = _sales_cache_meta_path(cache_path)
+    if not cache_path.exists() or not meta_path.exists():
+        return None
+    try:
+        with open(meta_path, "r", encoding="utf-8") as handle:
+            metadata = json.load(handle)
+        if metadata != _sales_source_fingerprint(sales_file):
+            return None
+        cached = pd.read_pickle(cache_path)
+        required = SALES_REQUIRED_COLUMNS | {"date_parsed", "tranx_mth_full"}
+        if not isinstance(cached, pd.DataFrame) or not required.issubset(cached.columns):
+            return None
+        log(f"  Fast cache hit: {cache_path}")
+        return cached
+    except Exception as exc:
+        log(f"  WARNING: Ignoring invalid sales cache: {exc}")
+        return None
+
+
+def _save_sales_cache(df, sales_file, cache_path):
+    cache_path = Path(cache_path)
+    meta_path = _sales_cache_meta_path(cache_path)
+    try:
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_pickle(cache_path)
+        with open(meta_path, "w", encoding="utf-8") as handle:
+            json.dump(_sales_source_fingerprint(sales_file), handle, indent=2)
+        log(f"  Sales cache updated: {cache_path}")
+    except Exception as exc:
+        log(f"  WARNING: Could not update sales cache: {exc}")
+
+
+def load_sales_report(path=None, use_cache=False, cache_path=None):
+    sales_file = Path(path) if path is not None else SALES_FILE
+    if cache_path is not None:
+        cache_path = Path(cache_path)
+    elif path is None:
+        cache_path = SALES_CACHE_FILE
+    log(f"Loading MD Sales Report: {sales_file}")
+    if not sales_file.exists():
+        log(f"❌ File not found: {sales_file}")
         sys.exit(1)
 
-    sheet_name, header_row = detect_sales_sheet_and_header(SALES_FILE)
+    if use_cache and cache_path is not None:
+        cached = _load_sales_cache(sales_file, cache_path)
+        if cached is not None:
+            log(f"  {len(cached):,} total rows loaded from cache")
+            return cached
+
+    sheet_name, header_row = detect_sales_sheet_and_header(sales_file)
     log(f"  Sales source sheet: {sheet_name} | header row: {header_row + 1}")
 
-    # Read columns A:Z (indices 0–25), skip row 1 (special ref row), use row 2 as header
+    # Read every exported column; the detected header row supports both the
+    # legacy 26-column layout and newer layouts with inserted fields.
     df = pd.read_excel(
-        SALES_FILE,
+        sales_file,
         sheet_name=sheet_name,
         header=header_row,
-        usecols="A:Z",
         dtype=str,       # read all as string first, cast later
         engine="openpyxl",
     )
 
-    # Standardise column names to our internal keys
-    col_map = {
-        df.columns[0]:  "tranx_mth",
-        df.columns[1]:  "doc_no",
-        df.columns[2]:  "date",
-        df.columns[3]:  "debtor_code",
-        df.columns[4]:  "company_name",
-        df.columns[5]:  "agent",
-        df.columns[6]:  "area_code",
-        df.columns[7]:  "item_group",
-        df.columns[8]:  "item_code",
-        df.columns[9]:  "item_desc",
-        df.columns[10]: "uom",
-        df.columns[11]: "smallest_qty",
-        df.columns[12]: "unit_price",
-        df.columns[13]: "discount",
-        df.columns[14]: "local_subtotal",
-        df.columns[15]: "rebate",
-        df.columns[16]: "paid_on",
-        df.columns[17]: "uniq_code",
-        df.columns[18]: "rm_ctn",
-        df.columns[19]: "rm_ctn_rebate",
-        df.columns[20]: "sales_type",
-        df.columns[21]: "comm_rate",
-        df.columns[22]: "qty_ctn",
-        df.columns[23]: "qty_mc",
-        df.columns[24]: "rm_mc",
-        df.columns[25]: "shop_price_comm",
-    }
+    # AutoCount may insert new fields between existing columns. Map by header
+    # name so Debtor Type cannot shift UNIQ CODE, RM/CTN, or quantity fields.
+    col_map = {}
+    mapped_names = set()
+    for source_col in df.columns:
+        internal = SALES_HEADER_ALIASES.get(_normalise_sales_header(source_col))
+        if not internal:
+            continue
+        if internal in mapped_names:
+            raise ValueError(
+                f"Duplicate MD Sales Report column for '{internal}': {source_col!r}"
+            )
+        col_map[source_col] = internal
+        mapped_names.add(internal)
+
     df = df.rename(columns=col_map)
+    missing_required = sorted(SALES_REQUIRED_COLUMNS - mapped_names)
+    if missing_required:
+        available = ", ".join(str(col) for col in df.columns)
+        raise ValueError(
+            "MD Sales Report schema is missing required fields: "
+            f"{', '.join(missing_required)}. Available headers: {available}"
+        )
+    for col in SALES_INTERNAL_COLUMNS:
+        if col not in df.columns:
+            df[col] = ""
+    df = df[SALES_INTERNAL_COLUMNS].copy()
 
     # Cast numeric columns
     df["qty_ctn"]       = pd.to_numeric(df["qty_ctn"],       errors="coerce").fillna(0)
@@ -2127,7 +2307,7 @@ def load_sales_report():
 
     # Normalise string columns — strip whitespace
     for col in ["agent", "area_code", "item_group", "item_code",
-                "sales_type", "paid_on", "debtor_code"]:
+                "sales_type", "paid_on", "debtor_code", "debtor_type"]:
         df[col] = df[col].fillna("").str.strip()
 
     # Parse invoice date (col C) — stored as Excel serial OR string OR datetime.
@@ -2162,24 +2342,48 @@ def load_sales_report():
     df["tranx_mth_full"] = df["date_parsed"].apply(
         lambda d: d.strftime("%b %y") if pd.notnull(d) else ""
     )
+    df.attrs["source_has_debtor_type"] = "debtor_type" in mapped_names
+    df.attrs["source_headers"] = [str(column) for column in col_map]
     _tmf_sample = df["tranx_mth_full"].dropna().unique().tolist()[:5]
     log(f"  Derived tranx_mth_full samples: {_tmf_sample}")
 
     log(f"  {len(df):,} total rows loaded")
+    if cache_path is not None:
+        _save_sales_cache(df, sales_file, cache_path)
     return df
 
 
 # ── Load Debtor Maintenance ───────────────────────────────────────────────────
 
-def load_debtors():
-    log(f"Loading Debtor Maintenance: {DEBTOR_FILE}")
-    if not DEBTOR_FILE.exists():
+def load_debtors(path=None):
+    debtor_file = Path(path) if path is not None else DEBTOR_FILE
+    log(f"Loading Debtor Maintenance: {debtor_file}")
+    if not debtor_file.exists():
         log("⚠  Debtor file not found — debtor info will be empty")
         return pd.DataFrame()
     # Keep native Excel datetime cells typed. Reading all columns as strings
     # corrupts ISO-like dates later when dayfirst parsing flips month/day.
-    df = pd.read_excel(DEBTOR_FILE, engine="openpyxl")
+    df = pd.read_excel(debtor_file, engine="openpyxl")
     df.columns = [str(c).strip() for c in df.columns]
+    area_col = next(
+        (
+            col
+            for col in df.columns
+            if _norm_header(col) in {"AREA", "AREACODE", "GROUPAREA"}
+        ),
+        None,
+    )
+    if area_col is None:
+        raise ValueError(
+            "Debtor Maintenance schema is missing the required Area scope column; "
+            "refusing to load an unscoped master into the GRP 2A dashboard."
+        )
+    before_scope = len(df)
+    df = df[
+        df[area_col].fillna("").astype(str).str.strip().str.upper()
+        == SCOPE_AREA.upper()
+    ].copy()
+    log(f"  Debtor scope filter ({SCOPE_AREA}): {len(df):,}/{before_scope:,} rows retained")
     log(f"  Debtor columns: {list(df.columns)}")
     log(f"  Total rows: {len(df)}")
     return df
@@ -2232,28 +2436,6 @@ def build_debtor_analysis_data(df, debtor_df, cur_month, allowed_agents=None):
         except Exception:
             return 0
 
-    meta = {}
-    debtors = []
-    if debtor_df is not None and not debtor_df.empty:
-        for _, r in debtor_df.iterrows():
-            code = _safe_str(r.get("Code"))
-            if not code:
-                continue
-            rec = {
-                "debtor_code": code,
-                "company_name": _safe_str(r.get("Company Name")),
-                "agent": _safe_str(r.get("Agent")).upper(),
-                "debtor_type": _safe_str(r.get("Debtor Type")),
-                "area": _safe_str(r.get("Area")),
-                "active": _safe_str(r.get("Active")),
-                "phone": _safe_str(r.get("Phone 1")),
-            }
-            meta[code] = rec
-            if allowed_agent_set and rec["agent"] not in allowed_agent_set:
-                continue
-            if rec["area"] == SCOPE_AREA and rec["active"] == "Checked":
-                debtors.append(rec)
-
     canggih = df[
         (df["area_code"] == SCOPE_AREA) &
         (~_eightcom_mask(df)) &
@@ -2265,6 +2447,39 @@ def build_debtor_analysis_data(df, debtor_df, cur_month, allowed_agents=None):
             canggih["agent"].fillna("").astype(str).str.upper().str.strip().isin(allowed_agent_set)
         ].copy()
 
+    if "debtor_type" not in canggih.columns:
+        canggih["debtor_type"] = ""
+    data_quality = build_debtor_type_quality(
+        df, debtor_df, allowed_agents=allowed_agent_set
+    )
+    analysis_info = merge_sales_debtor_type_fallback(
+        build_debtor_info(debtor_df if debtor_df is not None else pd.DataFrame()),
+        canggih,
+    )
+    meta = {}
+    debtors = []
+    for code, info in analysis_info.items():
+        agent = _safe_str(info.get("agent")).upper()
+        area = _safe_str(info.get("area"))
+        if allowed_agent_set and agent not in allowed_agent_set:
+            continue
+        rec = {
+            "debtor_code": code,
+            "company_name": _safe_str(info.get("name")) or code,
+            "agent": agent,
+            "debtor_type": normalize_debtor_type(info.get("type")),
+            "debtor_type_policy": info.get("debtor_type_policy") or classify_debtor_type(info.get("type")),
+            "debtor_type_source": info.get("debtor_type_source", "master"),
+            "debtor_type_mismatch": bool(info.get("debtor_type_mismatch", False)),
+            "master_missing": bool(info.get("master_missing", False)),
+            "area": area,
+            "active": "Sales report only" if info.get("master_missing") else ("Checked" if info.get("dm_active", True) else "Unchecked"),
+            "phone": _safe_str(info.get("phone")),
+        }
+        meta[code] = rec
+        if area == SCOPE_AREA and info.get("dm_active", True):
+            debtors.append(rec)
+
     if canggih.empty:
         return {
             "generated_at": datetime.now().isoformat(timespec="seconds"),
@@ -2273,11 +2488,15 @@ def build_debtor_analysis_data(df, debtor_df, cur_month, allowed_agents=None):
             "months": [],
             "debtors": debtors,
             "records": [],
+            "data_quality": data_quality,
         }
 
     canggih["sales_type_group"] = canggih["sales_type"].apply(_sales_type_group)
     canggih["agent_meta"] = canggih["debtor_code"].map(lambda c: meta.get(c, {}).get("agent", ""))
     canggih["type_meta"] = canggih["debtor_code"].map(lambda c: meta.get(c, {}).get("debtor_type", ""))
+    canggih["type_source"] = canggih["debtor_code"].map(lambda c: meta.get(c, {}).get("debtor_type_source", ""))
+    canggih["type_mismatch"] = canggih["debtor_code"].map(lambda c: bool(meta.get(c, {}).get("debtor_type_mismatch", False)))
+    canggih["type_policy"] = canggih["debtor_code"].map(lambda c: meta.get(c, {}).get("debtor_type_policy", "review_required"))
     canggih["name_meta"] = canggih["debtor_code"].map(lambda c: meta.get(c, {}).get("company_name", ""))
     canggih["_is_paid"] = canggih["paid_on"].fillna("").astype(str).str.strip() != ""
     canggih["_paid_ctn"] = canggih["qty_ctn"].where(canggih["_is_paid"], 0)
@@ -2287,7 +2506,8 @@ def build_debtor_analysis_data(df, debtor_df, cur_month, allowed_agents=None):
         [
             "tranx_mth_full", "debtor_code", "company_name", "agent",
             "item_group", "item_code", "sales_type", "sales_type_group",
-            "agent_meta", "type_meta", "name_meta"
+            "agent_meta", "type_meta", "type_source", "type_mismatch",
+            "type_policy", "name_meta"
         ],
         dropna=False,
         as_index=False,
@@ -2314,6 +2534,9 @@ def build_debtor_analysis_data(df, debtor_df, cur_month, allowed_agents=None):
             "agent": agent,
             "owner_agent": _safe_str(r.get("agent_meta")),
             "debtor_type": _safe_str(r.get("type_meta")),
+            "debtor_type_policy": _safe_str(r.get("type_policy")),
+            "debtor_type_source": _safe_str(r.get("type_source")),
+            "debtor_type_mismatch": bool(r.get("type_mismatch", False)),
             "brand": _safe_str(r.get("item_group")),
             "sku": _safe_str(r.get("item_code")),
             "sales_type": _safe_str(r.get("sales_type")),
@@ -2339,6 +2562,7 @@ def build_debtor_analysis_data(df, debtor_df, cur_month, allowed_agents=None):
         "months": months,
         "debtors": debtors,
         "records": records,
+        "data_quality": data_quality,
     }
 
 
@@ -2617,10 +2841,10 @@ def calc_brand_commission(df, targets, agents, cur_month, prev_months, brand_con
     # Do NOT exclude new accounts (<90 days) — if they bought the brand, count them.
     def _pen_eligible(code):
         info = debtor_info.get(code, {})
-        dtype = (info.get("type", "") or "").strip()
+        dtype = normalize_debtor_type(info.get("type", ""))
         if not dtype:
             return False  # empty-type (data quality)
-        if dtype == "P-Personal":
+        if is_personal_debtor_type(dtype):
             return False  # Personal accounts aren't real penetration targets
         return True
 
@@ -3339,6 +3563,7 @@ def build_debtor_info(debtor_df):
         vip_raw   = str(row.get(ATT_COL, '') if ATT_COL else '').strip().upper()
         type_raw  = str(row.get(TYPE_COL, '') if TYPE_COL else '').strip()
         type_raw  = '' if type_raw.lower() in ('nan', 'none') else type_raw
+        type_raw  = normalize_debtor_type(type_raw)
         agent_raw = str(row.get(AGENT_COL, '') if AGENT_COL else '').strip()
         agent_raw = '' if agent_raw.lower() in ('nan', 'none') else agent_raw
         area_raw = str(row.get(AREA_COL, '') if AREA_COL else '').strip()
@@ -3361,6 +3586,10 @@ def build_debtor_info(debtor_df):
             "birth_date": row.get(BIRTH_COL, None) if BIRTH_COL else None,
             "open_date":  row.get(OPEN_COL, None)  if OPEN_COL  else None,
             "type":       type_raw,
+            "debtor_type_policy": classify_debtor_type(type_raw),
+            "debtor_type_source": "master",
+            "debtor_type_mismatch": False,
+            "master_missing": False,
             "agent":      agent_raw,
             "area":       area_raw,
             "dm_active":  dm_active,
@@ -3368,6 +3597,170 @@ def build_debtor_info(debtor_df):
         }
 
     return debtor_info
+
+
+def merge_sales_debtor_type_fallback(debtor_info, sales_df, current_month=None):
+    """Fill missing debtor metadata from typed sales rows without overriding master data."""
+    merged = {code: dict(info) for code, info in (debtor_info or {}).items()}
+    if sales_df is None or sales_df.empty or "debtor_type" not in sales_df.columns:
+        return merged
+
+    rows = sales_df.copy()
+    if "area_code" in rows.columns:
+        rows = rows[
+            rows["area_code"].fillna("").astype(str).str.strip().str.upper()
+            == SCOPE_AREA.upper()
+        ].copy()
+    if current_month:
+        month_mask = pd.Series(False, index=rows.index)
+        for column in ("paid_on", "tranx_mth_full"):
+            if column in rows.columns:
+                month_mask = month_mask | (
+                    rows[column].fillna("").astype(str).str.strip() == current_month
+                )
+        rows = rows[month_mask].copy()
+
+    rows["_resolved_debtor_type"] = rows["debtor_type"].map(normalize_debtor_type)
+    rows = rows[
+        (rows.get("debtor_code", "").fillna("").astype(str).str.strip() != "")
+        & (rows["_resolved_debtor_type"] != "")
+    ].copy()
+    if rows.empty:
+        return merged
+    if "date_parsed" in rows.columns:
+        rows = rows.sort_values("date_parsed", na_position="first")
+
+    for debtor_code, code_rows in rows.groupby("debtor_code", sort=False):
+        code = _safe_str(debtor_code)
+        if not code:
+            continue
+        latest = code_rows.iloc[-1]
+        report_type = normalize_debtor_type(latest.get("_resolved_debtor_type"))
+        info = merged.get(code)
+        if info is None:
+            info = {
+                "name": _safe_str(latest.get("company_name")) or code,
+                "phone": "",
+                "vip": False,
+                "birth_date": None,
+                "open_date": None,
+                "type": report_type,
+                "agent": _safe_str(latest.get("agent")).upper(),
+                "area": _safe_str(latest.get("area_code")) or SCOPE_AREA,
+                "dm_active": True,
+                "has_bonus_point": False,
+                "master_missing": True,
+                "debtor_type_source": "sales_report_only",
+                "debtor_type_mismatch": False,
+            }
+            merged[code] = info
+        else:
+            master_type = normalize_debtor_type(info.get("type"))
+            if not master_type:
+                info["type"] = report_type
+                info["debtor_type_source"] = "sales_report_fallback"
+            else:
+                info["type"] = master_type
+                info["debtor_type_source"] = "master"
+            info["master_missing"] = False
+            info["debtor_type_mismatch"] = bool(
+                master_type and report_type and master_type != report_type
+            )
+            if not _safe_str(info.get("name")):
+                info["name"] = _safe_str(latest.get("company_name")) or code
+            if not _safe_str(info.get("agent")):
+                info["agent"] = _safe_str(latest.get("agent")).upper()
+            if not _safe_str(info.get("area")):
+                info["area"] = _safe_str(latest.get("area_code")) or SCOPE_AREA
+        info["debtor_type_policy"] = classify_debtor_type(info.get("type"))
+
+    return merged
+
+
+def build_debtor_type_quality(sales_df, debtor_df, allowed_agents=None):
+    """Summarize debtor-type source quality without exposing debtor identifiers."""
+    source_flag = (
+        sales_df.attrs.get("source_has_debtor_type")
+        if sales_df is not None
+        else None
+    )
+    report_column_present = bool(
+        source_flag
+        if source_flag is not None
+        else (sales_df is not None and "debtor_type" in sales_df.columns)
+    )
+    rows = sales_df.copy() if sales_df is not None else pd.DataFrame()
+    if rows.empty or "debtor_code" not in rows.columns:
+        return {
+            "report_column_present": report_column_present,
+            "sales_rows": int(len(rows)),
+            "sales_rows_with_type": 0,
+            "transaction_debtors": 0,
+            "missing_master_debtors": 0,
+            "type_mismatch_debtors": 0,
+            "report_converter_debtors": 0,
+            "resolved_converter_debtors": 0,
+            "review_required_types": {},
+        }
+
+    if "area_code" in rows.columns:
+        rows = rows[
+            rows["area_code"].fillna("").astype(str).str.strip().str.upper()
+            == SCOPE_AREA.upper()
+        ].copy()
+    allowed_agent_set = {
+        _safe_str(agent).upper() for agent in (allowed_agents or []) if _safe_str(agent)
+    }
+    if allowed_agent_set and "agent" in rows.columns:
+        rows = rows[
+            rows["agent"].fillna("").astype(str).str.strip().str.upper().isin(allowed_agent_set)
+        ].copy()
+
+    rows["_debtor_code"] = rows["debtor_code"].fillna("").astype(str).str.strip()
+    rows = rows[rows["_debtor_code"] != ""].copy()
+    if report_column_present:
+        rows["_report_type"] = rows["debtor_type"].map(normalize_debtor_type)
+    else:
+        rows["_report_type"] = ""
+
+    master_info = build_debtor_info(
+        debtor_df if debtor_df is not None else pd.DataFrame()
+    )
+    missing_master = 0
+    mismatches = 0
+    report_converter = 0
+    resolved_converter = 0
+    review_required = {}
+
+    for code, code_rows in rows.groupby("_debtor_code", sort=False):
+        report_types = [value for value in code_rows["_report_type"].tolist() if value]
+        report_type = report_types[-1] if report_types else ""
+        if "Converter" in report_types:
+            report_converter += 1
+        master = master_info.get(code)
+        if master is None:
+            missing_master += 1
+        master_type = normalize_debtor_type((master or {}).get("type"))
+        if master_type and report_types and any(value != master_type for value in report_types):
+            mismatches += 1
+        resolved_type = master_type or report_type
+        if resolved_type == "Converter":
+            resolved_converter += 1
+        if classify_debtor_type(resolved_type) == "review_required":
+            label = resolved_type or "<blank>"
+            review_required[label] = review_required.get(label, 0) + 1
+
+    return {
+        "report_column_present": report_column_present,
+        "sales_rows": int(len(rows)),
+        "sales_rows_with_type": int((rows["_report_type"] != "").sum()),
+        "transaction_debtors": int(rows["_debtor_code"].nunique()),
+        "missing_master_debtors": missing_master,
+        "type_mismatch_debtors": mismatches,
+        "report_converter_debtors": report_converter,
+        "resolved_converter_debtors": resolved_converter,
+        "review_required_types": dict(sorted(review_required.items())),
+    }
 
 
 def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_groups=None, new_sku_groups_config=None, brand_config=None, zlb_brands=None):
@@ -3428,8 +3821,33 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
     canggih_invoiced = df[~df_eightcom]
     eightcom_invoiced = df[df_eightcom]
 
-    # Build debtor lookup from Debtor Maintenance (via shared helper)
-    debtor_info = build_debtor_info(debtor_df)
+    def _debtor_groups(frame):
+        if frame.empty:
+            return {}
+        return {
+            _safe_str(code): rows
+            for code, rows in frame.groupby("debtor_code", sort=False)
+            if _safe_str(code)
+        }
+
+    canggih_invoiced_by_debtor = _debtor_groups(canggih_invoiced)
+    eightcom_invoiced_by_debtor = _debtor_groups(eightcom_invoiced)
+    empty_canggih_rows = canggih_invoiced.iloc[0:0]
+    empty_eightcom_rows = eightcom_invoiced.iloc[0:0]
+    unpaid_by_agent_debtor = {
+        (_safe_str(agent).upper(), _safe_str(code)): rows
+        for (agent, code), rows in df[df["paid_on"] == ""].groupby(
+            ["agent", "debtor_code"], sort=False
+        )
+        if _safe_str(agent) and _safe_str(code)
+    }
+
+    # Debtor Maintenance remains authoritative. A typed current-month sales row
+    # may fill a blank/missing record so new types such as Converter are visible
+    # immediately while the missing master record remains auditable.
+    debtor_info = merge_sales_debtor_type_fallback(
+        build_debtor_info(debtor_df), df, current_month=cur_month
+    )
     if debtor_info:
         log(f"  Debtor info loaded: {len(debtor_info)} entries")
 
@@ -3465,7 +3883,7 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
 
     for agent in agents:
         ag_data = canggih_paid[canggih_paid["agent"] == agent]
-        ag_invoice_data = canggih_invoiced[canggih_invoiced["agent"] == agent]
+        ag_paid_by_debtor = _debtor_groups(ag_data)
 
         # ── Base debtor list from Debtor Maintenance ──
         # Filter out Active=Unchecked ("closed" accounts)
@@ -3528,11 +3946,9 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
 
         debtor_cards = []
         for dcode in all_debtor_codes:
-            d_rows = ag_data[ag_data["debtor_code"] == dcode]
-            d_invoice_rows = ag_invoice_data[ag_invoice_data["debtor_code"] == dcode]
-            d_all_invoice_rows = canggih_invoiced[canggih_invoiced["debtor_code"] == dcode]
-            d_eightcom_invoice_rows = eightcom_invoiced[eightcom_invoiced["debtor_code"] == dcode]
-            d_hist_rows = canggih_paid[canggih_paid["debtor_code"] == dcode]
+            d_rows = ag_paid_by_debtor.get(dcode, empty_canggih_rows)
+            d_all_invoice_rows = canggih_invoiced_by_debtor.get(dcode, empty_canggih_rows)
+            d_eightcom_invoice_rows = eightcom_invoiced_by_debtor.get(dcode, empty_eightcom_rows)
             # Debtor-card purchase state is debtor-wide. Ownership follows Debtor
             # Maintenance, but purchase history follows the customer across agents.
             _history_rows = d_all_invoice_rows
@@ -3768,7 +4184,9 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             cur_sales_types = _history_rows[_history_rows[_history_month_col] == cur_m]["sales_type"].unique().tolist() if not _history_rows.empty else []
 
             # Overdue flag — check if this debtor has any overdue invoices
-            ag_unpaid = df[(df["agent"]==agent) & (df["debtor_code"]==dcode) & (df["paid_on"]=="")].copy()
+            ag_unpaid = unpaid_by_agent_debtor.get(
+                (agent.upper(), dcode), df.iloc[0:0]
+            )
             has_overdue = False
             overdue_amount = 0.0
             if not ag_unpaid.empty:
@@ -3785,8 +4203,8 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
             avg_ctn = round((ctn_prev1 + ctn_prev2 + ctn_cur) / 3, 1) if any([ctn_prev1, ctn_prev2, ctn_cur]) else 0
 
             # Personal debtors excluded from campaigns (stay in list though)
-            _dtype = (info.get("type","") or "").strip()
-            _card_is_personal = _dtype in {"P-Personal","P-PERSONAL","personal","Personal","PERSONAL"}
+            _dtype = normalize_debtor_type(info.get("type", ""))
+            _card_is_personal = is_personal_debtor_type(_dtype)
             if _card_is_personal:
                 _camps = []
             else:
@@ -3807,6 +4225,10 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
                 "area_code":          area_code,
                 "type":               info.get("type", ""),
                 "debtor_type":        info.get("type", ""),
+                "debtor_type_policy": info.get("debtor_type_policy") or classify_debtor_type(info.get("type", "")),
+                "debtor_type_source": info.get("debtor_type_source", "master"),
+                "debtor_type_mismatch": bool(info.get("debtor_type_mismatch", False)),
+                "master_missing":     bool(info.get("master_missing", False)),
                 "dm_active":          account_active,
                 "account_active":     account_active,
                 "account_status":     account_status,
@@ -3866,10 +4288,8 @@ def calc_debtor_cards(df, debtor_df, agents, cur_month, campaign_map=None, area_
 
         # Personal exclusion (business rule): excluded from summary counts
         # and KPI calc, but REMAIN in debtor_cards list for agent visibility.
-        PERSONAL_TYPES = {"P-Personal","P-PERSONAL","personal","Personal","PERSONAL"}
         def _is_personal(d):
-            return (d.get("type","") in PERSONAL_TYPES
-                    or d.get("debtor_type","") in PERSONAL_TYPES)
+            return is_personal_debtor_type(d.get("type") or d.get("debtor_type"))
         non_personal   = [d for d in debtor_cards if not _is_personal(d)]
         personal_count = len(debtor_cards) - len(non_personal)
         dm_non_personal_live = [
@@ -5358,8 +5778,9 @@ def main():
     today = date.today()
 
     # ── Load data ──────────────────────────────────────────────────
+    runtime_options = parse_runtime_options()
     targets   = load_targets()
-    df_raw    = load_sales_report()
+    df_raw    = load_sales_report(use_cache=runtime_options.fast)
     debtor_df = load_debtors()
 
     # ── Auto-detect current month from sales data ──────────────────
@@ -5684,8 +6105,11 @@ def main():
             df = _pd.concat([df, extra], ignore_index=True)
             log(f"  Inheritance: added {len(rows_to_add)} rows to successors")
 
-    # Build shared debtor_info (used by multiple modules)
-    debtor_info_shared = build_debtor_info(debtor_df)
+    # Build shared debtor_info (used by multiple modules). Typed current-month
+    # sales rows fill only blank/missing master metadata; master values win.
+    debtor_info_shared = merge_sales_debtor_type_fallback(
+        build_debtor_info(debtor_df), df, current_month=cur_month
+    )
     log(f"  Shared debtor_info built: {len(debtor_info_shared)} debtors")
     bp_checked = sum(1 for v in debtor_info_shared.values() if v.get("has_bonus_point"))
     log(f"  Has Bonus Point = Checked: {bp_checked} debtors")
@@ -6019,9 +6443,29 @@ def main():
     overrides_by_agent_key = fetch_kpi_manual_overrides_keyed(cur_month)
     kpi_weights_for_month = (targets.get("kpi_weights") or {}).get(cur_month, {}) or {}
 
+    debtor_type_quality = build_debtor_type_quality(
+        df_raw, debtor_df, allowed_agents=all_agents
+    )
+    source_quality = {}
+    for source_key, source_path in (
+        ("sales_report", SALES_FILE),
+        ("debtor_maintenance", DEBTOR_FILE),
+    ):
+        metadata = source_file_metadata(source_path)
+        source_quality[source_key] = {
+            "file": Path(metadata["path"]).name,
+            "exists": metadata["exists"],
+            "size_bytes": metadata["size_bytes"],
+            "modified_at": metadata["modified_at"],
+        }
+
     output = {
         "generated_at":   datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "current_month":  cur_month,
+        "data_quality": {
+            "debtor_type": debtor_type_quality,
+            "sources": source_quality,
+        },
         "working_days":        working_days,
         "group_brand_targets": group_brands,
         "birthday_campaign":   birthday_camp,
@@ -6132,6 +6576,7 @@ def main():
         debtor_analysis = build_debtor_analysis_data(
             df_raw, debtor_df, cur_month, allowed_agents=all_agents
         )
+        debtor_analysis.setdefault("data_quality", {})["sources"] = source_quality
         write_dashboard_json(DEBTOR_ANALYSIS_FILE, debtor_analysis, indent=None, separators=(",", ":"))
         log(f"   Debtor analysis saved: {DEBTOR_ANALYSIS_FILE.name}")
 

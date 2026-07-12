@@ -7,7 +7,7 @@ echo.
 
 REM -- Usage ------------------------------------------------
 REM Normal daily:              update_dashboard.bat
-REM Fast (skip debtor recalc): update_dashboard.bat fast
+REM Fast (reuse sales cache):  update_dashboard.bat fast
 REM Regen past month:          update_dashboard.bat "Mar 26"
 REM Regen past month fast:     update_dashboard.bat "Mar 26" fast
 REM ---------------------------------------------------------
@@ -37,6 +37,13 @@ echo [0/5] Checking GitHub main sync...
 git rev-parse --is-inside-work-tree >nul 2>&1
 if %errorlevel% neq 0 (
     echo ERROR: This folder is not a Git repository.
+    pause & exit /b 1
+)
+echo Checking for pre-staged files...
+git diff --cached --quiet
+if errorlevel 1 (
+    echo ERROR: Pre-staged files detected. Commit or unstage them before the daily update.
+    echo        This prevents unrelated work from being included in the generated-data commit.
     pause & exit /b 1
 )
 git fetch origin main
@@ -73,33 +80,20 @@ if not "%LOCAL_BEHIND%"=="0" (
 echo Done.
 echo.
 
-REM -- Step 0b: Sync latest source workbooks ----------------
-echo [0b/5] Syncing source workbooks...
-set DESKTOP_SALES_FILE=%USERPROFILE%\Desktop\md-dashboard\MD Sales Report.xlsx
-set LIVE_SALES_FILE=%CD%\MD Sales Report.xlsx
-if exist "%DESKTOP_SALES_FILE%" (
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "$src='%DESKTOP_SALES_FILE%'; $dest='%LIVE_SALES_FILE%'; $s=Get-Item -LiteralPath $src; $d=Get-Item -LiteralPath $dest -ErrorAction SilentlyContinue; if (!$d -or $s.LastWriteTime -gt $d.LastWriteTime -or $s.Length -ne $d.Length) { Copy-Item -LiteralPath $src -Destination $dest -Force; Write-Host ('Copied desktop MD Sales Report: ' + $s.LastWriteTime.ToString('yyyy-MM-dd HH:mm') + ' (' + $s.Length + ' bytes)') } else { Write-Host ('Live MD Sales Report already current: ' + $d.LastWriteTime.ToString('yyyy-MM-dd HH:mm') + ' (' + $d.Length + ' bytes)') }"
-    if errorlevel 1 (
-        echo ERROR: Could not sync desktop MD Sales Report.
-        pause & exit /b 1
-    )
-) else (
-    echo WARNING: Desktop MD Sales Report not found: %DESKTOP_SALES_FILE%
-    echo          Continuing with live folder source.
+REM -- Step 0b: Resolve input workbooks ---------------------
+echo [0b/5] Resolving source workbooks...
+if not defined MD_SALES_FILE set "MD_SALES_FILE=%CD%\MD Sales Report.xlsx"
+if not defined MD_DEBTOR_FILE set "MD_DEBTOR_FILE=%CD%\Debtor Maintenance.xlsx"
+if not exist "%MD_SALES_FILE%" (
+    echo ERROR: Sales source not found: %MD_SALES_FILE%
+    pause & exit /b 1
 )
-
-set DESKTOP_DEBTOR_FILE=%USERPROFILE%\Desktop\md-dashboard\Debtor Maintenance.xlsx
-set LIVE_DEBTOR_FILE=%CD%\Debtor Maintenance.xlsx
-if exist "%DESKTOP_DEBTOR_FILE%" (
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "$src='%DESKTOP_DEBTOR_FILE%'; $dest='%LIVE_DEBTOR_FILE%'; $s=Get-Item -LiteralPath $src; $d=Get-Item -LiteralPath $dest -ErrorAction SilentlyContinue; if (!$d -or $s.LastWriteTime -gt $d.LastWriteTime -or $s.Length -ne $d.Length) { Copy-Item -LiteralPath $src -Destination $dest -Force; Write-Host ('Copied desktop Debtor Maintenance: ' + $s.LastWriteTime.ToString('yyyy-MM-dd HH:mm') + ' (' + $s.Length + ' bytes)') } else { Write-Host ('Live Debtor Maintenance already current: ' + $d.LastWriteTime.ToString('yyyy-MM-dd HH:mm') + ' (' + $d.Length + ' bytes)') }"
-    if errorlevel 1 (
-        echo ERROR: Could not sync desktop Debtor Maintenance.
-        pause & exit /b 1
-    )
-) else (
-    echo WARNING: Desktop Debtor Maintenance not found: %DESKTOP_DEBTOR_FILE%
-    echo          Continuing with live folder source.
+if not exist "%MD_DEBTOR_FILE%" (
+    echo ERROR: Debtor source not found: %MD_DEBTOR_FILE%
+    pause & exit /b 1
 )
+echo Using sales source:  %MD_SALES_FILE%
+echo Using debtor source: %MD_DEBTOR_FILE%
 echo Done.
 echo.
 
@@ -109,7 +103,7 @@ if "%MONTH_OVERRIDE%"=="" (
         echo [1/5] Processing sales data ^(current month^)...
         %PYTHON% process_data.py
     ) else (
-        echo [1/5] Processing sales data ^(FAST mode - debtor cache^)...
+        echo [1/5] Processing sales data ^(FAST mode - validated sales cache^)...
         %PYTHON% process_data.py --fast
     )
 ) else (
@@ -183,17 +177,21 @@ if %errorlevel% neq 0 (
     echo ERROR: New SKU item chip smoke test failed.
     pause & exit /b 1
 )
+node tests\sku_reports_converter.test.cjs
+if %errorlevel% neq 0 (
+    echo ERROR: Converter SKU report smoke test failed.
+    pause & exit /b 1
+)
 echo Done.
 echo.
 
 REM -- Step 5: Push to GitHub -------------------------------
 echo [5/5] Pushing to GitHub...
+REM Daily runs publish generated artifacts only. Source/UI edits are committed
+REM separately so unrelated local work cannot be swept into a data refresh.
 git add dashboard_data.json debtor_analysis_data.json history.json dashboard_version.json
-git add process_data.py targets_loader.py
-git add sales_dashboard.html management.html admin.html admin_context.js
-git add accounts.html campaign_audit.html stock.html stock_calendar.html debtor_analysis.html debtor_map.html index.html
 git add data_*.json months_index.json 2>nul
-git add reports\miracle-2a-sku-strength\index.html reports\miracle-2a-sku-strength\penetration.html reports\miracle-2a-sku-strength\gap_opportunities.html reports\miracle-2a-sku-strength\debtor_status.js reports\miracle-2a-sku-strength\agent_monthly_revenue.js reports\miracle-2a-sku-strength\sku_debtor_history.js reports\miracle-2a-sku-strength\sku_gap_opportunities.js reports\miracle-2a-sku-strength\sku_penetration_data.js reports\miracle-2a-sku-strength\build_report_data.py 2>nul
+git add reports\miracle-2a-sku-strength\index.html reports\miracle-2a-sku-strength\debtor_status.js reports\miracle-2a-sku-strength\agent_monthly_revenue.js reports\miracle-2a-sku-strength\sku_debtor_history.js reports\miracle-2a-sku-strength\sku_gap_opportunities.js reports\miracle-2a-sku-strength\sku_penetration_data.js 2>nul
 git diff --cached --quiet
 if %errorlevel%==0 (
     echo No staged dashboard changes to commit.
@@ -219,7 +217,7 @@ echo.
 
 echo ============================================
 if "%MONTH_OVERRIDE%"=="" (echo  Dashboard updated!) else (echo  %MONTH_OVERRIDE% regenerated!)
-if not "%FAST_FLAG%"=="" echo  ^(Fast mode - debtor cards from cache^)
+if not "%FAST_FLAG%"=="" echo  ^(Fast mode - validated sales cache^)
 echo ============================================
 echo.
 echo  Agent:      https://izfoo0121-lab.github.io/md-dashboard

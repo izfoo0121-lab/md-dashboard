@@ -587,7 +587,7 @@
     const fmt = new Intl.NumberFormat("en-MY", { maximumFractionDigits: 2 });
     const rm = value => `RM ${fmt.format(value || 0)}`;
     const pct = value => `${Number(value || 0).toFixed(1)}%`;
-    const DEFAULT_TYPE_ORDER = ["SH-Shop", "SL-Stall", "ST-Site", "D-Dealer/Distributor", "FL-Freelancer"];
+    const DEFAULT_TYPE_ORDER = ["SH-Shop", "SL-Stall", "ST-Site", "D-Dealer/Distributor", "FL-Freelancer", "Converter"];
     const DEFAULT_TYPES = new Set(DEFAULT_TYPE_ORDER);
     let lastSummary = null;
     let activeDrilldown = null;
