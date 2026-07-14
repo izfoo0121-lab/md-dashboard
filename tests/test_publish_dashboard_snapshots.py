@@ -120,11 +120,21 @@ class FakeTransport:
         "dashboard_manager_artifacts": ("artifact_key",),
     }
 
-    def __init__(self, readback_checksum=None, mutate_readback=None):
+    def __init__(
+        self,
+        readback_checksum=None,
+        mutate_readback=None,
+        ignore_deletes=False,
+    ):
         self.readback_checksum = readback_checksum
         self.mutate_readback = mutate_readback
+        self.ignore_deletes = ignore_deletes
         self.calls = []
         self.rows = {}
+
+    def seed(self, table, row):
+        key = tuple(row[field] for field in self.KEY_FIELDS[table])
+        self.rows[(table, key)] = copy.deepcopy(row)
 
     def upsert(self, table, rows, on_conflict):
         self.calls.append(
@@ -158,6 +168,53 @@ class FakeTransport:
         if self.mutate_readback is not None:
             row = self.mutate_readback(table, row)
         return row
+
+    def select_many(self, table, **filters):
+        self.calls.append(
+            {
+                "operation": "select",
+                "table": table,
+                "filters": filters,
+                "authorization": "Bearer service-role",
+            }
+        )
+        rows = []
+        for (row_table, _key), stored in self.rows.items():
+            if row_table != table:
+                continue
+            if any(stored.get(field) != value for field, value in filters.items()):
+                continue
+            row = copy.deepcopy(stored)
+            if self.readback_checksum is not None:
+                row["checksum"] = self.readback_checksum
+            if self.mutate_readback is not None:
+                row = self.mutate_readback(table, row)
+            rows.append(row)
+        return sorted(
+            rows,
+            key=lambda row: tuple(row[field] for field in self.KEY_FIELDS[table]),
+        )
+
+    def delete(self, table, **filters):
+        self.calls.append(
+            {
+                "operation": "delete",
+                "table": table,
+                "filters": filters,
+                "authorization": "Bearer service-role",
+            }
+        )
+        if self.ignore_deletes:
+            return 0
+        keys = [
+            stored_key
+            for stored_key, row in self.rows.items()
+            if stored_key[0] == table
+            and all(row.get(field) == value for field, value in filters.items())
+        ]
+        for key in keys:
+            del self.rows[key]
+        return len(keys)
 
 
 class FakeResponse:
@@ -295,6 +352,94 @@ class SnapshotPublisherTests(unittest.TestCase):
             sum(call["operation"] == "select" for call in transport.calls),
         )
 
+    def test_publish_deletes_stale_agent_before_manager_readback(self):
+        transport = FakeTransport()
+        transport.seed(
+            "dashboard_agent_snapshots",
+            {
+                "month": "Jul 26",
+                "agent": "ARCHIVED",
+                "agent_payload": {
+                    "agents": {
+                        "ARCHIVED": {
+                            "debtor_cards": {
+                                "debtors": [
+                                    {
+                                        "debtor_code": "OLD-001",
+                                        "company_name": "Archived Peer Debtor",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+                "checksum": "stale-checksum",
+                "generated_at": "2026-06-01T00:00:00+00:00",
+            },
+        )
+
+        result = publish_bundle(
+            sample_bundle(),
+            [sample_analysis_artifact()],
+            transport,
+            source_version="abc123",
+        )
+        manager_rows = transport.select_many(
+            "dashboard_agent_snapshots", month="Jul 26"
+        )
+        manager_agents = {
+            row["agent"]: row["agent_payload"]["agents"][row["agent"]]
+            for row in manager_rows
+        }
+
+        self.assertEqual(["ARCHIVED"], result["deleted_agents"])
+        self.assertEqual({"BEN", "CJ"}, set(manager_agents))
+        self.assertNotIn("ARCHIVED", json.dumps(manager_agents))
+        self.assertNotIn("Archived Peer Debtor", json.dumps(manager_agents))
+
+    def test_publish_fails_unless_final_agent_count_and_list_are_exact(self):
+        transport = FakeTransport(ignore_deletes=True)
+        transport.seed(
+            "dashboard_agent_snapshots",
+            {
+                "month": "Jul 26",
+                "agent": "ARCHIVED",
+                "agent_payload": {"agents": {"ARCHIVED": {}}},
+                "checksum": "stale-checksum",
+                "generated_at": "2026-06-01T00:00:00+00:00",
+            },
+        )
+
+        with self.assertRaisesRegex(
+            PublishVerificationError,
+            "agent snapshot set mismatch",
+        ):
+            publish_bundle(
+                sample_bundle(),
+                [sample_analysis_artifact()],
+                transport,
+                source_version="abc123",
+            )
+
+    def test_publish_verifies_agent_checksums_from_complete_month_readback(self):
+        def change_ben_checksum(table, row):
+            if table == "dashboard_agent_snapshots" and row["agent"] == "BEN":
+                row["checksum"] = "wrong"
+            return row
+
+        transport = FakeTransport(mutate_readback=change_ben_checksum)
+
+        with self.assertRaisesRegex(
+            PublishVerificationError,
+            "BEN snapshot checksum mismatch",
+        ):
+            publish_bundle(
+                sample_bundle(),
+                [sample_analysis_artifact()],
+                transport,
+                source_version="abc123",
+            )
+
     def test_publish_fails_when_readback_checksum_differs(self):
         transport = FakeTransport(readback_checksum="wrong")
 
@@ -370,6 +515,46 @@ class SnapshotPublisherTests(unittest.TestCase):
         self.assertEqual(["month,checksum"], query["select"])
         self.assertEqual(["eq.Jul 26"], query["month"])
         self.assertEqual("abc", row["checksum"])
+
+    def test_rest_transport_lists_complete_month_and_deletes_by_identity(self):
+        requests = []
+        responses = iter(
+            [
+                FakeResponse(
+                    b'[{"month":"Jul 26","agent":"BEN","checksum":"abc"}]'
+                ),
+                FakeResponse(),
+            ]
+        )
+
+        def opener(request, timeout):
+            requests.append(request)
+            return next(responses)
+
+        transport = SupabaseRestTransport(
+            "https://example.supabase.co",
+            "service-role-secret",
+            opener=opener,
+        )
+
+        rows = transport.select_many(
+            "dashboard_agent_snapshots", month="Jul 26"
+        )
+        transport.delete(
+            "dashboard_agent_snapshots", month="Jul 26", agent="ARCHIVED"
+        )
+
+        list_query = parse_qs(urlparse(requests[0].full_url).query)
+        delete_query = parse_qs(urlparse(requests[1].full_url).query)
+        self.assertEqual(
+            ["month,agent,checksum"],
+            list_query["select"],
+        )
+        self.assertEqual(["eq.Jul 26"], list_query["month"])
+        self.assertEqual(["eq.Jul 26"], delete_query["month"])
+        self.assertEqual(["eq.ARCHIVED"], delete_query["agent"])
+        self.assertEqual("DELETE", requests[1].method)
+        self.assertEqual("BEN", rows[0]["agent"])
 
     def test_dry_run_validates_files_without_credentials_or_transport(self):
         with tempfile.TemporaryDirectory() as temp_dir:

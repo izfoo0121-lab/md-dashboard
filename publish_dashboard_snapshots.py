@@ -112,6 +112,34 @@ class SupabaseRestTransport:
             raise PublishTransportError(f"{table} readback returned a malformed row")
         return rows[0]
 
+    def select_many(self, table, **filters):
+        columns = self.READBACK_COLUMNS.get(table)
+        if columns is None:
+            raise PublishTransportError(f"{table} readback is not supported")
+        query = {"select": columns}
+        query.update({key: f"eq.{value}" for key, value in filters.items()})
+        rows = self._request("GET", table, query=query)
+        if rows is None:
+            return []
+        if not isinstance(rows, list) or any(
+            not isinstance(row, dict) for row in rows
+        ):
+            raise PublishTransportError(
+                f"{table} readback returned malformed rows"
+            )
+        return rows
+
+    def delete(self, table, **filters):
+        if table != "dashboard_agent_snapshots" or not filters:
+            raise PublishTransportError(f"{table} delete is not supported")
+        query = {key: f"eq.{value}" for key, value in filters.items()}
+        self._request(
+            "DELETE",
+            table,
+            query=query,
+            prefer="return=minimal",
+        )
+
 
 def _verify_readback(label, expected, actual, identity_fields):
     if not isinstance(actual, dict):
@@ -123,6 +151,20 @@ def _verify_readback(label, expected, actual, identity_fields):
         raise PublishVerificationError(f"{label} checksum mismatch")
 
 
+def _index_agent_readback(rows):
+    if not isinstance(rows, list):
+        raise PublishVerificationError("agent snapshot readback is malformed")
+    indexed = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            raise PublishVerificationError("agent snapshot readback is malformed")
+        agent = str(row.get("agent") or "").strip()
+        if not agent or agent in indexed:
+            raise PublishVerificationError("agent snapshot identity mismatch")
+        indexed[agent] = row
+    return indexed
+
+
 def publish_bundle(bundle, manager_artifacts, transport, source_version):
     source_version = str(source_version or "").strip()
     if not source_version:
@@ -130,9 +172,24 @@ def publish_bundle(bundle, manager_artifacts, transport, source_version):
 
     shared = dict(bundle["shared"], source_version=source_version)
     agent_rows = list(bundle["agents"].values())
+    expected_agents = {row["agent"]: row for row in agent_rows}
     artifact_rows = list(manager_artifacts)
 
     transport.upsert("dashboard_snapshots", shared, on_conflict="month")
+    current_agents = _index_agent_readback(
+        transport.select_many(
+            "dashboard_agent_snapshots",
+            month=shared["month"],
+        )
+    )
+    stale_agents = sorted(set(current_agents) - set(expected_agents))
+    for agent in stale_agents:
+        transport.delete(
+            "dashboard_agent_snapshots",
+            month=shared["month"],
+            agent=agent,
+        )
+
     transport.upsert(
         "dashboard_agent_snapshots",
         agent_rows,
@@ -150,19 +207,25 @@ def publish_bundle(bundle, manager_artifacts, transport, source_version):
     _verify_readback("shared snapshot", shared, shared_back, ("month",))
 
     verified = {shared["month"]}
-    for row in agent_rows:
-        back = transport.select_one(
-            "dashboard_agent_snapshots",
-            month=row["month"],
-            agent=row["agent"],
-        )
+    agent_rows_back = transport.select_many(
+        "dashboard_agent_snapshots",
+        month=shared["month"],
+    )
+    agents_back = _index_agent_readback(agent_rows_back)
+    if (
+        len(agent_rows_back) != len(expected_agents)
+        or set(agents_back) != set(expected_agents)
+    ):
+        raise PublishVerificationError("agent snapshot set mismatch")
+    for agent, row in sorted(expected_agents.items()):
+        back = agents_back[agent]
         _verify_readback(
-            f"{row['agent']} snapshot",
+            f"{agent} snapshot",
             row,
             back,
             ("month", "agent"),
         )
-        verified.add(row["agent"])
+        verified.add(agent)
 
     for row in artifact_rows:
         back = transport.select_one(
@@ -180,6 +243,7 @@ def publish_bundle(bundle, manager_artifacts, transport, source_version):
     return {
         "verified_keys": sorted(verified),
         "agent_count": len(agent_rows),
+        "deleted_agents": stale_agents,
         "manager_artifact_count": len(artifact_rows),
     }
 
