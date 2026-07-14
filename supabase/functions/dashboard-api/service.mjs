@@ -639,7 +639,16 @@ export async function handleManagerPinsSave(input, deps) {
   await dependencyCall(
     deps,
     'PIN save',
-    () => deps.pins.save({ agent, pin }),
+    async () => {
+      try {
+        return await deps.pins.save({ agent, pin });
+      } catch (error) {
+        if (error?.code === '23505') {
+          throw new ApiError(409, 'PIN is unavailable', 'pin_conflict');
+        }
+        throw error;
+      }
+    },
     'PIN save unavailable',
   );
   return { saved: true, agent };

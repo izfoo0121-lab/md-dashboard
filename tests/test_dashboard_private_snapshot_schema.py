@@ -30,6 +30,32 @@ def _generation_id(month):
     return str(uuid.UUID(digest))
 
 
+def _valid_debtor_analysis(month):
+    return {
+        "generated_at": "2026-07-14T12:00:00Z",
+        "scope_area": "MD",
+        "current_month": month,
+        "months": [month],
+        "debtors": [
+            {
+                "debtor_code": "D1",
+                "company_name": "Example Debtor",
+                "agent": "BEN",
+            }
+        ],
+        "records": [
+            {
+                "month": month,
+                "debtor_code": "D1",
+                "agent": "BEN",
+                "brand": "Example Brand",
+                "sku": "SKU-1",
+            }
+        ],
+        "data_quality": {"records": 1},
+    }
+
+
 def _apply_upgrade_model(legacy):
     state = copy.deepcopy(legacy)
     state.setdefault("active", {})
@@ -46,7 +72,10 @@ def _apply_upgrade_model(legacy):
 
     only_month = next(iter(generations), None) if len(generations) == 1 else None
     for row in state["artifacts"]:
-        month = row.get("month_key") or row.get("payload", {}).get("current_month")
+        month = row.get("month_key")
+        declared_month = row.get("payload", {}).get("current_month")
+        if month is None and declared_month in generations:
+            month = declared_month
         month = month or only_month
         if month not in generations:
             raise ValueError("manager artifact month cannot be resolved")
@@ -56,35 +85,6 @@ def _apply_upgrade_model(legacy):
     for row in state["login_attempts"]:
         if "attempts" not in row:
             row["attempts"] = row.pop("failures")
-
-    for snapshot in state["snapshots"]:
-        month = snapshot["month"]
-        if month in state["active"]:
-            continue
-        generation_id = snapshot["generation_id"]
-        agents = [
-            row
-            for row in state["agents"]
-            if row["month"] == month and row["generation_id"] == generation_id
-        ]
-        artifacts = [
-            row
-            for row in state["artifacts"]
-            if row["month_key"] == month
-            and row["generation_id"] == generation_id
-        ]
-        state["active"][month] = {
-            "month_key": month,
-            "generation_id": generation_id,
-            "shared_checksum": snapshot["checksum"],
-            "agent_count": len(agents),
-            "agent_checksums": {
-                row["agent"]: row["checksum"] for row in agents
-            },
-            "artifact_checksums": {
-                row["artifact_key"]: row["checksum"] for row in artifacts
-            },
-        }
 
     state["contract"] = {
         "snapshot_pk": ("month", "generation_id"),
@@ -163,7 +163,22 @@ class DashboardPrivateSnapshotSchemaTests(unittest.TestCase):
         self.assertNotIn("delete from public.dashboard_agent_snapshots", sql)
         self.assertNotIn("delete from public.dashboard_manager_artifacts", sql)
 
-    def test_base_then_upgrade_model_preserves_and_activates_legacy_data(self):
+        activation_function = (
+            "create or replace function "
+            "public.dashboard_activate_snapshot_generation"
+        )
+        pre_activation_sql = sql.split(activation_function, 1)[0]
+        self.assertNotIn(
+            "insert into public.dashboard_active_snapshots",
+            pre_activation_sql,
+        )
+        self.assertNotIn("complete_snapshots as", pre_activation_sql)
+        self.assertNotIn(
+            "coalesce(artifact_manifest.artifact_checksums, '{}'::jsonb)",
+            sql,
+        )
+
+    def test_base_then_upgrade_model_preserves_legacy_data_but_leaves_it_inactive(self):
         legacy = {
             "snapshots": [
                 {
@@ -180,7 +195,7 @@ class DashboardPrivateSnapshotSchemaTests(unittest.TestCase):
                 {
                     "artifact_key": "debtor_analysis",
                     "checksum": "analysis",
-                    "payload": {"current_month": "Jul 26"},
+                    "payload": _valid_debtor_analysis("Jul 26"),
                 }
             ],
             "login_attempts": [
@@ -196,7 +211,7 @@ class DashboardPrivateSnapshotSchemaTests(unittest.TestCase):
         upgraded_twice = _apply_upgrade_model(upgraded)
         generation_id = _generation_id("Jul 26")
 
-        self.assertEqual(legacy["snapshots"][0]["checksum"], "shared-checksum")
+        self.assertEqual(upgraded["snapshots"][0]["checksum"], "shared-checksum")
         self.assertEqual(generation_id, upgraded["snapshots"][0]["generation_id"])
         self.assertEqual(
             {generation_id},
@@ -206,18 +221,66 @@ class DashboardPrivateSnapshotSchemaTests(unittest.TestCase):
         self.assertEqual("Jul 26", upgraded["artifacts"][0]["month_key"])
         self.assertEqual(4, upgraded["login_attempts"][0]["attempts"])
         self.assertNotIn("failures", upgraded["login_attempts"][0])
-        self.assertEqual(
-            {
-                "month_key": "Jul 26",
-                "generation_id": generation_id,
-                "shared_checksum": "shared-checksum",
-                "agent_count": 2,
-                "agent_checksums": {"BEN": "ben", "CJ": "cj"},
-                "artifact_checksums": {"debtor_analysis": "analysis"},
-            },
-            upgraded["active"]["Jul 26"],
-        )
+        self.assertEqual({}, upgraded["active"])
         self.assertEqual(upgraded, upgraded_twice)
+
+    def test_base_then_upgrade_keeps_unverifiable_legacy_variants_inactive(self):
+        snapshot = {
+            "month": "Jul 26",
+            "checksum": "shared-checksum",
+            "generated_at": "2026-07-14T12:00:00Z",
+        }
+        full_agents = [
+            {"month": "Jul 26", "agent": "BEN", "checksum": "ben"},
+            {"month": "Jul 26", "agent": "CJ", "checksum": "cj"},
+        ]
+        valid_artifact = {
+            "artifact_key": "debtor_analysis",
+            "checksum": "analysis",
+            "payload": _valid_debtor_analysis("Jul 26"),
+        }
+        cases = {
+            "partial agent rows": {
+                "agents": full_agents[:1],
+                "artifacts": [valid_artifact],
+            },
+            "missing debtor analysis": {
+                "agents": full_agents,
+                "artifacts": [],
+            },
+            "mismatched debtor analysis month": {
+                "agents": full_agents,
+                "artifacts": [
+                    {
+                        **valid_artifact,
+                        "payload": _valid_debtor_analysis("Aug 26"),
+                    }
+                ],
+            },
+        }
+
+        for label, rows in cases.items():
+            with self.subTest(label=label):
+                legacy = {
+                    "snapshots": [copy.deepcopy(snapshot)],
+                    "agents": copy.deepcopy(rows["agents"]),
+                    "artifacts": copy.deepcopy(rows["artifacts"]),
+                    "login_attempts": [],
+                }
+
+                upgraded = _apply_upgrade_model(legacy)
+
+                self.assertEqual({}, upgraded["active"])
+                self.assertEqual(len(legacy["agents"]), len(upgraded["agents"]))
+                self.assertEqual(
+                    len(legacy["artifacts"]),
+                    len(upgraded["artifacts"]),
+                )
+                if rows["artifacts"]:
+                    self.assertEqual(
+                        rows["artifacts"][0]["payload"],
+                        upgraded["artifacts"][0]["payload"],
+                    )
 
     def test_base_then_upgrade_model_is_safe_with_no_existing_rows(self):
         upgraded = _apply_upgrade_model(
@@ -244,6 +307,18 @@ class DashboardPrivateSnapshotSchemaTests(unittest.TestCase):
         self.assertIn("from public.dashboard_manager_artifacts", sql)
         self.assertIn("jsonb_each_text(p_agent_checksums)", sql)
         self.assertIn("jsonb_each_text(p_artifact_checksums)", sql)
+        required_analysis_checks = (
+            "p_artifact_checksums ? 'debtor_analysis'",
+            "staged.artifact_key = 'debtor_analysis'",
+            "staged.payload ->> 'current_month' = p_month_key",
+            "jsonb_typeof(staged.payload -> 'months') = 'array'",
+            "jsonb_typeof(staged.payload -> 'debtors') = 'array'",
+            "jsonb_typeof(staged.payload -> 'records') = 'array'",
+            "jsonb_typeof(staged.payload -> 'data_quality') = 'object'",
+        )
+        for fragment in required_analysis_checks:
+            with self.subTest(fragment=fragment):
+                self.assertIn(fragment, sql)
         self.assertIn("insert into public.dashboard_active_snapshots", sql)
         self.assertIn(
             "on conflict on constraint dashboard_active_snapshots_pkey do update",

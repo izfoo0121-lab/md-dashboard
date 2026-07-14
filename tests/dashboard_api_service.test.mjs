@@ -875,6 +875,52 @@ test('manager PIN save allows the same PIN owner and an unused replacement', asy
 });
 
 
+test('manager PIN save maps a unique-index race to the generic conflict', async () => {
+  const dependencies = await makeDeps();
+  dependencies.pins.save = async () => {
+    throw Object.assign(new Error('duplicate key value'), { code: '23505' });
+  };
+
+  await assert.rejects(
+    () => handleManagerPinsSave(
+      {
+        sessionToken: 'manager-token',
+        payload: { agent: 'BEN', pin: '1234' },
+      },
+      dependencies,
+    ),
+    (error) => (
+      error?.status === 409
+      && error?.code === 'pin_conflict'
+      && error?.message === 'PIN is unavailable'
+    ),
+  );
+});
+
+
+test('manager PIN save keeps unrelated write failures unavailable', async () => {
+  const dependencies = await makeDeps();
+  dependencies.pins.save = async () => {
+    throw Object.assign(new Error('database unavailable'), { code: '08006' });
+  };
+
+  await assert.rejects(
+    () => handleManagerPinsSave(
+      {
+        sessionToken: 'manager-token',
+        payload: { agent: 'BEN', pin: '1234' },
+      },
+      dependencies,
+    ),
+    (error) => (
+      error?.status === 503
+      && error?.code === 'dependency_unavailable'
+      && error?.message === 'PIN save unavailable'
+    ),
+  );
+});
+
+
 test('sync derives the agent from the session and rejects spoofing', async () => {
   const dependencies = await makeDeps();
 

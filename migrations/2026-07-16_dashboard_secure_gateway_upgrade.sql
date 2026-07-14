@@ -45,9 +45,17 @@ from public.dashboard_snapshots as shared_snapshot
 where agent_snapshot.generation_id is null
   and shared_snapshot.month = agent_snapshot.month;
 
-update public.dashboard_manager_artifacts
+update public.dashboard_manager_artifacts as artifact
 set month_key = nullif(btrim(payload ->> 'current_month'), '')
-where month_key is null;
+where artifact.month_key is null
+  and exists (
+    select 1
+    from public.dashboard_snapshots as shared_snapshot
+    where shared_snapshot.month = nullif(
+      btrim(artifact.payload ->> 'current_month'),
+      ''
+    )
+  );
 
 with only_snapshot_month as (
   select min(month) as month
@@ -226,91 +234,8 @@ drop index if exists public.dashboard_manager_artifacts_key_idx;
 create index dashboard_manager_artifacts_key_idx
   on public.dashboard_manager_artifacts(artifact_key, month_key, generation_id);
 
-do $$
-begin
-  if exists (
-    select 1
-    from (
-      select distinct month
-      from public.dashboard_snapshots
-    ) as snapshot_month
-    where not exists (
-      select 1
-      from public.dashboard_snapshots as candidate
-      join public.dashboard_agent_snapshots as agent_snapshot
-        on agent_snapshot.month = candidate.month
-        and agent_snapshot.generation_id = candidate.generation_id
-      where candidate.month = snapshot_month.month
-    )
-  ) then
-    raise exception 'dashboard snapshot month has no complete agent generation to activate';
-  end if;
-end;
-$$;
-
-with complete_snapshots as (
-  select
-    shared_snapshot.*,
-    row_number() over (
-      partition by shared_snapshot.month
-      order by shared_snapshot.generated_at desc, shared_snapshot.generation_id desc
-    ) as generation_rank
-  from public.dashboard_snapshots as shared_snapshot
-  where exists (
-    select 1
-    from public.dashboard_agent_snapshots as agent_snapshot
-    where agent_snapshot.month = shared_snapshot.month
-      and agent_snapshot.generation_id = shared_snapshot.generation_id
-  )
-),
-agent_manifests as (
-  select
-    month,
-    generation_id,
-    count(*)::integer as agent_count,
-    jsonb_object_agg(agent, checksum order by agent) as agent_checksums
-  from public.dashboard_agent_snapshots
-  group by month, generation_id
-),
-artifact_manifests as (
-  select
-    month_key,
-    generation_id,
-    jsonb_object_agg(
-      artifact_key,
-      checksum
-      order by artifact_key
-    ) as artifact_checksums
-  from public.dashboard_manager_artifacts
-  group by month_key, generation_id
-)
-insert into public.dashboard_active_snapshots (
-  month_key,
-  generation_id,
-  activated_at,
-  shared_checksum,
-  agent_count,
-  agent_checksums,
-  artifact_checksums
-)
-select
-  shared_snapshot.month,
-  shared_snapshot.generation_id,
-  shared_snapshot.generated_at,
-  shared_snapshot.checksum,
-  agent_manifest.agent_count,
-  agent_manifest.agent_checksums,
-  coalesce(artifact_manifest.artifact_checksums, '{}'::jsonb)
-from complete_snapshots as shared_snapshot
-join agent_manifests as agent_manifest
-  on agent_manifest.month = shared_snapshot.month
-  and agent_manifest.generation_id = shared_snapshot.generation_id
-left join artifact_manifests as artifact_manifest
-  on artifact_manifest.month_key = shared_snapshot.month
-  and artifact_manifest.generation_id = shared_snapshot.generation_id
-where shared_snapshot.generation_rank = 1
-on conflict on constraint dashboard_active_snapshots_pkey do nothing;
-
+-- Legacy rows have no authoritative expected-agent manifest. The publisher
+-- must verify and activate a complete replacement generation.
 alter table public.dashboard_active_snapshots enable row level security;
 revoke all on public.dashboard_active_snapshots from anon, authenticated;
 
@@ -450,6 +375,9 @@ begin
   if v_expected_artifact_count <= 0 then
     raise exception 'artifact checksum manifest is empty';
   end if;
+  if not (p_artifact_checksums ? 'debtor_analysis') then
+    raise exception 'debtor analysis checksum is required';
+  end if;
 
   perform 1
   from public.dashboard_snapshots as staged
@@ -501,6 +429,72 @@ begin
     where staged.artifact_key is null
   ) then
     raise exception 'staged manager artifact checksum mismatch';
+  end if;
+
+  perform 1
+  from public.dashboard_manager_artifacts as staged
+  where staged.month_key = p_month_key
+    and staged.generation_id = p_generation_id
+    and staged.artifact_key = 'debtor_analysis'
+    and staged.checksum = p_artifact_checksums ->> 'debtor_analysis'
+    and jsonb_typeof(staged.payload) = 'object'
+    and staged.payload <> '{}'::jsonb
+    and nullif(btrim(staged.payload ->> 'generated_at'), '') is not null
+    and nullif(btrim(staged.payload ->> 'scope_area'), '') is not null
+    and staged.payload ->> 'current_month' = p_month_key
+    and case
+      when jsonb_typeof(staged.payload -> 'months') = 'array' then
+        jsonb_array_length(staged.payload -> 'months') > 0
+        and staged.payload -> 'months' ? p_month_key
+        and not exists (
+          select 1
+          from jsonb_array_elements_text(
+            staged.payload -> 'months'
+          ) as analysis_month(value)
+          where nullif(btrim(analysis_month.value), '') is null
+        )
+      else false
+    end
+    and case
+      when jsonb_typeof(staged.payload -> 'debtors') = 'array' then
+        jsonb_array_length(staged.payload -> 'debtors') > 0
+        and not exists (
+          select 1
+          from jsonb_array_elements(
+            staged.payload -> 'debtors'
+          ) as debtor(value)
+          where jsonb_typeof(debtor.value) <> 'object'
+            or nullif(btrim(debtor.value ->> 'debtor_code'), '') is null
+            or nullif(btrim(debtor.value ->> 'company_name'), '') is null
+            or nullif(btrim(debtor.value ->> 'agent'), '') is null
+        )
+      else false
+    end
+    and case
+      when jsonb_typeof(staged.payload -> 'records') = 'array' then
+        jsonb_array_length(staged.payload -> 'records') > 0
+        and not exists (
+          select 1
+          from jsonb_array_elements(
+            staged.payload -> 'records'
+          ) as analysis_record(value)
+          where jsonb_typeof(analysis_record.value) <> 'object'
+            or nullif(btrim(analysis_record.value ->> 'month'), '') is null
+            or nullif(btrim(analysis_record.value ->> 'debtor_code'), '') is null
+            or nullif(btrim(analysis_record.value ->> 'agent'), '') is null
+            or nullif(btrim(analysis_record.value ->> 'brand'), '') is null
+            or nullif(btrim(analysis_record.value ->> 'sku'), '') is null
+            or not (
+              staged.payload -> 'months'
+              ? (analysis_record.value ->> 'month')
+            )
+        )
+      else false
+    end
+    and jsonb_typeof(staged.payload -> 'data_quality') = 'object'
+    and staged.payload -> 'data_quality' <> '{}'::jsonb;
+  if not found then
+    raise exception 'staged debtor analysis artifact is missing or invalid';
   end if;
 
   return query
