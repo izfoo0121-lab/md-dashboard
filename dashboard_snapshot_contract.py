@@ -15,7 +15,6 @@ SAFE_SHARED_KEYS = frozenset(
         "group_brand_targets",
         "team",
         "config",
-        "campaign_group_progress",
     }
 )
 

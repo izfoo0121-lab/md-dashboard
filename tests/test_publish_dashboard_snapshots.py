@@ -22,6 +22,52 @@ from publish_dashboard_snapshots import (
 )
 
 
+def sample_campaign_group_progress():
+    return {
+        "camp_july_penetration": {
+            "id": "camp_july_penetration",
+            "name": "July Penetration Campaign",
+            "groups": {
+                "CENTRAL": {
+                    "group": "CENTRAL",
+                    "new_accounts": 4,
+                    "converted_count": 2,
+                }
+            },
+            "agents": {
+                "BEN": {
+                    "agent": "BEN",
+                    "group": "CENTRAL",
+                    "converted_debtors": [
+                        {
+                            "code": "B-CAMPAIGN-001",
+                            "name": "Ben Campaign Debtor",
+                            "ctn": 3,
+                        }
+                    ],
+                    "not_converted_debtors": [],
+                },
+                "CJ": {
+                    "agent": "CJ",
+                    "group": "CENTRAL",
+                    "converted_debtors": [],
+                    "not_converted_debtors": [
+                        {
+                            "code": "C-PEER-SECRET-001",
+                            "name": "CJ Peer Secret Debtor",
+                            "ctn": 0,
+                        }
+                    ],
+                },
+            },
+            "agent_rows": [
+                {"agent": "BEN", "converted_count": 1},
+                {"agent": "CJ", "converted_count": 0},
+            ],
+        }
+    }
+
+
 def sample_snapshot():
     return {
         "generated_at": "2026-07-14T12:00:00+00:00",
@@ -31,7 +77,7 @@ def sample_snapshot():
         "group_brand_targets": {"BEN": {"ZLB": 10}},
         "team": {"sales": 200},
         "config": {"currency": "MYR"},
-        "campaign_group_progress": {"groups": []},
+        "campaign_group_progress": sample_campaign_group_progress(),
         "birthday_by_month": {"Jul 26": ["CJ debtor"]},
         "brand_penetration_candidates": ["CJ debtor"],
         "agents": {
@@ -134,6 +180,18 @@ class SnapshotContractTests(unittest.TestCase):
         self.assertEqual(["BEN"], list(ben["agents"]))
         self.assertNotIn("CJ", json.dumps(ben))
 
+    def test_assembled_agent_data_excludes_peer_campaign_identifiers(self):
+        bundle = split_snapshot(sample_snapshot())
+        assembled = {
+            **bundle["shared"]["shared_payload"],
+            **bundle["agents"]["BEN"]["agent_payload"],
+        }
+        encoded = json.dumps(assembled, sort_keys=True)
+
+        self.assertNotIn('"CJ"', encoded)
+        self.assertNotIn("C-PEER-SECRET-001", encoded)
+        self.assertNotIn("CJ Peer Secret Debtor", encoded)
+
     def test_shared_payload_has_no_agents_block(self):
         bundle = split_snapshot(sample_snapshot())
 
@@ -172,10 +230,10 @@ class SnapshotContractTests(unittest.TestCase):
                 "group_brand_targets",
                 "team",
                 "config",
-                "campaign_group_progress",
             },
             set(shared),
         )
+        self.assertNotIn("campaign_group_progress", shared)
         self.assertNotIn("birthday_by_month", shared)
         self.assertNotIn("brand_penetration_candidates", shared)
 
@@ -186,6 +244,10 @@ class SnapshotContractTests(unittest.TestCase):
 
         self.assertNotIn("agents", support)
         self.assertIn("birthday_by_month", support)
+        self.assertEqual(
+            sample_campaign_group_progress(),
+            support["campaign_group_progress"],
+        )
 
     def test_manager_artifact_is_checksummed_separately(self):
         row = build_manager_artifact(
