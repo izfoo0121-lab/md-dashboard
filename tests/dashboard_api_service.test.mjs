@@ -25,7 +25,8 @@ async function makeDeps() {
   const touchedSessions = [];
   const deletedSessions = [];
   const attempts = new Map();
-  const loginAttemptCalls = { increment: 0, save: 0 };
+  const loginAttemptCalls = { reserve: 0 };
+  const pinLookupCalls = { count: 0 };
   const savedPins = [];
   const syncLoads = [];
 
@@ -127,7 +128,10 @@ async function makeDeps() {
       agent: async (agent) => agentAccess.get(agent) ?? null,
     },
     pins: {
-      findByPin: async (pin) => pinRows.find((row) => row.pin === pin) ?? null,
+      listForAuthentication: async () => {
+        pinLookupCalls.count += 1;
+        return structuredClone(pinRows);
+      },
       list: async () => structuredClone(pinRows),
       save: async (row) => {
         savedPins.push(structuredClone(row));
@@ -159,9 +163,8 @@ async function makeDeps() {
       ),
     },
     loginAttempts: {
-      get: async (bucketKey) => attempts.get(bucketKey) ?? null,
-      increment: async (bucketKey, attemptedAt) => {
-        loginAttemptCalls.increment += 1;
+      reserve: async (bucketKey, attemptedAt, maxAttempts) => {
+        loginAttemptCalls.reserve += 1;
         const now = Date.parse(attemptedAt);
         const existing = attempts.get(bucketKey);
         const startedAt = Date.parse(existing?.window_started_at ?? '');
@@ -172,14 +175,14 @@ async function makeDeps() {
           window_started_at: inWindow
             ? existing.window_started_at
             : attemptedAt,
-          failures: inWindow ? Number(existing.failures || 0) + 1 : 1,
+          attempts: inWindow ? Number(existing.attempts || 0) + 1 : 1,
         };
         attempts.set(bucketKey, structuredClone(row));
-        return structuredClone(row);
-      },
-      save: async (row) => {
-        loginAttemptCalls.save += 1;
-        attempts.set(row.bucket_key, structuredClone(row));
+        return {
+          allowed: row.attempts <= maxAttempts,
+          attempt_count: row.attempts,
+          window_started_at: row.window_started_at,
+        };
       },
       delete: async (bucketKey) => attempts.delete(bucketKey),
     },
@@ -201,6 +204,7 @@ async function makeDeps() {
     createdSessions,
     deletedSessions,
     loginAttemptCalls,
+    pinLookupCalls,
     savedPins,
     sessionRows,
     syncLoads,
@@ -227,6 +231,52 @@ test('login returns only the matched agent snapshot and stores only a token hash
   assert.equal(stored.token_hash, await sha256(result.sessionToken));
   assert.notEqual(stored.token_hash, result.sessionToken);
   assert.equal(JSON.stringify(stored).includes('1001'), false);
+});
+
+
+test('PIN comparison uses fixed-length timing-safe digests', async () => {
+  const service = await import(
+    '../supabase/functions/dashboard-api/service.mjs'
+  );
+
+  assert.equal(typeof service.timingSafeEqual, 'function');
+  assert.equal(await service.timingSafeEqual('1001', '1001'), true);
+  assert.equal(await service.timingSafeEqual('1001', '1002'), false);
+  assert.equal(await service.timingSafeEqual('1', '0001'), false);
+});
+
+
+test('login verifies the full server-side PIN candidate set with generic failures', async () => {
+  const validDependencies = await makeDeps();
+  validDependencies.pins.listForAuthentication = async () => [
+    { agent: 'CJ', pin: '1002' },
+    { agent: 'BEN', pin: '1001' },
+    { agent: MANAGER_AGENT, pin: '9999' },
+  ];
+
+  const valid = await handleLogin(
+    { pin: '1001', month: 'Jul 26', bucket: 'timing-safe-valid' },
+    validDependencies,
+  );
+  assert.equal(valid.agent, 'BEN');
+
+  const invalidDependencies = await makeDeps();
+  invalidDependencies.pins.listForAuthentication = async () => [
+    { agent: 'CJ', pin: '1002' },
+    { agent: 'BEN', pin: '1001' },
+    { agent: MANAGER_AGENT, pin: '9999' },
+  ];
+  await assert.rejects(
+    () => handleLogin(
+      { pin: '4321', month: 'Jul 26', bucket: 'timing-safe-invalid' },
+      invalidDependencies,
+    ),
+    (error) => (
+      error.status === 401
+      && error.code === 'invalid_pin'
+      && error.message === 'invalid PIN'
+    ),
+  );
 });
 
 
@@ -341,11 +391,12 @@ test('five failed PIN attempts block the network bucket for 15 minutes', async (
     );
   }
 
-  assert.equal(dependencies.state.attempts.get('hashed-bucket').failures, 5);
+  assert.equal(dependencies.state.attempts.get('hashed-bucket').attempts, 5);
   assert.deepEqual(
     dependencies.state.loginAttemptCalls,
-    { increment: 5, save: 0 },
+    { reserve: 5 },
   );
+  assert.equal(dependencies.state.pinLookupCalls.count, 5);
   await assert.rejects(
     () => handleLogin(
       { pin: '1001', month: 'Jul 26', bucket: 'hashed-bucket' },
@@ -356,30 +407,30 @@ test('five failed PIN attempts block the network bucket for 15 minutes', async (
 });
 
 
-test('five concurrent failed PIN attempts atomically block the network bucket', async () => {
+test('only five of twenty concurrent login attempts reach PIN lookup', async () => {
   const dependencies = await makeDeps();
 
-  const failures = await Promise.allSettled(
-    Array.from({ length: 5 }, () => handleLogin(
+  const results = await Promise.allSettled(
+    Array.from({ length: 20 }, () => handleLogin(
       { pin: '0000', month: 'Jul 26', bucket: 'concurrent-bucket' },
       dependencies,
     )),
   );
 
-  assert.equal(failures.every((result) => (
-    result.status === 'rejected' && /invalid PIN/u.test(result.reason.message)
-  )), true);
-  assert.equal(dependencies.state.attempts.get('concurrent-bucket').failures, 5);
+  const invalidPins = results.filter((result) => (
+    result.status === 'rejected' && result.reason.code === 'invalid_pin'
+  ));
+  const rateLimited = results.filter((result) => (
+    result.status === 'rejected' && result.reason.code === 'rate_limited'
+  ));
+
+  assert.equal(invalidPins.length, 5);
+  assert.equal(rateLimited.length, 15);
+  assert.equal(dependencies.state.pinLookupCalls.count <= 5, true);
+  assert.equal(dependencies.state.attempts.get('concurrent-bucket').attempts, 20);
   assert.deepEqual(
     dependencies.state.loginAttemptCalls,
-    { increment: 5, save: 0 },
-  );
-  await assert.rejects(
-    () => handleLogin(
-      { pin: '1001', month: 'Jul 26', bucket: 'concurrent-bucket' },
-      dependencies,
-    ),
-    /rate limit/,
+    { reserve: 20 },
   );
 });
 
@@ -387,7 +438,7 @@ test('five concurrent failed PIN attempts atomically block the network bucket', 
 test('login dependency calls have a bounded timeout', async () => {
   const dependencies = await makeDeps();
   dependencies.timeoutMs = 10;
-  dependencies.pins.findByPin = async () => new Promise(() => {});
+  dependencies.pins.listForAuthentication = async () => new Promise(() => {});
 
   await assert.rejects(
     () => handleLogin(
@@ -607,7 +658,9 @@ test('edge entrypoint and config explicitly use POST/OPTIONS custom session auth
   assert.match(indexSource, /request\.method !== 'POST'/);
   assert.match(indexSource, /SUPABASE_SERVICE_ROLE_KEY/);
   assert.match(indexSource, /DASHBOARD_RATE_LIMIT_SALT/);
-  assert.match(indexSource, /\.rpc\(\s*'dashboard_record_login_failure'/);
+  assert.match(indexSource, /\.rpc\(\s*'dashboard_reserve_login_attempt'/);
+  assert.match(indexSource, /listForAuthentication/);
+  assert.doesNotMatch(indexSource, /\.eq\(\s*'pin'/);
   assert.match(configSource, /\[functions\.dashboard-api\]/);
   assert.match(configSource, /verify_jwt\s*=\s*false/);
 });

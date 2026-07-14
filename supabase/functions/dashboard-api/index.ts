@@ -78,13 +78,11 @@ function buildDependencies() {
       ),
     },
     pins: {
-      findByPin: (pin: string) => unwrap(
+      listForAuthentication: () => unwrap(
         client
           .from('agent_pins')
-          .select('agent')
-          .eq('pin', pin)
-          .limit(1)
-          .maybeSingle(),
+          .select('agent,pin')
+          .order('agent'),
       ),
       list: () => unwrap(
         client
@@ -139,20 +137,25 @@ function buildDependencies() {
       ),
     },
     loginAttempts: {
-      get: (bucketKey: string) => unwrap(
-        client
-          .from('dashboard_login_attempts')
-          .select('bucket_key,window_started_at,failures')
-          .eq('bucket_key', bucketKey)
-          .maybeSingle(),
-      ),
-      increment: (bucketKey: string, attemptedAt: string) => unwrap(
-        client.rpc('dashboard_record_login_failure', {
-          p_bucket_key: bucketKey,
-          p_attempted_at: attemptedAt,
-          p_window_seconds: LOGIN_WINDOW_SECONDS,
-        }),
-      ),
+      reserve: async (
+        bucketKey: string,
+        attemptedAt: string,
+        maxAttempts: number,
+      ) => {
+        const rows = await unwrap<Array<{
+          allowed: boolean;
+          attempt_count: number;
+          window_started_at: string;
+        }>>(
+          client.rpc('dashboard_reserve_login_attempt', {
+            p_bucket_key: bucketKey,
+            p_attempted_at: attemptedAt,
+            p_window_seconds: LOGIN_WINDOW_SECONDS,
+            p_max_attempts: maxAttempts,
+          }),
+        );
+        return rows?.[0] ?? null;
+      },
       delete: (bucketKey: string) => unwrap(
         client
           .from('dashboard_login_attempts')

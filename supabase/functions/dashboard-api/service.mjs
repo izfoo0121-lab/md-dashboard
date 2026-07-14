@@ -1,7 +1,6 @@
 const DEFAULT_TIMEOUT_MS = 8_000;
 const SESSION_TTL_MS = 12 * 60 * 60 * 1_000;
-const LOGIN_WINDOW_MS = 15 * 60 * 1_000;
-const MAX_LOGIN_FAILURES = 5;
+const MAX_LOGIN_ATTEMPTS = 5;
 
 export const MANAGER_AGENT = 'GT138888';
 
@@ -76,6 +75,19 @@ export async function sha256(value) {
   return [...new Uint8Array(digest)]
     .map((byte) => byte.toString(16).padStart(2, '0'))
     .join('');
+}
+
+
+export async function timingSafeEqual(left, right) {
+  const [leftDigest, rightDigest] = await Promise.all([
+    sha256(left),
+    sha256(right),
+  ]);
+  let difference = 0;
+  for (let index = 0; index < leftDigest.length; index += 1) {
+    difference |= leftDigest.charCodeAt(index) ^ rightDigest.charCodeAt(index);
+  }
+  return difference === 0;
 }
 
 
@@ -268,18 +280,50 @@ async function loadDashboardData(session, monthValue, deps) {
 }
 
 
-function activeAttempt(row, now) {
-  const startedAt = Date.parse(row?.window_started_at ?? '');
-  return Number.isFinite(startedAt) && now - startedAt < LOGIN_WINDOW_MS;
+async function reserveLoginAttempt(bucketKey, attemptedAt, deps) {
+  const reservation = await dependencyCall(
+    deps,
+    'login attempt reservation',
+    () => deps.loginAttempts.reserve(
+      bucketKey,
+      attemptedAt,
+      MAX_LOGIN_ATTEMPTS,
+    ),
+    'authentication unavailable',
+  );
+  if (!reservation || reservation.allowed !== true) {
+    throw new ApiError(429, 'rate limit exceeded', 'rate_limited');
+  }
 }
 
 
-async function recordFailedLogin(bucketKey, deps) {
-  const attemptedAt = new Date(currentTime(deps)).toISOString();
-  await dependencyCall(
+async function authenticatePin(pin, deps) {
+  return dependencyCall(
     deps,
-    'login attempt update',
-    () => deps.loginAttempts.increment(bucketKey, attemptedAt),
+    'authentication lookup',
+    async () => {
+      const rows = await deps.pins.listForAuthentication();
+      if (!Array.isArray(rows)) throw new Error('malformed PIN rows');
+      const matches = await Promise.all(
+        rows.map((row) => timingSafeEqual(pin, String(row?.pin ?? ''))),
+      );
+      const validFormat = /^\d{4}$/u.test(pin);
+      let matched = null;
+      for (let index = 0; index < rows.length; index += 1) {
+        const row = rows[index];
+        const hasAgent = String(row?.agent ?? '').trim() !== '';
+        if (
+          matches[index]
+          && validFormat
+          && hasAgent
+          && row.active !== false
+          && matched === null
+        ) {
+          matched = row;
+        }
+      }
+      return matched;
+    },
     'authentication unavailable',
   );
 }
@@ -290,29 +334,10 @@ export async function handleLogin(input, deps) {
   const pin = String(input?.pin ?? '').trim();
   const bucketKey = String(input?.bucket ?? '').trim() || 'anonymous';
   const now = currentTime(deps);
-  const attempt = await dependencyCall(
-    deps,
-    'login attempt lookup',
-    () => deps.loginAttempts.get(bucketKey),
-    'authentication unavailable',
-  );
-  if (
-    activeAttempt(attempt, now)
-    && Number(attempt.failures || 0) >= MAX_LOGIN_FAILURES
-  ) {
-    throw new ApiError(429, 'rate limit exceeded', 'rate_limited');
-  }
+  await reserveLoginAttempt(bucketKey, new Date(now).toISOString(), deps);
 
-  const pinRow = /^\d{4}$/u.test(pin)
-    ? await dependencyCall(
-        deps,
-        'authentication lookup',
-        () => deps.pins.findByPin(pin),
-        'authentication unavailable',
-      )
-    : null;
+  const pinRow = await authenticatePin(pin, deps);
   if (!pinRow || pinRow.active === false) {
-    await recordFailedLogin(bucketKey, deps);
     throw new ApiError(401, 'invalid PIN', 'invalid_pin');
   }
 

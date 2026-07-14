@@ -38,7 +38,7 @@ create table if not exists public.dashboard_sessions (
 create table if not exists public.dashboard_login_attempts (
   bucket_key text primary key,
   window_started_at timestamptz not null,
-  failures integer not null check (failures >= 0)
+  attempts integer not null check (attempts >= 0)
 );
 
 create index if not exists dashboard_agent_snapshots_agent_month_idx

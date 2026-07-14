@@ -1,6 +1,6 @@
 begin;
 
-select plan(19);
+select plan(23);
 
 select has_table('public', 'dashboard_snapshots');
 select has_table('public', 'dashboard_agent_snapshots');
@@ -23,44 +23,92 @@ select has_column(
 );
 select has_function(
   'public',
-  'dashboard_record_login_failure',
-  array['text', 'timestamp with time zone', 'integer']
+  'dashboard_reserve_login_attempt',
+  array['text', 'timestamp with time zone', 'integer', 'integer']
 );
-select is(
+select ok(
   (
-    select failures
-    from public.dashboard_record_login_failure(
+    select allowed and attempt_count = 1
+    from public.dashboard_reserve_login_attempt(
       'pgtap-bucket',
       '2026-07-14T12:00:00Z'::timestamptz,
-      900
+      900,
+      5
     )
   ),
-  1,
-  'first failed login starts the bucket window'
+  'first attempt is admitted'
 );
-select is(
+select ok(
   (
-    select failures
-    from public.dashboard_record_login_failure(
+    select allowed and attempt_count = 2
+    from public.dashboard_reserve_login_attempt(
       'pgtap-bucket',
       '2026-07-14T12:00:01Z'::timestamptz,
-      900
+      900,
+      5
     )
   ),
-  2,
-  'a failure in the active window increments atomically'
+  'second attempt is admitted'
 );
-select is(
+select ok(
   (
-    select failures
-    from public.dashboard_record_login_failure(
+    select allowed and attempt_count = 3
+    from public.dashboard_reserve_login_attempt(
+      'pgtap-bucket',
+      '2026-07-14T12:00:02Z'::timestamptz,
+      900,
+      5
+    )
+  ),
+  'third attempt is admitted'
+);
+select ok(
+  (
+    select allowed and attempt_count = 4
+    from public.dashboard_reserve_login_attempt(
+      'pgtap-bucket',
+      '2026-07-14T12:00:03Z'::timestamptz,
+      900,
+      5
+    )
+  ),
+  'fourth attempt is admitted'
+);
+select ok(
+  (
+    select allowed and attempt_count = 5
+    from public.dashboard_reserve_login_attempt(
+      'pgtap-bucket',
+      '2026-07-14T12:00:04Z'::timestamptz,
+      900,
+      5
+    )
+  ),
+  'fifth attempt is admitted'
+);
+select ok(
+  (
+    select not allowed and attempt_count = 6
+    from public.dashboard_reserve_login_attempt(
+      'pgtap-bucket',
+      '2026-07-14T12:00:05Z'::timestamptz,
+      900,
+      5
+    )
+  ),
+  'sixth attempt is rejected before authentication'
+);
+select ok(
+  (
+    select allowed and attempt_count = 1
+    from public.dashboard_reserve_login_attempt(
       'pgtap-bucket',
       '2026-07-14T12:15:01Z'::timestamptz,
-      900
+      900,
+      5
     )
   ),
-  1,
-  'a failure after the window starts a new counter'
+  'an attempt after the window starts a new counter'
 );
 
 select * from finish();

@@ -25,7 +25,7 @@ class DashboardPrivateSnapshotSchemaTests(unittest.TestCase):
             "token_hash text primary key",
             "role text not null check (role in ('agent', 'manager'))",
             "create table if not exists public.dashboard_login_attempts",
-            "failures integer not null check (failures >= 0)",
+            "attempts integer not null check (attempts >= 0)",
             "dashboard_agent_snapshots_agent_month_idx",
             "dashboard_sessions_expires_idx",
         )
@@ -52,7 +52,7 @@ class DashboardPrivateSnapshotSchemaTests(unittest.TestCase):
 
         self.assertNotIn("create policy", sql)
 
-    def test_login_failure_rpc_is_atomic_and_idempotently_declared(self):
+    def test_login_attempt_reservation_rpc_is_atomic_and_idempotently_declared(self):
         self.assertTrue(
             LOGIN_ATTEMPT_RPC_MIGRATION.is_file(),
             f"missing migration: {LOGIN_ATTEMPT_RPC_MIGRATION.name}",
@@ -64,7 +64,7 @@ class DashboardPrivateSnapshotSchemaTests(unittest.TestCase):
         )
 
         self.assertIn(
-            "create or replace function public.dashboard_record_login_failure",
+            "create or replace function public.dashboard_reserve_login_attempt",
             sql,
         )
         self.assertIn("insert into public.dashboard_login_attempts", sql)
@@ -72,9 +72,10 @@ class DashboardPrivateSnapshotSchemaTests(unittest.TestCase):
             "on conflict on constraint dashboard_login_attempts_pkey do update",
             sql,
         )
-        self.assertIn("current_attempt.failures + 1", sql)
+        self.assertIn("current_attempt.attempts + 1", sql)
+        self.assertIn("reserved_count <= p_max_attempts", sql)
         self.assertIn(
-            "grant execute on function public.dashboard_record_login_failure",
+            "grant execute on function public.dashboard_reserve_login_attempt",
             sql,
         )
 
