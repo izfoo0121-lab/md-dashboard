@@ -1,0 +1,538 @@
+const DEFAULT_TIMEOUT_MS = 8_000;
+const SESSION_TTL_MS = 12 * 60 * 60 * 1_000;
+const LOGIN_WINDOW_MS = 15 * 60 * 1_000;
+const MAX_LOGIN_FAILURES = 5;
+
+export const MANAGER_AGENT = 'GT138888';
+
+
+export class ApiError extends Error {
+  constructor(status, message, code = 'dashboard_api_error') {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
+  }
+}
+
+
+function currentTime(deps) {
+  const value = deps.now ? deps.now() : Date.now();
+  const milliseconds = value instanceof Date ? value.getTime() : Number(value);
+  if (!Number.isFinite(milliseconds)) {
+    throw new ApiError(500, 'server clock unavailable', 'server_clock_unavailable');
+  }
+  return milliseconds;
+}
+
+
+function requiredText(value, label) {
+  const text = String(value ?? '').trim();
+  if (!text) throw new ApiError(400, `${label} is required`, 'invalid_request');
+  return text;
+}
+
+
+function normalizeAgent(value) {
+  return requiredText(value, 'agent').toUpperCase();
+}
+
+
+async function dependencyCall(
+  deps,
+  label,
+  operation,
+  unavailableMessage = `${label} unavailable`,
+) {
+  const configuredTimeout = Number(deps.timeoutMs);
+  const timeoutMs = Number.isFinite(configuredTimeout) && configuredTimeout > 0
+    ? configuredTimeout
+    : DEFAULT_TIMEOUT_MS;
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(
+      () => reject(new ApiError(504, `${label} timed out`, 'dependency_timeout')),
+      timeoutMs,
+    );
+  });
+
+  try {
+    return await Promise.race([
+      Promise.resolve().then(operation),
+      timeout,
+    ]);
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(503, unavailableMessage, 'dependency_unavailable');
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+
+export async function sha256(value) {
+  const bytes = new TextEncoder().encode(String(value));
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+
+function randomSessionToken() {
+  const bytes = new Uint8Array(32);
+  globalThis.crypto.getRandomValues(bytes);
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return globalThis.btoa(binary)
+    .replaceAll('+', '-')
+    .replaceAll('/', '_')
+    .replace(/=+$/u, '');
+}
+
+
+async function createSessionToken(deps) {
+  const token = deps.randomToken
+    ? await deps.randomToken()
+    : randomSessionToken();
+  return requiredText(token, 'session token');
+}
+
+
+export async function requireSession(token, deps) {
+  const sessionToken = requiredText(token, 'session');
+  const tokenHash = await sha256(sessionToken);
+  const session = await dependencyCall(
+    deps,
+    'session lookup',
+    () => deps.sessions.find(tokenHash),
+    'session unavailable',
+  );
+  const expiresAt = Date.parse(session?.expires_at ?? '');
+  if (!session || !Number.isFinite(expiresAt) || expiresAt <= currentTime(deps)) {
+    throw new ApiError(401, 'session expired', 'session_expired');
+  }
+  if (!['agent', 'manager'].includes(session.role)) {
+    throw new ApiError(401, 'session invalid', 'session_invalid');
+  }
+
+  await dependencyCall(
+    deps,
+    'session update',
+    () => deps.sessions.touch(tokenHash, new Date(currentTime(deps)).toISOString()),
+    'session unavailable',
+  );
+  return { ...session, token_hash: tokenHash };
+}
+
+
+export async function checkAgentMonthAccess(agent, month, deps) {
+  const [monthly, global] = await dependencyCall(
+    deps,
+    'access check',
+    () => Promise.all([
+      deps.access.monthly(agent, month),
+      deps.access.agent(agent),
+    ]),
+    'access unavailable',
+  );
+  if (!monthly || !global) {
+    throw new ApiError(403, 'access unavailable', 'access_unavailable');
+  }
+  if (monthly.active !== true || global.active !== true) {
+    throw new ApiError(403, 'access denied', 'access_denied');
+  }
+}
+
+
+function rejectAgentSpoof(input, session) {
+  if (input.agent == null || String(input.agent).trim() === '') return;
+  if (normalizeAgent(input.agent) !== normalizeAgent(session.agent)) {
+    throw new ApiError(403, 'agent mismatch', 'agent_mismatch');
+  }
+}
+
+
+async function availableMonths(deps) {
+  const months = await dependencyCall(
+    deps,
+    'snapshot month list',
+    () => deps.snapshots.listMonths(),
+    'dashboard data unavailable',
+  );
+  if (!Array.isArray(months)) {
+    throw new ApiError(503, 'dashboard data unavailable', 'data_unavailable');
+  }
+  return months.map((month) => String(month));
+}
+
+
+export function assembleAgentData(shared, agentRow) {
+  const sharedPayload = shared?.shared_payload;
+  const agentPayload = agentRow?.agent_payload;
+  if (!sharedPayload || typeof sharedPayload !== 'object' || Array.isArray(sharedPayload)) {
+    throw new ApiError(503, 'shared snapshot unavailable', 'data_unavailable');
+  }
+  if (!agentPayload || typeof agentPayload !== 'object' || Array.isArray(agentPayload)) {
+    throw new ApiError(503, 'agent snapshot unavailable', 'data_unavailable');
+  }
+  const agentKeys = Object.keys(agentPayload.agents ?? {});
+  if (
+    agentKeys.length !== 1
+    || (agentRow.agent && agentKeys[0] !== normalizeAgent(agentRow.agent))
+  ) {
+    throw new ApiError(503, 'agent snapshot unavailable', 'data_unavailable');
+  }
+  const safeShared = { ...sharedPayload };
+  delete safeShared.agents;
+  return { ...safeShared, ...agentPayload };
+}
+
+
+export function assembleManagerData(shared, agentRows) {
+  const support = shared?.manager_support_payload;
+  if (!support || typeof support !== 'object' || Array.isArray(support)) {
+    throw new ApiError(503, 'manager snapshot unavailable', 'data_unavailable');
+  }
+  if (!Array.isArray(agentRows) || agentRows.length === 0) {
+    throw new ApiError(503, 'manager snapshot unavailable', 'data_unavailable');
+  }
+
+  const agents = {};
+  for (const row of agentRows) {
+    const payloadAgents = row?.agent_payload?.agents;
+    const keys = payloadAgents && typeof payloadAgents === 'object'
+      ? Object.keys(payloadAgents)
+      : [];
+    if (keys.length !== 1 || (row.agent && keys[0] !== row.agent)) {
+      throw new ApiError(503, 'manager snapshot unavailable', 'data_unavailable');
+    }
+    agents[keys[0]] = payloadAgents[keys[0]];
+  }
+
+  const managerSupport = { ...support };
+  delete managerSupport.agents;
+  return { ...managerSupport, agents };
+}
+
+
+async function loadDashboardData(session, monthValue, deps) {
+  const month = requiredText(monthValue, 'month');
+  const months = await availableMonths(deps);
+  if (session.role !== 'manager') {
+    await checkAgentMonthAccess(session.agent, month, deps);
+  }
+
+  const shared = await dependencyCall(
+    deps,
+    'shared snapshot lookup',
+    () => deps.snapshots.getShared(month),
+    'dashboard data unavailable',
+  );
+  if (!shared) throw new ApiError(404, 'dashboard month not found', 'month_not_found');
+
+  let data;
+  if (session.role === 'manager') {
+    const rows = await dependencyCall(
+      deps,
+      'manager snapshot lookup',
+      () => deps.snapshots.listAgents(month),
+      'dashboard data unavailable',
+    );
+    data = assembleManagerData(shared, rows);
+  } else {
+    const row = await dependencyCall(
+      deps,
+      'agent snapshot lookup',
+      () => deps.snapshots.getAgent(month, session.agent),
+      'dashboard data unavailable',
+    );
+    if (!row) throw new ApiError(404, 'agent snapshot not found', 'data_not_found');
+    data = assembleAgentData(shared, row);
+  }
+
+  return { month, availableMonths: months, data };
+}
+
+
+function activeAttempt(row, now) {
+  const startedAt = Date.parse(row?.window_started_at ?? '');
+  return Number.isFinite(startedAt) && now - startedAt < LOGIN_WINDOW_MS;
+}
+
+
+async function recordFailedLogin(bucketKey, existing, deps) {
+  const now = currentTime(deps);
+  const inWindow = activeAttempt(existing, now);
+  const row = {
+    bucket_key: bucketKey,
+    window_started_at: inWindow
+      ? existing.window_started_at
+      : new Date(now).toISOString(),
+    failures: inWindow ? Number(existing.failures || 0) + 1 : 1,
+  };
+  await dependencyCall(
+    deps,
+    'login attempt update',
+    () => deps.loginAttempts.save(row),
+    'authentication unavailable',
+  );
+}
+
+
+export async function handleLogin(input, deps) {
+  const month = requiredText(input?.month, 'month');
+  const pin = String(input?.pin ?? '').trim();
+  const bucketKey = String(input?.bucket ?? '').trim() || 'anonymous';
+  const now = currentTime(deps);
+  const attempt = await dependencyCall(
+    deps,
+    'login attempt lookup',
+    () => deps.loginAttempts.get(bucketKey),
+    'authentication unavailable',
+  );
+  if (
+    activeAttempt(attempt, now)
+    && Number(attempt.failures || 0) >= MAX_LOGIN_FAILURES
+  ) {
+    throw new ApiError(429, 'rate limit exceeded', 'rate_limited');
+  }
+
+  const pinRow = /^\d{4}$/u.test(pin)
+    ? await dependencyCall(
+        deps,
+        'authentication lookup',
+        () => deps.pins.findByPin(pin),
+        'authentication unavailable',
+      )
+    : null;
+  if (!pinRow || pinRow.active === false) {
+    await recordFailedLogin(bucketKey, attempt, deps);
+    throw new ApiError(401, 'invalid PIN', 'invalid_pin');
+  }
+
+  const agent = normalizeAgent(pinRow.agent);
+  const role = pinRow.role === 'manager' || agent === MANAGER_AGENT
+    ? 'manager'
+    : 'agent';
+  const initial = await loadDashboardData({ agent, role }, month, deps);
+
+  await dependencyCall(
+    deps,
+    'login attempt reset',
+    () => deps.loginAttempts.delete(bucketKey),
+    'authentication unavailable',
+  );
+
+  const sessionToken = await createSessionToken(deps);
+  const tokenHash = await sha256(sessionToken);
+  const createdAt = new Date(now).toISOString();
+  await dependencyCall(
+    deps,
+    'session creation',
+    () => deps.sessions.create({
+      token_hash: tokenHash,
+      agent,
+      role,
+      created_at: createdAt,
+      expires_at: new Date(now + SESSION_TTL_MS).toISOString(),
+      last_used_at: createdAt,
+    }),
+    'session unavailable',
+  );
+
+  return {
+    sessionToken,
+    agent,
+    role,
+    ...initial,
+  };
+}
+
+
+export async function handleData(input, deps) {
+  const session = await requireSession(input?.sessionToken, deps);
+  rejectAgentSpoof(input ?? {}, session);
+  const dataset = String(input?.dataset ?? 'dashboard');
+
+  if (dataset === 'dashboard') {
+    return loadDashboardData(session, input?.month, deps);
+  }
+  if (dataset !== 'debtor_analysis') {
+    throw new ApiError(400, 'unsupported dataset', 'unsupported_dataset');
+  }
+  if (session.role !== 'manager') {
+    throw new ApiError(403, 'manager required', 'manager_required');
+  }
+
+  const artifact = await dependencyCall(
+    deps,
+    'manager artifact lookup',
+    () => deps.artifacts.get('debtor_analysis'),
+    'manager data unavailable',
+  );
+  if (!artifact?.payload) {
+    throw new ApiError(404, 'debtor analysis not found', 'data_not_found');
+  }
+  const months = await availableMonths(deps);
+  const month = String(
+    artifact.payload.current_month ?? input?.month ?? '',
+  ).trim();
+  return { month, availableMonths: months, data: artifact.payload };
+}
+
+
+async function requireManager(input, deps) {
+  const session = await requireSession(input?.sessionToken, deps);
+  if (session.role !== 'manager') {
+    throw new ApiError(403, 'manager required', 'manager_required');
+  }
+  return session;
+}
+
+
+export async function handleManagerPinsList(input, deps) {
+  await requireManager(input, deps);
+  const rows = await dependencyCall(
+    deps,
+    'PIN list lookup',
+    () => deps.pins.list(),
+    'PIN list unavailable',
+  );
+  if (!Array.isArray(rows)) {
+    throw new ApiError(503, 'PIN list unavailable', 'dependency_unavailable');
+  }
+  const pins = rows
+    .filter((row) => normalizeAgent(row.agent) !== MANAGER_AGENT)
+    .map((row) => ({ agent: normalizeAgent(row.agent), pin: String(row.pin) }))
+    .sort((left, right) => left.agent.localeCompare(right.agent));
+  return { pins };
+}
+
+
+export async function handleManagerPinsSave(input, deps) {
+  await requireManager(input, deps);
+  const payload = input?.payload;
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new ApiError(400, 'PIN payload is required', 'invalid_request');
+  }
+  const agent = normalizeAgent(payload.agent);
+  const pin = String(payload.pin ?? '').trim();
+  if (agent === MANAGER_AGENT) {
+    throw new ApiError(
+      403,
+      'manager PIN cannot be changed through this action',
+      'manager_pin_protected',
+    );
+  }
+  if (!/^\d{4}$/u.test(pin)) {
+    throw new ApiError(400, 'PIN must contain four digits', 'invalid_pin');
+  }
+  await dependencyCall(
+    deps,
+    'PIN save',
+    () => deps.pins.save({ agent, pin }),
+    'PIN save unavailable',
+  );
+  return { saved: true, agent };
+}
+
+
+export async function handleSync(input, deps) {
+  const session = await requireSession(input?.sessionToken, deps);
+  rejectAgentSpoof(input ?? {}, session);
+  const month = requiredText(input?.month, 'month');
+  let agentSnapshot = null;
+  if (session.role !== 'manager') {
+    await checkAgentMonthAccess(session.agent, month, deps);
+    agentSnapshot = await dependencyCall(
+      deps,
+      'agent snapshot lookup',
+      () => deps.snapshots.getAgent(month, session.agent),
+      'dashboard sync unavailable',
+    );
+    if (!agentSnapshot) {
+      throw new ApiError(404, 'agent snapshot not found', 'data_not_found');
+    }
+  }
+  const state = await dependencyCall(
+    deps,
+    'dashboard sync',
+    () => deps.sync.load({ agent: session.agent, month }),
+    'dashboard sync unavailable',
+  );
+  let claims = Array.isArray(state?.claims) ? state.claims : [];
+  let flags = Array.isArray(state?.flags) ? state.flags : [];
+  let kpiScores = Array.isArray(state?.kpiScores) ? state.kpiScores : [];
+  let birthdayOverrides = Array.isArray(state?.birthdayOverrides)
+    ? state.birthdayOverrides
+    : [];
+
+  if (session.role !== 'manager') {
+    const sessionAgent = normalizeAgent(session.agent);
+    const belongsToSession = (row) => (
+      row
+      && typeof row === 'object'
+      && String(row.agent ?? '').trim().toUpperCase() === sessionAgent
+    );
+    claims = claims.filter(belongsToSession);
+    flags = flags.filter(belongsToSession);
+    kpiScores = kpiScores.filter(belongsToSession);
+
+    const debtors = agentSnapshot?.agent_payload?.agents?.[sessionAgent]
+      ?.debtor_cards?.debtors;
+    if (!Array.isArray(debtors)) {
+      throw new ApiError(503, 'dashboard sync unavailable', 'data_unavailable');
+    }
+    const allowedDebtorCodes = new Set(
+      debtors
+        .map((debtor) => String(debtor?.debtor_code ?? '').trim())
+        .filter(Boolean),
+    );
+    birthdayOverrides = birthdayOverrides.filter((row) => (
+      row
+      && typeof row === 'object'
+      && allowedDebtorCodes.has(String(row.debtor_code ?? '').trim())
+    ));
+  }
+
+  return {
+    month,
+    claims,
+    flags,
+    kpiScores,
+    birthdayOverrides,
+  };
+}
+
+
+export async function handleLogout(input, deps) {
+  const session = await requireSession(input?.sessionToken, deps);
+  await dependencyCall(
+    deps,
+    'session deletion',
+    () => deps.sessions.delete(session.token_hash),
+    'session unavailable',
+  );
+  return { loggedOut: true };
+}
+
+
+export async function handleAction(input, deps) {
+  switch (input?.action) {
+    case 'login':
+      return handleLogin(input, deps);
+    case 'data':
+      return handleData(input, deps);
+    case 'sync':
+      return handleSync(input, deps);
+    case 'manager.pins.list':
+      return handleManagerPinsList(input, deps);
+    case 'manager.pins.save':
+      return handleManagerPinsSave(input, deps);
+    case 'logout':
+      return handleLogout(input, deps);
+    default:
+      throw new ApiError(400, 'unsupported action', 'unsupported_action');
+  }
+}
