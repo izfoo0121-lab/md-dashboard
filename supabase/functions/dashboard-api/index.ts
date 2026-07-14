@@ -1,7 +1,12 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-import { ApiError, handleAction, sha256 } from './service.mjs';
+import {
+  ApiError,
+  handleAction,
+  parseJsonObjectBody,
+  sha256,
+} from './service.mjs';
 
 
 const MAX_BODY_BYTES = 64 * 1024;
@@ -95,43 +100,55 @@ function buildDependencies() {
       ),
     },
     snapshots: {
-      getShared: (month: string) => unwrap(
+      getActive: (month: string) => unwrap(
+        client
+          .from('dashboard_active_snapshots')
+          .select('month_key,generation_id')
+          .eq('month_key', month)
+          .maybeSingle(),
+      ),
+      getShared: (month: string, generationId: string) => unwrap(
         client
           .from('dashboard_snapshots')
           .select('shared_payload,manager_support_payload')
           .eq('month', month)
+          .eq('generation_id', generationId)
           .maybeSingle(),
       ),
-      getAgent: (month: string, agent: string) => unwrap(
+      getAgent: (month: string, generationId: string, agent: string) => unwrap(
         client
           .from('dashboard_agent_snapshots')
           .select('agent,agent_payload')
           .eq('month', month)
+          .eq('generation_id', generationId)
           .eq('agent', agent)
           .maybeSingle(),
       ),
-      listAgents: (month: string) => unwrap(
+      listAgents: (month: string, generationId: string) => unwrap(
         client
           .from('dashboard_agent_snapshots')
           .select('agent,agent_payload')
           .eq('month', month)
+          .eq('generation_id', generationId)
           .order('agent'),
       ),
       listMonths: async () => {
-        const rows = await unwrap<Array<{ month: string }>>(
+        const rows = await unwrap<Array<{ month_key: string }>>(
           client
-            .from('dashboard_snapshots')
-            .select('month,generated_at')
-            .order('generated_at', { ascending: false }),
+            .from('dashboard_active_snapshots')
+            .select('month_key,activated_at')
+            .order('activated_at', { ascending: false }),
         );
-        return rows.map((row) => row.month);
+        return rows.map((row) => row.month_key);
       },
     },
     artifacts: {
-      get: (artifactKey: string) => unwrap(
+      get: (month: string, generationId: string, artifactKey: string) => unwrap(
         client
           .from('dashboard_manager_artifacts')
           .select('artifact_key,payload')
+          .eq('month_key', month)
+          .eq('generation_id', generationId)
           .eq('artifact_key', artifactKey)
           .maybeSingle(),
       ),
@@ -250,20 +267,7 @@ function jsonResponse(
 
 
 async function parseBody(request: Request): Promise<Record<string, unknown>> {
-  const contentLength = Number(request.headers.get('content-length'));
-  if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
-    throw new ApiError(413, 'request body too large', 'request_too_large');
-  }
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    throw new ApiError(400, 'invalid JSON body', 'invalid_json');
-  }
-  if (!body || typeof body !== 'object' || Array.isArray(body)) {
-    throw new ApiError(400, 'request body must be an object', 'invalid_request');
-  }
-  return body as Record<string, unknown>;
+  return parseJsonObjectBody(request, MAX_BODY_BYTES);
 }
 
 

@@ -1,9 +1,11 @@
 import argparse
+from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
 import subprocess
 import sys
+import uuid
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
@@ -128,9 +130,15 @@ def validate_debtor_analysis(analysis, expected_month):
 
 class SupabaseRestTransport:
     READBACK_COLUMNS = {
-        "dashboard_snapshots": "month,checksum",
-        "dashboard_agent_snapshots": "month,agent,checksum",
-        "dashboard_manager_artifacts": "artifact_key,checksum",
+        "dashboard_snapshots": "month,generation_id,checksum",
+        "dashboard_agent_snapshots": "month,generation_id,agent,checksum",
+        "dashboard_manager_artifacts": (
+            "month_key,generation_id,artifact_key,checksum"
+        ),
+        "dashboard_active_snapshots": (
+            "month_key,generation_id,activated_at,shared_checksum,agent_count,"
+            "agent_checksums,artifact_checksums"
+        ),
     }
 
     def __init__(self, base_url, service_key, timeout=30, opener=None):
@@ -140,7 +148,10 @@ class SupabaseRestTransport:
         self._opener = opener or urlopen
 
     def _request(self, method, table, query=None, payload=None, prefer=None):
-        url = f"{self.base_url}/rest/v1/{quote(table, safe='')}"
+        resource_path = "/".join(
+            quote(part, safe="") for part in str(table).split("/")
+        )
+        url = f"{self.base_url}/rest/v1/{resource_path}"
         if query:
             url = f"{url}?{urlencode(query)}"
 
@@ -236,6 +247,47 @@ class SupabaseRestTransport:
             prefer="return=minimal",
         )
 
+    def activate_generation(
+        self,
+        *,
+        month_key,
+        generation_id,
+        shared_checksum,
+        agent_checksums,
+        artifact_checksums,
+        activated_at,
+    ):
+        result = self._request(
+            "POST",
+            "rpc/dashboard_activate_snapshot_generation",
+            payload={
+                "p_month_key": month_key,
+                "p_generation_id": generation_id,
+                "p_shared_checksum": shared_checksum,
+                "p_agent_checksums": agent_checksums,
+                "p_artifact_checksums": artifact_checksums,
+                "p_activated_at": activated_at,
+            },
+        )
+        if isinstance(result, list) and len(result) == 1:
+            result = result[0]
+        if not isinstance(result, dict):
+            raise PublishTransportError(
+                "dashboard snapshot activation returned a malformed row"
+            )
+        return result
+
+    def cleanup_inactive_generations(self, *, month_key, active_generation_id):
+        self._request(
+            "DELETE",
+            "dashboard_snapshots",
+            query={
+                "month": f"eq.{month_key}",
+                "generation_id": f"neq.{active_generation_id}",
+            },
+            prefer="return=minimal",
+        )
+
 
 def _verify_readback(label, expected, actual, identity_fields):
     if not isinstance(actual, dict):
@@ -261,54 +313,121 @@ def _index_agent_readback(rows):
     return indexed
 
 
-def publish_bundle(bundle, manager_artifacts, transport, source_version):
+def _index_artifact_readback(rows):
+    if not isinstance(rows, list):
+        raise PublishVerificationError("manager artifact readback is malformed")
+    indexed = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            raise PublishVerificationError("manager artifact readback is malformed")
+        artifact_key = str(row.get("artifact_key") or "").strip()
+        if not artifact_key or artifact_key in indexed:
+            raise PublishVerificationError("manager artifact identity mismatch")
+        indexed[artifact_key] = row
+    return indexed
+
+
+def _verify_active_generation(expected, actual):
+    if not isinstance(actual, dict):
+        raise PublishVerificationError("active snapshot readback row is missing")
+    exact_fields = (
+        "month_key",
+        "generation_id",
+        "shared_checksum",
+        "agent_count",
+        "agent_checksums",
+        "artifact_checksums",
+    )
+    if any(actual.get(field) != expected.get(field) for field in exact_fields):
+        raise PublishVerificationError("active snapshot generation mismatch")
+
+
+def _new_generation_id(generation_id_factory):
+    raw = str(generation_id_factory()).strip()
+    try:
+        parsed = uuid.UUID(raw)
+    except (AttributeError, TypeError, ValueError) as error:
+        raise PublishVerificationError("generation id must be a UUID") from error
+    return str(parsed)
+
+
+def publish_bundle(
+    bundle,
+    manager_artifacts,
+    transport,
+    source_version,
+    generation_id_factory=uuid.uuid4,
+    activated_at_factory=lambda: datetime.now(timezone.utc).isoformat(),
+):
     source_version = str(source_version or "").strip()
     if not source_version:
         raise PublishVerificationError("source version is required")
 
-    shared = dict(bundle["shared"], source_version=source_version)
-    agent_rows = list(bundle["agents"].values())
+    generation_id = _new_generation_id(generation_id_factory)
+    month_key = bundle["shared"]["month"]
+    shared = dict(
+        bundle["shared"],
+        source_version=source_version,
+        generation_id=generation_id,
+    )
+    agent_rows = [
+        dict(row, generation_id=generation_id)
+        for row in bundle["agents"].values()
+    ]
     expected_agents = {row["agent"]: row for row in agent_rows}
-    artifact_rows = list(manager_artifacts)
+    artifact_rows = [
+        dict(
+            row,
+            month_key=month_key,
+            generation_id=generation_id,
+        )
+        for row in manager_artifacts
+    ]
     for row in artifact_rows:
         if row.get("artifact_key") == "debtor_analysis":
-            validate_debtor_analysis(row.get("payload"), shared["month"])
+            validate_debtor_analysis(row.get("payload"), month_key)
 
-    transport.upsert("dashboard_snapshots", shared, on_conflict="month")
-    current_agents = _index_agent_readback(
-        transport.select_many(
-            "dashboard_agent_snapshots",
-            month=shared["month"],
-        )
+    expected_artifacts = {
+        row["artifact_key"]: row for row in artifact_rows
+    }
+    if len(expected_artifacts) != len(artifact_rows):
+        raise PublishVerificationError("manager artifact keys must be unique")
+    if "debtor_analysis" not in expected_artifacts:
+        raise SnapshotValidationError("debtor analysis artifact is required")
+
+    transport.upsert(
+        "dashboard_snapshots",
+        shared,
+        on_conflict="month,generation_id",
     )
-    stale_agents = sorted(set(current_agents) - set(expected_agents))
-    for agent in stale_agents:
-        transport.delete(
-            "dashboard_agent_snapshots",
-            month=shared["month"],
-            agent=agent,
-        )
-
     transport.upsert(
         "dashboard_agent_snapshots",
         agent_rows,
-        on_conflict="month,agent",
+        on_conflict="month,generation_id,agent",
     )
     transport.upsert(
         "dashboard_manager_artifacts",
         artifact_rows,
-        on_conflict="artifact_key",
+        on_conflict="month_key,generation_id,artifact_key",
     )
 
     shared_back = transport.select_one(
-        "dashboard_snapshots", month=shared["month"]
+        "dashboard_snapshots",
+        month=month_key,
+        generation_id=generation_id,
     )
-    _verify_readback("shared snapshot", shared, shared_back, ("month",))
+    _verify_readback(
+        "shared snapshot",
+        shared,
+        shared_back,
+        ("month", "generation_id"),
+    )
 
-    verified = {shared["month"]}
+    verified = {month_key}
     agent_rows_back = transport.select_many(
         "dashboard_agent_snapshots",
-        month=shared["month"],
+        month=month_key,
+        generation_id=generation_id,
     )
     agents_back = _index_agent_readback(agent_rows_back)
     if (
@@ -322,27 +441,69 @@ def publish_bundle(bundle, manager_artifacts, transport, source_version):
             f"{agent} snapshot",
             row,
             back,
-            ("month", "agent"),
+            ("month", "generation_id", "agent"),
         )
         verified.add(agent)
 
-    for row in artifact_rows:
-        back = transport.select_one(
-            "dashboard_manager_artifacts",
-            artifact_key=row["artifact_key"],
-        )
+    artifact_rows_back = transport.select_many(
+        "dashboard_manager_artifacts",
+        month_key=month_key,
+        generation_id=generation_id,
+    )
+    artifacts_back = _index_artifact_readback(artifact_rows_back)
+    if (
+        len(artifact_rows_back) != len(expected_artifacts)
+        or set(artifacts_back) != set(expected_artifacts)
+    ):
+        raise PublishVerificationError("manager artifact set mismatch")
+    for artifact_key, row in sorted(expected_artifacts.items()):
         _verify_readback(
-            f"{row['artifact_key']} artifact",
+            f"{artifact_key} artifact",
             row,
-            back,
-            ("artifact_key",),
+            artifacts_back[artifact_key],
+            ("month_key", "generation_id", "artifact_key"),
         )
-        verified.add(row["artifact_key"])
+        verified.add(artifact_key)
+
+    active_expected = {
+        "month_key": month_key,
+        "generation_id": generation_id,
+        "shared_checksum": shared["checksum"],
+        "agent_count": len(expected_agents),
+        "agent_checksums": {
+            agent: row["checksum"] for agent, row in sorted(expected_agents.items())
+        },
+        "artifact_checksums": {
+            artifact_key: row["checksum"]
+            for artifact_key, row in sorted(expected_artifacts.items())
+        },
+    }
+    activated_at = str(activated_at_factory()).strip()
+    activated = transport.activate_generation(
+        month_key=month_key,
+        generation_id=generation_id,
+        shared_checksum=shared["checksum"],
+        agent_checksums=active_expected["agent_checksums"],
+        artifact_checksums=active_expected["artifact_checksums"],
+        activated_at=activated_at,
+    )
+    _verify_active_generation(active_expected, activated)
+    active_back = transport.select_one(
+        "dashboard_active_snapshots",
+        month_key=month_key,
+    )
+    _verify_active_generation(active_expected, active_back)
+
+    cleaned_rows = transport.cleanup_inactive_generations(
+        month_key=month_key,
+        active_generation_id=generation_id,
+    )
 
     return {
         "verified_keys": sorted(verified),
+        "generation_id": generation_id,
         "agent_count": len(agent_rows),
-        "deleted_agents": stale_agents,
+        "cleaned_rows": cleaned_rows,
         "manager_artifact_count": len(artifact_rows),
     }
 

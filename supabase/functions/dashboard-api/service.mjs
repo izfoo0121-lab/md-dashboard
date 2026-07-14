@@ -15,6 +15,63 @@ export class ApiError extends Error {
 }
 
 
+export async function parseJsonObjectBody(request, maxBytes) {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0) {
+    throw new TypeError('maxBytes must be a positive integer');
+  }
+  const contentLength = Number(request.headers.get('content-length'));
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+    throw new ApiError(413, 'request body too large', 'request_too_large');
+  }
+
+  const reader = request.body?.getReader();
+  const chunks = [];
+  let totalBytes = 0;
+  if (reader) {
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = value instanceof Uint8Array
+          ? value
+          : new Uint8Array(value);
+        totalBytes += chunk.byteLength;
+        if (totalBytes > maxBytes) {
+          try {
+            await reader.cancel();
+          } catch {
+            // The 413 remains authoritative if stream cancellation fails.
+          }
+          throw new ApiError(413, 'request body too large', 'request_too_large');
+        }
+        chunks.push(chunk);
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  const encoded = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    encoded.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  let body;
+  try {
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(encoded);
+    body = JSON.parse(text);
+  } catch {
+    throw new ApiError(400, 'invalid JSON body', 'invalid_json');
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    throw new ApiError(400, 'request body must be an object', 'invalid_request');
+  }
+  return body;
+}
+
+
 function currentTime(deps) {
   const value = deps.now ? deps.now() : Date.now();
   const milliseconds = value instanceof Date ? value.getTime() : Number(value);
@@ -192,6 +249,27 @@ async function availableMonths(deps) {
 }
 
 
+async function activeGeneration(month, deps, unavailableMessage) {
+  const active = await dependencyCall(
+    deps,
+    'active snapshot lookup',
+    () => deps.snapshots.getActive(month),
+    unavailableMessage,
+  );
+  if (!active) {
+    throw new ApiError(404, 'dashboard month not found', 'month_not_found');
+  }
+  const generationId = String(active.generation_id ?? '').trim();
+  if (
+    !generationId
+    || (active.month_key != null && String(active.month_key) !== month)
+  ) {
+    throw new ApiError(503, unavailableMessage, 'data_unavailable');
+  }
+  return generationId;
+}
+
+
 export function assembleAgentData(shared, agentRow) {
   const sharedPayload = shared?.shared_payload;
   const agentPayload = agentRow?.agent_payload;
@@ -247,11 +325,16 @@ async function loadDashboardData(session, monthValue, deps) {
   if (session.role !== 'manager') {
     await checkAgentMonthAccess(session.agent, month, deps);
   }
+  const generationId = await activeGeneration(
+    month,
+    deps,
+    'dashboard data unavailable',
+  );
 
   const shared = await dependencyCall(
     deps,
     'shared snapshot lookup',
-    () => deps.snapshots.getShared(month),
+    () => deps.snapshots.getShared(month, generationId),
     'dashboard data unavailable',
   );
   if (!shared) throw new ApiError(404, 'dashboard month not found', 'month_not_found');
@@ -261,7 +344,7 @@ async function loadDashboardData(session, monthValue, deps) {
     const rows = await dependencyCall(
       deps,
       'manager snapshot lookup',
-      () => deps.snapshots.listAgents(month),
+      () => deps.snapshots.listAgents(month, generationId),
       'dashboard data unavailable',
     );
     data = assembleManagerData(shared, rows);
@@ -269,7 +352,7 @@ async function loadDashboardData(session, monthValue, deps) {
     const row = await dependencyCall(
       deps,
       'agent snapshot lookup',
-      () => deps.snapshots.getAgent(month, session.agent),
+      () => deps.snapshots.getAgent(month, generationId, session.agent),
       'dashboard data unavailable',
     );
     if (!row) throw new ApiError(404, 'agent snapshot not found', 'data_not_found');
@@ -395,19 +478,25 @@ export async function handleData(input, deps) {
     throw new ApiError(403, 'manager required', 'manager_required');
   }
 
+  const month = requiredText(input?.month, 'month');
+  const generationId = await activeGeneration(
+    month,
+    deps,
+    'manager data unavailable',
+  );
   const artifact = await dependencyCall(
     deps,
     'manager artifact lookup',
-    () => deps.artifacts.get('debtor_analysis'),
+    () => deps.artifacts.get(month, generationId, 'debtor_analysis'),
     'manager data unavailable',
   );
   if (!artifact?.payload) {
     throw new ApiError(404, 'debtor analysis not found', 'data_not_found');
   }
   const months = await availableMonths(deps);
-  const month = String(
-    artifact.payload.current_month ?? input?.month ?? '',
-  ).trim();
+  if (String(artifact.payload.current_month ?? '').trim() !== month) {
+    throw new ApiError(503, 'manager data unavailable', 'data_unavailable');
+  }
   return { month, availableMonths: months, data: artifact.payload };
 }
 
@@ -472,13 +561,18 @@ export async function handleSync(input, deps) {
   const session = await requireSession(input?.sessionToken, deps);
   rejectAgentSpoof(input ?? {}, session);
   const month = requiredText(input?.month, 'month');
+  const generationId = await activeGeneration(
+    month,
+    deps,
+    'dashboard sync unavailable',
+  );
   let agentSnapshot = null;
   if (session.role !== 'manager') {
     await checkAgentMonthAccess(session.agent, month, deps);
     agentSnapshot = await dependencyCall(
       deps,
       'agent snapshot lookup',
-      () => deps.snapshots.getAgent(month, session.agent),
+      () => deps.snapshots.getAgent(month, generationId, session.agent),
       'dashboard sync unavailable',
     );
     if (!agentSnapshot) {

@@ -10,6 +10,7 @@ import {
   handleManagerPinsList,
   handleManagerPinsSave,
   handleSync,
+  parseJsonObjectBody,
   sha256,
 } from '../supabase/functions/dashboard-api/service.mjs';
 
@@ -17,6 +18,7 @@ import {
 const NOW = Date.parse('2026-07-14T12:00:00.000Z');
 const MANAGER_AGENT = 'GT138888';
 const LOGIN_WINDOW_MS = 15 * 60 * 1_000;
+const ACTIVE_GENERATION = '00000000-0000-4000-8000-000000000002';
 
 
 async function makeDeps() {
@@ -29,6 +31,9 @@ async function makeDeps() {
   const pinLookupCalls = { count: 0 };
   const savedPins = [];
   const syncLoads = [];
+  const activeLookups = [];
+  const snapshotReads = [];
+  const artifactReads = [];
 
   async function addSession(token, agent, role, expiresAt) {
     sessionRows.set(await sha256(token), {
@@ -141,26 +146,44 @@ async function makeDeps() {
       },
     },
     snapshots: {
-      getShared: async (month) => (month === 'Jul 26' ? structuredClone(sharedRow) : null),
-      getAgent: async (month, agent) => {
-        if (month !== 'Jul 26') return null;
-        return structuredClone(agentRows.find((row) => row.agent === agent) ?? null);
+      getActive: async (month) => {
+        activeLookups.push(month);
+        return month === 'Jul 26'
+          ? { month_key: month, generation_id: ACTIVE_GENERATION }
+          : null;
       },
-      listAgents: async (month) => (month === 'Jul 26' ? structuredClone(agentRows) : []),
+      getShared: async (month, generationId) => {
+        snapshotReads.push({ resource: 'shared', month, generationId });
+        return month === 'Jul 26' ? structuredClone(sharedRow) : null;
+      },
+      getAgent: async (month, generationId, agent) => {
+        snapshotReads.push({ resource: 'agent', month, generationId, agent });
+        const resolvedAgent = agent ?? generationId;
+        if (month !== 'Jul 26') return null;
+        return structuredClone(
+          agentRows.find((row) => row.agent === resolvedAgent) ?? null,
+        );
+      },
+      listAgents: async (month, generationId) => {
+        snapshotReads.push({ resource: 'agents', month, generationId });
+        return month === 'Jul 26' ? structuredClone(agentRows) : [];
+      },
       listMonths: async () => ['Jul 26', 'Jun 26'],
     },
     artifacts: {
-      get: async (artifactKey) => (
-        artifactKey === 'debtor_analysis'
+      get: async (month, generationId, artifactKey) => {
+        artifactReads.push({ month, generationId, artifactKey });
+        const resolvedArtifactKey = artifactKey ?? month;
+        return resolvedArtifactKey === 'debtor_analysis'
           ? {
-              artifact_key: artifactKey,
+              artifact_key: resolvedArtifactKey,
               payload: {
                 current_month: 'Jul 26',
                 records: [{ debtor_code: 'B001' }],
               },
             }
           : null
-      ),
+      },
     },
     loginAttempts: {
       reserve: async (bucketKey, attemptedAt, maxAttempts) => {
@@ -200,6 +223,8 @@ async function makeDeps() {
   };
 
   deps.state = {
+    activeLookups,
+    artifactReads,
     attempts,
     createdSessions,
     deletedSessions,
@@ -207,6 +232,7 @@ async function makeDeps() {
     pinLookupCalls,
     savedPins,
     sessionRows,
+    snapshotReads,
     syncLoads,
     touchedSessions,
   };
@@ -243,6 +269,44 @@ test('PIN comparison uses fixed-length timing-safe digests', async () => {
   assert.equal(await service.timingSafeEqual('1001', '1001'), true);
   assert.equal(await service.timingSafeEqual('1001', '1002'), false);
   assert.equal(await service.timingSafeEqual('1', '0001'), false);
+});
+
+
+test('request parser enforces actual UTF-8 bytes without trusting content length', async () => {
+  const multibyteBody = JSON.stringify({ value: '界'.repeat(20) });
+  assert.ok(multibyteBody.length < 40);
+
+  await assert.rejects(
+    () => parseJsonObjectBody(
+      new Request('https://example.test/dashboard-api', {
+        method: 'POST',
+        body: multibyteBody,
+      }),
+      40,
+    ),
+    (error) => error?.status === 413 && error?.code === 'request_too_large',
+  );
+
+  await assert.rejects(
+    () => parseJsonObjectBody(
+      new Request('https://example.test/dashboard-api', {
+        method: 'POST',
+        headers: { 'content-length': '2' },
+        body: JSON.stringify({ value: 'x'.repeat(64) }),
+      }),
+      40,
+    ),
+    (error) => error?.status === 413 && error?.code === 'request_too_large',
+  );
+
+  const parsed = await parseJsonObjectBody(
+    new Request('https://example.test/dashboard-api', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'logout' }),
+    }),
+    40,
+  );
+  assert.deepEqual(parsed, { action: 'logout' });
 });
 
 
@@ -517,6 +581,52 @@ test('manager can load debtor analysis without exposing it through dashboard dat
 });
 
 
+test('all snapshot resources are read from one resolved active generation', async () => {
+  const dependencies = await makeDeps();
+
+  await handleData(
+    { sessionToken: 'ben-token', month: 'Jul 26' },
+    dependencies,
+  );
+  await handleData(
+    { sessionToken: 'manager-token', month: 'Jul 26' },
+    dependencies,
+  );
+  await handleData(
+    {
+      sessionToken: 'manager-token',
+      month: 'Jul 26',
+      dataset: 'debtor_analysis',
+    },
+    dependencies,
+  );
+  await handleSync(
+    { sessionToken: 'ben-token', month: 'Jul 26' },
+    dependencies,
+  );
+
+  assert.deepEqual(
+    new Set(dependencies.state.activeLookups),
+    new Set(['Jul 26']),
+  );
+  assert.ok(dependencies.state.activeLookups.length >= 4);
+  assert.ok(dependencies.state.snapshotReads.length >= 5);
+  assert.equal(
+    dependencies.state.snapshotReads.every(
+      (read) => read.generationId === ACTIVE_GENERATION,
+    ),
+    true,
+  );
+  assert.deepEqual(dependencies.state.artifactReads, [
+    {
+      month: 'Jul 26',
+      generationId: ACTIVE_GENERATION,
+      artifactKey: 'debtor_analysis',
+    },
+  ]);
+});
+
+
 test('manager PIN list excludes the manager row and save returns no PIN', async () => {
   const dependencies = await makeDeps();
 
@@ -660,7 +770,36 @@ test('edge entrypoint and config explicitly use POST/OPTIONS custom session auth
   assert.match(indexSource, /DASHBOARD_RATE_LIMIT_SALT/);
   assert.match(indexSource, /\.rpc\(\s*'dashboard_reserve_login_attempt'/);
   assert.match(indexSource, /listForAuthentication/);
+  assert.match(
+    indexSource,
+    /parseJsonObjectBody\(request,\s*MAX_BODY_BYTES\)/,
+  );
+  assert.doesNotMatch(indexSource, /request\.json\(\)/);
   assert.doesNotMatch(indexSource, /\.eq\(\s*'pin'/);
   assert.match(configSource, /\[functions\.dashboard-api\]/);
   assert.match(configSource, /verify_jwt\s*=\s*false/);
+});
+
+
+test('edge dependencies query only the resolved active generation', () => {
+  const indexSource = readFileSync(
+    new URL('../supabase/functions/dashboard-api/index.ts', import.meta.url),
+    'utf8',
+  );
+
+  assert.match(indexSource, /getActive:\s*\(month:\s*string\)/);
+  assert.match(indexSource, /\.from\('dashboard_active_snapshots'\)/);
+  assert.match(indexSource, /getShared:\s*\(month:\s*string,\s*generationId:\s*string\)/);
+  assert.match(
+    indexSource,
+    /getAgent:\s*\(month:\s*string,\s*generationId:\s*string,\s*agent:\s*string\)/,
+  );
+  assert.match(indexSource, /listAgents:\s*\(month:\s*string,\s*generationId:\s*string\)/);
+  assert.match(
+    indexSource,
+    /get:\s*\(month:\s*string,\s*generationId:\s*string,\s*artifactKey:\s*string\)/,
+  );
+  assert.ok(
+    (indexSource.match(/\.eq\('generation_id',\s*generationId\)/g) ?? []).length >= 4,
+  );
 });
