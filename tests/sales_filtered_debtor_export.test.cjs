@@ -1460,6 +1460,11 @@ function transitionMonthData(month, debtorCodes) {
     extractFunction('updateDebtorExportMenu'),
     extractFunction('exportFullDebtorListExcel'),
     extractFunction('exportFilteredDebtorListExcel'),
+    extractFunction('isCampaignActiveInMonth'),
+    extractFunction('monthLabelToIso'),
+    extractFunction('isHistoricalMonth'),
+    extractFunction('shouldIncludeLiveCampaignForSales'),
+    extractFunction('retainFutureGeneratedCampaignFallbacks'),
     extractFunction('selectAgent'),
     extractFunction('switchMonth'),
   ].join('\n'), transitionContext);

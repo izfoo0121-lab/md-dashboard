@@ -28,6 +28,16 @@ function extractFunction(name) {
 }
 
 
+function extractIife(name) {
+  const start = html.indexOf(`const ${name} = (() => {`);
+  assert(start >= 0, `${name} should exist`);
+  const endMarker = '\n})();';
+  const end = html.indexOf(endMarker, start);
+  assert(end >= 0, `${name} should have an IIFE body`);
+  return html.slice(start, end + endMarker.length);
+}
+
+
 function createDeferred() {
   let resolve;
   let reject;
@@ -682,22 +692,43 @@ test('month race commits only the latest DashboardApi response', async () => {
 });
 
 
-test('future planning and refresh load a fresh authorized base and sync the selected month', async () => {
+function createFuturePlanningScenario(options = {}) {
+  const rejectLiveCampaignFetch = options.rejectLiveCampaignFetch === true;
   const syncMonths = {
     api: [],
     birthday: [],
-    campaign: [],
+    campaignFetches: 0,
     claims: [],
     kpi: [],
+    warnings: [],
   };
   let generation = 0;
   let transitionVersion = 0;
+  const generatedCampaigns = () => [
+    {
+      id: 'jun-only',
+      name: 'June Only Generated Campaign',
+      source: 'generated_json',
+      start_date: '2025-01-01',
+      deadline: '2026-06-30',
+    },
+    {
+      id: 'summer-fallback',
+      name: 'Generated July Fallback',
+      source: 'generated_json',
+      start_date: '2025-01-01',
+      deadline: '2026-07-31',
+    },
+  ];
   const freshBaseData = () => {
     generation += 1;
     const data = dashboardData('Jun 26', { BEN: ['300-BEN'] });
     data.generation = generation;
-    data.campaigns = [{ id: 'jun-camp' }];
-    data.agents.BEN.debtor_cards.debtors[0].campaigns = [{ id: 'jun-camp' }];
+    data.campaigns = generatedCampaigns();
+    data.agents.BEN.debtor_cards.debtors[0].campaigns = generatedCampaigns().map(campaign => ({
+      ...campaign,
+      lookback_ctn: campaign.id === 'summer-fallback' ? 7 : 3,
+    }));
     return data;
   };
   const staleData = freshBaseData();
@@ -738,16 +769,6 @@ test('future planning and refresh load a fresh authorized base and sync the sele
         syncMonths.claims.push(month);
       },
     },
-    SalesLiveCampaignSync: {
-      async apply(data) {
-        syncMonths.campaign.push(data.current_month);
-        const campaign = { id: `${context.monthSlug(data.current_month)}-camp` };
-        data.campaigns ||= [];
-        data.campaigns.push(campaign);
-        data.agents.BEN.debtor_cards.debtors[0].campaigns ||= [];
-        data.agents.BEN.debtor_cards.debtors[0].campaigns.push(campaign);
-      },
-    },
     SupabaseKpiSync: {
       async apply(data) {
         syncMonths.kpi.push(data.current_month);
@@ -764,6 +785,12 @@ test('future planning and refresh load a fresh authorized base and sync the sele
     cleanDashboardCacheBusterParam() {},
     clearDashboardDataCaches() {},
     completeDebtorExportTransition() {},
+    console: {
+      log() {},
+      warn(message) {
+        syncMonths.warnings.push(String(message));
+      },
+    },
     document: {
       createElement() {
         return {};
@@ -778,6 +805,26 @@ test('future planning and refresh load a fresh authorized base and sync the sele
     },
     isCurrentDebtorExportTransition(token) {
       return token === transitionVersion;
+    },
+    async fetchLiveCampaignDataForSales() {
+      syncMonths.campaignFetches += 1;
+      if (rejectLiveCampaignFetch) throw new Error('live campaign network down');
+      return {
+        campaigns: [{
+          id: 'summer-fallback',
+          name: 'Live July Campaign',
+          active: true,
+          start_date: '2025-01-01',
+          deadline: '2026-07-31',
+          debtors: [{
+            debtor_code: '300-BEN',
+            debtor_name: 'Authorized Debtor',
+            agent: 'BEN',
+            lookback_ctn: 0,
+            current_ctn: 1,
+          }],
+        }],
+      };
     },
     latestAvailableMonth(months, fallback) {
       return months[months.length - 1] || fallback;
@@ -827,11 +874,28 @@ test('future planning and refresh load a fresh authorized base and sync the sele
     "var gainCtnFilter = 'all';",
     "var gainSkuFilter = 'all';",
     "var nonvipTypeFilter = 'all';",
+    extractFunction('isCampaignActiveInMonth'),
+    extractFunction('monthLabelToIso'),
+    extractFunction('isHistoricalMonth'),
+    extractFunction('shouldIncludeLiveCampaignForSales'),
+    extractFunction('salesDebtorRecordToCard'),
+    extractFunction('salesCampaignEntryFromDebtor'),
+    extractFunction('mergeSalesCampaignEntry'),
+    extractFunction('mergeLiveCampaignsIntoSalesData'),
+    extractIife('SalesLiveCampaignSync'),
+    extractFunction('retainFutureGeneratedCampaignFallbacks'),
     extractFunction('prepareAuthorizedDashboardData'),
     extractFunction('commitDashboardEnvelope'),
     extractFunction('switchMonth'),
     extractFunction('forceRefreshDashboard'),
   ].join('\n'), context);
+
+  return { context, syncMonths };
+}
+
+
+test('future planning merges live campaigns over the selected-month generated fallback', async () => {
+  const { context, syncMonths } = createFuturePlanningScenario();
 
   await context.switchMonth('jul26');
 
@@ -840,15 +904,29 @@ test('future planning and refresh load a fresh authorized base and sync the sele
   assert.equal(context.DATA.current_month, 'Jul 26');
   assert.equal(context.DATA.is_future_view, true);
   assert.deepEqual(
+    Array.from(context.DATA.campaigns, campaign => campaign.id),
+    ['summer-fallback'],
+  );
+  assert.equal(context.DATA.campaigns[0].name, 'Live July Campaign');
+  assert.deepEqual(
     Array.from(
       context.DATA.agents.BEN.debtor_cards.debtors[0].campaigns,
       campaign => campaign.id,
     ),
-    ['jul26-camp'],
+    ['summer-fallback'],
+  );
+  assert.equal(
+    context.DATA.agents.BEN.debtor_cards.debtors[0].campaigns[0].source,
+    'live_supabase',
+  );
+  assert.equal(
+    context.DATA.agents.BEN.debtor_cards.debtors[0].campaigns[0].lookback_ctn,
+    7,
+    'Successful live merge should preserve generated fallback metrics',
   );
   assert.deepEqual(syncMonths.kpi, ['Jul 26']);
   assert.deepEqual(syncMonths.birthday, ['Jul 26']);
-  assert.deepEqual(syncMonths.campaign, ['Jul 26']);
+  assert.equal(syncMonths.campaignFetches, 1);
   assert.deepEqual(syncMonths.claims, ['Jul 26']);
 
   await context.forceRefreshDashboard();
@@ -857,16 +935,65 @@ test('future planning and refresh load a fresh authorized base and sync the sele
   assert.equal(context.DATA.generation, 3);
   assert.equal(context.DATA.current_month, 'Jul 26');
   assert.deepEqual(
+    Array.from(context.DATA.campaigns, campaign => campaign.id),
+    ['summer-fallback'],
+  );
+  assert.deepEqual(
     Array.from(
       context.DATA.agents.BEN.debtor_cards.debtors[0].campaigns,
       campaign => campaign.id,
     ),
-    ['jul26-camp'],
+    ['summer-fallback'],
+  );
+  assert.equal(
+    context.DATA.agents.BEN.debtor_cards.debtors[0].campaigns[0].lookback_ctn,
+    7,
   );
   assert.deepEqual(syncMonths.kpi, ['Jul 26', 'Jul 26']);
   assert.deepEqual(syncMonths.birthday, ['Jul 26', 'Jul 26']);
-  assert.deepEqual(syncMonths.campaign, ['Jul 26', 'Jul 26']);
+  assert.equal(syncMonths.campaignFetches, 2);
   assert.deepEqual(syncMonths.claims, ['Jul 26', 'Jul 26']);
+  assert.deepEqual(syncMonths.warnings, []);
+});
+
+
+test('future planning retains selected-month generated campaigns when live fetch rejects', async () => {
+  const { context, syncMonths } = createFuturePlanningScenario({
+    rejectLiveCampaignFetch: true,
+  });
+
+  await context.switchMonth('jul26');
+
+  assert.deepEqual(syncMonths.api, ['Jun 26']);
+  assert.equal(syncMonths.campaignFetches, 1);
+  assert.equal(context.DATA.generation, 2);
+  assert.equal(context.DATA.current_month, 'Jul 26');
+  assert.equal(context.DATA.is_future_view, true);
+  assert.deepEqual(
+    Array.from(context.DATA.campaigns, campaign => campaign.id),
+    ['summer-fallback'],
+  );
+  assert.equal(context.DATA.campaigns[0].name, 'Generated July Fallback');
+  assert.deepEqual(
+    Array.from(
+      context.DATA.agents.BEN.debtor_cards.debtors[0].campaigns,
+      campaign => campaign.id,
+    ),
+    ['summer-fallback'],
+  );
+  assert.equal(
+    context.DATA.agents.BEN.debtor_cards.debtors[0].campaigns[0].source,
+    'generated_json',
+  );
+  assert.equal(
+    context.DATA.agents.BEN.debtor_cards.debtors[0].campaigns[0].lookback_ctn,
+    7,
+  );
+  assert.deepEqual(syncMonths.kpi, ['Jul 26']);
+  assert.deepEqual(syncMonths.birthday, ['Jul 26']);
+  assert.deepEqual(syncMonths.claims, ['Jul 26']);
+  assert.equal(syncMonths.warnings.length, 1);
+  assert.match(syncMonths.warnings[0], /keeping generated JSON only/);
 });
 
 

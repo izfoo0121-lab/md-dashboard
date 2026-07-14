@@ -2614,6 +2614,33 @@ function commitDashboardEnvelope(result, options = {}) {
   return DATA;
 }
 
+function retainFutureGeneratedCampaignFallbacks(data, month) {
+  const generatedCampaigns = Array.isArray(data?.campaigns) ? data.campaigns : [];
+  const generatedById = new Map(
+    generatedCampaigns
+      .filter(campaign => campaign?.id)
+      .map(campaign => [campaign.id, campaign])
+  );
+  const retainedIds = new Set();
+  data.campaigns = generatedCampaigns.filter(campaign => {
+    const retained = shouldIncludeLiveCampaignForSales(campaign, month);
+    if (retained) retainedIds.add(campaign.id);
+    return retained;
+  });
+
+  Object.values(data?.agents || {}).forEach(agentData => {
+    (agentData?.debtor_cards?.debtors || []).forEach(debtor => {
+      if (!Array.isArray(debtor.campaigns)) return;
+      debtor.campaigns = debtor.campaigns.filter(campaign => {
+        const campaignId = campaign?.id;
+        if (campaignId && generatedById.has(campaignId)) return retainedIds.has(campaignId);
+        return shouldIncludeLiveCampaignForSales(campaign, month);
+      });
+    });
+  });
+  return data;
+}
+
 async function prepareAuthorizedDashboardData(data, transitionToken) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
     throw new Error('Dashboard API returned invalid data');
@@ -2689,12 +2716,7 @@ async function switchMonth(slug) {
         : JSON.parse(JSON.stringify(result.data));
       nextData.current_month = requestedMonth;
       nextData.is_future_view = true;
-      nextData.campaigns = [];
-      Object.values(nextData.agents || {}).forEach(agentData => {
-        (agentData?.debtor_cards?.debtors || []).forEach(debtor => {
-          debtor.campaigns = [];
-        });
-      });
+      retainFutureGeneratedCampaignFallbacks(nextData, requestedMonth);
 
       const preparedData = await prepareAuthorizedDashboardData(nextData, transitionToken);
       if (!preparedData || !isCurrentDebtorExportTransition(transitionToken)) return;
