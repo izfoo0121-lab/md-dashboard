@@ -288,6 +288,37 @@ assert.deepStrictEqual(
   'future-view filtered export should preserve the canonical Account Status fallback while using planning Dashboard Status'
 );
 
+const futureFullRows = context.buildFullDebtorExportRows('BEN', futureViewData);
+const fullFutureDebtor = futureFullRows.find(row => row['Debtor Code'] === '300-A001');
+const filteredFutureDebtor = futurePlanningRows.find(row => row['Debtor Code'] === '300-A001');
+const futureParityFields = [
+  'Dashboard Status',
+  'Current Month CTN',
+  'New SKU Count',
+  'Active Campaigns',
+  'Campaign FOC Package / Notes',
+];
+assert.deepStrictEqual(
+  Object.fromEntries(futureParityFields.map(field => [field, fullFutureDebtor?.[field]])),
+  Object.fromEntries(futureParityFields.map(field => [field, filteredFutureDebtor?.[field]])),
+  'future-view full and filtered exports should use the same planning-normalized debtor row'
+);
+assert.deepStrictEqual(
+  {
+    status: fullFutureDebtor?.['Dashboard Status'],
+    currentCtn: fullFutureDebtor?.['Current Month CTN'],
+    newSkuCount: fullFutureDebtor?.['New SKU Count'],
+    campaignNotes: fullFutureDebtor?.['Campaign FOC Package / Notes'],
+  },
+  {
+    status: 'pending',
+    currentCtn: 0,
+    newSkuCount: 0,
+    campaignNotes: 'Planning reset: pending / 0 CTN / RM 0',
+  },
+  'future-view full export should not leak the authorized base month current values'
+);
+
 const fallbackCalls = [];
 const fallbackContext = {
   DATA: context.DATA,

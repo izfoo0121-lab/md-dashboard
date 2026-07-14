@@ -49,6 +49,37 @@ function createDeferred() {
 }
 
 
+function extractFunctionOr(name, fallbackSource) {
+  const markers = [`async function ${name}`, `function ${name}`];
+  return markers.some(marker => html.includes(marker))
+    ? extractFunction(name)
+    : fallbackSource;
+}
+
+
+function createStorage(initial = {}) {
+  const values = new Map(Object.entries(initial));
+  return {
+    values,
+    get length() {
+      return values.size;
+    },
+    getItem(key) {
+      return values.has(key) ? values.get(key) : null;
+    },
+    key(index) {
+      return [...values.keys()][index] ?? null;
+    },
+    removeItem(key) {
+      values.delete(key);
+    },
+    setItem(key, value) {
+      values.set(key, String(value));
+    },
+  };
+}
+
+
 function dashboardData(month, agents) {
   return {
     current_month: month,
@@ -162,6 +193,8 @@ function createInitialFutureLoginContext(options = {}) {
     'var authenticatedRole = null;',
     "var _pin = '1001';",
     'var _pinLocked = false;',
+    'var _pinAttemptSequence = 0;',
+    'var _pinLockOwner = 0;',
     extractFunction('monthSortKey'),
     extractFunction('fetchAvailableMonthLabels'),
     extractFunction('resolvePublishedBaseMonth'),
@@ -174,6 +207,84 @@ function createInitialFutureLoginContext(options = {}) {
     extractFunction('checkPin'),
   ].join('\n'), context);
   return { calls, context, pinGate };
+}
+
+
+function createPinRaceContext() {
+  const calls = { login: [] };
+  const dots = Array.from({ length: 4 }, () => ({ className: '' }));
+  const pinGate = { style: { display: 'flex' } };
+  let transitionVersion = 0;
+  const context = {
+    DATA: null,
+    DashboardApi: {
+      login(pin, month) {
+        const pending = createDeferred();
+        calls.login.push({ month, pin, ...pending });
+        return pending.promise;
+      },
+    },
+    beginDebtorExportTransition() {
+      transitionVersion += 1;
+      return transitionVersion;
+    },
+    clearProtectedDashboardState() {
+      context.DATA = null;
+      context.currentAgent = null;
+      context.authenticatedAgent = null;
+      context.authenticatedRole = null;
+    },
+    commitDashboardEnvelope(result, options) {
+      context.DATA = result.data;
+      context.authenticatedAgent = options.agent;
+      context.authenticatedRole = options.role;
+      context.currentAgent = options.agent;
+    },
+    completeDebtorExportTransition() {},
+    document: {
+      getElementById(id) {
+        if (id === 'pin-gate') return pinGate;
+        if (id === 'pin-name-hint') return { textContent: '' };
+        if (id.startsWith('pd')) return dots[Number(id.slice(2))];
+        return null;
+      },
+    },
+    fetchAvailableMonthLabels: async () => ['Jul 26'],
+    initializeDashboardAfterCommit: async () => {},
+    isCurrentDebtorExportTransition(token) {
+      return token === transitionVersion;
+    },
+    monthSlug: month => String(month || '').replace(' ', '').toLowerCase(),
+    prepareAuthorizedInitialMonthData: async data => data,
+    resolvePublishedBaseMonth: requestedMonth => requestedMonth,
+    selectedDashboardMonth: () => 'Jul 26',
+    showPinError() {},
+    updatePinDisplay() {},
+  };
+  vm.createContext(context);
+  vm.runInContext([
+    'var DATA = globalThis.DATA;',
+    'var currentAgent = null;',
+    'var authenticatedAgent = null;',
+    'var authenticatedRole = null;',
+    "var _pin = '1001';",
+    'var _pinLocked = false;',
+    'var _pinAttemptSequence = 0;',
+    'var _pinLockOwner = 0;',
+    extractFunction('checkPin'),
+  ].join('\n'), context);
+  return { calls, context };
+}
+
+
+function successfulLoginEnvelope(month = 'Jul 26') {
+  return {
+    agent: 'BEN',
+    role: 'agent',
+    month,
+    availableMonths: [month],
+    data: dashboardData(month, { BEN: ['300-BEN'] }),
+  };
 }
 
 
@@ -550,6 +661,8 @@ test('successful PIN login commits only the gateway envelope data', async () => 
     'var AVAILABLE_MONTHS = [];',
     "var _pin = '1001';",
     'var _pinLocked = false;',
+    'var _pinAttemptSequence = 0;',
+    'var _pinLockOwner = 0;',
     extractFunction('checkPin'),
   ].join('\n'), context);
 
@@ -637,6 +750,8 @@ test('failed PIN login leaves protected data empty and no API session', async ()
     "var authenticatedRole = 'agent';",
     "var _pin = '0000';",
     'var _pinLocked = false;',
+    'var _pinAttemptSequence = 0;',
+    'var _pinLockOwner = 0;',
     extractFunction('checkPin'),
   ].join('\n'), context);
 
@@ -698,6 +813,8 @@ test('post-auth login failure terminates the newly created opaque session', asyn
     "var authenticatedRole = 'agent';",
     "var _pin = '1001';",
     'var _pinLocked = false;',
+    'var _pinAttemptSequence = 0;',
+    'var _pinLockOwner = 0;',
     extractFunction('checkPin'),
   ].join('\n'), context);
 
@@ -707,6 +824,181 @@ test('post-auth login failure terminates the newly created opaque session', asyn
   assert.equal(session.size, 0);
   assert.equal(context.DATA, null);
   assert.equal(context.currentAgent, null);
+});
+
+
+test('login initialization failure scrubs rendered debtor DOM and disables exports', async () => {
+  const localStorage = createStorage({
+    md_gist_cache: '{"sensitive":true}',
+    camp_claim_Jul26_BEN_camp_300_A: '{"sensitive":true}',
+  });
+  const sessionStorage = createStorage({
+    md_dashboard_session: 'opaque-token',
+    md_dashboard_identity: '{"agent":"BEN","role":"agent"}',
+  });
+  const makeElement = initial => ({
+    className: '',
+    disabled: false,
+    hidden: false,
+    innerHTML: '',
+    style: {},
+    textContent: '',
+    value: '',
+    ...initial,
+    remove() {
+      this.removed = true;
+    },
+    setAttribute(name, value) {
+      this[name] = value;
+    },
+  });
+  const elements = {
+    'agent-select': makeElement({ value: 'BEN' }),
+    'debtor-download-menu': makeElement({ hidden: false }),
+    'debtor-download-toggle': makeElement(),
+    'debtor-export-filtered': makeElement({ disabled: false }),
+    'debtor-export-full': makeElement({ disabled: false }),
+    'debtor-filtered-export-count': makeElement({ textContent: '1' }),
+    'debtor-full-export-count': makeElement({ textContent: '1' }),
+    'debtor-list': makeElement(),
+    'pin-gate': makeElement({ style: { display: 'flex' } }),
+    'pin-name-hint': makeElement(),
+  };
+  for (let index = 0; index < 4; index += 1) elements[`pd${index}`] = makeElement();
+  const calls = { errors: [], logout: 0 };
+  let transitionVersion = 0;
+  const context = {
+    DATA: null,
+    AVAILABLE_MONTHS: [],
+    CURRENT_MONTH_SLUG: 'current',
+    MONTHS_WITH_DATA: [],
+    BIRTHDAY_OVERRIDES_BY_MONTH: {},
+    SALES_LIVE_STATIC_CONFIG_CACHE: undefined,
+    DashboardApi: {
+      async login() {
+        return successfulLoginEnvelope();
+      },
+      async logout() {
+        calls.logout += 1;
+        sessionStorage.removeItem('md_dashboard_session');
+        sessionStorage.removeItem('md_dashboard_identity');
+      },
+    },
+    beginDebtorExportTransition() {
+      transitionVersion += 1;
+      return transitionVersion;
+    },
+    commitDashboardEnvelope(result, options) {
+      context.DATA = result.data;
+      context.currentAgent = options.agent;
+      context.authenticatedAgent = options.agent;
+      context.authenticatedRole = options.role;
+    },
+    completeDebtorExportTransition() {},
+    console: { warn() {} },
+    document: {
+      getElementById(id) {
+        return elements[id] || null;
+      },
+    },
+    fetchAvailableMonthLabels: async () => ['Jul 26'],
+    async initializeDashboardAfterCommit() {
+      elements['debtor-list'].innerHTML = '<div class="debtor-card">300-SECRET</div>';
+      elements['debtor-export-filtered'].disabled = false;
+      elements['debtor-export-full'].disabled = false;
+      elements['pin-gate'].style.display = 'none';
+      throw new Error('render initialization failed');
+    },
+    isCurrentDebtorExportTransition(token) {
+      return token === transitionVersion;
+    },
+    localStorage,
+    monthSlug: month => String(month || '').replace(' ', '').toLowerCase(),
+    openBrandPenetration: new Set(['SUKUN']),
+    prepareAuthorizedInitialMonthData: async data => data,
+    resetDebtorExportView() {},
+    resolvePublishedBaseMonth: requestedMonth => requestedMonth,
+    selectedDashboardMonth: () => 'Jul 26',
+    sessionStorage,
+    showPinError(message) {
+      calls.errors.push(message);
+    },
+    updateDebtorExportMenu() {},
+    updatePinDisplay() {},
+  };
+  vm.createContext(context);
+  vm.runInContext([
+    'var DATA = globalThis.DATA;',
+    'var AVAILABLE_MONTHS = globalThis.AVAILABLE_MONTHS;',
+    'var CURRENT_MONTH_SLUG = globalThis.CURRENT_MONTH_SLUG;',
+    'var MONTHS_WITH_DATA = globalThis.MONTHS_WITH_DATA;',
+    'var currentAgent = null;',
+    'var authenticatedAgent = null;',
+    'var authenticatedRole = null;',
+    'var _lastUnpurchasedExport = { sensitive: true };',
+    'var _lastCampsExport = { sensitive: true };',
+    "var _pin = '1001';",
+    'var _pinLocked = false;',
+    'var _pinAttemptSequence = 0;',
+    'var _pinLockOwner = 0;',
+    extractFunctionOr('clearProtectedDashboardDom', 'function clearProtectedDashboardDom() {}'),
+    extractFunction('clearProtectedDashboardState'),
+    extractFunction('checkPin'),
+  ].join('\n'), context);
+
+  const loggedIn = await context.checkPin();
+
+  assert.equal(loggedIn, false);
+  assert.equal(calls.logout, 1);
+  assert.equal(context.DATA, null);
+  assert.equal(context.currentAgent, null);
+  assert.equal(context.authenticatedAgent, null);
+  assert.equal(context.authenticatedRole, null);
+  assert.equal(elements['debtor-list'].innerHTML, '');
+  assert.equal(elements['debtor-export-filtered'].disabled, true);
+  assert.equal(elements['debtor-export-full'].disabled, true);
+  assert.equal(elements['pin-gate'].style.display, 'flex');
+  assert.equal(localStorage.values.has('md_gist_cache'), false);
+  assert.equal(sessionStorage.values.has('md_dashboard_session'), false);
+  assert.deepEqual(calls.errors, ['render initialization failed']);
+});
+
+
+test('login superseded by a non-login transition releases its PIN lock', async () => {
+  const { calls, context } = createPinRaceContext();
+
+  const login = context.checkPin();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(calls.login.length, 1);
+
+  context.beginDebtorExportTransition({ kind: 'month' });
+  calls.login[0].resolve(successfulLoginEnvelope());
+
+  assert.equal(await login, false);
+  assert.equal(context._pinLocked, false);
+  assert.equal(context._pinLockOwner, 0);
+});
+
+
+test('older login completion cannot unlock a newer in-flight PIN attempt', async () => {
+  const { calls, context } = createPinRaceContext();
+
+  const olderLogin = context.checkPin();
+  await new Promise(resolve => setImmediate(resolve));
+  context._pin = '2002';
+  const newerLogin = context.checkPin();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(calls.login.length, 2);
+
+  calls.login[0].resolve(successfulLoginEnvelope());
+  assert.equal(await olderLogin, false);
+  assert.equal(context._pinLocked, true);
+  assert.equal(context._pinLockOwner, 2);
+
+  calls.login[1].resolve(successfulLoginEnvelope());
+  assert.equal(await newerLogin, true);
+  assert.equal(context._pinLocked, false);
+  assert.equal(context._pinLockOwner, 0);
 });
 
 
@@ -1058,6 +1350,150 @@ test('month race commits only the latest DashboardApi response', async () => {
 });
 
 
+function createPlanningBaseResolutionScenario() {
+  const calls = { alerts: [], api: [], cleared: 0 };
+  const priorData = dashboardData('Jun 26', { BEN: ['300-BASE'] });
+  const agentSelect = {
+    value: 'BEN',
+    innerHTML: '',
+    appendChild() {},
+  };
+  const elements = {
+    'agent-select': agentSelect,
+    'month-selector-agent': { value: 'jun26' },
+    'month-badge': { textContent: '' },
+    'day-prog': { textContent: '' },
+  };
+  let transitionVersion = 0;
+  const context = {
+    DATA: priorData,
+    AVAILABLE_MONTHS: ['Jun 26', 'Aug 26', 'Oct 26'],
+    CURRENT_MONTH_SLUG: 'jun26',
+    MONTHS_WITH_DATA: ['jun26', 'aug26', 'oct26'],
+    authenticatedAgent: 'BEN',
+    authenticatedRole: 'agent',
+    currentAgent: 'BEN',
+    filters: {},
+    DashboardApi: {
+      async loadData(month) {
+        calls.api.push(month);
+        return {
+          month,
+          availableMonths: context.AVAILABLE_MONTHS,
+          data: dashboardData(month, { BEN: [`300-${month.replace(' ', '').toUpperCase()}`] }),
+        };
+      },
+    },
+    alert(message) {
+      calls.alerts.push(message);
+    },
+    applyBirthdayTargetsToAgentKpi() {},
+    beginDebtorExportTransition() {
+      transitionVersion += 1;
+      return transitionVersion;
+    },
+    buildTypeChipRow() {},
+    cleanDashboardCacheBusterParam() {},
+    clearProtectedDashboardState() {
+      calls.cleared += 1;
+    },
+    commitDashboardEnvelope(result, options) {
+      context.DATA = result.data;
+      context.CURRENT_MONTH_SLUG = options.requestedSlug;
+      context.currentAgent = 'BEN';
+    },
+    completeDebtorExportTransition() {},
+    document: {
+      createElement() {
+        return {};
+      },
+      getElementById(id) {
+        return elements[id] || null;
+      },
+    },
+    isCurrentDebtorExportTransition(token) {
+      return token === transitionVersion;
+    },
+    isDashboardAuthorizationError: () => false,
+    latestAvailableMonth(months, fallback) {
+      return months[months.length - 1] || fallback;
+    },
+    resolvePublishedBaseMonth(_requestedMonth, months) {
+      return months[months.length - 1];
+    },
+    monthLabelFromSlug(slug) {
+      return { may26: 'May 26', sep26: 'Sep 26' }[slug] || slug;
+    },
+    monthSlug(month) {
+      return String(month || '').replace(' ', '').toLowerCase();
+    },
+    prepareAuthorizedDashboardData: async data => data,
+    renderAll() {},
+    renderGroupBrandTargets() {},
+    renderNoAgentState() {},
+    retainFutureGeneratedCampaignFallbacks(data) {
+      return data;
+    },
+    resolveDebtorExportTransitionAgent() {
+      return 'BEN';
+    },
+    structuredClone(value) {
+      return JSON.parse(JSON.stringify(value));
+    },
+    updateDebtorExportTransitionDesiredAgent() {},
+    updateFutureViewBanner() {},
+    window: {},
+  };
+  vm.createContext(context);
+  vm.runInContext([
+    'var DATA = globalThis.DATA;',
+    'var AVAILABLE_MONTHS = globalThis.AVAILABLE_MONTHS;',
+    'var CURRENT_MONTH_SLUG = globalThis.CURRENT_MONTH_SLUG;',
+    'var MONTHS_WITH_DATA = globalThis.MONTHS_WITH_DATA;',
+    'var authenticatedAgent = globalThis.authenticatedAgent;',
+    'var authenticatedRole = globalThis.authenticatedRole;',
+    'var currentAgent = globalThis.currentAgent;',
+    'var filters = globalThis.filters;',
+    "var dropCtnFilter = 'all';",
+    "var dropSkuFilter = 'all';",
+    "var gainCtnFilter = 'all';",
+    "var gainSkuFilter = 'all';",
+    "var nonvipTypeFilter = 'all';",
+    extractFunction('monthSortKey'),
+    extractFunction('resolvePublishedBaseMonth'),
+    extractFunction('switchMonth'),
+  ].join('\n'), context);
+  return { calls, context, priorData };
+}
+
+
+test('future planning loads the greatest published month not after the request', async () => {
+  const { calls, context } = createPlanningBaseResolutionScenario();
+
+  await context.switchMonth('sep26');
+
+  assert.deepEqual(calls.api, ['Aug 26']);
+  assert.equal(context.DATA.current_month, 'Sep 26');
+  assert.equal(context.DATA.is_future_view, true);
+  assert.equal(context.CURRENT_MONTH_SLUG, 'sep26');
+});
+
+
+test('future planning before every published month fails without loading or relabeling later data', async () => {
+  const { calls, context, priorData } = createPlanningBaseResolutionScenario();
+
+  await context.switchMonth('may26');
+
+  assert.deepEqual(calls.api, []);
+  assert.strictEqual(context.DATA, priorData);
+  assert.equal(context.DATA.current_month, 'Jun 26');
+  assert.equal(context.CURRENT_MONTH_SLUG, 'jun26');
+  assert.equal(calls.alerts.length, 1);
+  assert.match(calls.alerts[0], /at or before May 26/i);
+  assert.equal(calls.cleared, 0);
+});
+
+
 function createFuturePlanningScenario(options = {}) {
   const rejectLiveCampaignFetch = options.rejectLiveCampaignFetch === true;
   const syncMonths = {
@@ -1206,6 +1642,9 @@ function createFuturePlanningScenario(options = {}) {
     renderGroupBrandTargets() {},
     renderNoAgentState() {},
     resetUnpurchasedFilters() {},
+    resolvePublishedBaseMonth(_requestedMonth, months) {
+      return months[months.length - 1];
+    },
     resolveDebtorExportTransitionAgent() {
       return 'BEN';
     },
@@ -1363,6 +1802,164 @@ test('future planning retains selected-month generated campaigns when live fetch
 });
 
 
+test('DashboardApi authorization failure clears session, protected state, DOM, and exports', async () => {
+  const priorData = dashboardData('Jun 26', { BEN: ['300-SECRET'] });
+  const localStorage = createStorage({
+    md_gist_cache: '{"sensitive":true}',
+    camp_claim_Jun26_BEN_camp_300_SECRET: '{"sensitive":true}',
+  });
+  const sessionStorage = createStorage({
+    md_dashboard_session: 'expired-token',
+    md_dashboard_identity: '{"agent":"BEN","role":"agent"}',
+  });
+  const makeElement = initial => ({
+    disabled: false,
+    hidden: false,
+    innerHTML: '',
+    style: {},
+    textContent: '',
+    value: '',
+    ...initial,
+    appendChild() {},
+    remove() {
+      this.removed = true;
+    },
+    setAttribute(name, value) {
+      this[name] = value;
+    },
+  });
+  const elements = {
+    'agent-select': makeElement({ value: 'BEN' }),
+    'debtor-download-menu': makeElement({ hidden: false }),
+    'debtor-download-toggle': makeElement(),
+    'debtor-export-filtered': makeElement({ disabled: false }),
+    'debtor-export-full': makeElement({ disabled: false }),
+    'debtor-list': makeElement({ innerHTML: '<div class="debtor-card">300-SECRET</div>' }),
+    'month-badge': makeElement({ textContent: 'JUN 26' }),
+    'month-selector-agent': makeElement({ value: 'jun26' }),
+    'day-prog': makeElement({ textContent: 'Day 1 of 20' }),
+    'pin-gate': makeElement({ style: { display: 'none' } }),
+  };
+  const calls = { alerts: [], api: [], errors: [], logout: 0, render: 0 };
+  let transitionVersion = 0;
+  const context = {
+    DATA: priorData,
+    AVAILABLE_MONTHS: ['Jun 26', 'Jul 26'],
+    CURRENT_MONTH_SLUG: 'jun26',
+    MONTHS_WITH_DATA: ['jun26', 'jul26'],
+    authenticatedAgent: 'BEN',
+    authenticatedRole: 'agent',
+    currentAgent: 'BEN',
+    filters: {},
+    BIRTHDAY_OVERRIDES_BY_MONTH: {},
+    SALES_LIVE_STATIC_CONFIG_CACHE: undefined,
+    DashboardApi: {
+      async loadData(month) {
+        calls.api.push(month);
+        const error = new Error('session rejected');
+        error.status = 403;
+        error.code = 'access_denied';
+        throw error;
+      },
+      async logout() {
+        calls.logout += 1;
+        sessionStorage.removeItem('md_dashboard_session');
+        sessionStorage.removeItem('md_dashboard_identity');
+      },
+    },
+    alert(message) {
+      calls.alerts.push(message);
+    },
+    applyBirthdayTargetsToAgentKpi() {},
+    beginDebtorExportTransition() {
+      transitionVersion += 1;
+      return transitionVersion;
+    },
+    buildTypeChipRow() {},
+    cleanDashboardCacheBusterParam() {},
+    completeDebtorExportTransition() {},
+    console: { warn() {} },
+    document: {
+      createElement() {
+        return makeElement();
+      },
+      getElementById(id) {
+        return elements[id] || null;
+      },
+    },
+    isCurrentDebtorExportTransition(token) {
+      return token === transitionVersion;
+    },
+    localStorage,
+    monthLabelFromSlug: () => 'Jul 26',
+    openBrandPenetration: new Set(['SUKUN']),
+    renderAll() {
+      calls.render += 1;
+    },
+    renderGroupBrandTargets() {},
+    renderNoAgentState() {},
+    resetDebtorExportView() {},
+    resolveDebtorExportTransitionAgent() {
+      return 'BEN';
+    },
+    sessionStorage,
+    showPinError(message) {
+      calls.errors.push(message);
+    },
+    updateDebtorExportMenu() {},
+    updateDebtorExportTransitionDesiredAgent() {},
+    updateFutureViewBanner() {},
+    window: {},
+  };
+  vm.createContext(context);
+  vm.runInContext([
+    'var DATA = globalThis.DATA;',
+    'var AVAILABLE_MONTHS = globalThis.AVAILABLE_MONTHS;',
+    'var CURRENT_MONTH_SLUG = globalThis.CURRENT_MONTH_SLUG;',
+    'var MONTHS_WITH_DATA = globalThis.MONTHS_WITH_DATA;',
+    'var authenticatedAgent = globalThis.authenticatedAgent;',
+    'var authenticatedRole = globalThis.authenticatedRole;',
+    'var currentAgent = globalThis.currentAgent;',
+    'var filters = globalThis.filters;',
+    'var _lastUnpurchasedExport = { sensitive: true };',
+    'var _lastCampsExport = { sensitive: true };',
+    "var _pin = '';",
+    'var _pinLocked = false;',
+    'var _pinLockOwner = 0;',
+    "var dropCtnFilter = 'all';",
+    "var dropSkuFilter = 'all';",
+    "var gainCtnFilter = 'all';",
+    "var gainSkuFilter = 'all';",
+    "var nonvipTypeFilter = 'all';",
+    extractFunctionOr('clearProtectedDashboardDom', 'function clearProtectedDashboardDom() {}'),
+    extractFunction('clearProtectedDashboardState'),
+    extractFunctionOr(
+      'isDashboardAuthorizationError',
+      'function isDashboardAuthorizationError(error) { return [401, 403].includes(Number(error && error.status)); }',
+    ),
+    extractFunction('switchMonth'),
+  ].join('\n'), context);
+
+  await context.switchMonth('jul26');
+
+  assert.deepEqual(calls.api, ['Jul 26']);
+  assert.equal(calls.logout, 1);
+  assert.equal(calls.render, 0);
+  assert.deepEqual(calls.alerts, []);
+  assert.deepEqual(calls.errors, ['session rejected']);
+  assert.equal(context.DATA, null);
+  assert.equal(context.currentAgent, null);
+  assert.equal(context.authenticatedAgent, null);
+  assert.equal(context.authenticatedRole, null);
+  assert.equal(elements['debtor-list'].innerHTML, '');
+  assert.equal(elements['debtor-export-filtered'].disabled, true);
+  assert.equal(elements['debtor-export-full'].disabled, true);
+  assert.equal(elements['pin-gate'].style.display, 'flex');
+  assert.equal(localStorage.values.has('md_gist_cache'), false);
+  assert.equal(sessionStorage.values.has('md_dashboard_session'), false);
+});
+
+
 test('failed DashboardApi month request never invokes generic fetch', async () => {
   const priorData = dashboardData('Jun 26', { BEN: ['300-OLD'] });
   const agentSelect = {
@@ -1377,7 +1974,9 @@ test('failed DashboardApi month request never invokes generic fetch', async () =
     'day-prog': { textContent: '' },
   };
   let apiCalls = 0;
+  let clearCalls = 0;
   let genericFetchCalls = 0;
+  let logoutCalls = 0;
   let transitionVersion = 0;
   const context = {
     DATA: priorData,
@@ -1391,7 +1990,13 @@ test('failed DashboardApi month request never invokes generic fetch', async () =
     DashboardApi: {
       async loadData() {
         apiCalls += 1;
-        throw new Error('gateway unavailable');
+        const error = new Error('gateway unavailable');
+        error.status = 0;
+        error.code = 'network_error';
+        throw error;
+      },
+      async logout() {
+        logoutCalls += 1;
       },
     },
     alert() {},
@@ -1402,6 +2007,9 @@ test('failed DashboardApi month request never invokes generic fetch', async () =
     },
     buildTypeChipRow() {},
     cleanDashboardCacheBusterParam() {},
+    clearProtectedDashboardState() {
+      clearCalls += 1;
+    },
     completeDebtorExportTransition() {},
     document: {
       createElement() {
@@ -1417,6 +2025,9 @@ test('failed DashboardApi month request never invokes generic fetch', async () =
     },
     isCurrentDebtorExportTransition(token) {
       return token === transitionVersion;
+    },
+    isDashboardAuthorizationError(error) {
+      return [401, 403].includes(Number(error?.status));
     },
     monthLabelFromSlug: () => 'Jun 26',
     renderAll() {},
@@ -1451,9 +2062,13 @@ test('failed DashboardApi month request never invokes generic fetch', async () =
   await context.switchMonth('jun26');
 
   assert.equal(apiCalls, 1);
+  assert.equal(clearCalls, 0);
   assert.equal(genericFetchCalls, 0);
+  assert.equal(logoutCalls, 0);
   assert.strictEqual(context.DATA, priorData);
   assert.equal(context.currentAgent, 'BEN');
+  assert.equal(context.authenticatedAgent, 'BEN');
+  assert.equal(context.authenticatedRole, 'agent');
 });
 
 
@@ -1530,6 +2145,8 @@ test('logout clears API session and protected dashboard state', async () => {
     'var SALES_LIVE_STATIC_CONFIG_CACHE = globalThis.SALES_LIVE_STATIC_CONFIG_CACHE;',
     "var _pin = '1001';",
     'var _pinLocked = true;',
+    'var _pinLockOwner = 1;',
+    extractFunction('clearProtectedDashboardDom'),
     extractFunction('clearProtectedDashboardState'),
     extractFunction('doAgentLogout'),
   ].join('\n'), context);
