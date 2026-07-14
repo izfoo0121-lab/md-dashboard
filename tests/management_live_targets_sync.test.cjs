@@ -9,7 +9,7 @@ assert(
   'Management should fetch monthly Admin targets from Supabase'
 );
 assert(
-  html.includes('targets_agents?select=agent,active,sales_progression,brand_commission,kpi_targets,kpi_overrides'),
+  html.includes('targets_agents?select=agent,active,sales_progression,brand_commission,kpi_targets'),
   'Management should fetch base Admin targets as fallback when monthly target rows are empty'
 );
 assert(

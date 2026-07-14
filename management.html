@@ -2307,7 +2307,7 @@ const SupabaseKpiSync = (() => {
     }
   }
   async function fetch_targets_agents() {
-    const url = `${SUPABASE_URL}/rest/v1/targets_agents?select=agent,active,sales_progression,brand_commission,kpi_targets,kpi_overrides`;
+    const url = `${SUPABASE_URL}/rest/v1/targets_agents?select=agent,active,sales_progression,brand_commission,kpi_targets`;
     try {
       const r = await fetch(url, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
