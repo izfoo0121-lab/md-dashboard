@@ -938,6 +938,9 @@ function updatePinDisplay() {
 
 async function checkPin() {
   _pinLocked = true;
+  const submittedPin = _pin;
+  _pin = '';
+  updatePinDisplay();
   const selectedMonth = selectedDashboardMonth();
   const transitionToken = beginDebtorExportTransition({
     kind: 'login',
@@ -946,7 +949,7 @@ async function checkPin() {
   });
   let result;
   try {
-    result = await DashboardApi.login(_pin, selectedMonth);
+    result = await DashboardApi.login(submittedPin, selectedMonth);
     if (!isCurrentDebtorExportTransition(transitionToken)) return false;
     const preparedData = await prepareAuthorizedDashboardData(result.data, transitionToken);
     if (!preparedData || !isCurrentDebtorExportTransition(transitionToken)) return false;
@@ -1061,8 +1064,6 @@ async function doAgentLogout() {
 // ── Force Refresh ─────────────────────────────────────────────────────────
 // Clears read-only dashboard caches, then reloads the active month data.
 function clearDashboardDataCaches() {
-  try { globalThis['DEBTOR_' + 'ANALYSIS_CACHE'] = undefined; } catch {}
-  try { globalThis['MONTH_' + 'SNAPSHOT_CACHE'] = {}; } catch {}
   try { SALES_LIVE_STATIC_CONFIG_CACHE = undefined; } catch {}
   try {
     localStorage.removeItem('md_gist_cache');
@@ -2590,14 +2591,14 @@ function commitDashboardEnvelope(result, options = {}) {
   const dataAgents = Object.keys(nextData.agents || {});
   let selectedAgent = '';
   if (authenticatedRole === 'agent') {
-    if (dataAgents.includes(authenticatedAgent)) {
-      selectedAgent = authenticatedAgent;
-    } else if (dataAgents.length === 1) {
-      selectedAgent = dataAgents[0];
-      authenticatedAgent = selectedAgent;
-    } else {
-      throw new Error('Authorized agent data is unavailable');
+    if (dataAgents.length !== 1 || dataAgents[0] !== authenticatedAgent) {
+      DATA = null;
+      currentAgent = null;
+      AVAILABLE_MONTHS = [];
+      MONTHS_WITH_DATA = [];
+      throw new Error('Dashboard API returned invalid authenticated agent scope');
     }
+    selectedAgent = authenticatedAgent;
   } else {
     const desiredAgent = String(options.desiredAgent || currentAgent || '').trim();
     selectedAgent = dataAgents.includes(desiredAgent) ? desiredAgent : '';
@@ -2672,23 +2673,38 @@ async function switchMonth(slug) {
     ? (DATA?.current_month || '')
     : monthLabelFromSlug(requestedSlug);
   try {
-    // Future view: selected month has no generated data file yet.
-    // Reuse currently loaded DATA, override metadata, and render forward-looking items.
+    // Future view: reload a real authorized month, then derive planning state locally.
     if (requestedSlug !== 'current' && !MONTHS_WITH_DATA.includes(requestedSlug) && DATA) {
-      const nextData = typeof structuredClone === 'function'
-        ? structuredClone(DATA)
-        : JSON.parse(JSON.stringify(DATA));
-      nextData.current_month = monthLabelFromSlug(requestedSlug);
-      nextData.is_future_view = true;
-
-      await Promise.resolve();
+      const availableBaseMonths = AVAILABLE_MONTHS.filter(month =>
+        MONTHS_WITH_DATA.includes(monthSlug(month))
+      );
+      const baseMonth = latestAvailableMonth(availableBaseMonths, '');
+      if (!baseMonth || monthSlug(baseMonth) === requestedSlug) {
+        throw new Error('Authorized base month is unavailable for future planning');
+      }
+      const result = await DashboardApi.loadData(baseMonth);
       if (!isCurrentDebtorExportTransition(transitionToken)) return;
+      const nextData = typeof structuredClone === 'function'
+        ? structuredClone(result.data)
+        : JSON.parse(JSON.stringify(result.data));
+      nextData.current_month = requestedMonth;
+      nextData.is_future_view = true;
+      nextData.campaigns = [];
+      Object.values(nextData.agents || {}).forEach(agentData => {
+        (agentData?.debtor_cards?.debtors || []).forEach(debtor => {
+          debtor.campaigns = [];
+        });
+      });
+
+      const preparedData = await prepareAuthorizedDashboardData(nextData, transitionToken);
+      if (!preparedData || !isCurrentDebtorExportTransition(transitionToken)) return;
       const selectedAgent = lockedAgentRole
         ? authenticatedAgent
-        : resolveDebtorExportTransitionAgent(transitionToken, nextData, prevAgent);
-      DATA = nextData;
-      CURRENT_MONTH_SLUG = requestedSlug;
-      currentAgent = selectedAgent;
+        : resolveDebtorExportTransitionAgent(transitionToken, preparedData, prevAgent);
+      commitDashboardEnvelope(
+        { ...result, data: preparedData },
+        { desiredAgent: selectedAgent, requestedSlug }
+      );
       if (window.MDAdminContext) {
         MDAdminContext.setWorkingMonth(DATA.current_month || requestedMonth, { silent: true });
       }
@@ -2721,18 +2737,7 @@ async function switchMonth(slug) {
       return;
     }
 
-    let result;
-    if (typeof DashboardApi !== 'undefined' && typeof DashboardApi.loadData === 'function') {
-      result = await DashboardApi.loadData(requestedMonth);
-    } else {
-      const response = await fetch(requestedMonth);
-      if (!response.ok) throw new Error('Not found');
-      result = {
-        month: requestedMonth,
-        availableMonths: typeof AVAILABLE_MONTHS === 'undefined' ? [] : AVAILABLE_MONTHS,
-        data: await response.json(),
-      };
-    }
+    const result = await DashboardApi.loadData(requestedMonth);
     if (!isCurrentDebtorExportTransition(transitionToken)) return;
     const nextData = typeof prepareAuthorizedDashboardData === 'function'
       ? await prepareAuthorizedDashboardData(result.data, transitionToken)
@@ -3431,6 +3436,11 @@ function selectAgent(agent) {
     if (lockedSelect) lockedSelect.value = lockedAgent;
     return false;
   }
+  if (agent && !Object.prototype.hasOwnProperty.call(DATA?.agents || {}, agent)) {
+    const authorizedSelect = document.getElementById('agent-select');
+    if (authorizedSelect) authorizedSelect.value = currentAgent || '';
+    return false;
+  }
   const pendingTransition = getDebtorExportTransition();
   const pendingMonthTransition = pendingTransition?.kind === 'month' ? pendingTransition : null;
   const beginAgentTransition = beginDebtorExportTransition;
@@ -3488,12 +3498,7 @@ function selectAgent(agent) {
   const debtorCards = DATA?.agents?.[agent]?.debtor_cards;
   if (debtorCards && (!debtorCards.debtors || debtorCards.debtors.length === 0)) {
     const month = DATA.current_month || monthLabelFromSlug(CURRENT_MONTH_SLUG);
-    const request = typeof DashboardApi !== 'undefined' && typeof DashboardApi.loadData === 'function'
-      ? DashboardApi.loadData(month)
-      : fetch(month).then(async response => {
-          if (!response.ok) throw new Error('Not found');
-          return { month, availableMonths: [], data: await response.json() };
-        });
+    const request = DashboardApi.loadData(month);
     return request
       .then(async result => {
         if (!isCurrentDebtorExportTransition(transitionToken)) return;
