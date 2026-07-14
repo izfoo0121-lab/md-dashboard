@@ -3237,32 +3237,50 @@ function renderAgentForms() {
 function setSP(agent, field, val) {
   if (!CONFIG.agents[agent]) return;
   if (!CONFIG.agents[agent].sales_progression) CONFIG.agents[agent].sales_progression = {};
-  CONFIG.agents[agent].sales_progression[field] = val === '' ? null : parseFloat(val);
+  const targetValue = val === '' ? null : parseFloat(val);
+  CONFIG.agents[agent].sales_progression[field] = targetValue;
+  const monthCfg = ensureAgentMonthConfig(agent);
+  if (!monthCfg.sales_progression) monthCfg.sales_progression = {};
+  monthCfg.sales_progression[field] = targetValue;
   updateRawJSON();
 }
 function setBC(agent, brand, field, val) {
   if (!CONFIG.agents[agent]) return;
   if (!CONFIG.agents[agent].brand_commission[brand]) CONFIG.agents[agent].brand_commission[brand] = {};
-  CONFIG.agents[agent].brand_commission[brand][field] = val === '' ? 0 : parseFloat(val);
+  const targetValue = val === '' ? 0 : parseFloat(val);
+  CONFIG.agents[agent].brand_commission[brand][field] = targetValue;
+  const monthCfg = ensureAgentMonthConfig(agent);
+  if (!monthCfg.brand_commission) monthCfg.brand_commission = {};
+  if (!monthCfg.brand_commission[brand]) monthCfg.brand_commission[brand] = { penetration_target: 0, ctn_target: 0 };
+  monthCfg.brand_commission[brand][field] = targetValue;
   updateRawJSON();
 }
 function setNewbie(agent, val) {
   if (!CONFIG.agents[agent]) return;
   CONFIG.agents[agent].is_newbie = val;
+  ensureAgentMonthConfig(agent).is_newbie = val;
   updateRawJSON();
   renderNewbieForms();
 }
 function setKPI(agent, field, val) {
   if (!CONFIG.agents[agent]) return;
   if (!CONFIG.agents[agent].kpi_targets) CONFIG.agents[agent].kpi_targets = {};
-  CONFIG.agents[agent].kpi_targets[field] = val === '' ? null : parseFloat(val);
+  const targetValue = val === '' ? null : parseFloat(val);
+  CONFIG.agents[agent].kpi_targets[field] = targetValue;
+  const monthCfg = ensureAgentMonthConfig(agent);
+  if (!monthCfg.kpi_targets) monthCfg.kpi_targets = {};
+  monthCfg.kpi_targets[field] = targetValue;
   updateRawJSON();
 }
 
 function setCampaignTarget(agent, camp_id, val) {
   if (!CONFIG.agents[agent]) return;
   if (!CONFIG.agents[agent].campaign_targets) CONFIG.agents[agent].campaign_targets = {};
-  CONFIG.agents[agent].campaign_targets[camp_id] = val === '' ? null : parseFloat(val);
+  const targetValue = val === '' ? null : parseFloat(val);
+  CONFIG.agents[agent].campaign_targets[camp_id] = targetValue;
+  const monthCfg = ensureAgentMonthConfig(agent);
+  if (!monthCfg.campaign_targets) monthCfg.campaign_targets = {};
+  monthCfg.campaign_targets[camp_id] = targetValue;
   updateRawJSON();
 }
 
@@ -3737,20 +3755,32 @@ function applyTargetsImport() {
   }
   parsed.rows.forEach(r => {
     const agentCfg = CONFIG.agents[r.agent];
+    const monthCfg = ensureAgentMonthConfig(r.agent, getBulkImportMonth());
     if (r.field_type === 'kpi') {
       if (!agentCfg.kpi_targets) agentCfg.kpi_targets = {};
+      if (!monthCfg.kpi_targets) monthCfg.kpi_targets = {};
       agentCfg.kpi_targets[r.field_key] = r.value;
+      monthCfg.kpi_targets[r.field_key] = r.value;
     } else if (r.field_type === 'campaign') {
       if (!agentCfg.campaign_targets) agentCfg.campaign_targets = {};
+      if (!monthCfg.campaign_targets) monthCfg.campaign_targets = {};
       agentCfg.campaign_targets[r.field_key] = r.value;
+      monthCfg.campaign_targets[r.field_key] = r.value;
     } else if (r.field_type === 'sales_prog') {
       if (!agentCfg.sales_progression) agentCfg.sales_progression = {};
-      agentCfg.sales_progression[r.field_key] = r.raw_value === '' ? null : parseFloat(r.raw_value);
+      if (!monthCfg.sales_progression) monthCfg.sales_progression = {};
+      const targetValue = r.raw_value === '' ? null : parseFloat(r.raw_value);
+      agentCfg.sales_progression[r.field_key] = targetValue;
+      monthCfg.sales_progression[r.field_key] = targetValue;
     } else if (r.field_type === 'brand_comm') {
       const [brand, subField] = r.field_key.split(':');
       if (!agentCfg.brand_commission) agentCfg.brand_commission = {};
       if (!agentCfg.brand_commission[brand]) agentCfg.brand_commission[brand] = { penetration_target: 0, ctn_target: 0 };
-      agentCfg.brand_commission[brand][subField] = r.raw_value === '' ? 0 : parseFloat(r.raw_value);
+      if (!monthCfg.brand_commission) monthCfg.brand_commission = {};
+      if (!monthCfg.brand_commission[brand]) monthCfg.brand_commission[brand] = { penetration_target: 0, ctn_target: 0 };
+      const targetValue = r.raw_value === '' ? 0 : parseFloat(r.raw_value);
+      agentCfg.brand_commission[brand][subField] = targetValue;
+      monthCfg.brand_commission[brand][subField] = targetValue;
     } else if (r.field_type === 'newbie_ctn') {
       const m = r.field_key.match(/^ctn_tier_([123])_(threshold|reward)$/);
       ensureTargetTierArray(agentCfg, 'newbie_tiers', [
@@ -3768,7 +3798,11 @@ function applyTargetsImport() {
       ]);
       if (r.raw_value !== '') agentCfg.newbie_account_tiers[parseInt(m[1], 10) - 1][m[2]] = parseFloat(r.raw_value);
     } else if (r.field_type === 'flag') {
-      if (r.raw_value !== '') agentCfg[r.field_key] = (r.raw_value === '1' || r.value === 1);
+      if (r.raw_value !== '') {
+        const flagValue = (r.raw_value === '1' || r.value === 1);
+        agentCfg[r.field_key] = flagValue;
+        monthCfg[r.field_key] = flagValue;
+      }
     }
   });
   updateRawJSON();

@@ -2289,6 +2289,23 @@ const SupabaseKpiSync = (() => {
       return await r.json();
     } catch (e) { return []; }
   }
+  async function fetch_targets_monthly(month) {
+    if (!month) return [];
+    const url = `${SUPABASE_URL}/rest/v1/targets_monthly?select=month,agent,active,sales_progression,brand_commission,kpi_targets,kpi_overrides&month=eq.${encodeURIComponent(month)}`;
+    try {
+      const r = await fetch(url, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      if (!r.ok) {
+        console.warn(`[SupabaseKpiSync] targets_monthly fetch failed: HTTP ${r.status}`);
+        return null;
+      }
+      return await r.json();
+    } catch (e) {
+      console.warn('[SupabaseKpiSync] targets_monthly fetch failed:', e.message);
+      return null;
+    }
+  }
   async function fetch_kpi_manual_overrides(month) {
     if (!month) return [];
     const url = `${SUPABASE_URL}/rest/v1/kpi_manual_overrides?select=agent,kpi_key,value&month=eq.${encodeURIComponent(month)}`;
@@ -2307,6 +2324,120 @@ const SupabaseKpiSync = (() => {
     const agents = dataObj?.agents || {};
     const raw = String(agent || '');
     return agents[raw] || agents[raw.toUpperCase()] || agents[raw.toLowerCase()] || null;
+  }
+  function _applySalesTarget(agentData, tierKey, targetValue) {
+    const sp = agentData?.sales_progression;
+    if (!sp) return false;
+    if (!sp.tiers) sp.tiers = {};
+    if (!sp.tiers[tierKey]) sp.tiers[tierKey] = {};
+    const tier = sp.tiers[tierKey];
+    tier.target = targetValue;
+    const actualFallback = tierKey === 'ga' ? sp.ga_ctn : tierKey === 'ma' ? sp.ma_ctn : sp.normal_ctn;
+    const actual = Number(tier.actual ?? actualFallback ?? 0);
+    tier.actual = actual;
+    tier.pct = targetValue > 0 ? Math.round(actual / targetValue * 100 * 10) / 10 : 0;
+    tier.gap = targetValue > 0 ? Math.round((actual - targetValue) * 1000) / 1000 : null;
+    return true;
+  }
+  function _applyItemTarget(item, targetValue) {
+    if (!item) return false;
+    item.target = targetValue;
+    const actual = Number(item.final_actual ?? item.actual ?? 0);
+    const maxScore = Number(item.max_score ?? ((Number(item.weight || 0)) * 100));
+    item.pct = targetValue > 0 ? Math.round(actual / targetValue * 100 * 10) / 10 : 0;
+    item.score = targetValue > 0 ? Math.round(Math.min(actual / targetValue, 1.0) * maxScore * 1000) / 1000 : 0;
+    item.target_source = 'admin_targets_monthly';
+    return true;
+  }
+  function _applyBrandTarget(agentData, brand, targetCfg) {
+    if (!agentData || !brand || !targetCfg) return 0;
+    if (!agentData.brand_commission) agentData.brand_commission = {};
+    if (!agentData.brand_commission[brand]) agentData.brand_commission[brand] = {};
+    const bdata = agentData.brand_commission[brand];
+    let applied = 0;
+    const penTarget = Number(targetCfg.penetration_target ?? targetCfg.pen_target ?? NaN);
+    if (Number.isFinite(penTarget)) {
+      bdata.penetration_target = penTarget;
+      if (!bdata.penetration) bdata.penetration = {};
+      bdata.penetration.target = penTarget;
+      const penActual = Number(bdata.penetration.count ?? bdata.new_penetrations ?? 0);
+      bdata.penetration.hit = penTarget > 0 ? penActual >= penTarget : false;
+      applied++;
+    }
+    const ctnTarget = Number(targetCfg.ctn_target ?? NaN);
+    if (Number.isFinite(ctnTarget)) {
+      bdata.ctn_target = ctnTarget;
+      if (!bdata.ctn) bdata.ctn = {};
+      bdata.ctn.target = ctnTarget;
+      const ctnActual = Number(bdata.ctn.sold ?? bdata.cur_ctn ?? 0);
+      bdata.ctn.hit = ctnTarget > 0 ? ctnActual >= ctnTarget : false;
+      applied++;
+    }
+    if (applied) {
+      const penHit = !!bdata.penetration?.hit;
+      const ctnHit = !!bdata.ctn?.hit;
+      bdata.status = penHit && ctnHit ? 'both_hit' : (penHit || ctnHit ? 'one_hit' : 'none_hit');
+      bdata.both_hit = penHit && ctnHit;
+    }
+    return applied;
+  }
+  function _applyKpiTarget(agentData, key, value) {
+    const targetValue = Number(value ?? NaN);
+    if (!Number.isFinite(targetValue)) return false;
+    const items = agentData?.kpi?.items || {};
+    const itemKeyMap = {
+      new_accounts: 'new_accounts',
+      vip_count: 'vip_count',
+      reactivation: 'reactivation',
+      new_sku: 'new_sku',
+      activation_rate: 'activation_rate',
+      event: 'event',
+      birthday_count: 'birthday_campaign',
+      birthday_campaign: 'birthday_campaign',
+    };
+    const itemKey = itemKeyMap[key] || key;
+    return _applyItemTarget(items[itemKey], targetValue);
+  }
+  function _recomputeTeamTargetTotals(dataObj, groupOverride = null) {
+    if (!dataObj?.agents) return;
+    if (!dataObj.team) dataObj.team = {};
+    const agents = Object.keys(dataObj.agents || {});
+    const sumTier = key => agents.reduce((s, a) => s + Number(dataObj.agents[a]?.sales_progression?.tiers?.[key]?.target || 0), 0);
+    const override = groupOverride?.sales_progression || groupOverride || {};
+    dataObj.team.t1_total_target = Number(override.normal_t1 ?? sumTier('normal_t1'));
+    dataObj.team.t2_total_target = Number(override.normal_t2 ?? sumTier('normal_t2'));
+    dataObj.team.ga_total_target = Number(override.ga ?? sumTier('ga'));
+    dataObj.team.ma_total_target = Number(override.ma ?? sumTier('ma'));
+  }
+  function applyMonthlyTargetOverrides(dataObj, targetRows) {
+    let applied = 0;
+    let groupOverride = null;
+    (targetRows || []).forEach(row => {
+      if (row?.agent === '_GROUP_') {
+        groupOverride = row.sales_progression || null;
+        return;
+      }
+      const agentData = _findAgentData(dataObj, row?.agent);
+      if (!agentData) return;
+      if (row.active === false) agentData._admin_inactive_for_month = true;
+      const salesTargets = row.sales_progression || {};
+      Object.entries({ normal_t1: 'normal_t1', normal_t2: 'normal_t2', ga: 'ga', ma: 'ma' }).forEach(([key, tierKey]) => {
+        if (salesTargets[key] === null || salesTargets[key] === undefined || salesTargets[key] === '') return;
+        const targetValue = Number(salesTargets[key]);
+        if (Number.isFinite(targetValue) && _applySalesTarget(agentData, tierKey, targetValue)) applied++;
+      });
+      Object.entries(row.kpi_targets || {}).forEach(([key, value]) => {
+        if (_applyKpiTarget(agentData, key, value)) applied++;
+      });
+      Object.entries(row.kpi_overrides || {}).forEach(([key, value]) => {
+        if (_applyKpiTarget(agentData, key, value)) applied++;
+      });
+      Object.entries(row.brand_commission || {}).forEach(([brand, cfg]) => {
+        applied += _applyBrandTarget(agentData, brand, cfg);
+      });
+    });
+    if (applied || groupOverride) _recomputeTeamTargetTotals(dataObj, groupOverride);
+    return applied;
   }
   function _applyItemActual(item, actual) {
     if (!item) return false;
@@ -2478,6 +2609,15 @@ const SupabaseKpiSync = (() => {
   async function apply(dataObj) {
     const month = dataObj?.current_month;
     if (!month) return;
+    let targetApplied = 0;
+    const targetRows = await fetch_targets_monthly(month);
+    if (Array.isArray(targetRows)) {
+      targetApplied = applyMonthlyTargetOverrides(dataObj, targetRows);
+      if (targetApplied) console.log(`[SupabaseKpiSync] Applied ${targetApplied} Admin monthly target override(s) for ${month}`);
+    } else {
+      console.warn('[SupabaseKpiSync] Keeping generated targets because targets_monthly fetch failed');
+    }
+
     const birthdayOverrides = await ensureBirthdayOverridesForMonth(month);
     const birthdayRows = birthdayRowsForMonth(dataObj, month, birthdayOverrides);
     const bdayByAgent = await fetch_birthday_claims(month, birthdayRows);
@@ -2502,9 +2642,9 @@ const SupabaseKpiSync = (() => {
       console.warn('[SupabaseKpiSync] Keeping generated campaign KPI values because keyed override fetch failed');
     }
 
-    if (bdayApplied || manualApplied || campaignReset || keyedApplied) recomputeAllTotals(dataObj);
+    if (targetApplied || bdayApplied || manualApplied || campaignReset || keyedApplied) recomputeAllTotals(dataObj);
   }
-  return { apply, fetch_kpi_manual, fetch_kpi_manual_overrides, fetch_birthday_claims };
+  return { apply, fetch_targets_monthly, fetch_kpi_manual, fetch_kpi_manual_overrides, fetch_birthday_claims };
 })();
 
 async function loadCampaignSection() {

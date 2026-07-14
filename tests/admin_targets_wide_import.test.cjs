@@ -40,6 +40,7 @@ const context = { console };
 vm.createContext(context);
 vm.runInContext(`
 var CONFIG = {
+  monthly_targets: { 'Jun 26': {} },
   agents: {
     BEN: {
       active: true,
@@ -96,6 +97,7 @@ const ADMIN_ZLB_EXCLUDED_BRANDS = new Set(['CMP']);
 const BULK_TARGET_KPI_KEYS = ['new_accounts','vip_count','reactivation','new_sku','activation_rate','event'];
 const AGENTS = ['BEN','CJ'];
 ${extractBlock('const MD_ADMIN_GROUP', 'const BRAND_PEN_GROUP_MAP_KEY')}
+function getAdminWorkingMonth() { return 'Jun 26'; }
 function getBulkImportMonth() { return 'Jun 26'; }
 function getBulkImportCampaignKeys() { return [{ key: 'camp_iface_count', legacyKey: 'iface', label: 'IFACE count' }]; }
 function getCampaignMetricValue(obj, metricKey) { return obj ? obj[metricKey] : undefined; }
@@ -135,6 +137,7 @@ ${extractFunction('getBulkTargetTemplateAgents')}
 ${extractFunction('normalizeWideTargetValue')}
 ${extractFunction('parseTargetsWideCsv')}
 ${extractFunction('parseTargetsCsv')}
+${extractFunction('ensureAgentMonthConfig')}
 ${extractFunction('setNewbie')}
 ${extractFunction('applyTargetsImport')}
 `, context);
@@ -189,25 +192,36 @@ assert.strictEqual(
 
 assert.strictEqual(context.CONFIG.agents.BEN.active, true, 'Active flag should apply');
 assert.strictEqual(context.CONFIG.agents.BEN.is_newbie, false, 'Newbie flag should apply');
+assert.strictEqual(context.CONFIG.monthly_targets['Jun 26'].BEN.active, true, 'Active flag should be scoped to the import month');
+assert.strictEqual(context.CONFIG.monthly_targets['Jun 26'].BEN.is_newbie, false, 'Newbie flag should be scoped to the import month');
 assert.strictEqual(context.CONFIG.agents.BEN.sales_progression.normal_t1, 930, 'Sales target should apply');
+assert.strictEqual(context.CONFIG.monthly_targets['Jun 26'].BEN.sales_progression.normal_t1, 930, 'Sales target should be scoped to the import month');
 assert.strictEqual(context.CONFIG.agents.BEN.brand_commission.iFACE.penetration_target, 5, 'Brand penetration target should apply');
+assert.strictEqual(context.CONFIG.monthly_targets['Jun 26'].BEN.brand_commission.iFACE.penetration_target, 5, 'Brand penetration target should be scoped to the import month');
 assert.strictEqual(context.CONFIG.agents.BEN.brand_commission.iFACE.ctn_target, 80, 'Brand CTN target should apply');
+assert.strictEqual(context.CONFIG.monthly_targets['Jun 26'].BEN.brand_commission.iFACE.ctn_target, 80, 'Brand CTN target should be scoped to the import month');
 assert.strictEqual(context.CONFIG.agents.BEN.kpi_targets.vip_count, 12, 'KPI target should apply');
+assert.strictEqual(context.CONFIG.monthly_targets['Jun 26'].BEN.kpi_targets.vip_count, 12, 'KPI target should be scoped to the import month');
 assert.strictEqual(context.CONFIG.agents.BEN.kpi_targets.event, 16, 'Event KPI target should apply');
 assert.strictEqual(context.CONFIG.agents.BEN.campaign_targets.camp_iface_count, 7, 'Campaign target should apply');
+assert.strictEqual(context.CONFIG.monthly_targets['Jun 26'].BEN.campaign_targets.camp_iface_count, 7, 'Campaign target should be scoped to the import month');
 assert.strictEqual(context.CONFIG.agents.BEN.newbie_tiers[0].threshold, 1000, 'Newbie CTN threshold should apply');
 assert.strictEqual(context.CONFIG.agents.BEN.newbie_tiers[0].reward, 1200, 'Newbie CTN reward should apply');
 assert.strictEqual(context.CONFIG.agents.BEN.newbie_account_tiers[0].count, 2, 'Newbie account threshold should apply');
 assert.strictEqual(context.CONFIG.agents.BEN.newbie_account_tiers[0].reward, 400, 'Newbie account reward should apply');
 
 assert.strictEqual(context.CONFIG.agents.CJ.is_newbie, true, 'Y should be accepted for row-template flags');
+assert.strictEqual(context.CONFIG.monthly_targets['Jun 26'].CJ.is_newbie, true, 'Imported newbie status should be stored for the selected month');
 assert.strictEqual(context.CONFIG.agents.CJ.sales_progression.normal_t1, 222, 'Blank wide cells should not clear existing targets');
 assert.strictEqual(context.CONFIG.agents.CJ.brand_commission.iFACE.penetration_target, 4, 'Nonblank wide cells should apply');
+assert.strictEqual(context.CONFIG.monthly_targets['Jun 26'].CJ.brand_commission.iFACE.penetration_target, 4, 'Nonblank wide brand cells should apply to selected month');
 assert.strictEqual(context.CONFIG.agents.CJ.brand_commission.iFACE.ctn_target, 50, 'Blank brand cells should keep existing values');
 assert.strictEqual(context.CONFIG.agents.CJ.kpi_targets.vip_count, 3, 'Nonblank KPI cells should apply');
+assert.strictEqual(context.CONFIG.monthly_targets['Jun 26'].CJ.kpi_targets.vip_count, 3, 'Nonblank KPI cells should apply to selected month');
 
 context.setNewbie('BEN', true);
 assert.strictEqual(context.CONFIG.agents.BEN.is_newbie, true, 'setNewbie should update the agent flag');
+assert.strictEqual(context.CONFIG.monthly_targets['Jun 26'].BEN.is_newbie, true, 'setNewbie should update the selected-month flag');
 assert.strictEqual(
   context.renderNewbieFormsCount,
   2,
