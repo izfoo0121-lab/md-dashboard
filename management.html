@@ -2306,6 +2306,22 @@ const SupabaseKpiSync = (() => {
       return null;
     }
   }
+  async function fetch_targets_agents() {
+    const url = `${SUPABASE_URL}/rest/v1/targets_agents?select=agent,active,sales_progression,brand_commission,kpi_targets,kpi_overrides`;
+    try {
+      const r = await fetch(url, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      if (!r.ok) {
+        console.warn(`[SupabaseKpiSync] targets_agents fetch failed: HTTP ${r.status}`);
+        return null;
+      }
+      return await r.json();
+    } catch (e) {
+      console.warn('[SupabaseKpiSync] targets_agents fetch failed:', e.message);
+      return null;
+    }
+  }
   async function fetch_kpi_manual_overrides(month) {
     if (!month) return [];
     const url = `${SUPABASE_URL}/rest/v1/kpi_manual_overrides?select=agent,kpi_key,value&month=eq.${encodeURIComponent(month)}`;
@@ -2610,9 +2626,15 @@ const SupabaseKpiSync = (() => {
     const month = dataObj?.current_month;
     if (!month) return;
     let targetApplied = 0;
+    const agentTargetRows = await fetch_targets_agents();
+    if (Array.isArray(agentTargetRows)) {
+      targetApplied += applyMonthlyTargetOverrides(dataObj, agentTargetRows);
+    } else {
+      console.warn('[SupabaseKpiSync] Keeping generated/base JSON targets because targets_agents fetch failed');
+    }
     const targetRows = await fetch_targets_monthly(month);
     if (Array.isArray(targetRows)) {
-      targetApplied = applyMonthlyTargetOverrides(dataObj, targetRows);
+      targetApplied += applyMonthlyTargetOverrides(dataObj, targetRows);
       if (targetApplied) console.log(`[SupabaseKpiSync] Applied ${targetApplied} Admin monthly target override(s) for ${month}`);
     } else {
       console.warn('[SupabaseKpiSync] Keeping generated targets because targets_monthly fetch failed');
@@ -2644,7 +2666,7 @@ const SupabaseKpiSync = (() => {
 
     if (targetApplied || bdayApplied || manualApplied || campaignReset || keyedApplied) recomputeAllTotals(dataObj);
   }
-  return { apply, fetch_targets_monthly, fetch_kpi_manual, fetch_kpi_manual_overrides, fetch_birthday_claims };
+  return { apply, fetch_targets_agents, fetch_targets_monthly, fetch_kpi_manual, fetch_kpi_manual_overrides, fetch_birthday_claims };
 })();
 
 async function loadCampaignSection() {
