@@ -146,10 +146,36 @@ def sample_bundle():
     return split_snapshot(sample_snapshot())
 
 
+def sample_analysis():
+    return {
+        "generated_at": "2026-07-14T12:00:00+00:00",
+        "current_month": "Jul 26",
+        "scope_area": "GRP 2A",
+        "months": ["Jul 26"],
+        "debtors": [
+            {
+                "debtor_code": "B001",
+                "company_name": "Ben debtor",
+                "agent": "BEN",
+            }
+        ],
+        "records": [
+            {
+                "month": "Jul 26",
+                "debtor_code": "B001",
+                "agent": "BEN",
+                "brand": "EVO",
+                "sku": "EVO-A",
+            }
+        ],
+        "data_quality": {"sales_rows": 1},
+    }
+
+
 def sample_analysis_artifact():
     return build_manager_artifact(
         "debtor_analysis",
-        {"current_month": "Jul 26", "months": ["Jul 26"]},
+        sample_analysis(),
         "2026-07-14T12:00:00+00:00",
     )
 
@@ -429,6 +455,85 @@ class SnapshotContractTests(unittest.TestCase):
 
 
 class SnapshotPublisherTests(unittest.TestCase):
+    def _assert_analysis_rejected_without_writes(self, analysis):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            snapshot_path = Path(temp_dir) / "dashboard_data.json"
+            analysis_path = Path(temp_dir) / "debtor_analysis_data.json"
+            snapshot_path.write_text(json.dumps(sample_snapshot()), encoding="utf-8")
+            analysis_path.write_text(json.dumps(analysis), encoding="utf-8")
+            transport = FakeTransport()
+            errors = io.StringIO()
+            output = io.StringIO()
+
+            with redirect_stderr(errors), redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "--input",
+                        str(snapshot_path),
+                        "--analysis-input",
+                        str(analysis_path),
+                        "--month",
+                        "Jul 26",
+                        "--source-version",
+                        "abc123",
+                    ],
+                    environ={
+                        "SUPABASE_URL": "https://example.supabase.co",
+                        "SUPABASE_SERVICE_KEY": "service-role-secret",
+                    },
+                    transport_factory=lambda *_args, **_kwargs: transport,
+                )
+
+        self.assertEqual(1, exit_code)
+        self.assertEqual(
+            [],
+            [
+                call
+                for call in transport.calls
+                if call["operation"] in {"upsert", "delete"}
+            ],
+        )
+        self.assertIn("debtor analysis", errors.getvalue().lower())
+
+    def test_empty_debtor_analysis_is_rejected_before_any_write(self):
+        self._assert_analysis_rejected_without_writes({})
+
+    def test_debtor_analysis_requires_matching_month_before_any_write(self):
+        missing_month = sample_analysis()
+        del missing_month["current_month"]
+        mismatched_month = sample_analysis()
+        mismatched_month["current_month"] = "Jun 26"
+
+        for label, analysis in {
+            "missing": missing_month,
+            "mismatched": mismatched_month,
+        }.items():
+            with self.subTest(label=label):
+                self._assert_analysis_rejected_without_writes(analysis)
+
+    def test_incomplete_debtor_analysis_is_rejected_before_any_write(self):
+        cases = {}
+        for field in ("months", "debtors", "records"):
+            analysis = sample_analysis()
+            analysis[field] = []
+            cases[f"empty_{field}"] = analysis
+
+        empty_quality = sample_analysis()
+        empty_quality["data_quality"] = {}
+        cases["empty_data_quality"] = empty_quality
+
+        missing_debtor_identity = sample_analysis()
+        del missing_debtor_identity["debtors"][0]["debtor_code"]
+        cases["missing_debtor_identity"] = missing_debtor_identity
+
+        missing_record_identity = sample_analysis()
+        del missing_record_identity["records"][0]["sku"]
+        cases["missing_record_identity"] = missing_record_identity
+
+        for label, analysis in cases.items():
+            with self.subTest(label=label):
+                self._assert_analysis_rejected_without_writes(analysis)
+
     def test_publish_uses_service_transport_and_reads_rows_back(self):
         transport = FakeTransport()
 
@@ -661,13 +766,7 @@ class SnapshotPublisherTests(unittest.TestCase):
             analysis_path = Path(temp_dir) / "debtor_analysis_data.json"
             snapshot_path.write_text(json.dumps(sample_snapshot()), encoding="utf-8")
             analysis_path.write_text(
-                json.dumps(
-                    {
-                        "generated_at": "2026-07-14T12:00:00+00:00",
-                        "current_month": "Jul 26",
-                        "months": ["Jul 26"],
-                    }
-                ),
+                json.dumps(sample_analysis()),
                 encoding="utf-8",
             )
             output = io.StringIO()
@@ -703,13 +802,7 @@ class SnapshotPublisherTests(unittest.TestCase):
             analysis_path = Path(temp_dir) / "debtor_analysis_data.json"
             snapshot_path.write_text(json.dumps(sample_snapshot()), encoding="utf-8")
             analysis_path.write_text(
-                json.dumps(
-                    {
-                        "generated_at": "2026-07-14T12:00:00+00:00",
-                        "current_month": "Jul 26",
-                        "months": ["Jul 26"],
-                    }
-                ),
+                json.dumps(sample_analysis()),
                 encoding="utf-8",
             )
             errors = io.StringIO()

@@ -30,6 +30,102 @@ class PublishVerificationError(PublishError):
     pass
 
 
+DEBTOR_ANALYSIS_DEBTOR_IDENTITY_FIELDS = (
+    "debtor_code",
+    "company_name",
+    "agent",
+)
+DEBTOR_ANALYSIS_RECORD_IDENTITY_FIELDS = (
+    "month",
+    "debtor_code",
+    "agent",
+    "brand",
+    "sku",
+)
+
+
+def _require_identity_fields(rows, fields, label):
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            raise SnapshotValidationError(
+                f"debtor analysis {label}[{index}] is malformed"
+            )
+        missing = [
+            field
+            for field in fields
+            if not str(row.get(field) or "").strip()
+        ]
+        if missing:
+            raise SnapshotValidationError(
+                f"debtor analysis {label}[{index}] is missing "
+                f"{', '.join(missing)}"
+            )
+
+
+def validate_debtor_analysis(analysis, expected_month):
+    if not isinstance(analysis, dict) or not analysis:
+        raise SnapshotValidationError("debtor analysis must be a non-empty object")
+
+    generated_at = str(analysis.get("generated_at") or "").strip()
+    if not generated_at:
+        raise SnapshotValidationError("debtor analysis generated_at is required")
+    scope_area = str(analysis.get("scope_area") or "").strip()
+    if not scope_area:
+        raise SnapshotValidationError("debtor analysis scope_area is required")
+
+    month = str(analysis.get("current_month") or "").strip()
+    if not month:
+        raise SnapshotValidationError("debtor analysis current_month is required")
+    if month != expected_month:
+        raise SnapshotValidationError("debtor analysis month mismatch")
+
+    months = analysis.get("months")
+    if (
+        not isinstance(months, list)
+        or not months
+        or any(not str(value or "").strip() for value in months)
+    ):
+        raise SnapshotValidationError("debtor analysis months are incomplete")
+    if month not in {str(value).strip() for value in months}:
+        raise SnapshotValidationError(
+            "debtor analysis current month is missing from months"
+        )
+
+    debtors = analysis.get("debtors")
+    if not isinstance(debtors, list) or not debtors:
+        raise SnapshotValidationError("debtor analysis debtors are incomplete")
+    records = analysis.get("records")
+    if not isinstance(records, list) or not records:
+        raise SnapshotValidationError("debtor analysis records are incomplete")
+    data_quality = analysis.get("data_quality")
+    if not isinstance(data_quality, dict) or not data_quality:
+        raise SnapshotValidationError("debtor analysis data_quality is incomplete")
+
+    _require_identity_fields(
+        debtors,
+        DEBTOR_ANALYSIS_DEBTOR_IDENTITY_FIELDS,
+        "debtors",
+    )
+    _require_identity_fields(
+        records,
+        DEBTOR_ANALYSIS_RECORD_IDENTITY_FIELDS,
+        "records",
+    )
+    month_set = {str(value).strip() for value in months}
+    if any(str(row["month"]).strip() not in month_set for row in records):
+        raise SnapshotValidationError(
+            "debtor analysis records contain an unknown month"
+        )
+
+    try:
+        canonical_json_bytes(analysis)
+    except (TypeError, ValueError) as error:
+        raise SnapshotValidationError(
+            "debtor analysis must contain only finite JSON values"
+        ) from error
+    return analysis
+
+
 class SupabaseRestTransport:
     READBACK_COLUMNS = {
         "dashboard_snapshots": "month,checksum",
@@ -174,6 +270,9 @@ def publish_bundle(bundle, manager_artifacts, transport, source_version):
     agent_rows = list(bundle["agents"].values())
     expected_agents = {row["agent"]: row for row in agent_rows}
     artifact_rows = list(manager_artifacts)
+    for row in artifact_rows:
+        if row.get("artifact_key") == "debtor_analysis":
+            validate_debtor_analysis(row.get("payload"), shared["month"])
 
     transport.upsert("dashboard_snapshots", shared, on_conflict="month")
     current_agents = _index_agent_readback(
@@ -330,17 +429,11 @@ def main(argv=None, environ=None, transport_factory=SupabaseRestTransport):
         validate_snapshot(snapshot, expected_month=args.month)
         bundle = split_snapshot(snapshot)
 
-        analysis = _load_json(args.analysis_input)
-        if not isinstance(analysis, dict):
-            raise SnapshotValidationError("debtor analysis must be a JSON object")
-        analysis_month = str(analysis.get("current_month") or "").strip()
-        if analysis_month and analysis_month != bundle["shared"]["month"]:
-            raise SnapshotValidationError("debtor analysis month mismatch")
-        generated_at = str(
-            analysis.get("generated_at") or snapshot["generated_at"]
-        ).strip()
-        if not generated_at:
-            raise SnapshotValidationError("debtor analysis generated_at is required")
+        analysis = validate_debtor_analysis(
+            _load_json(args.analysis_input),
+            bundle["shared"]["month"],
+        )
+        generated_at = str(analysis["generated_at"]).strip()
         artifacts = [
             build_manager_artifact("debtor_analysis", analysis, generated_at)
         ]
