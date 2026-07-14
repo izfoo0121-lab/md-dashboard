@@ -1440,6 +1440,9 @@ const DEFAULT_OTHER_SKU_GROUPS = {
 const AGENTS = ['BEN','CJ','JACKY','JAMES','JW','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','YI'];
 const MD_ADMIN_GROUP = 'grp2a';
 const ADMIN_AGENT_GROUPS = Object.freeze(Object.fromEntries(AGENTS.map(agent => [agent, MD_ADMIN_GROUP])));
+const MD_AGENT_REGISTRY_CONFIG_KEY = 'md_agent_registry';
+let ADMIN_PERSISTED_AGENT_CODES = new Set();
+let ADMIN_ALL_TARGET_AGENT_CODES = new Set();
 
 function normalizeAdminGroup(value) {
   const raw = String(value || '').trim().toLowerCase().replace(/[()/+]/g, ' ').replace(/\s+/g, ' ');
@@ -1451,26 +1454,175 @@ function normalizeAdminGroup(value) {
   return raw.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 }
 
-function getMdAdminAgentGroup(agent, cfg = CONFIG?.agents?.[agent]) {
+function normalizeMdAgentCode(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
+function normalizeMdAgentRegistryEntry(raw, fallbackGroup = MD_ADMIN_GROUP) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const entry = {
+    group: normalizeAdminGroup(source.group || source.default_group || fallbackGroup),
+  };
+  const startMonth = String(source.start_month || source.active_from_month || '').trim();
+  const endMonth = String(source.end_month || source.inactive_from_month || '').trim();
+  if (startMonth) entry.start_month = startMonth;
+  if (endMonth) entry.end_month = endMonth;
+  return entry;
+}
+
+function getMdAgentRegistry(config = CONFIG) {
+  const raw = config?.[MD_AGENT_REGISTRY_CONFIG_KEY];
+  return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+}
+
+function ensureMdAgentRegistry(config = CONFIG, bootstrapAgents = []) {
+  if (!config || typeof config !== 'object') return {};
+  const registry = {};
+  Object.entries(getMdAgentRegistry(config)).forEach(([agent, raw]) => {
+    const code = normalizeMdAgentCode(agent);
+    if (code && code !== 'GT138888') registry[code] = normalizeMdAgentRegistryEntry(raw);
+  });
+
+  const seed = (agent, raw = {}) => {
+    const code = normalizeMdAgentCode(agent);
+    if (!code || code === 'GT138888') return;
+    const existing = registry[code] || {};
+    registry[code] = normalizeMdAgentRegistryEntry({ ...existing, ...raw }, existing.group || MD_ADMIN_GROUP);
+  };
+
+  // Bootstrap legacy installs once; all agents added afterward are persisted here.
+  AGENTS.forEach(agent => seed(agent));
+  (Array.isArray(bootstrapAgents) ? bootstrapAgents : []).forEach(agent => seed(agent));
+  Object.entries(config.agents || {}).forEach(([agent, cfg]) => {
+    const configuredGroup = cfg?.default_group || cfg?.group || '';
+    if (normalizeAdminGroup(configuredGroup) === MD_ADMIN_GROUP || registry[normalizeMdAgentCode(agent)]) {
+      seed(agent, configuredGroup ? { group: configuredGroup } : {});
+    }
+  });
+  Object.entries(config.agent_replacements || {}).forEach(([predecessor, raw]) => {
+    const replacement = typeof raw === 'string' ? { successor: raw } : (raw || {});
+    const successor = replacement.successor || replacement.replaced_by || replacement.agent || '';
+    const fromMonth = replacement.from_month || replacement.inherit_from_month || replacement.month || '';
+    seed(predecessor, fromMonth ? { end_month: fromMonth } : {});
+    if (successor) seed(successor, fromMonth ? { start_month: fromMonth } : {});
+  });
+  config[MD_AGENT_REGISTRY_CONFIG_KEY] = registry;
+  return registry;
+}
+
+function registerMdAdminAgent(agent, opts = {}, config = CONFIG) {
+  if (!config || typeof config !== 'object') return null;
+  const code = normalizeMdAgentCode(agent);
+  if (!code || code === 'GT138888') return null;
+  const registry = ensureMdAgentRegistry(config);
+  const current = registry[code] || { group: MD_ADMIN_GROUP };
+  registry[code] = normalizeMdAgentRegistryEntry({
+    ...current,
+    group: opts.group || current.group || MD_ADMIN_GROUP,
+    start_month: opts.startMonth || current.start_month || '',
+    end_month: opts.endMonth !== undefined ? opts.endMonth : (current.end_month || ''),
+  });
+  config[MD_AGENT_REGISTRY_CONFIG_KEY] = registry;
+  return registry[code];
+}
+
+function unregisterMdAdminAgent(agent, config = CONFIG) {
+  const code = normalizeMdAgentCode(agent);
+  const registry = getMdAgentRegistry(config);
+  if (code && registry[code]) delete registry[code];
+}
+
+function adminAgentMonthOrdinal(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  const iso = raw.match(/^(\d{4})-(\d{1,2})$/);
+  if (iso) return parseInt(iso[1], 10) * 12 + parseInt(iso[2], 10) - 1;
+  const match = raw.match(/^([A-Za-z]{3,9})[\s-]+(\d{2,4})$/);
+  if (!match) return null;
+  const monthNames = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  const monthIndex = monthNames.indexOf(match[1].slice(0, 3).toLowerCase());
+  if (monthIndex < 0) return null;
+  let year = parseInt(match[2], 10);
+  if (year < 100) year += 2000;
+  return year * 12 + monthIndex;
+}
+
+function getMdAdminMonthConfig(agent, month, config = CONFIG) {
+  const table = config?.monthly_targets || {};
+  if (table[month]?.[agent]) return table[month][agent];
+  const wanted = adminAgentMonthOrdinal(month);
+  if (wanted === null) return {};
+  const matchingMonth = Object.keys(table).find(key => adminAgentMonthOrdinal(key) === wanted);
+  return matchingMonth ? (table[matchingMonth]?.[agent] || {}) : {};
+}
+
+function isMdAdminAgentWithinLifecycle(agent, month, config = CONFIG) {
+  const code = normalizeMdAgentCode(agent);
+  const cfg = config?.agents?.[code] || {};
+  const entry = getMdAgentRegistry(config)[code] || {};
+  const monthOrdinal = adminAgentMonthOrdinal(month);
+  const startOrdinal = adminAgentMonthOrdinal(entry.start_month || cfg.inherit_from_month || cfg.started_from_month);
+  const endOrdinal = adminAgentMonthOrdinal(entry.end_month || cfg.archived_from_month);
+  if (monthOrdinal !== null && startOrdinal !== null && monthOrdinal < startOrdinal) return false;
+  if (monthOrdinal !== null && endOrdinal !== null && monthOrdinal >= endOrdinal) return false;
+  if (cfg.archived && endOrdinal === null) return false;
+  return true;
+}
+
+function isMdAdminAgentActiveForMonth(agent, month, config = CONFIG) {
+  const code = normalizeMdAgentCode(agent);
+  const cfg = config?.agents?.[code] || {};
+  if (!isMdAdminAgentWithinLifecycle(code, month, config)) return false;
+  const monthly = getMdAdminMonthConfig(code, month, config);
+  if (typeof monthly.active === 'boolean') return monthly.active;
+  const monthOrdinal = adminAgentMonthOrdinal(month);
+  const archivedFrom = adminAgentMonthOrdinal(cfg.archived_from_month || getMdAgentRegistry(config)[code]?.end_month);
+  if (cfg.archived && archivedFrom !== null && monthOrdinal !== null && monthOrdinal < archivedFrom) return true;
+  return cfg.active !== false;
+}
+
+function isMdAdminAgentNewbieForMonth(agent, month, config = CONFIG) {
+  const code = normalizeMdAgentCode(agent);
+  const monthly = getMdAdminMonthConfig(code, month, config);
+  if (typeof monthly.is_newbie === 'boolean') return monthly.is_newbie;
+  return !!config?.agents?.[code]?.is_newbie;
+}
+
+function getMdAdminAgentGroup(agent, cfg = CONFIG?.agents?.[agent], config = CONFIG) {
   const code = String(agent || '').trim().toUpperCase();
   if (!code || code === 'GT138888') return 'all';
   const configured = cfg?.default_group || cfg?.group || '';
-  return configured ? normalizeAdminGroup(configured) : (ADMIN_AGENT_GROUPS[code] || '');
+  const registered = getMdAgentRegistry(config)[code]?.group || '';
+  const registeredGroup = registered ? normalizeAdminGroup(registered) : '';
+  return configured ? normalizeAdminGroup(configured) : (registeredGroup || ADMIN_AGENT_GROUPS[code] || '');
 }
 
-function isMdAdminScopedAgent(agent, cfg = CONFIG?.agents?.[agent]) {
-  return getMdAdminAgentGroup(agent, cfg) === MD_ADMIN_GROUP;
+function isMdAdminScopedAgent(agent, cfg = CONFIG?.agents?.[agent], config = CONFIG) {
+  return getMdAdminAgentGroup(agent, cfg, config) === MD_ADMIN_GROUP;
 }
 
 function getMdAdminScopedAgents(agentList, opts = {}) {
-  const source = Array.isArray(agentList) ? agentList : Object.keys(CONFIG?.agents || {});
+  const config = opts.config || CONFIG;
+  const source = Array.isArray(agentList) ? agentList : Object.keys(config?.agents || {});
   return source
     .map(agent => String(agent || '').trim())
     .filter(Boolean)
-    .filter(agent => opts.includeArchived || !CONFIG?.agents?.[agent]?.archived)
-    .filter(agent => opts.includeInactive || CONFIG?.agents?.[agent]?.active !== false)
-    .filter(agent => isMdAdminScopedAgent(agent, CONFIG?.agents?.[agent]))
+    .filter(agent => opts.includeArchived || !config?.agents?.[agent]?.archived)
+    .filter(agent => opts.includeInactive || config?.agents?.[agent]?.active !== false)
+    .filter(agent => isMdAdminScopedAgent(agent, config?.agents?.[agent], config))
     .sort((a, b) => a.localeCompare(b));
+}
+
+function getMdAdminOperationalAgents(month, opts = {}) {
+  const config = opts.config || CONFIG;
+  const selectedMonth = month || (typeof getAdminWorkingMonth === 'function' ? getAdminWorkingMonth() : '');
+  const source = Array.isArray(opts.agentList) ? opts.agentList : Object.keys(config?.agents || {});
+  return getMdAdminScopedAgents(source, { includeArchived: true, includeInactive: true, config })
+    .filter(agent => isMdAdminAgentActiveForMonth(agent, selectedMonth, config));
+}
+
+function isAdminPersistedAgent(agent) {
+  return ADMIN_PERSISTED_AGENT_CODES.has(normalizeMdAgentCode(agent));
 }
 
 function ensureReplacementSuccessorGroup(cfg, predecessor, successor) {
@@ -1792,6 +1944,20 @@ function updateAdminMonthScope() {
   try { if (typeof updateSaveStatus === 'function') updateSaveStatus(); } catch (_) {}
 }
 
+async function refreshAgentDependentViews() {
+  renderAgentForms();
+  renderNewbieForms();
+  renderAdminBrandSKU();
+  renderAgentWorkdaysTable();
+  renderAgentOffdaysTable();
+  populateLeaveAgentOptions();
+  if (document.getElementById('brand-penetration-group-map-editor')) {
+    renderBrandPenetrationGroupMapEditor();
+  }
+  if (document.getElementById('tab-kpi_manual')?.classList.contains('active')) await loadKpiManual();
+  if (document.getElementById('tab-pins')?.classList.contains('active')) await renderPinForm();
+}
+
 async function adminWorkingMonthSelectChanged(nextMonth) {
   const helper = window.MDAdminContext;
   const normalized = helper ? helper.normalizeMonth(nextMonth) : nextMonth;
@@ -1814,7 +1980,7 @@ async function adminWorkingMonthSelectChanged(nextMonth) {
   populateMonthDropdowns();
 
   try {
-    renderAgentForms();
+    await refreshAgentDependentViews();
     renderSKUForms();
     renderKPIWeights();
     _populateGroupSpMonths();
@@ -1823,7 +1989,6 @@ async function adminWorkingMonthSelectChanged(nextMonth) {
     renderBirthdayCampList();
     renderCampaignsList();
     populateBulkCampSelect();
-    if (document.getElementById('tab-kpi_manual')?.classList.contains('active')) await loadKpiManual();
     if (document.getElementById('tab-leave_records')?.classList.contains('active')) loadLeaveRecords();
     if (document.getElementById('tab-archive')?.classList.contains('active')) refreshArchiveList();
   } catch (e) {
@@ -2001,7 +2166,7 @@ async function loadKpiManual() {
   statusEl.textContent = 'Loading...';
 
   // Fetch md-dashboard scoped agents from CONFIG.
-  const agents = getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}), { includeInactive: true });
+  const agents = getMdAdminOperationalAgents(month);
   if (!agents.length) {
     form.innerHTML = '<div style="color:var(--muted);font-family:var(--mono);font-size:11px;">No agents configured. Add agents in Agent Targets tab first.</div>';
     statusEl.textContent = '';
@@ -2079,8 +2244,8 @@ async function loadKpiManualOverrides(month) {
   }
 }
 
-function getKpiManualOverrideAgents() {
-  return getMdAdminScopedAgents(Object.keys(CONFIG?.agents || {}));
+function getKpiManualOverrideAgents(month = getAdminWorkingMonth()) {
+  return getMdAdminOperationalAgents(month);
 }
 
 function getKpiManualNumeratorLabel(num) {
@@ -2115,7 +2280,7 @@ async function renderKpiManualOverrides() {
     return;
   }
 
-  const agents = getKpiManualOverrideAgents();
+  const agents = getKpiManualOverrideAgents(month);
   if (!agents.length) {
     tbody.innerHTML = '<tr><td colspan="6" style="padding:10px;color:var(--ink3);">No active agents configured.</td></tr>';
     return;
@@ -2220,7 +2385,7 @@ async function saveKpiManual() {
   if (!month) { alert('Select a month first'); return; }
   if (!adminHistoricalSaveAllowed('Save KPI manual', month)) return;
 
-  const agents = getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}), { includeInactive: true });
+  const agents = getMdAdminOperationalAgents(month);
   const payload = agents.map(agent => {
     const newAccInput = document.getElementById(`kpi_m_new_${agent}`);
     const vipInput    = document.getElementById(`kpi_m_vip_${agent}`);
@@ -2298,7 +2463,7 @@ async function renderPinForm() {
 
   // Merge: Supabase (live) > CONFIG.agent_pins (targets.json) > DEFAULT
   const saved = Object.assign({}, DEFAULT_AGENT_PINS, CONFIG.agent_pins || {}, pinsFromSupabase || {});
-  const agents = getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}), { includeInactive: true });
+  const agents = getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}));
   const allAgents = [...agents, 'GT138888'];
 
   container.innerHTML = `
@@ -2324,7 +2489,7 @@ async function renderPinForm() {
 }
 
 async function savePins() {
-  const agents = [...getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}), { includeInactive: true }), 'GT138888'];
+  const agents = [...getMdAdminScopedAgents(Object.keys(CONFIG.agents || {})), 'GT138888'];
   const pins = {};
   agents.forEach(agent => {
     const el = document.getElementById('pin_' + agent);
@@ -2411,6 +2576,13 @@ async function forcePush() {
 
 // ── Init ───────────────────────────────────────────────────────────────────
 async function initAdmin() {
+  // Dashboard output is a safe bootstrap for the existing GRP 2A roster when
+  // upgrading an install that predates the persistent agent registry.
+  try {
+    const rd = await fetch('dashboard_data.json?v='+Date.now());
+    DASH_DATA = await rd.json();
+  } catch(e) { DASH_DATA = {}; }
+
   // Phase C: Load targets from Supabase first (source of truth), file as fallback.
   CONFIG = await loadConfigFromSupabase();
   if (!CONFIG || !CONFIG.agents || !Object.keys(CONFIG.agents).length) {
@@ -2422,12 +2594,14 @@ async function initAdmin() {
       CONFIG = buildDefaultConfig();
     }
   }
+  ensureMdAgentRegistry(CONFIG, Object.keys(DASH_DATA?.agents || {}));
+  if (!ADMIN_ALL_TARGET_AGENT_CODES.size) {
+    ADMIN_ALL_TARGET_AGENT_CODES = new Set(Object.keys(CONFIG.agents || {}).map(normalizeMdAgentCode));
+  }
+  if (!ADMIN_PERSISTED_AGENT_CODES.size) {
+    ADMIN_PERSISTED_AGENT_CODES = new Set(Object.keys(CONFIG.agents || {}).map(normalizeMdAgentCode));
+  }
   normalizeAdminConfigDefaults();
-  // Load dashboard data for non-buyer stats
-  try {
-    const rd = await fetch('dashboard_data.json?v='+Date.now());
-    DASH_DATA = await rd.json();
-  } catch(e) { DASH_DATA = {}; }
   initAdminWorkingMonth();
   renderAgentForms();
   renderNewbieForms();
@@ -2757,6 +2931,7 @@ function normalizeAdminConfigDefaults() {
       CONFIG.brand_config[brand] = [...DEFAULT_BRAND_CONFIG[brand]];
     }
   });
+  ensureMdAgentRegistry(CONFIG, Object.keys(DASH_DATA?.agents || {}));
   Object.entries(CONFIG.agents || {}).forEach(([agent, cfg]) => {
     const code = String(agent || '').trim().toUpperCase();
     if (cfg && !cfg.default_group && ADMIN_AGENT_GROUPS[code]) cfg.default_group = MD_ADMIN_GROUP;
@@ -2788,6 +2963,7 @@ function applyAgentReplacementsToConfig(cfg) {
     cfg.agents[oldAgent].active = false;
     cfg.agents[oldAgent].archived = true;
     cfg.agents[oldAgent].archived_from_month = fromMonth;
+    registerMdAdminAgent(oldAgent, { endMonth: fromMonth }, cfg);
 
     cfg.agents[successor] = cfg.agents[successor] || {};
     cfg.agents[successor].active = true;
@@ -2795,6 +2971,7 @@ function applyAgentReplacementsToConfig(cfg) {
     ensureReplacementSuccessorGroup(cfg, oldAgent, successor);
     cfg.agents[successor].inherits_from = oldAgent;
     cfg.agents[successor].inherit_from_month = fromMonth;
+    registerMdAdminAgent(successor, { startMonth: fromMonth, endMonth: '' }, cfg);
   });
 
   return cfg;
@@ -2842,6 +3019,8 @@ function switchTab(tab, el) {
   if (tab === 'pins') renderPinForm();
   if (tab === 'kpi_manual') loadKpiManual();
   if (tab === 'leave_records') initLeaveRecordsTab();
+  if (tab === 'brand_sku') renderAdminBrandSKU();
+  if (tab === 'holidays') loadAgentCalendarSettings();
   if (tab === 'archive') refreshArchiveList();
   if (tab === 'sync') {
     const cfg = typeof GistSync !== 'undefined' ? GistSync.getConfig() : {};
@@ -2852,17 +3031,23 @@ function switchTab(tab, el) {
 }
 
 // ── Agent Forms ────────────────────────────────────────────────────────────
-function addAgent() {
+async function addAgent() {
   const input = document.getElementById('new-agent-input');
   const code  = (input.value || '').trim().toUpperCase();
   if (!code) { alert('Please enter an agent code.'); return; }
   if (CONFIG.agents[code]) { alert(`Agent "${code}" already exists.`); return; }
+  if (ADMIN_ALL_TARGET_AGENT_CODES.has(code)) {
+    alert(`Agent "${code}" already exists in the shared Supabase roster outside MD Group 2A. Add or transfer its group in PFMD first to avoid overwriting another team's targets.`);
+    return;
+  }
 
   // Create blank agent entry
   const bc = {};
   adminBrandKeys().forEach(b => { bc[b] = {penetration_target:0, ctn_target:0}; });
+  const startMonth = getAdminWorkingMonth();
   CONFIG.agents[code] = {
     default_group: MD_ADMIN_GROUP,
+    started_from_month: startMonth,
     is_newbie: false,
     active: true,
     sales_progression: {},
@@ -2871,9 +3056,13 @@ function addAgent() {
     campaign_targets: {},
     kpi_overrides: {},
   };
+  registerMdAdminAgent(code, { startMonth });
+  const monthCfg = ensureAgentMonthConfig(code, startMonth);
+  monthCfg.active = true;
+  monthCfg.is_newbie = false;
   input.value = '';
-  renderAgentForms();
   updateRawJSON();
+  await refreshAgentDependentViews();
   // Scroll to new agent card
   setTimeout(() => {
     const el = document.getElementById('agent-card-' + code);
@@ -2882,18 +3071,24 @@ function addAgent() {
 }
 
 function removeAgent(agent) {
-  if (!confirm(`Permanently remove agent "${agent}" from targets.json?
-
-Note: Historical data in monthly JSON files is preserved.`)) return;
+  if (isAdminPersistedAgent(agent)) {
+    alert(`"${agent}" is already saved in Supabase. Use Access Off for one month, or Archive & Replace to preserve history.`);
+    return;
+  }
+  if (!confirm(`Remove unsaved agent draft "${agent}"?`)) return;
   delete CONFIG.agents[agent];
-  renderAgentForms();
+  Object.values(CONFIG.monthly_targets || {}).forEach(monthRows => {
+    if (monthRows && typeof monthRows === 'object') delete monthRows[agent];
+  });
+  unregisterMdAdminAgent(agent);
+  refreshAgentDependentViews();
   updateRawJSON();
 }
 
 const ADMIN_AGENT_CARD_MIN_KEY = 'md_admin_agent_cards_minimized';
 
 function getAgentMonthConfig(agent, month = getAdminWorkingMonth()) {
-  return CONFIG.monthly_targets?.[month]?.[agent] || {};
+  return getMdAdminMonthConfig(agent, month, CONFIG);
 }
 
 function ensureAgentMonthConfig(agent, month = getAdminWorkingMonth()) {
@@ -2904,9 +3099,7 @@ function ensureAgentMonthConfig(agent, month = getAdminWorkingMonth()) {
 }
 
 function isAgentActiveForMonth(agent, month = getAdminWorkingMonth()) {
-  const monthCfg = getAgentMonthConfig(agent, month);
-  if (typeof monthCfg.active === 'boolean') return monthCfg.active;
-  return CONFIG.agents?.[agent]?.active !== false;
+  return isMdAdminAgentActiveForMonth(agent, month, CONFIG);
 }
 
 function getMinimizedAgentCards() {
@@ -2985,14 +3178,14 @@ async function saveAgentMonthlyAccess(agent, month, active) {
   }
 }
 
-function toggleAgentActive(agent, active, month = getAdminWorkingMonth()) {
+async function toggleAgentActive(agent, active, month = getAdminWorkingMonth()) {
   if (!CONFIG.agents[agent]) return;
   const row = ensureAgentMonthConfig(agent, month);
   row.active = !!active;
   if (row.is_newbie === undefined) row.is_newbie = !!CONFIG.agents[agent].is_newbie;
   updateRawJSON();
-  renderAgentForms();
-  saveAgentMonthlyAccess(agent, month, !!active);
+  await saveAgentMonthlyAccess(agent, month, !!active);
+  await refreshAgentDependentViews();
 }
 
 function renderAgentForms() {
@@ -3044,13 +3237,20 @@ function renderAgentForms() {
     }).join('');
 
     const isActive = isAgentActiveForMonth(agent, selectedMonth);
+    const isNewbie = isMdAdminAgentNewbieForMonth(agent, selectedMonth, CONFIG);
+    const inLifecycle = isMdAdminAgentWithinLifecycle(agent, selectedMonth, CONFIG);
     const hasMonthAccessOverride = typeof monthCfg.active === 'boolean';
     const isMinimized = isAgentCardMinimized(agent);
+    const isArchived = !!a.archived;
+    const archivedFrom = a.archived_from_month || getMdAgentRegistry(CONFIG)[agent]?.end_month || '';
+    const isDraft = !isAdminPersistedAgent(agent);
     const activeCampaignCount = getActiveCampaignsForMonth(selectedMonth).length;
     return `<div class="admin-card" id="agent-card-${agent}" style="${isActive?'':'opacity:.5;border-left:4px solid var(--accent);'}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:6px;">
         <div style="display:flex;align-items:center;gap:10px;">
           <div class="agent-name">${agent}</div>
+          ${isArchived ? `<span style="font-family:var(--mono);font-size:9px;color:#8a4f00;background:#fff7e0;padding:2px 8px;border-radius:10px;">ARCHIVED${archivedFrom ? ` FROM ${kpiAdminEscape(archivedFrom)}` : ''}</span>` : ''}
+          ${isDraft ? '<span style="font-family:var(--mono);font-size:8px;color:var(--blue);background:rgba(26,92,143,.08);padding:2px 7px;border-radius:10px;">UNSAVED DRAFT</span>' : ''}
           ${!isActive ? '<span style="font-family:var(--mono);font-size:9px;color:var(--accent);background:rgba(200,56,26,.1);padding:2px 8px;border-radius:10px;">ACCESS OFF</span>' : ''}
           ${hasMonthAccessOverride ? `<span style="font-family:var(--mono);font-size:8px;color:var(--blue);background:rgba(77,166,255,.08);padding:2px 7px;border-radius:10px;">${selectedMonth}</span>` : ''}
           ${isMinimized && activeCampaignCount ? `<span style="font-family:var(--mono);font-size:8px;color:var(--green);background:rgba(42,122,75,.08);padding:2px 7px;border-radius:10px;">${activeCampaignCount} campaign target${activeCampaignCount === 1 ? '' : 's'}</span>` : ''}
@@ -3060,7 +3260,7 @@ function renderAgentForms() {
           <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
             <span style="font-family:var(--mono);font-size:8px;color:var(--ink3);">Access (${selectedMonth})</span>
             <label class="toggle" title="Toggle this agent's Sales Dashboard access for the selected Working Month">
-              <input type="checkbox" ${isActive ? 'checked' : ''}
+              <input type="checkbox" ${isActive ? 'checked' : ''} ${inLifecycle ? '' : 'disabled'}
                 onchange="toggleAgentActive('${agent}',this.checked,'${selectedMonth}');">
               <div class="toggle-slider"></div>
             </label>
@@ -3068,8 +3268,8 @@ function renderAgentForms() {
           <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
             <span style="font-family:var(--mono);font-size:8px;color:var(--ink3);">Newbie</span>
             <label class="toggle" title="Newbie scheme">
-              <input type="checkbox" ${a.is_newbie ? 'checked' : ''}
-                onchange="setNewbie('${agent}',this.checked)">
+              <input type="checkbox" ${isNewbie ? 'checked' : ''} ${inLifecycle ? '' : 'disabled'}
+                onchange="setNewbie('${agent}',this.checked,'${selectedMonth}')">
               <div class="toggle-slider"></div>
             </label>
           </div>
@@ -3078,11 +3278,11 @@ function renderAgentForms() {
             ${isMinimized ? 'Expand' : 'Minimize'}
           </button>
           <button onclick="removeAgent('${agent}')"
-            style="background:none;border:1px solid rgba(200,56,26,.4);color:var(--accent);font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;">
+            style="${isDraft ? '' : 'display:none;'}background:none;border:1px solid rgba(200,56,26,.4);color:var(--accent);font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;">
             ✕ Remove
           </button>
           <button onclick="openArchiveModal('${agent}')"
-            style="background:none;border:1px solid rgba(255,200,0,.4);color:#ffc800;font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;"
+            style="${isArchived ? 'display:none;' : ''}background:none;border:1px solid rgba(255,200,0,.4);color:#ffc800;font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:6px;cursor:pointer;"
             title="Archive this agent and assign a successor">
             📦 Archive & Replace
           </button>
@@ -3255,10 +3455,10 @@ function setBC(agent, brand, field, val) {
   monthCfg.brand_commission[brand][field] = targetValue;
   updateRawJSON();
 }
-function setNewbie(agent, val) {
+function setNewbie(agent, val, month = getAdminWorkingMonth()) {
   if (!CONFIG.agents[agent]) return;
   CONFIG.agents[agent].is_newbie = val;
-  ensureAgentMonthConfig(agent).is_newbie = val;
+  ensureAgentMonthConfig(agent, month).is_newbie = val;
   updateRawJSON();
   renderNewbieForms();
 }
@@ -3404,7 +3604,12 @@ function getTargetsImportCurrent(agent, fieldType, fieldKey) {
     const m = fieldKey.match(/^acc_tier_([123])_(count|reward)$/);
     return m ? cfg.newbie_account_tiers?.[parseInt(m[1], 10) - 1]?.[m[2]] : undefined;
   }
-  if (fieldType === 'flag') return cfg[fieldKey];
+  if (fieldType === 'flag') {
+    const month = getBulkImportMonth();
+    if (fieldKey === 'active') return isMdAdminAgentActiveForMonth(agent, month, CONFIG);
+    if (fieldKey === 'is_newbie') return isMdAdminAgentNewbieForMonth(agent, month, CONFIG);
+    return cfg[fieldKey];
+  }
   return undefined;
 }
 
@@ -3502,10 +3707,7 @@ function getBulkTargetWideValue(agent, col) {
 }
 
 function getBulkTargetTemplateAgents() {
-  return getMdAdminScopedAgents(Object.keys(CONFIG?.agents || {}), {
-    includeArchived: false,
-    includeInactive: false,
-  });
+  return getMdAdminOperationalAgents(getBulkImportMonth());
 }
 
 function normalizeWideTargetValue(rawValue, col, result, lineNo) {
@@ -3777,10 +3979,12 @@ function applyTargetsImport() {
       if (!agentCfg.brand_commission) agentCfg.brand_commission = {};
       if (!agentCfg.brand_commission[brand]) agentCfg.brand_commission[brand] = { penetration_target: 0, ctn_target: 0 };
       if (!monthCfg.brand_commission) monthCfg.brand_commission = {};
-      if (!monthCfg.brand_commission[brand]) monthCfg.brand_commission[brand] = { penetration_target: 0, ctn_target: 0 };
-      const targetValue = r.raw_value === '' ? 0 : parseFloat(r.raw_value);
-      agentCfg.brand_commission[brand][subField] = targetValue;
-      monthCfg.brand_commission[brand][subField] = targetValue;
+      if (!monthCfg.brand_commission[brand]) {
+        monthCfg.brand_commission[brand] = { ...(agentCfg.brand_commission[brand] || {}), penetration_target: 0, ctn_target: 0 };
+      }
+      const value = r.raw_value === '' ? 0 : parseFloat(r.raw_value);
+      agentCfg.brand_commission[brand][subField] = value;
+      monthCfg.brand_commission[brand][subField] = value;
     } else if (r.field_type === 'newbie_ctn') {
       const m = r.field_key.match(/^ctn_tier_([123])_(threshold|reward)$/);
       ensureTargetTierArray(agentCfg, 'newbie_tiers', [
@@ -3800,8 +4004,8 @@ function applyTargetsImport() {
     } else if (r.field_type === 'flag') {
       if (r.raw_value !== '') {
         const flagValue = (r.raw_value === '1' || r.value === 1);
-        agentCfg[r.field_key] = flagValue;
         monthCfg[r.field_key] = flagValue;
+        if (r.field_key === 'is_newbie') agentCfg.is_newbie = flagValue;
       }
     }
   });
@@ -3902,10 +4106,13 @@ function renderNewbieForms() {
   const nb      = CONFIG.newbie_scheme || {};
   const accTiers = nb.account_tiers || [];
   const agents   = CONFIG.agents || {};
-  const scopedAgentNames = getMdAdminScopedAgents(Object.keys(agents), { includeArchived: true, includeInactive: true });
+  const month = getAdminWorkingMonth();
+  const scopedAgentNames = getMdAdminOperationalAgents(month);
 
   // Per-agent newbie CTN tiers
-  const newbieAgents = scopedAgentNames.map(agent => [agent, agents[agent]]).filter(([,a]) => a?.is_newbie);
+  const newbieAgents = scopedAgentNames
+    .filter(agent => isMdAdminAgentNewbieForMonth(agent, month, CONFIG))
+    .map(agent => [agent, agents[agent]]);
   const container = document.getElementById('newbie-per-agent-form');
 
   if (!newbieAgents.length) {
@@ -5052,9 +5259,9 @@ function formatCampaignRewardTiers(tiers) {
 }
 
 function getBrandPenetrationAgents() {
-  const configAgents = Object.keys(CONFIG?.agents || {}).filter(a => !CONFIG.agents[a]?.archived).sort();
+  const configAgents = getMdAdminOperationalAgents(getAdminWorkingMonth());
   if (configAgents.length) return configAgents;
-  return Object.keys(DASH_DATA?.agents || {}).sort();
+  return Object.keys(DASH_DATA?.agents || {}).filter(agent => isMdAdminScopedAgent(agent)).sort();
 }
 
 function brandPenetrationGroupLabels() {
@@ -5802,6 +6009,7 @@ async function saveAll() {
     SAVE_STATE = 'success';
     clearAdminDirty();
     updateSaveStatus('success');
+    await refreshAgentDependentViews();
 
     // User opt-in: download file backup
     const wantBackup = document.getElementById('auto-backup-check');
@@ -5906,6 +6114,7 @@ async function saveAllToSupabase() {
   };
 
   // ── 1. AGENTS ─────────────────────────────────────────
+  ensureMdAgentRegistry(CONFIG, Object.keys(DASH_DATA?.agents || {}));
   const scopedAgentNames = getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}), { includeArchived: true, includeInactive: true });
   const scopedAgentSet = new Set(scopedAgentNames);
   const agents = Object.fromEntries(scopedAgentNames.map(agent => [agent, CONFIG.agents[agent]]).filter(([, cfg]) => !!cfg));
@@ -5924,6 +6133,11 @@ async function saveAllToSupabase() {
     updated_by: 'admin.html',
   }));
   await upsert('targets_agents', agentRows, 'agent');
+  scopedAgentNames.forEach(agent => {
+    const code = normalizeMdAgentCode(agent);
+    ADMIN_PERSISTED_AGENT_CODES.add(code);
+    ADMIN_ALL_TARGET_AGENT_CODES.add(code);
+  });
 
   // ── 2. MONTHLY TARGETS ────────────────────────────────
   const monthly = CONFIG.monthly_targets || {};
@@ -6006,7 +6220,7 @@ async function saveAllToSupabase() {
   await upsert('targets_group_brand', gbtRows, 'brand');
 
   // ── 6. STATIC CONFIG (JSON blobs) ─────────────────────
-  const staticKeys = ['agent_replacements', 'brand_config', 'group_brand_config', 'penetration_auto_brands', 'zlb_brands', 'inhouse_codes',
+  const staticKeys = ['agent_replacements', 'md_agent_registry', 'brand_config', 'group_brand_config', 'penetration_auto_brands', 'zlb_brands', 'inhouse_codes',
                       'kpi_weights', 'newbie_scheme', 'sku_trace_config', 'sku_rules'];
   const staticRows = [];
   staticKeys.forEach(key => {
@@ -6087,6 +6301,11 @@ async function loadConfigFromSupabase() {
       _loaded_at: new Date().toISOString(),
     };
 
+    // Load ownership metadata before filtering the shared all-group agent table.
+    staticRows.forEach(r => { cfg[r.key] = r.value; });
+    ADMIN_ALL_TARGET_AGENT_CODES = new Set(agents.map(r => normalizeMdAgentCode(r.agent)).filter(Boolean));
+    ADMIN_PERSISTED_AGENT_CODES = new Set(ADMIN_ALL_TARGET_AGENT_CODES);
+
     // 1. Agents
     cfg.agents = {};
     agents.forEach(r => {
@@ -6097,8 +6316,12 @@ async function loadConfigFromSupabase() {
       });
       const code = String(r.agent || '').trim().toUpperCase();
       if (!c.default_group && ADMIN_AGENT_GROUPS[code]) c.default_group = MD_ADMIN_GROUP;
-      if (isMdAdminScopedAgent(r.agent, c)) cfg.agents[r.agent] = c;
+      cfg.agents[code] = c;
     });
+    ensureMdAgentRegistry(cfg, Object.keys(DASH_DATA?.agents || {}));
+    cfg.agents = Object.fromEntries(
+      Object.entries(cfg.agents).filter(([agent, c]) => isMdAdminScopedAgent(agent, c, cfg))
+    );
 
     // 2. Monthly targets
     cfg.monthly_targets = {};
@@ -6139,8 +6362,7 @@ async function loadConfigFromSupabase() {
     cfg.group_brand_targets = {};
     gbt.forEach(r => { cfg.group_brand_targets[r.brand] = parseFloat(r.target_ctn) || 0; });
 
-    // 6. Static config (JSON blobs)
-    staticRows.forEach(r => { cfg[r.key] = r.value; });
+    // 6. Static config was loaded before agent scoping above.
 
     // 7. Snapshots
     const monthlySnaps = {}, penSnaps = {};
@@ -6228,10 +6450,14 @@ function importExcel(input) {
           // Ensure agent exists in CONFIG
           const BRANDS_LIST = ['iFACE','SUKUN','EVO','BISON','TR20','LAM+LWM'];
           if (!CONFIG.agents[agent]) {
+            if (ADMIN_ALL_TARGET_AGENT_CODES.has(agent)) {
+              throw new Error(`Agent ${agent} already exists outside MD Group 2A in shared Supabase.`);
+            }
             const bc = {};
             BRANDS_LIST.forEach(b => { bc[b] = {penetration_target:0,ctn_target:0}; });
-            CONFIG.agents[agent] = {is_newbie:false,active:true,sales_progression:{},brand_commission:bc,kpi_targets:{},campaign_targets:{},kpi_overrides:{}};
+            CONFIG.agents[agent] = {default_group:MD_ADMIN_GROUP,is_newbie:false,active:true,sales_progression:{},brand_commission:bc,kpi_targets:{},campaign_targets:{},kpi_overrides:{}};
           }
+          registerMdAdminAgent(agent, { startMonth: getAdminWorkingMonth() });
           // Columns: 0=Agent, 1=T1, 2=T2, 3=GA, 4=MA,
           //          5=iFACE Pen, 6=iFACE CTN, 7=SUKUN Pen, 8=SUKUN CTN,
           //          9=EVO Pen, 10=EVO CTN, 11=BISON Pen, 12=BISON CTN,
@@ -6276,6 +6502,9 @@ function importExcel(input) {
           CONFIG.agents[agent].active = activeVal !== 'N';
           const newbieVal = String(row[20]||'N').trim().toUpperCase();
           CONFIG.agents[agent].is_newbie = newbieVal === 'Y';
+          const importMonthCfg = ensureAgentMonthConfig(agent, getAdminWorkingMonth());
+          importMonthCfg.active = activeVal !== 'N';
+          importMonthCfg.is_newbie = newbieVal === 'Y';
         });
         imported.push('✓ Agent Targets (new format)');
       }
@@ -6286,8 +6515,7 @@ function importExcel(input) {
         const rows = XLSX.utils.sheet_to_json(ws1, {header:1, range:2}); // skip row 1 (instructions) + row 2 (header)
         rows.forEach(row => {
           const agent = String(row[0]||'').trim().toUpperCase();
-          if (!agent || !AGENTS.includes(agent)) return;
-          if (!CONFIG.agents[agent]) CONFIG.agents[agent] = {is_newbie:false,sales_progression:{},brand_commission:{}};
+          if (!agent || !CONFIG.agents[agent] || !isMdAdminScopedAgent(agent, CONFIG.agents[agent])) return;
           CONFIG.agents[agent].sales_progression = {
             normal_t1: rnd(row[1]) || null,
             normal_t2: rnd(row[2]) || null,
@@ -6305,7 +6533,7 @@ function importExcel(input) {
         const rows = XLSX.utils.sheet_to_json(ws2, {header:1, range:2});
         rows.forEach(row => {
           const agent = String(row[0]||'').trim().toUpperCase();
-          if (!agent || !AGENTS.includes(agent)) return;
+          if (!agent || !CONFIG.agents[agent] || !isMdAdminScopedAgent(agent, CONFIG.agents[agent])) return;
           if (!CONFIG.agents[agent]) return;
           CONFIG.agents[agent].kpi_targets = {
             new_accounts:    rnd(row[1]) || 5,
@@ -6333,7 +6561,7 @@ function importExcel(input) {
         const rows = XLSX.utils.sheet_to_json(ws3, {header:1, range:3}); // skip row1(instr)+row2(hdr)+row3(brand names) → agents from row4
         rows.forEach(row => {
           const agent = String(row[0]||'').trim().toUpperCase();
-          if (!agent || !AGENTS.includes(agent)) return;
+          if (!agent || !CONFIG.agents[agent] || !isMdAdminScopedAgent(agent, CONFIG.agents[agent])) return;
           if (!CONFIG.agents[agent].brand_commission) CONFIG.agents[agent].brand_commission = {};
           brandCols.forEach(({brand,p,c}) => {
             CONFIG.agents[agent].brand_commission[brand] = {
@@ -6368,7 +6596,7 @@ function importExcel(input) {
         const rows = XLSX.utils.sheet_to_json(ws5, {header:1, range:2});
         rows.forEach(row => {
           const agent = String(row[0]||'').trim().toUpperCase();
-          if (!agent || !AGENTS.includes(agent)) return;
+          if (!agent || !CONFIG.agents[agent] || !isMdAdminScopedAgent(agent, CONFIG.agents[agent])) return;
           if (!CONFIG.agents[agent]) return;
           CONFIG.agents[agent].is_newbie = true;
           CONFIG.agents[agent].newbie_tiers = [
@@ -6514,8 +6742,7 @@ function importExcel(input) {
       }
 
       // Re-render all forms
-      renderAgentForms();
-      renderNewbieForms();
+      refreshAgentDependentViews();
       renderGroupBrandForms();
       _populateGroupSpMonths();
       loadGroupSpOverride();
@@ -7082,12 +7309,11 @@ function renderAdminBrandSKU() {
   const brands   = adminBrandKeys({includeAgentTargets:true});
   const autoSet  = new Set(adminConfiguredBrandList('penetration_auto_brands', DEFAULT_PENETRATION_AUTO_BRANDS)
     .map(brand => adminBrandKey(brand).toUpperCase()));
-  const agents   = getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}), { includeInactive: true });
-
   const snapSelection = adminBrandSnapshotSelection();
   const latestMo = snapSelection.month;
   const snap = snapSelection.snapshot || {};
   const requestedMonth = snapSelection.requestedMonth || latestMo;
+  const agents = getMdAdminOperationalAgents(requestedMonth || getAdminWorkingMonth());
 
   let html = `
     <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-bottom:8px;">
@@ -7399,6 +7625,7 @@ function renderAgentWorkdaysTable() {
   const el = document.getElementById('agent-workdays-table');
   if (!el) return;
   const month = _adminCurrentMonthDate();
+  const agents = getMdAdminOperationalAgents(getAdminWorkingMonth());
   el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px;min-width:520px;">
     <thead><tr>
       <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">Agent</th>
@@ -7406,7 +7633,7 @@ function renderAgentWorkdaysTable() {
       <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">工作日</th>
       <th style="padding:7px;border-bottom:1px solid var(--border);"></th>
     </tr></thead>
-    <tbody>${AGENTS.map(agent => {
+    <tbody>${agents.map(agent => {
       const saved = AGENT_WORKDAYS_CACHE[agent]?.working_days ?? '';
       return `<tr>
         <td style="padding:7px;border-bottom:1px solid var(--border);font-weight:700;">${agent}</td>
@@ -7498,6 +7725,7 @@ function renderAgentOffdaysTable() {
   if (!el) return;
   const options = ['Sunday','Monday','Saturday','Sunday + Monday','None'];
   const month = _adminCurrentMonthDate().slice(0, 7);
+  const agents = getMdAdminOperationalAgents(getAdminWorkingMonth());
   el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px;min-width:820px;">
     <thead><tr>
       <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">Agent</th>
@@ -7505,7 +7733,7 @@ function renderAgentOffdaysTable() {
       <th style="text-align:left;padding:7px;border-bottom:1px solid var(--border);">${month} exceptions</th>
       <th style="padding:7px;border-bottom:1px solid var(--border);"></th>
     </tr></thead>
-    <tbody>${AGENTS.map(agent => {
+    <tbody>${agents.map(agent => {
       const cfg = AGENT_OFFDAYS_CACHE[agent] || { default_day:'Sunday', exceptions:[] };
       const defaultDay = cfg.default_day || 'Sunday';
       const exceptions = new Set(cfg.exceptions || []);
@@ -7592,10 +7820,18 @@ async function detectLeaveSchema() {
   return LEAVE_SCHEMA;
 }
 
+function populateLeaveAgentOptions() {
+  const agentEl = document.getElementById('leave-agent');
+  if (!agentEl) return;
+  const current = agentEl.value;
+  const agents = getMdAdminOperationalAgents(getAdminWorkingMonth());
+  agentEl.innerHTML = agents.map(agent => `<option value="${kpiAdminEscape(agent)}">${kpiAdminEscape(agent)}</option>`).join('');
+  if (agents.includes(current)) agentEl.value = current;
+}
+
 async function initLeaveRecordsTab() {
+  populateLeaveAgentOptions();
   if (!LEAVE_TAB_READY) {
-    const agentEl = document.getElementById('leave-agent');
-    if (agentEl) agentEl.innerHTML = AGENTS.map(a => `<option value="${a}">${a}</option>`).join('');
     const baseDate = new Date(_adminCurrentMonthDate() + 'T00:00:00');
     const today = new Date();
     const monthEl = document.getElementById('leave-month');
@@ -9396,10 +9632,7 @@ function prepareCampaignDebtorForSave(d, opts) {
 }
 
 function validateCampaignDebtorAgents(rows, label = 'Campaign debtor list') {
-  const activeAgents = new Set(Object.entries(CONFIG?.agents || {})
-    .filter(([, info]) => info?.active !== false && !info?.archived)
-    .map(([agent]) => String(agent || '').trim().toUpperCase())
-    .filter(Boolean));
+  const activeAgents = new Set(getMdAdminOperationalAgents(getAdminWorkingMonth()).map(normalizeMdAgentCode));
   const missing = [];
   const unknown = [];
   (rows || []).forEach((row, idx) => {
@@ -9459,7 +9692,7 @@ function buildAdminCampaignEngineContext() {
   return {
     mode: 'md-dashboard',
     defaultTargetGroups: ['grp2a'],
-    activeAgents: getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}), { includeArchived: false, includeInactive: false }),
+    activeAgents: getMdAdminOperationalAgents(getAdminWorkingMonth()),
     normalizeAgent: value => String(value || '').trim().toUpperCase(),
     normalizeGroup: value => String(value || '').trim().toLowerCase() || 'grp2a',
     getValue(id) { return document.getElementById(id)?.value || ''; },
@@ -10158,13 +10391,10 @@ function _birthdayCodeSetForBulk(month) {
 
 // Live list of active (non-archived, non-inactive) agents, excluding JW etc.
 function _activeAgentsForBulk() {
-  const cfgAgents = Object.keys(CONFIG?.agents || {}).filter(a => {
-    const info = CONFIG.agents[a];
-    return !info?.archived && info?.active !== false;
-  });
+  const month = document.getElementById('bulk-month-select')?.value || getAdminWorkingMonth();
+  const cfgAgents = getMdAdminOperationalAgents(month);
   if (cfgAgents.length) return cfgAgents;
-  // Fallback list (matches the original hard-coded set minus JW)
-  return ['BEN','CJ','JACKY','JAMES','KEAN','KEE','KF','KI-MI','KW','LEON','NMK','SAM','YI'];
+  return [];
 }
 
 // Check which debtor codes exist per agent + which are Personal (excluded from KPI)
@@ -11035,12 +11265,12 @@ function openArchiveModal(agent) {
   document.getElementById('archive-agent-label').textContent =
     `Archiving: ${agent} — their sales history will be inherited by the successor.`;
   document.getElementById('archive-new-agent').value = '';
-  document.getElementById('archive-from-month').value = '';
+  document.getElementById('archive-from-month').value = String(getAdminWorkingMonth() || '').replace(' ', '-');
 
   // Populate successor dropdown with all OTHER active agents
   const sel = document.getElementById('archive-successor');
   sel.innerHTML = '<option value="">— Select existing agent —</option>';
-  getMdAdminScopedAgents(Object.keys(CONFIG.agents || {})).forEach(name => {
+  getMdAdminOperationalAgents(getAdminWorkingMonth()).forEach(name => {
     const cfg = CONFIG.agents[name] || {};
     if (name === agent) return;
     if (cfg.archived) return;
@@ -11054,13 +11284,15 @@ function openArchiveModal(agent) {
   modal.style.display = 'flex';
 }
 
-function closeArchiveModal() {
+function closeArchiveModal(clearTarget = true) {
   document.getElementById('archive-modal').style.display = 'none';
-  _archiveTarget = null;
+  if (clearTarget) _archiveTarget = null;
 }
 
-function confirmArchive() {
+async function confirmArchive() {
   if (!_archiveTarget) return;
+
+  const archivedAgent = _archiveTarget;
 
   const existingSuccessor = document.getElementById('archive-successor').value.trim().toUpperCase();
   const newSuccessor      = document.getElementById('archive-new-agent').value.trim().toUpperCase();
@@ -11074,12 +11306,18 @@ function confirmArchive() {
   if (!fromMonth || !/^[A-Za-z]{3}-\d{2}$/.test(fromMonth)) {
     alert('Please enter a valid effective month (e.g. Apr-25)'); return;
   }
+  if (newSuccessor && !CONFIG.agents[newSuccessor] && ADMIN_ALL_TARGET_AGENT_CODES.has(newSuccessor)) {
+    alert(`Agent "${newSuccessor}" already exists outside MD Group 2A in shared Supabase.`);
+    return;
+  }
+  const effectiveMonth = fromMonth.replace('-', ' ');
 
   // 1. Archive the old agent
   if (!CONFIG.agents[_archiveTarget]) CONFIG.agents[_archiveTarget] = {};
   CONFIG.agents[_archiveTarget].active   = false;
   CONFIG.agents[_archiveTarget].archived = true;
   CONFIG.agents[_archiveTarget].archived_from_month = fromMonth;
+  registerMdAdminAgent(_archiveTarget, { endMonth: fromMonth });
 
   // 2. Set up successor (create if new)
   if (!CONFIG.agents[successor]) {
@@ -11102,18 +11340,25 @@ function confirmArchive() {
   ensureReplacementSuccessorGroup(CONFIG, _archiveTarget, successor);
   CONFIG.agents[successor].inherits_from     = _archiveTarget;
   CONFIG.agents[successor].inherit_from_month = fromMonth;
+  registerMdAdminAgent(successor, { startMonth: fromMonth, endMonth: '' });
+  const predecessorMonth = ensureAgentMonthConfig(_archiveTarget, effectiveMonth);
+  predecessorMonth.active = false;
+  const successorMonth = ensureAgentMonthConfig(successor, effectiveMonth);
+  successorMonth.active = true;
+  successorMonth.is_newbie = !!CONFIG.agents[successor].is_newbie;
   CONFIG.agent_replacements = CONFIG.agent_replacements || {};
   CONFIG.agent_replacements[_archiveTarget] = { successor, from_month: fromMonth };
 
-  closeArchiveModal();
-  renderAgentForms();
+  closeArchiveModal(false);
   updateRawJSON();
+  await refreshAgentDependentViews();
 
   // Toast
   const t = document.createElement('div');
   t.textContent = `✅ ${_archiveTarget} archived → ${successor} will inherit from ${fromMonth}`;
   t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#ffc800;color:#000;font-family:var(--mono);font-size:11px;padding:10px 20px;border-radius:20px;z-index:99999;font-weight:700;';
   document.body.appendChild(t);
+  _archiveTarget = null;
   setTimeout(()=>t.remove(), 4000);
 }
 </script>

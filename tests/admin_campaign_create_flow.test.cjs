@@ -104,6 +104,9 @@ function createContext(uploadRows) {
         .map(agent => String(agent || '').trim().toUpperCase())
         .filter(Boolean);
     },
+    getMdAdminOperationalAgents() {
+      return context.getMdAdminScopedAgents(Object.keys(context.CONFIG.agents || {}));
+    },
     _adminSupabaseFetch: async (table, opts = {}) => {
       posts.push({ table, opts, body: opts.body ? JSON.parse(opts.body) : null });
       return { ok: true };

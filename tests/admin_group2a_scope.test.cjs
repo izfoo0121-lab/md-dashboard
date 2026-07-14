@@ -90,14 +90,14 @@ assert.deepStrictEqual(
 ].forEach(name => {
   const src = extractFunction(name);
   assert(
-    src.includes('getMdAdminScopedAgents') || src.includes('isMdAdminScopedAgent') || src.includes('getBulkTargetTemplateAgents'),
+    src.includes('getMdAdminScopedAgents') || src.includes('getMdAdminOperationalAgents') || src.includes('isMdAdminScopedAgent') || src.includes('getBulkTargetTemplateAgents'),
     `${name} should use md-dashboard group2a scoping`
   );
 });
 
 assert.match(extractFunction('buildDefaultConfig'), /default_group:\s*MD_ADMIN_GROUP/, 'Default md agents should carry group2a metadata');
 assert.match(extractFunction('addAgent'), /default_group:\s*MD_ADMIN_GROUP/, 'Agents added in md admin should be group2a by default');
-assert.match(extractFunction('getBulkTargetTemplateAgents'), /includeArchived:\s*false[\s\S]*includeInactive:\s*false/, 'Target templates should exclude archived/inactive agents by default');
+assert.match(extractFunction('getBulkTargetTemplateAgents'), /getMdAdminOperationalAgents/, 'Target templates should use the active roster for the selected month');
 
 const replacementConfig = {
   agents: {
