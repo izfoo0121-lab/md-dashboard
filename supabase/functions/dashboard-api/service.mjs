@@ -108,8 +108,21 @@ export async function requireSession(token, deps) {
     () => deps.sessions.find(tokenHash),
     'session unavailable',
   );
+  if (!session) {
+    throw new ApiError(401, 'session expired', 'session_expired');
+  }
   const expiresAt = Date.parse(session?.expires_at ?? '');
-  if (!session || !Number.isFinite(expiresAt) || expiresAt <= currentTime(deps)) {
+  if (!Number.isFinite(expiresAt) || expiresAt <= currentTime(deps)) {
+    try {
+      await dependencyCall(
+        deps,
+        'expired session cleanup',
+        () => deps.sessions.delete(tokenHash),
+        'session cleanup unavailable',
+      );
+    } catch {
+      // Expiration remains authoritative when cleanup is temporarily unavailable.
+    }
     throw new ApiError(401, 'session expired', 'session_expired');
   }
   if (!['agent', 'manager'].includes(session.role)) {

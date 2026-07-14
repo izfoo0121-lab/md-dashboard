@@ -237,6 +237,30 @@ test('data rejects expired sessions', async () => {
     () => handleData({ sessionToken: 'expired', month: 'Jul 26' }, dependencies),
     /expired/,
   );
+  assert.deepEqual(
+    dependencies.state.deletedSessions,
+    [await sha256('expired')],
+  );
+});
+
+
+test('expired session cleanup is best effort and preserves the 401 response', async () => {
+  const dependencies = await makeDeps();
+  let deleteCalls = 0;
+  dependencies.sessions.delete = async () => {
+    deleteCalls += 1;
+    throw new Error('cleanup unavailable');
+  };
+
+  await assert.rejects(
+    () => handleData({ sessionToken: 'expired', month: 'Jul 26' }, dependencies),
+    (error) => (
+      error.status === 401
+      && error.code === 'session_expired'
+      && /expired/u.test(error.message)
+    ),
+  );
+  assert.equal(deleteCalls, 1);
 });
 
 
