@@ -94,6 +94,7 @@ dashboard_snapshots
   month              text primary key
   generated_at       timestamptz not null
   shared_payload     jsonb not null
+  manager_support_payload jsonb not null
   data_quality       jsonb not null
   checksum           text not null
   source_version     text not null
@@ -106,6 +107,12 @@ dashboard_agent_snapshots
   generated_at       timestamptz not null
   primary key (month, agent)
 
+dashboard_manager_artifacts
+  artifact_key       text primary key
+  generated_at       timestamptz not null
+  payload            jsonb not null
+  checksum           text not null
+
 dashboard_sessions
   token_hash         text primary key
   agent              text not null
@@ -113,18 +120,27 @@ dashboard_sessions
   created_at         timestamptz not null
   expires_at         timestamptz not null
   last_used_at       timestamptz not null
+
+dashboard_login_attempts
+  bucket_key         text primary key
+  window_started_at  timestamptz not null
+  failures           integer not null
 ```
 
-All three tables use RLS with no anonymous read/write policy. The Edge Function
+All five tables use RLS with no anonymous read/write policy. The Edge Function
 uses its service-role credential. Session tokens are random opaque values; only
 their SHA-256 hashes are stored. Sessions expire after 12 hours and are removed
 on logout or expiration cleanup.
 
-The shared payload may contain aggregate team values and configuration needed by
-the Agent UI, but no other agent's debtor cards, names, phone numbers, claim
-state, or export rows. The agent payload contains exactly one `agents[agent]`
-block and that agent's authorized debtor records. Manager payloads are assembled
-from all agent snapshots only after manager authentication.
+The shared payload is built from an explicit safe-key allowlist. It may contain
+aggregate team values and configuration needed by the Agent UI, but no other
+agent's debtor cards, campaign candidates, names, phone numbers, claim state, or
+export rows. The agent payload contains exactly one `agents[agent]` block plus
+agent-filtered supporting collections. The private manager support payload keeps
+top-level collections but excludes `agents`; manager responses rebuild the
+canonical shape from all agent rows so the largest data block is not stored
+twice. Separate manager artifacts hold protected datasets such as Debtor
+Analysis that are not part of the Sales Dashboard snapshot.
 
 ### 2. Edge Function contract
 
@@ -135,7 +151,7 @@ access. Initial actions are:
 POST { action: "login", pin, month, clientVersion }
   -> { sessionToken, agent, role, month, availableMonths, data }
 
-POST { action: "data", sessionToken, month }
+POST { action: "data", sessionToken, month, dataset?: "dashboard" | "debtor_analysis" }
   -> { month, availableMonths, data }
 
 POST { action: "sync", sessionToken, month }
@@ -144,11 +160,14 @@ POST { action: "sync", sessionToken, month }
 POST { action: "claim.save" | "claim.delete", sessionToken, payload }
 POST { action: "flag.save" | "flag.delete", sessionToken, payload }
 POST { action: "campaign.remark", sessionToken, payload }
+POST { action: "kpi.save" | "birthday.save", sessionToken, payload }
+POST { action: "manager.pins.list" | "manager.pins.save", sessionToken, payload }
 POST { action: "logout", sessionToken }
 ```
 
 The function derives the agent from the session. It ignores or rejects a
-different agent supplied by the browser. Every month-scoped action checks both
+different agent supplied by the browser. `debtor_analysis` and manager PIN
+actions require a manager session. Every month-scoped action checks both
 `targets_monthly.active` and `targets_agents.active`; missing rows or database
 errors deny non-manager access. Manager PIN handling uses the existing manager
 identity (`GT138888`) but never exposes the PIN row to the browser.
@@ -156,6 +175,9 @@ identity (`GT138888`) but never exposes the PIN row to the browser.
 Login and all state-changing actions have bounded database/fetch timeouts and
 structured error responses. The browser shows retryable errors and always
 releases the PIN lock in `finally` unless authentication succeeded.
+Failed PIN attempts are rate-limited by a salted hash of the request network
+bucket. Five failures in 15 minutes block further attempts for that bucket; a
+successful login clears its failure row. Raw IP addresses are not stored.
 
 ### 3. Shared browser client
 
@@ -179,8 +201,9 @@ after generation and tests but before the Git commit:
 
 1. Validate source freshness, required headers, debtor type coverage, supported
    month, non-empty agent blocks, and JSON finiteness.
-2. Split canonical data into shared and per-agent payloads.
-3. Upsert private snapshots using `SUPABASE_SERVICE_KEY`.
+2. Split canonical data into shared, manager-support, per-agent, and protected
+   manager-artifact payloads.
+3. Upsert private snapshots and manager artifacts using `SUPABASE_SERVICE_KEY`.
 4. Read back row counts, checksums, month, and agent list.
 5. Abort the daily update if upload or verification fails.
 6. Commit only non-sensitive public metadata and aggregate artifacts.
@@ -190,7 +213,8 @@ to the repository. `months_index.json` may remain public because it contains onl
 month labels, but the API remains the authoritative available-month source.
 
 Once all dependent readers use the API, tracked `dashboard_data.json` and
-`data_*.json` files are removed from the current GitHub tree and ignored locally.
+`data_*.json` files plus `debtor_analysis_data.json` are removed from the current
+GitHub tree and ignored locally.
 The local files remain available to the generator and archive tooling.
 
 Historical copies remain in existing Git history until a separately approved
