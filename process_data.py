@@ -5591,10 +5591,12 @@ def calc_kpi(agents, targets, sales_prog, brand_comm, debtor_cards, birthday_cam
                     target = 100  # entered as percentage 0-100
                 else:
                     target = auto_targets.get(key, 1)
+                generated_actual = auto_actuals.get(key, 0) if key == "new_accounts" else 0
                 items_out[key] = {
                     "label": label, "section": section, "weight": weight,
-                    "actual": 0, "target": target,
-                    "score": 0.0, "max_score": max_score, "pct": 0,
+                    "actual": generated_actual, "target": target,
+                    "score": score_item(generated_actual, target, weight), "max_score": max_score,
+                    "pct": round(generated_actual / target * 100, 1) if target else 0,
                     "source": source, "excluded": False,
                     "input_role": "admin", "audit_role": "management",
                     "needs_supabase_fetch": True,
