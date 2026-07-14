@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <script>
-const SALES_DASHBOARD_BUILD = '20260710-163142';
+const SALES_DASHBOARD_BUILD = '20260714-filtered-export-1';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
@@ -237,6 +237,28 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .page-btn{background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px 16px;border-radius:8px;font-family:var(--mono);font-size:11px;cursor:pointer;}
 .page-btn:disabled{opacity:.3;cursor:default;}
 .page-info{font-family:var(--mono);font-size:10px;color:var(--muted);}
+.debtor-export-bar{display:flex;align-items:center;gap:12px;margin:10px 0 8px;}
+.debtor-export-summary{min-width:0;margin-right:auto;}
+.debtor-export-match-count{font-family:var(--mono);font-size:10px;color:var(--text);}
+.debtor-export-filter-labels{font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere;}
+.debtor-download-wrap{position:relative;width:250px;flex:0 0 250px;}
+.debtor-download-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;border-color:rgba(61,220,132,.45);color:var(--green);}
+.debtor-download-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:90;width:100%;padding:4px;background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.32);}
+.debtor-download-menu[hidden]{display:none;}
+.debtor-download-item{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:9px 10px;background:transparent;border:0;border-radius:6px;color:var(--text);font-family:var(--body);text-align:left;cursor:pointer;}
+.debtor-download-item + .debtor-download-item{border-top:1px solid var(--border);border-radius:0 0 6px 6px;}
+.debtor-download-item:hover:not(:disabled){background:rgba(255,255,255,.06);}
+.debtor-download-label{font-size:12px;font-weight:600;}
+.debtor-download-count{font-family:var(--mono);font-size:11px;color:var(--accent);text-align:right;}
+.debtor-download-help{grid-column:1 / -1;font-family:var(--mono);font-size:8px;color:var(--muted);}
+.debtor-download-item:disabled{opacity:.42;cursor:default;}
+.debtor-download-toggle:focus-visible,.debtor-download-item:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+@media(max-width:640px){
+  .debtor-export-bar{flex-direction:column;align-items:stretch;}
+  .debtor-export-summary{width:100%;margin-right:0;}
+  .debtor-download-wrap{width:100%;flex-basis:auto;}
+  .debtor-download-menu{position:absolute;right:0;bottom:calc(100% + 6px);top:auto;z-index:110;}
+}
 
 @media (max-width: 620px) {
   .camp-debtor-head{display:none!important;}
@@ -1237,14 +1259,34 @@ function updateSyncStatus() {
     <button class="filter-chip" data-val="flagged" onclick="setSpecialFilter('flagged',this)" style="border-color:rgba(255,95,95,.4);color:var(--red);">⚑ Flagged</button>
     <button class="filter-chip" data-val="campaign" onclick="setSpecialFilter('campaign',this)" style="border-color:rgba(61,220,132,.4);color:var(--green);">🎁 Campaign</button>
     <button class="filter-chip" data-val="overdue" onclick="setSpecialFilter('overdue',this)" style="border-color:rgba(200,56,26,.4);color:var(--red);">💰 Overdue</button>
-    <button class="filter-chip" data-val="neartarget" onclick="setSpecialFilter('neartarget',this)" style="border-color:rgba(240,192,64,.4);color:var(--accent);">🎯 Near Target</button>
+    <button class="filter-chip" data-val="neartarget" onclick="setSpecialFilter('neartarget',this)" title="本月 CTN 已达到前三个月平均的 80%-99%" style="border-color:rgba(240,192,64,.4);color:var(--accent);">🎯 Near Target</button>
   </div>
   <div class="filter-row" id="type-filter-row">
     <span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">Type:</span>
     <button class="filter-chip active" onclick="setTypeFilter('all',this)">All</button>
   </div>
-  <div id="debtor-export-bar" style="display:flex;justify-content:flex-end;gap:8px;align-items:center;margin:10px 0 8px;">
-    <button class="page-btn" onclick="exportFullDebtorListExcel()" style="min-width:220px;border-color:rgba(61,220,132,.45);color:var(--green);">Download Full Debtor List</button>
+  <div id="debtor-export-bar" class="debtor-export-bar">
+    <div class="debtor-export-summary" aria-live="polite">
+      <div id="debtor-export-match-count" class="debtor-export-match-count">Preparing debtor list</div>
+      <div id="debtor-export-filter-labels" class="debtor-export-filter-labels">Select agent or wait for loading</div>
+    </div>
+    <div class="debtor-download-wrap">
+      <button type="button" class="page-btn debtor-download-toggle" id="debtor-download-toggle" aria-expanded="false" aria-haspopup="menu" aria-controls="debtor-download-menu" onclick="toggleDebtorDownloadMenu(event)">
+        <span>Download</span><span aria-hidden="true">&#9662;</span>
+      </button>
+      <div class="debtor-download-menu" id="debtor-download-menu" role="menu" hidden>
+        <button type="button" class="debtor-download-item" id="debtor-export-filtered" role="menuitem" title="Filtered result" onclick="exportFilteredDebtorListExcel()" disabled>
+          <span class="debtor-download-label">Filtered result</span>
+          <span class="debtor-download-count" id="debtor-filtered-export-count">0</span>
+          <span class="debtor-download-help" id="debtor-filtered-export-help">Loading debtor list</span>
+        </button>
+        <button type="button" class="debtor-download-item" id="debtor-export-full" role="menuitem" title="Full debtor list" onclick="exportFullDebtorListExcel()" disabled>
+          <span class="debtor-download-label">Full debtor list</span>
+          <span class="debtor-download-count" id="debtor-full-export-count">0</span>
+          <span class="debtor-download-help">Ignores filters and search</span>
+        </button>
+      </div>
+    </div>
   </div>
   <div id="debtor-list"></div>
   <div class="pagination">
@@ -1487,6 +1529,216 @@ let nonvipTypeFilter = 'all';
 let MONTHS_WITH_DATA = [];
 let _lastUnpurchasedExport = null;
 let _lastCampsExport = null;
+let debtorExportViewState = createEmptyDebtorExportViewState();
+let debtorExportTransitionVersion = 0;
+let debtorExportPendingTransition = null;
+let debtorDownloadMenuEventsBound = false;
+
+function createEmptyDebtorExportViewState() {
+  return { agent: '', month: '', debtors: [], labels: [], active: false };
+}
+
+function beginDebtorExportTransition(options = {}) {
+  const token = ++debtorExportTransitionVersion;
+  debtorExportPendingTransition = {
+    token,
+    kind: String(options.kind || 'view'),
+    requestedMonthSlug: String(options.requestedMonthSlug || ''),
+    desiredAgent: Object.prototype.hasOwnProperty.call(options, 'desiredAgent')
+      ? String(options.desiredAgent || '')
+      : String(currentAgent || ''),
+  };
+  debtorExportViewState = createEmptyDebtorExportViewState();
+  if (typeof updateDebtorExportMenu === 'function') updateDebtorExportMenu();
+  return token;
+}
+
+function getDebtorExportTransition(token = null) {
+  if (!debtorExportPendingTransition) return null;
+  if (token !== null && debtorExportPendingTransition.token !== token) return null;
+  return debtorExportPendingTransition;
+}
+
+function updateDebtorExportTransitionDesiredAgent(token, agent) {
+  const transition = getDebtorExportTransition(token);
+  if (!transition) return false;
+  transition.desiredAgent = String(agent || '');
+  return true;
+}
+
+function resolveDebtorExportTransitionAgent(token, data, fallbackAgent = '') {
+  const transition = getDebtorExportTransition(token);
+  const desiredAgent = transition ? transition.desiredAgent : String(fallbackAgent || '');
+  return desiredAgent && data?.agents?.[desiredAgent] ? desiredAgent : '';
+}
+
+function isDebtorExportTransitionPending() {
+  return debtorExportPendingTransition !== null;
+}
+
+function isCurrentDebtorExportTransition(token) {
+  return token !== null && token !== undefined && getDebtorExportTransition(token) !== null;
+}
+
+function completeDebtorExportTransition(token) {
+  if (!isCurrentDebtorExportTransition(token)) return false;
+  debtorExportPendingTransition = null;
+  if (typeof updateDebtorExportMenu === 'function') updateDebtorExportMenu();
+  return true;
+}
+
+function uniqueDebtorsByCode(debtors) {
+  const seen = new Set();
+  return (debtors || []).filter(d => {
+    const code = String(d?.debtor_code || '').trim() || String(d?.code || '').trim();
+    const key = code.toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function publishDebtorExportView(debtors, options = {}) {
+  if (isDebtorExportTransitionPending()) {
+    if (typeof updateDebtorExportMenu === 'function') updateDebtorExportMenu();
+    return null;
+  }
+  const labels = Array.isArray(options.labels) ? options.labels : [];
+  debtorExportViewState = {
+    agent: String(currentAgent || ''),
+    month: String(DATA?.current_month || ''),
+    debtors: uniqueDebtorsByCode(debtors),
+    labels: labels.map(label => String(label || '').trim()).filter(Boolean),
+    active: options.active === true
+  };
+  if (typeof updateDebtorExportMenu === 'function') updateDebtorExportMenu();
+  return debtorExportViewState;
+}
+
+function resetDebtorExportView() {
+  const alreadyEmpty = !debtorExportViewState.agent
+    && !debtorExportViewState.month
+    && !debtorExportViewState.active
+    && debtorExportViewState.debtors.length === 0
+    && debtorExportViewState.labels.length === 0;
+  if (alreadyEmpty) return;
+  debtorExportViewState = createEmptyDebtorExportViewState();
+  if (typeof updateDebtorExportMenu === 'function') updateDebtorExportMenu();
+}
+
+function getCurrentDebtorExportView() {
+  if (isDebtorExportTransitionPending()) return null;
+  if (!debtorExportViewState.agent || !debtorExportViewState.month) return null;
+  if (debtorExportViewState.agent !== String(currentAgent || '')) return null;
+  if (debtorExportViewState.month !== String(DATA?.current_month || '')) return null;
+  return debtorExportViewState;
+}
+
+function debtorDownloadEnabledMenuItems() {
+  const menu = document.getElementById('debtor-download-menu');
+  if (!menu || typeof menu.querySelectorAll !== 'function') return [];
+  return Array.from(menu.querySelectorAll('[role="menuitem"]')).filter(item => !item.disabled);
+}
+
+function setDebtorDownloadMenuOpen(open) {
+  const toggle = document.getElementById('debtor-download-toggle');
+  const menu = document.getElementById('debtor-download-menu');
+  const isOpen = Boolean(open);
+  if (toggle) toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  if (menu) menu.hidden = !isOpen;
+  if (isOpen) {
+    const firstItem = debtorDownloadEnabledMenuItems()[0];
+    if (firstItem && typeof firstItem.focus === 'function') firstItem.focus();
+  }
+}
+
+function toggleDebtorDownloadMenu(event) {
+  if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
+  const toggle = document.getElementById('debtor-download-toggle');
+  if (!toggle) return;
+  setDebtorDownloadMenuOpen(toggle.getAttribute('aria-expanded') !== 'true');
+}
+
+function closeDebtorDownloadMenu(options = {}) {
+  setDebtorDownloadMenuOpen(false);
+  if (options.returnFocus) {
+    const toggle = document.getElementById('debtor-download-toggle');
+    if (toggle && typeof toggle.focus === 'function') toggle.focus();
+  }
+}
+
+function bindDebtorDownloadMenuEvents() {
+  if (debtorDownloadMenuEventsBound) return;
+  debtorDownloadMenuEventsBound = true;
+  document.addEventListener('click', event => {
+    const target = event && event.target;
+    if (target && typeof target.closest === 'function' && target.closest('.debtor-download-wrap')) return;
+    closeDebtorDownloadMenu();
+  });
+  document.addEventListener('keydown', event => {
+    if (!event) return;
+    const toggle = document.getElementById('debtor-download-toggle');
+    const menuOpen = toggle?.getAttribute('aria-expanded') === 'true';
+    if (!menuOpen) return;
+
+    if (event.key === 'Escape') {
+      if (typeof event.preventDefault === 'function') event.preventDefault();
+      closeDebtorDownloadMenu({ returnFocus: true });
+      return;
+    }
+    if (event.key === 'Tab') {
+      closeDebtorDownloadMenu();
+      return;
+    }
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+
+    const items = debtorDownloadEnabledMenuItems();
+    if (!items.length) return;
+    const activeIndex = items.indexOf(document.activeElement);
+    let nextIndex = 0;
+    if (event.key === 'End') nextIndex = items.length - 1;
+    else if (event.key === 'ArrowDown') nextIndex = activeIndex < 0 ? 0 : (activeIndex + 1) % items.length;
+    else if (event.key === 'ArrowUp') nextIndex = activeIndex < 0 ? items.length - 1 : (activeIndex - 1 + items.length) % items.length;
+    if (typeof event.preventDefault === 'function') event.preventDefault();
+    if (typeof items[nextIndex].focus === 'function') items[nextIndex].focus();
+  });
+}
+
+function updateDebtorExportMenu() {
+  const fullDebtors = DATA?.agents?.[currentAgent]?.debtor_cards?.debtors || [];
+  const state = typeof getCurrentDebtorExportView === 'function' ? getCurrentDebtorExportView() : null;
+  const scopeReady = Boolean(state);
+  const filteredCount = scopeReady && Array.isArray(state.debtors) ? state.debtors.length : 0;
+  const filteredEnabled = scopeReady && state.active === true && filteredCount > 0;
+  const setText = (id, value) => {
+    const node = document.getElementById(id);
+    if (node) node.textContent = value;
+  };
+
+  if (!scopeReady) {
+    setText('debtor-export-match-count', 'Preparing debtor list');
+    setText('debtor-export-filter-labels', 'Select agent or wait for loading');
+  } else if (state.active) {
+    setText('debtor-export-match-count', filteredCount + ' matching debtors');
+    setText('debtor-export-filter-labels', (state.labels || []).join(' / '));
+  } else {
+    setText('debtor-export-match-count', fullDebtors.length + ' debtors');
+    setText('debtor-export-filter-labels', 'No filters active');
+  }
+
+  setText(
+    'debtor-filtered-export-help',
+    !scopeReady ? 'Loading debtor list' : state.active ? 'Uses current filters and search' : 'No filters active'
+  );
+  setText('debtor-filtered-export-count', String(filteredCount));
+  setText('debtor-full-export-count', String(scopeReady ? fullDebtors.length : 0));
+
+  const filteredButton = document.getElementById('debtor-export-filtered');
+  const fullButton = document.getElementById('debtor-export-full');
+  if (filteredButton) filteredButton.disabled = !filteredEnabled;
+  if (fullButton) fullButton.disabled = !scopeReady;
+}
+
 let expandedCampaigns = new Set();
 let campaignPages = {};
 const CAMPAIGN_DEBTOR_PAGE_SIZE = 12;
@@ -2319,10 +2571,10 @@ function mergeAmountIntoBreakdownRows(existingRows, analysisRows) {
   return merged;
 }
 
-async function enrichMonthBreakdownsFromAnalysis() {
+async function enrichMonthBreakdownsFromAnalysis(data = DATA) {
   const analysis = await loadDebtorAnalysisData();
-  if (!analysis?.records?.length || !DATA?.agents) return;
-  const curMonth = DATA.current_month || analysis.current_month || '';
+  if (!analysis?.records?.length || !data?.agents) return;
+  const curMonth = data.current_month || analysis.current_month || '';
   const monthLabels = [-3, -2, -1, 0].map(offset => shiftedMonthLabel(curMonth, offset)).filter(Boolean);
   if (!monthLabels.length) return;
   const monthSet = new Set(monthLabels);
@@ -2337,10 +2589,11 @@ async function enrichMonthBreakdownsFromAnalysis() {
   });
 
   for (const label of monthLabels) {
-    snapshotByMonth[label] = monthSnapshotIndex(await loadMonthSnapshotData(label), label);
+    const snapshotData = label === data.current_month ? data : await loadMonthSnapshotData(label);
+    snapshotByMonth[label] = monthSnapshotIndex(snapshotData, label);
   }
 
-  Object.values(DATA.agents || {}).forEach(agentData => {
+  Object.values(data.agents || {}).forEach(agentData => {
     const debtors = agentData?.debtor_cards?.debtors || [];
     debtors.forEach(d => {
       const debtorRows = byDebtor[d.debtor_code] || {};
@@ -2380,76 +2633,112 @@ async function loadMonthIndex(preloadedMonths) {
 }
 
 async function switchMonth(slug) {
+  const requestedSlug = slug || 'current';
+  const transitionToken = beginDebtorExportTransition({
+    kind: 'month',
+    requestedMonthSlug: requestedSlug,
+    desiredAgent: currentAgent || '',
+  });
+  const previousData = DATA;
+  const previousAgent = currentAgent;
+  const previousMonthSlug = CURRENT_MONTH_SLUG;
   // Read selected agent directly from DOM before anything changes
   const agSel = document.getElementById('agent-select');
   const prevAgent = (agSel && agSel.value) ? agSel.value : (currentAgent || '');
-  const requestedSlug = slug || 'current';
+  updateDebtorExportTransitionDesiredAgent(transitionToken, prevAgent);
+  const pendingMonthSelector = document.getElementById('month-selector-agent');
+  if (pendingMonthSelector && previousMonthSlug) pendingMonthSelector.value = previousMonthSlug;
   const requestedMonth = requestedSlug === 'current'
     ? (DATA?.current_month || '')
     : monthLabelFromSlug(requestedSlug);
-  if (window.MDAdminContext && requestedMonth) {
-    MDAdminContext.setWorkingMonth(requestedMonth, { silent: true });
-  }
-
-  // Future view: selected month has no generated data file yet.
-  // Reuse currently loaded DATA, override metadata, and render forward-looking items.
-  if (requestedSlug !== 'current' && !MONTHS_WITH_DATA.includes(requestedSlug) && DATA) {
-    DATA.current_month = monthLabelFromSlug(requestedSlug);
-    DATA.is_future_view = true;
-    CURRENT_MONTH_SLUG = requestedSlug;
-    await applySalesLiveStaticConfig(DATA);
-    await SupabaseKpiSync.apply(DATA);
-    await ensureBirthdayOverridesForMonth(DATA.current_month || '');
-    await SalesLiveCampaignSync.apply(DATA);
-    if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
-      await GistSync.syncToLocal(DATA.current_month || '');
-    }
-    applyBirthdayTargetsToAgentKpi();
-
-    document.getElementById('month-badge').textContent = (DATA.current_month||'').toUpperCase();
-    document.getElementById('day-prog').textContent = 'Future view · data pending';
-    const mSel = document.getElementById('month-selector-agent');
-    if (mSel) mSel.value = CURRENT_MONTH_SLUG;
-
-    renderGroupBrandTargets();
-    if (prevAgent && DATA.agents[prevAgent]) {
-      currentAgent = prevAgent;
-      const debtors = DATA.agents[prevAgent]?.debtor_cards?.debtors || [];
-      const typeCounts = {};
-      debtors.forEach(d => {
-        const t = (d.debtor_type||'').trim();
-        if (t && t.toLowerCase() !== 'nan') typeCounts[t] = (typeCounts[t]||0) + 1;
-      });
-      buildTypeChipRow(typeCounts, debtors.length, filters?.type || 'all');
-      renderAll();
-    } else {
-      currentAgent = '';
-      filters = { status:'all', special:null, pending_activation:null, type:'all', brand:'all' };
-      renderNoAgentState();
-    }
-    cleanDashboardCacheBusterParam();
-    updateFutureViewBanner();
-    return;
-  }
-
-  const url = requestedSlug === 'current' || !requestedSlug
-    ? 'dashboard_data.json?v=' + Date.now()
-    : `data_${requestedSlug}.json?v=` + Date.now();
   try {
-    const r = await fetch(url);
-    if (!r.ok) throw new Error('Not found');
-    DATA = await r.json();
-    DATA.is_future_view = false;
-    CURRENT_MONTH_SLUG = requestedSlug;
-    if (window.MDAdminContext) MDAdminContext.setWorkingMonth(DATA.current_month || requestedMonth, { silent: true });
-    await applySalesLiveStaticConfig(DATA);
-    await enrichMonthBreakdownsFromAnalysis();
-    await SupabaseKpiSync.apply(DATA);
-    await ensureBirthdayOverridesForMonth(DATA.current_month || '');
-    await SalesLiveCampaignSync.apply(DATA);
-    if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
-      await GistSync.syncToLocal(DATA.current_month || '');
+    // Future view: selected month has no generated data file yet.
+    // Reuse currently loaded DATA, override metadata, and render forward-looking items.
+    if (requestedSlug !== 'current' && !MONTHS_WITH_DATA.includes(requestedSlug) && DATA) {
+      const nextData = typeof structuredClone === 'function'
+        ? structuredClone(DATA)
+        : JSON.parse(JSON.stringify(DATA));
+      nextData.current_month = monthLabelFromSlug(requestedSlug);
+      nextData.is_future_view = true;
+
+      await applySalesLiveStaticConfig(nextData);
+      if (!isCurrentDebtorExportTransition(transitionToken)) return;
+      await SupabaseKpiSync.apply(nextData);
+      if (!isCurrentDebtorExportTransition(transitionToken)) return;
+      await ensureBirthdayOverridesForMonth(nextData.current_month || '');
+      if (!isCurrentDebtorExportTransition(transitionToken)) return;
+      await SalesLiveCampaignSync.apply(nextData);
+      if (!isCurrentDebtorExportTransition(transitionToken)) return;
+      if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+        await GistSync.syncToLocal(nextData.current_month || '');
+        if (!isCurrentDebtorExportTransition(transitionToken)) return;
+      }
+
+      const selectedAgent = resolveDebtorExportTransitionAgent(transitionToken, nextData, prevAgent);
+      DATA = nextData;
+      CURRENT_MONTH_SLUG = requestedSlug;
+      currentAgent = selectedAgent;
+      if (window.MDAdminContext) {
+        MDAdminContext.setWorkingMonth(DATA.current_month || requestedMonth, { silent: true });
+      }
+      applyBirthdayTargetsToAgentKpi();
+      document.getElementById('month-badge').textContent = (DATA.current_month||'').toUpperCase();
+      document.getElementById('day-prog').textContent = 'Future view · data pending';
+      const mSel = document.getElementById('month-selector-agent');
+      if (mSel) mSel.value = CURRENT_MONTH_SLUG;
+      if (agSel) agSel.value = selectedAgent;
+
+      renderGroupBrandTargets();
+      if (selectedAgent) {
+        const debtors = DATA.agents[selectedAgent]?.debtor_cards?.debtors || [];
+        const typeCounts = {};
+        debtors.forEach(d => {
+          const t = (d.debtor_type||'').trim();
+          if (t && t.toLowerCase() !== 'nan') typeCounts[t] = (typeCounts[t]||0) + 1;
+        });
+        buildTypeChipRow(typeCounts, debtors.length, filters?.type || 'all');
+        completeDebtorExportTransition(transitionToken);
+        renderAll();
+      } else {
+        currentAgent = '';
+        filters = { status:'all', special:null, pending_activation:null, type:'all', brand:'all' };
+        completeDebtorExportTransition(transitionToken);
+        renderNoAgentState();
+      }
+      cleanDashboardCacheBusterParam();
+      updateFutureViewBanner();
+      return;
     }
+
+    const url = requestedSlug === 'current' || !requestedSlug
+      ? 'dashboard_data.json?v=' + Date.now()
+      : `data_${requestedSlug}.json?v=` + Date.now();
+    const r = await fetch(url);
+    if (!isCurrentDebtorExportTransition(transitionToken)) return;
+    if (!r.ok) throw new Error('Not found');
+    const nextData = await r.json();
+    if (!isCurrentDebtorExportTransition(transitionToken)) return;
+    nextData.is_future_view = false;
+    await applySalesLiveStaticConfig(nextData);
+    if (!isCurrentDebtorExportTransition(transitionToken)) return;
+    await enrichMonthBreakdownsFromAnalysis(nextData);
+    if (!isCurrentDebtorExportTransition(transitionToken)) return;
+    await SupabaseKpiSync.apply(nextData);
+    if (!isCurrentDebtorExportTransition(transitionToken)) return;
+    await ensureBirthdayOverridesForMonth(nextData.current_month || '');
+    if (!isCurrentDebtorExportTransition(transitionToken)) return;
+    await SalesLiveCampaignSync.apply(nextData);
+    if (!isCurrentDebtorExportTransition(transitionToken)) return;
+    if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+      await GistSync.syncToLocal(nextData.current_month || '');
+      if (!isCurrentDebtorExportTransition(transitionToken)) return;
+    }
+
+    const selectedAgent = resolveDebtorExportTransitionAgent(transitionToken, nextData, prevAgent);
+    DATA = nextData;
+    CURRENT_MONTH_SLUG = requestedSlug;
+    currentAgent = selectedAgent;
+    if (window.MDAdminContext) MDAdminContext.setWorkingMonth(DATA.current_month || requestedMonth, { silent: true });
     applyBirthdayTargetsToAgentKpi();
 
     // Rebuild agent dropdown, restore previous selection
@@ -2460,7 +2749,7 @@ async function switchMonth(slug) {
         opt.value = a; opt.textContent = a;
         agSel.appendChild(opt);
       });
-      agSel.value = (prevAgent && DATA.agents[prevAgent]) ? prevAgent : '';
+      agSel.value = selectedAgent;
     }
 
     // Update header
@@ -2474,15 +2763,15 @@ async function switchMonth(slug) {
     if (mSel) mSel.value = CURRENT_MONTH_SLUG;
 
     // Re-render agent if one was selected
-    if (prevAgent && DATA.agents[prevAgent]) {
-      currentAgent = prevAgent;
-      const debtors = DATA.agents[prevAgent]?.debtor_cards?.debtors || [];
+    if (selectedAgent) {
+      const debtors = DATA.agents[selectedAgent]?.debtor_cards?.debtors || [];
       const typeCounts = {};
       debtors.forEach(d => {
         const t = (d.debtor_type||'').trim();
         if (t && t.toLowerCase() !== 'nan') typeCounts[t] = (typeCounts[t]||0) + 1;
       });
       buildTypeChipRow(typeCounts, debtors.length, filters?.type || 'all');
+      completeDebtorExportTransition(transitionToken);
       renderAll();
     } else {
       currentAgent = '';
@@ -2493,11 +2782,65 @@ async function switchMonth(slug) {
       gainSkuFilter = 'all';
       resetUnpurchasedFilters();
       nonvipTypeFilter = 'all';
+      completeDebtorExportTransition(transitionToken);
       renderNoAgentState();
     }
     cleanDashboardCacheBusterParam();
     updateFutureViewBanner();
   } catch(e) {
+    if (!isCurrentDebtorExportTransition(transitionToken)) return;
+
+    DATA = previousData;
+    CURRENT_MONTH_SLUG = previousMonthSlug;
+    const restoredAgent = resolveDebtorExportTransitionAgent(
+      transitionToken,
+      DATA,
+      prevAgent || previousAgent
+    );
+    currentAgent = restoredAgent;
+
+    if (window.MDAdminContext && DATA?.current_month) {
+      MDAdminContext.setWorkingMonth(DATA.current_month, { silent: true });
+    }
+    if (agSel) {
+      agSel.innerHTML = '<option value="">— Select Agent —</option>';
+      Object.keys(DATA?.agents || {}).sort().forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a;
+        opt.textContent = a;
+        agSel.appendChild(opt);
+      });
+      agSel.value = restoredAgent;
+    }
+
+    const wd = DATA?.working_days || {};
+    const monthBadge = document.getElementById('month-badge');
+    const dayProg = document.getElementById('day-prog');
+    if (monthBadge) monthBadge.textContent = (DATA?.current_month || '').toUpperCase();
+    if (dayProg) {
+      dayProg.textContent = DATA?.is_future_view
+        ? 'Future view · data pending'
+        : `Day ${wd.elapsed_working_days||'?'} of ${wd.total_working_days||'?'} · ${wd.theoretical_pct||0}% elapsed`;
+    }
+    const mSel = document.getElementById('month-selector-agent');
+    if (mSel) mSel.value = CURRENT_MONTH_SLUG;
+    renderGroupBrandTargets();
+
+    if (restoredAgent) {
+      const debtors = DATA.agents[restoredAgent]?.debtor_cards?.debtors || [];
+      const typeCounts = {};
+      debtors.forEach(d => {
+        const t = (d.debtor_type || '').trim();
+        if (t && t.toLowerCase() !== 'nan') typeCounts[t] = (typeCounts[t] || 0) + 1;
+      });
+      buildTypeChipRow(typeCounts, debtors.length, filters?.type || 'all');
+      completeDebtorExportTransition(transitionToken);
+      renderAll();
+    } else {
+      completeDebtorExportTransition(transitionToken);
+      renderNoAgentState();
+    }
+    updateFutureViewBanner();
     alert(`Could not load data for ${requestedSlug}: ${e.message}`);
   }
 }
@@ -2810,6 +3153,8 @@ const SupabaseKpiSync = (() => {
 })();
 
 function init() {
+  bindDebtorDownloadMenuEvents();
+  updateDebtorExportMenu();
   updateFutureViewBanner();
   const wd = DATA.working_days || {};
   document.getElementById('month-badge').textContent = (DATA.current_month || '').toUpperCase();
@@ -2882,6 +3227,7 @@ function getLastAgentSelection() {
 }
 
 function renderNoAgentState() {
+  resetDebtorExportView();
   ['sum-total','sum-active','sum-reactiv','sum-rate','sum-flags'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = id === 'sum-flags' ? '0' : '-';
@@ -3067,6 +3413,18 @@ function jumpToAgent(agent, debtorCode) {
 }
 
 function selectAgent(agent) {
+  const pendingTransition = getDebtorExportTransition();
+  const pendingMonthTransition = pendingTransition?.kind === 'month' ? pendingTransition : null;
+  const transitionToken = pendingMonthTransition
+    ? pendingMonthTransition.token
+    : beginDebtorExportTransition({
+        kind: 'agent',
+        requestedMonthSlug: CURRENT_MONTH_SLUG || 'current',
+        desiredAgent: agent,
+      });
+  if (pendingMonthTransition) {
+    updateDebtorExportTransitionDesiredAgent(transitionToken, agent);
+  }
   currentAgent = agent;
   if (DATA) saveLastAgentSelection(agent);
   currentPage  = 1;
@@ -3078,32 +3436,6 @@ function selectAgent(agent) {
   gainSkuFilter = 'all';
   resetUnpurchasedFilters();
   nonvipTypeFilter = 'all';
-
-  // If debtors not loaded yet, fetch from GitHub
-  const dc = DATA.agents[agent]?.debtor_cards;
-  if (dc && (!dc.debtors || dc.debtors.length === 0)) {
-    const repoRaw = window.REPO_RAW || '';
-    const cacheV  = window.CACHE_V  || '1';
-    if (repoRaw) {
-      const fallbackUrl = (CURRENT_MONTH_SLUG && CURRENT_MONTH_SLUG !== 'current')
-        ? `data_${CURRENT_MONTH_SLUG}.json?v=` + Date.now()
-        : 'dashboard_data.json?v=' + Date.now();
-      fetch(fallbackUrl)
-        .then(r => r.json())
-        .then(fullData => {
-          // Merge debtors into current DATA
-          Object.keys(fullData.agents || {}).forEach(a => {
-            if (DATA.agents[a]) {
-              DATA.agents[a].debtor_cards.debtors =
-                fullData.agents[a]?.debtor_cards?.debtors || [];
-            }
-          });
-          renderAll();
-        })
-        .catch(e => console.error('Failed to load debtors:', e));
-      return; // wait for fetch
-    }
-  }
 
   // Reset search bar
   const searchEl = document.getElementById('debtor-search');
@@ -3118,11 +3450,56 @@ function selectAgent(agent) {
   // Hide global search results
   const gsr = document.getElementById('global-search-results');
   if (gsr) gsr.style.display = 'none';
-  document.getElementById('debtor-list').style.display = '';
+  const debtorList = document.getElementById('debtor-list');
+  if (debtorList) debtorList.style.display = '';
+  const agentSelect = document.getElementById('agent-select');
+  if (agentSelect) agentSelect.value = agent || '';
+
+  if (pendingMonthTransition) {
+    if (typeof updateDebtorExportMenu === 'function') updateDebtorExportMenu();
+    return;
+  }
 
   if (!agent || !DATA) {
+    completeDebtorExportTransition(transitionToken);
     renderNoAgentState();
     return;
+  }
+
+  // If debtors not loaded yet, fetch from GitHub
+  const dc = DATA?.agents?.[agent]?.debtor_cards;
+  if (dc && (!dc.debtors || dc.debtors.length === 0)) {
+    const repoRaw = window.REPO_RAW || '';
+    if (repoRaw) {
+      const fallbackUrl = (CURRENT_MONTH_SLUG && CURRENT_MONTH_SLUG !== 'current')
+        ? `data_${CURRENT_MONTH_SLUG}.json?v=` + Date.now()
+        : 'dashboard_data.json?v=' + Date.now();
+      return fetch(fallbackUrl)
+        .then(r => {
+          if (!isCurrentDebtorExportTransition(transitionToken)) return null;
+          if (!r.ok) throw new Error('Not found');
+          return r.json();
+        })
+        .then(fullData => {
+          if (!fullData || !isCurrentDebtorExportTransition(transitionToken)) return;
+          // Merge debtors into current DATA
+          Object.keys(fullData.agents || {}).forEach(a => {
+            if (DATA.agents[a]) {
+              DATA.agents[a].debtor_cards.debtors =
+                fullData.agents[a]?.debtor_cards?.debtors || [];
+            }
+          });
+          completeDebtorExportTransition(transitionToken);
+          renderAll();
+        })
+        .catch(e => {
+          if (!isCurrentDebtorExportTransition(transitionToken)) return;
+          completeDebtorExportTransition(transitionToken);
+          renderAll();
+          alert(`Could not load debtors for ${agent}. Select the agent again to retry.`);
+          console.error('Failed to load debtors:', e);
+        });
+    }
   }
 
   // Reset all filter rows
@@ -3130,7 +3507,7 @@ function selectAgent(agent) {
   document.querySelectorAll('#special-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
 
   // Rebuild debtor type chips with counts
-  const debtors = DATA.agents[agent]?.debtor_cards?.debtors || [];
+  const debtors = DATA?.agents?.[agent]?.debtor_cards?.debtors || [];
   const typeCounts = {};
   debtors.forEach(d => {
     const t = (d.debtor_type||'').trim();
@@ -3138,6 +3515,7 @@ function selectAgent(agent) {
   });
   buildTypeChipRow(typeCounts, debtors.length, filters?.type || 'all');
 
+  completeDebtorExportTransition(transitionToken);
   renderAll();
 }
 
@@ -3643,6 +4021,36 @@ function isThreeMonthNoCcomOrder(d) {
     && canggihCtn(d, 'prev2') <= 0;
 }
 
+function debtorTargetProgress(d) {
+  const currentRaw = Number(d?.ctn_cur ?? 0);
+  const targetRaw = Number(d?.avg_ctn_3m ?? 0);
+  const current = Number.isFinite(currentRaw) && currentRaw > 0 ? currentRaw : 0;
+  const target = Number.isFinite(targetRaw) && targetRaw > 0 ? targetRaw : 0;
+  return {
+    current,
+    target,
+    ratio: target > 0 ? current / target : 0,
+    gap: target > current ? target - current : 0
+  };
+}
+
+function isNearTargetDebtor(d) {
+  const progress = debtorTargetProgress(d);
+  return progress.current > 0
+    && progress.target > 0
+    && progress.ratio >= 0.8
+    && progress.ratio < 1;
+}
+
+function compareNearTargetDebtors(a, b) {
+  const progressA = debtorTargetProgress(a);
+  const progressB = debtorTargetProgress(b);
+  if (progressA.ratio !== progressB.ratio) return progressB.ratio - progressA.ratio;
+  if (progressA.gap !== progressB.gap) return progressA.gap - progressB.gap;
+  return String(a?.company_name || a?.debtor_code || '')
+    .localeCompare(String(b?.company_name || b?.debtor_code || ''));
+}
+
 function getDebtorType(d) {
   const t = String(d?.debtor_type || d?.type || d?.cust_type || d?.customer_type || '').trim();
   return /^(unknown|nan|null|none)$/i.test(t) ? '' : t;
@@ -3661,6 +4069,99 @@ function debtorMatchesSearch(d, query) {
     d?.phone_1,
     d?.phone1
   ].some(value => String(value || '').toLowerCase().includes(q));
+}
+
+function buildDebtorFilterDescriptor(filterState = {}) {
+  const labels = [];
+  const search = String(filterState.search || '').trim();
+  const status = filterState.status || 'all';
+  const type = filterState.type || 'all';
+  const special = String(filterState.special ?? '').trim();
+  const specialLabels = {
+    vip: 'VIP',
+    new: 'New',
+    birthday: 'Birthday',
+    drop: 'Drop',
+    gain: 'Gain',
+    unpurchased: 'Unpurchased',
+    nonvip: 'Non-VIP',
+    newsku: 'New SKU',
+    no_ccom: 'CCOM not taken',
+    no3m: '3-month no order',
+    flagged: 'Flagged',
+    campaign: 'Campaign',
+    overdue: 'Overdue',
+    neartarget: 'Near Target'
+  };
+
+  if (search) labels.push(`Search: ${search}`);
+  if (status !== 'all') labels.push(`Status: ${status}`);
+  if (filterState.pending_activation === 'true') labels.push('Pending activation');
+  if (special) labels.push(specialLabels[special] || special);
+  if (type !== 'all') labels.push(`Type: ${type}`);
+  return { active: labels.length > 0, labels };
+}
+
+function debtorMatchesStandardViewFilters(d, view = {}) {
+  const status = view.status || 'all';
+  const type = view.type || 'all';
+  if (!debtorMatchesSearch(d, view.search)) return false;
+  if (status !== 'all' && d.status !== status) return false;
+  if (view.pendingActivation === 'true' && !d.is_pending_activation) return false;
+  if (view.special === 'vip' && !d.vip) return false;
+  if (view.special === 'new' && !d.is_new) return false;
+  if (view.special === 'birthday'
+      && !view.birthdayCodes?.has(String(d?.debtor_code || '').toUpperCase())) return false;
+  if (view.special === 'newsku' && !(newSkuKpiEntryCount(d) > 0)) return false;
+  if (view.special === 'no_ccom' && !isNoCcomBuyer(d)) return false;
+  if (view.special === 'no3m' && !isThreeMonthNoCcomOrder(d)) return false;
+  if (view.special === 'flagged' && !getFlag(currentAgent, d.debtor_code)) return false;
+  if (view.special === 'campaign'
+      && (!visibleDebtorCampaigns(d).length || !getDebtorType(d))) return false;
+  if (view.special === 'overdue' && !d.has_overdue) return false;
+  if (view.special === 'neartarget' && !isNearTargetDebtor(d)) return false;
+  if (!view.omitType && type !== 'all' && (getDebtorType(d) || 'No Type') !== type) return false;
+  return true;
+}
+
+function filterStandardDebtorsForView(debtors, view = {}) {
+  return (debtors || []).filter(d => debtorMatchesStandardViewFilters(d, view));
+}
+
+function buildDynamicDebtorTypeSummary(allDebtors, eligibleDebtors) {
+  const counts = {};
+  (allDebtors || []).forEach(d => {
+    const type = String(d?.debtor_type || '').trim();
+    if (type && type.toLowerCase() !== 'nan') counts[type] = 0;
+  });
+  (eligibleDebtors || []).forEach(d => {
+    const type = String(d?.debtor_type || '').trim();
+    if (type && type.toLowerCase() !== 'nan') counts[type] = (counts[type] || 0) + 1;
+  });
+  return { counts, total: (eligibleDebtors || []).length };
+}
+
+function filterMovementDebtorsForView(debtors, options = {}) {
+  const type = options.type || 'all';
+  return (debtors || []).filter(d => {
+    if (!debtorMatchesSearch(d, options.search)) return false;
+    if (type !== 'all' && (getDebtorType(d) || 'No Type') !== type) return false;
+    return true;
+  });
+}
+
+function debtorsFromMovementRows(rows, debtors) {
+  const debtorByCode = new Map();
+  (debtors || []).forEach(d => {
+    const code = String(d?.debtor_code || '').trim() || String(d?.code || '').trim();
+    const key = code.toLowerCase();
+    if (key && !debtorByCode.has(key)) debtorByCode.set(key, d);
+  });
+  const ordered = (rows || []).map(row => {
+    const key = String(row?.debtor_code || '').trim().toLowerCase();
+    return debtorByCode.get(key);
+  }).filter(Boolean);
+  return uniqueDebtorsByCode(ordered);
 }
 
 function filterUnpurchasedDebtorsForView(debtors, typeFilter, searchQuery) {
@@ -4309,13 +4810,39 @@ function renderDropMovementExtra(r, skuPillsHtml = '') {
   </div>`;
 }
 
+function debtorMovementFilterLabel(value) {
+  const labels = {
+    stopped: 'Stopped purchase',
+    reduced30: 'Reduced >=30%',
+    newonly: 'New SKU only',
+    increased30: 'Increased >=30%'
+  };
+  return labels[value] || String(value || '');
+}
+
 function renderDropMode(debtors) {
-  const skuOptions = buildDropSkuOptions(debtors);
-  let dropRows = buildDroppingSkuRows(debtors, dropSkuFilter);
+  const search = (document.getElementById('debtor-search')?.value || '').trim();
+  const movementDebtors = filterMovementDebtorsForView(debtors, {
+    search,
+    type: filters.type || 'all'
+  });
+  const skuOptions = buildDropSkuOptions(movementDebtors);
+  let dropRows = buildDroppingSkuRows(movementDebtors, dropSkuFilter);
   if (dropCtnFilter === 'stopped') dropRows = dropRows.filter(r => r.stopped);
   if (dropCtnFilter === 'reduced30') dropRows = dropRows.filter(r => !r.stopped && r.drop_pct >= 30);
   dropRows.sort((a, b) =>
     (b.prev_ctn - b.cur_ctn) - (a.prev_ctn - a.cur_ctn));
+  const exportDebtors = debtorsFromMovementRows(dropRows, movementDebtors);
+  publishDebtorExportView(exportDebtors, {
+    active: true,
+    labels: [
+      'Drop',
+      search ? `Search: ${search}` : '',
+      filters.type && filters.type !== 'all' ? `Type: ${filters.type}` : '',
+      dropSkuFilter && dropSkuFilter !== 'all' ? `SKU: ${dropSkuFilter}` : '',
+      dropCtnFilter && dropCtnFilter !== 'all' ? `Movement: ${debtorMovementFilterLabel(dropCtnFilter)}` : ''
+    ]
+  });
   const shownDropRows = dropRows.slice(0, 100);
 
   document.getElementById('page-info').textContent = `1-${shownDropRows.length} of ${dropRows.length}`;
@@ -4328,7 +4855,7 @@ function renderDropMode(debtors) {
   }).join('');
 
   const dropHtml = shownDropRows.length ? shownDropRows.map((r, idx) => {
-    const orig = debtors.find(d => d.debtor_code === r.debtor_code);
+    const orig = movementDebtors.find(d => d.debtor_code === r.debtor_code);
     let skuPillsHtml = '';
     if (dropSkuFilter === 'all') {
       if (orig) {
@@ -4456,11 +4983,27 @@ function renderGainMovementExtra(r, skuPillsHtml = '') {
 }
 
 function renderGainMode(debtors) {
-  const skuOptions = buildDropSkuOptions(debtors); // reuse same SKU list builder
-  let gainRows = buildGainingSkuRows(debtors, gainSkuFilter);
+  const search = (document.getElementById('debtor-search')?.value || '').trim();
+  const movementDebtors = filterMovementDebtorsForView(debtors, {
+    search,
+    type: filters.type || 'all'
+  });
+  const skuOptions = buildDropSkuOptions(movementDebtors); // reuse same SKU list builder
+  let gainRows = buildGainingSkuRows(movementDebtors, gainSkuFilter);
   if (gainCtnFilter === 'newonly') gainRows = gainRows.filter(r => r.is_new);
   if (gainCtnFilter === 'increased30') gainRows = gainRows.filter(r => !r.is_new && r.gain_pct >= 30);
   gainRows.sort((a, b) => (b.cur_ctn - b.prev_ctn) - (a.cur_ctn - a.prev_ctn));
+  const exportDebtors = debtorsFromMovementRows(gainRows, movementDebtors);
+  publishDebtorExportView(exportDebtors, {
+    active: true,
+    labels: [
+      'Gain',
+      search ? `Search: ${search}` : '',
+      filters.type && filters.type !== 'all' ? `Type: ${filters.type}` : '',
+      gainSkuFilter && gainSkuFilter !== 'all' ? `SKU: ${gainSkuFilter}` : '',
+      gainCtnFilter && gainCtnFilter !== 'all' ? `Movement: ${debtorMovementFilterLabel(gainCtnFilter)}` : ''
+    ]
+  });
   const shownRows = gainRows.slice(0, 100);
 
   document.getElementById('page-info').textContent = `1-${shownRows.length} of ${gainRows.length}`;
@@ -4473,7 +5016,7 @@ function renderGainMode(debtors) {
   }).join('');
 
   const gainHtml = shownRows.length ? shownRows.map((r, idx) => {
-    const orig = debtors.find(d => d.debtor_code === r.debtor_code);
+    const orig = movementDebtors.find(d => d.debtor_code === r.debtor_code);
     let skuPillsHtml = '';
     if (gainSkuFilter === 'all') {
       if (orig) {
@@ -4702,6 +5245,7 @@ function renderUnpurchasedMode(debtors) {
 
   const skuCatalog = getUnpurchasedSkuCatalog(eligible);
   if (!skuCatalog.length) {
+    publishDebtorExportView([], { active: true, labels: ['Unpurchased'] });
     document.getElementById('debtor-list').innerHTML = `<div class="empty-state">No SKU item data available for this month.</div>`;
     return;
   }
@@ -4758,6 +5302,16 @@ function renderUnpurchasedMode(debtors) {
 
   const shown = filterUnpurchasedDebtorsForView(selectedDebtors, unpurchasedTypeFilter, search);
   shown.sort((a, b) => (a.company_name || '').localeCompare(b.company_name || ''));
+  publishDebtorExportView(shown, {
+    active: true,
+    labels: [
+      'Unpurchased',
+      `SKU: ${unpurchasedSkuFilter}`,
+      modeLabels[unpurchasedRecencyMode] || '',
+      unpurchasedTypeFilter !== 'all' ? `Type: ${unpurchasedTypeFilter}` : '',
+      search ? `Search: ${search}` : ''
+    ]
+  });
   const totalShown = shown.length;
   const pages = Math.max(1, Math.ceil(totalShown / PAGE_SIZE));
   unpurchasedPage = Math.min(Math.max(1, unpurchasedPage), pages);
@@ -5045,15 +5599,62 @@ function exportRowsAsWorkbook(rows, sheetName, xlsxFilename, csvFilename, column
   return 'csv';
 }
 
-function buildFullDebtorExportRows(agent, data) {
+function buildFullDebtorExportRows(agent, data, debtorOverride = null) {
   const selectedAgent = safeExportText(agent || currentAgent);
   const agentData = data && data.agents && selectedAgent ? data.agents[selectedAgent] : null;
-  const debtors = agentData && agentData.debtor_cards && Array.isArray(agentData.debtor_cards.debtors)
+  const canonicalDebtors = agentData && agentData.debtor_cards && Array.isArray(agentData.debtor_cards.debtors)
     ? agentData.debtor_cards.debtors
     : [];
+  const canonicalAccountStatusByDebtor = new WeakMap();
+  let debtors = canonicalDebtors;
+  if (Array.isArray(debtorOverride)) {
+    const canonicalByCode = new Map();
+    canonicalDebtors.forEach(debtor => {
+      const key = String(debtor?.debtor_code || debtor?.code || '').trim().toLowerCase();
+      if (key && !canonicalByCode.has(key)) canonicalByCode.set(key, debtor);
+    });
+    const seen = new Set();
+    debtors = [];
+    debtorOverride.forEach(override => {
+      const rawCode = override && typeof override === 'object'
+        ? (override.debtor_code || override.code)
+        : override;
+      const key = String(rawCode || '').trim().toLowerCase();
+      const canonical = canonicalByCode.get(key);
+      if (!canonical || seen.has(key)) return;
+      seen.add(key);
+      const useFuturePlanningOverride =
+        data?.is_future_view === true &&
+        override &&
+        typeof override === 'object' &&
+        override.is_future_planning === true;
+      const selectedDebtor = useFuturePlanningOverride ? {
+        ...canonical,
+        status: override.status,
+        is_pending_activation: override.is_pending_activation,
+        ctn_cur: override.ctn_cur,
+        canggih_ctn_cur: override.canggih_ctn_cur,
+        eightcom_ctn_cur: override.eightcom_ctn_cur,
+        rm_cur: override.rm_cur,
+        invoice_count_cur: override.invoice_count_cur,
+        new_sku_count: override.new_sku_count,
+        new_sku_status: override.new_sku_status,
+        volume_drop_pct: override.volume_drop_pct,
+        is_future_planning: override.is_future_planning,
+        campaigns: override.campaigns,
+      } : canonical;
+      if (useFuturePlanningOverride) {
+        canonicalAccountStatusByDebtor.set(selectedDebtor, debtorAccountStatusExportValue(canonical));
+      }
+      debtors.push(selectedDebtor);
+    });
+  }
 
   return debtors.map(debtor => {
     const debtorCode = safeExportText(debtor.debtor_code || debtor.code);
+    const accountStatus = canonicalAccountStatusByDebtor.has(debtor)
+      ? canonicalAccountStatusByDebtor.get(debtor)
+      : debtorAccountStatusExportValue(debtor);
     const flag = typeof getFlag === 'function' && selectedAgent && debtorCode
       ? getFlag(selectedAgent, debtorCode)
       : null;
@@ -5064,7 +5665,7 @@ function buildFullDebtorExportRows(agent, data) {
       'Debtor Type': safeExportText(debtor.debtor_type || debtor.type),
       'Phone': safeExportText(debtor.phone || debtor.phone1 || debtor.mobile),
       'Area': debtorAreaExportValue(debtor),
-      'Account Status': debtorAccountStatusExportValue(debtor),
+      'Account Status': accountStatus,
       'Dashboard Status': safeExportText(debtor.status),
       'VIP': debtor.vip ? 'Y' : '',
       'Birthday': debtorBirthdayExportValue(debtor),
@@ -5083,9 +5684,32 @@ function buildFullDebtorExportRows(agent, data) {
   });
 }
 
+function debtorExportColumnWidths() {
+  return [
+    { wch: 10 }, { wch: 14 }, { wch: 36 }, { wch: 18 }, { wch: 16 },
+    { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 5 }, { wch: 12 }, { wch: 12 },
+    { wch: 14 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 16 },
+    { wch: 12 }, { wch: 30 }, { wch: 36 }, { wch: 20 }, { wch: 42 },
+  ];
+}
+
+function exportDebtorRows(rows, sheetName, baseName) {
+  return exportRowsAsWorkbook(
+    rows,
+    sheetName,
+    baseName + '.xlsx',
+    baseName + '.csv',
+    debtorExportColumnWidths()
+  );
+}
+
 function exportFullDebtorListExcel() {
   if (!currentAgent) {
     alert('Select an agent first.');
+    return;
+  }
+  if (typeof getCurrentDebtorExportView === 'function' && getCurrentDebtorExportView() === null) {
+    alert('Debtor list is still loading.');
     return;
   }
   const rows = buildFullDebtorExportRows(currentAgent, DATA);
@@ -5094,17 +5718,43 @@ function exportFullDebtorListExcel() {
     return;
   }
 
-  const columnWidths = [
-    { wch: 10 }, { wch: 14 }, { wch: 36 }, { wch: 18 }, { wch: 16 },
-    { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 5 }, { wch: 12 }, { wch: 12 },
-    { wch: 14 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 16 },
-    { wch: 12 }, { wch: 30 }, { wch: 36 }, { wch: 20 }, { wch: 42 },
-  ];
-
   const monthPart = safeExportFilenamePart(DATA && DATA.current_month ? DATA.current_month : 'Current');
   const agentPart = safeExportFilenamePart(currentAgent);
   const baseName = 'MD_Full_Debtor_List_' + agentPart + '_' + monthPart;
-  exportRowsAsWorkbook(rows, 'Full Debtor List', baseName + '.xlsx', baseName + '.csv', columnWidths);
+  exportDebtorRows(rows, 'Full Debtor List', baseName);
+  if (typeof closeDebtorDownloadMenu === 'function') closeDebtorDownloadMenu();
+}
+
+function exportFilteredDebtorListExcel() {
+  if (!currentAgent) {
+    alert('Select an agent first.');
+    return;
+  }
+
+  let state = typeof getCurrentDebtorExportView === 'function' ? getCurrentDebtorExportView() : null;
+  if (!state) {
+    if (typeof renderDebtors === 'function') renderDebtors();
+    state = typeof getCurrentDebtorExportView === 'function' ? getCurrentDebtorExportView() : null;
+  }
+  if (!state) {
+    alert('Debtor list is still loading.');
+    return;
+  }
+  if (!state.active) {
+    alert('Apply a filter or search before downloading filtered results.');
+    return;
+  }
+  if (!Array.isArray(state.debtors) || !state.debtors.length) {
+    alert('No matching debtors to export.');
+    return;
+  }
+
+  const rows = buildFullDebtorExportRows(currentAgent, DATA, state.debtors);
+  const monthPart = safeExportFilenamePart(DATA && DATA.current_month ? DATA.current_month : 'Current');
+  const agentPart = safeExportFilenamePart(currentAgent);
+  const baseName = 'MD_Filtered_Debtor_List_' + agentPart + '_' + monthPart;
+  exportDebtorRows(rows, 'Filtered Debtor List', baseName);
+  if (typeof closeDebtorDownloadMenu === 'function') closeDebtorDownloadMenu();
 }
 
 function exportUnpurchasedExcel() {
@@ -5277,15 +5927,11 @@ function renderNonVipMode(debtors) {
     !PERSONAL.some(p => getDebtorType(d).includes(p)) &&
     d.dm_active !== false
   );
-
-  eligible.sort((a, b) => {
-    const aCtn = (a.ctn_cur || 0) + (a.ctn_prev1 || 0) + (a.ctn_prev2 || 0);
-    const bCtn = (b.ctn_cur || 0) + (b.ctn_prev1 || 0) + (b.ctn_prev2 || 0);
-    return bCtn - aCtn;
-  });
+  const search = (document.getElementById('debtor-search')?.value || '').trim();
+  const searchMatched = eligible.filter(d => debtorMatchesSearch(d, search));
 
   const typeCounts = {};
-  eligible.forEach(d => {
+  searchMatched.forEach(d => {
     const t = getDebtorType(d) || 'No Type';
     typeCounts[t] = (typeCounts[t] || 0) + 1;
   });
@@ -5293,7 +5939,7 @@ function renderNonVipMode(debtors) {
   const typeButtons = [
     `<button class="filter-chip ${nonvipTypeFilter === 'all' ? 'active' : ''}"
       onclick="setNonVipType('all',this)">
-      ALL (${eligible.length})</button>`,
+      ALL (${searchMatched.length})</button>`,
     ...Object.entries(typeCounts)
       .sort((a, b) => b[1] - a[1])
       .map(([type, count]) =>
@@ -5304,8 +5950,22 @@ function renderNonVipMode(debtors) {
   ].join('');
 
   const shown = nonvipTypeFilter === 'all'
-    ? eligible
-    : eligible.filter(d => (getDebtorType(d) || 'No Type') === nonvipTypeFilter);
+    ? searchMatched
+    : searchMatched.filter(d => (getDebtorType(d) || 'No Type') === nonvipTypeFilter);
+
+  shown.sort((a, b) => {
+    const aCtn = (a.ctn_cur || 0) + (a.ctn_prev1 || 0) + (a.ctn_prev2 || 0);
+    const bCtn = (b.ctn_cur || 0) + (b.ctn_prev1 || 0) + (b.ctn_prev2 || 0);
+    return bCtn - aCtn;
+  });
+  publishDebtorExportView(shown, {
+    active: true,
+    labels: [
+      'Non-VIP',
+      nonvipTypeFilter !== 'all' ? `Type: ${nonvipTypeFilter}` : '',
+      search ? `Search: ${search}` : ''
+    ]
+  });
 
   const totalShown = shown.length;
   const pages = Math.max(1, Math.ceil(totalShown / PAGE_SIZE));
@@ -5333,7 +5993,7 @@ function renderNonVipMode(debtors) {
       </div>
     </div>
     <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:10px;padding:4px 8px;background:rgba(255,255,255,.03);border-radius:6px;border-left:2px solid var(--accent);">
-      ${eligible.length} 个非VIP客户 · 按CTN排序 · 不含Personal
+      ${totalShown} matching of ${eligible.length} non-VIP customers · 按CTN排序 · 不含Personal
     </div>
     ${debtorHtml}`;
 }
@@ -5808,51 +6468,21 @@ function renderDebtors() {
   }
 
   // Filter
-  const search = (document.getElementById('debtor-search')?.value || '').toLowerCase();
+  const search = (document.getElementById('debtor-search')?.value || '').trim();
+  const standardView = {
+    search,
+    status: filters.status,
+    pendingActivation: filters.pending_activation,
+    special: filters.special,
+    type: filters.type,
+    birthdayCodes: birthdayCodeSet
+  };
   // Show/hide clear button
   const clearBtn = document.getElementById('search-clear-btn');
   if (clearBtn) clearBtn.style.display = search ? 'block' : 'none';
   // Make sure debtor list is visible (not hidden by global search)
   document.getElementById('debtor-list').style.display = '';
-  let filtered = debtors.filter(d => {
-    if (search && 
-        !d.company_name.toLowerCase().includes(search) && 
-        !d.debtor_code.toLowerCase().includes(search) && 
-        !(d.phone || '').toLowerCase().includes(search)) return false;
-    if (filters.status !== 'all' && d.status !== filters.status) return false;
-    if (filters.pending_activation === 'true' && !d.is_pending_activation) return false;
-    if (filters.special === 'vip'      && !d.vip)                return false;
-    if (filters.special === 'new'      && !d.is_new)             return false;
-    if (filters.special === 'birthday') {
-      if (!birthdayCodeSet.has(String(d.debtor_code || '').toUpperCase())) return false;
-    }
-    if (filters.special === 'drop'     && !d.volume_drop_pct)    return false;
-    if (filters.special === 'gain' && !((d.ctn_cur || 0) > (d.ctn_prev1 || 0))) return false;
-    if (filters.special === 'newsku'   && !(newSkuKpiEntryCount(d) > 0)) return false;
-    if (filters.special === 'no_ccom'  && !isNoCcomBuyer(d)) return false;
-    if (filters.special === 'no3m'     && !isThreeMonthNoCcomOrder(d)) return false;
-    if (filters.special === 'flagged'   && !getFlag(currentAgent, d.debtor_code)) return false;
-    if (filters.special === 'campaign'  && (!visibleDebtorCampaigns(d).length || !getDebtorType(d))) return false;
-    if (filters.special === 'overdue'   && !d.has_overdue) return false;
-    if (filters.special === 'neartarget') {
-      // Has bought something this month but not yet hit any campaign threshold
-      const camps = visibleDebtorCampaigns(d);
-      const hasNearTarget = camps.some(c => {
-        const catRule = c.cat && c.cat_rules ? c.cat_rules[c.cat] : null;
-        const minCtn  = catRule?.min_ctn || c.min_order_ctn || 0;
-        const curCtn  = d.ctn_cur || 0;
-        return minCtn > 0 && curCtn > 0 && curCtn < minCtn;
-      });
-      // Also check brand camp tiers
-      const hasBrandNear = Object.values(d.brand_camp_tiers||{}).some(t => {
-        const minCtn = t.tier === 'A' ? 2 : t.tier === 'B' ? 5 : t.tier === 'C' ? 10 : 0;
-        return minCtn > 0 && (d.ctn_cur||0) > 0 && (d.ctn_cur||0) < minCtn;
-      });
-      if (!hasNearTarget && !hasBrandNear) return false;
-    }
-    if (filters.type !== 'all'         && d.debtor_type !== filters.type) return false;
-    return true;
-  });
+  let filtered = filterStandardDebtorsForView(debtors, standardView);
 
   // Brand banner
   let bannerEl = document.getElementById('brand-banner');
@@ -5881,6 +6511,12 @@ function renderDebtors() {
     bannerEl.style.borderColor = 'rgba(255,95,95,.25)';
     bannerEl.innerHTML = `<span style="font-family:var(--mono);font-size:11px;color:var(--red);">三个月未开单 — ${filtered.length} 户，已排除 P-Personal</span>
       <button class="brand-banner-close" onclick="setSpecialFilter('no3m',document.querySelector('[data-val=\\'no3m\\']'))">×</button>`;
+  } else if (filters.special === 'neartarget') {
+    bannerEl.style.display = 'flex';
+    bannerEl.style.background = 'rgba(240,192,64,.08)';
+    bannerEl.style.borderColor = 'rgba(240,192,64,.28)';
+    bannerEl.innerHTML = `<span style="font-family:var(--mono);font-size:11px;color:var(--accent);">Near Target — ${filtered.length} 户已达到前三个月平均 CTN 的 80%-99%</span>
+      <button class="brand-banner-close" onclick="setSpecialFilter('neartarget',document.querySelector('[data-val=\\'neartarget\\']'))">×</button>`;
   } else {
     bannerEl.style.display = 'none';
     bannerEl.style.background = '';
@@ -5913,66 +6549,29 @@ function renderDebtors() {
       return String(a.company_name || '').localeCompare(String(b.company_name || ''));
     });
   }
+  if (filters.special === 'neartarget') {
+    filtered.sort(compareNearTargetDebtors);
+  }
 
   // Compute type counts as if the type filter weren't applied.
   // This gives users meaningful "if I switched type to this" counts even when
   // a type filter is currently active. Predicates mirror the filter logic
   // above EXCEPT for the final type check — keep in sync if filters change.
   const allDebtors = DATA.agents[currentAgent]?.debtor_cards?.debtors || [];
-  const typeCountsDynamic = {};
-  let typeAllTotal = 0;
-  const _MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const _selMonth = DATA?.current_month || '';
-  const _selMonthNum = _MONTHS.indexOf((_selMonth.split(' ')[0]||'')) + 1;
-  allDebtors.forEach(d => {
-    const t = (d.debtor_type||'').trim();
-    if (t && t.toLowerCase() !== 'nan') typeCountsDynamic[t] = 0;
+  const typeEligible = filterStandardDebtorsForView(allDebtors, {
+    ...standardView,
+    omitType: true
   });
-  for (const d of allDebtors) {
-    // search box
-    if (search &&
-        !d.company_name.toLowerCase().includes(search) &&
-        !d.debtor_code.toLowerCase().includes(search) &&
-        !(d.phone || '').toLowerCase().includes(search)) continue;
-    // status / pending_activation
-    if (filters.status !== 'all' && d.status !== filters.status) continue;
-    if (filters.pending_activation === 'true' && !d.is_pending_activation) continue;
-    // special filters (single-valued)
-    if (filters.special === 'vip'  && !d.vip)    continue;
-    if (filters.special === 'new'  && !d.is_new) continue;
-    if (filters.special === 'birthday') {
-      if (!birthdayCodeSet.has(String(d.debtor_code || '').toUpperCase())) continue;
-    }
-    if (filters.special === 'drop'    && !d.volume_drop_pct) continue;
-    if (filters.special === 'gain'    && !((d.ctn_cur || 0) > (d.ctn_prev1 || 0))) continue;
-    if (filters.special === 'newsku'  && !(newSkuKpiEntryCount(d) > 0)) continue;
-    if (filters.special === 'no_ccom' && !isNoCcomBuyer(d)) continue;
-    if (filters.special === 'no3m'    && !isThreeMonthNoCcomOrder(d)) continue;
-    if (filters.special === 'flagged' && !getFlag(currentAgent, d.debtor_code)) continue;
-    if (filters.special === 'campaign' && (!visibleDebtorCampaigns(d).length || !getDebtorType(d))) continue;
-    if (filters.special === 'overdue' && !d.has_overdue) continue;
-    if (filters.special === 'neartarget') {
-      const camps = visibleDebtorCampaigns(d);
-      const hasNearTarget = camps.some(c => {
-        const catRule = c.cat && c.cat_rules ? c.cat_rules[c.cat] : null;
-        const minCtn  = catRule?.min_ctn || c.min_order_ctn || 0;
-        const curCtn  = d.ctn_cur || 0;
-        return minCtn > 0 && curCtn > 0 && curCtn < minCtn;
-      });
-      const hasBrandNear = Object.values(d.brand_camp_tiers||{}).some(t => {
-        const minCtn = t.tier === 'A' ? 2 : t.tier === 'B' ? 5 : t.tier === 'C' ? 10 : 0;
-        return minCtn > 0 && (d.ctn_cur||0) > 0 && (d.ctn_cur||0) < minCtn;
-      });
-      if (!hasNearTarget && !hasBrandNear) continue;
-    }
-    // NOTE: type filter intentionally omitted — that's the dimension we're counting across.
+  const dynamicTypeSummary = buildDynamicDebtorTypeSummary(allDebtors, typeEligible);
+  buildTypeChipRow(dynamicTypeSummary.counts, dynamicTypeSummary.total, filters.type || 'all');
 
-    typeAllTotal++;
-    const t = (d.debtor_type||'').trim();
-    if (!t || t.toLowerCase() === 'nan') continue;
-    typeCountsDynamic[t] = (typeCountsDynamic[t]||0) + 1;
-  }
-  buildTypeChipRow(typeCountsDynamic, typeAllTotal, filters.type || 'all');
+  publishDebtorExportView(filtered, buildDebtorFilterDescriptor({
+    search,
+    status: filters.status,
+    pending_activation: filters.pending_activation,
+    special: filters.special,
+    type: filters.type
+  }));
 
   const totalF = filtered.length;
   const pages  = Math.max(1, Math.ceil(totalF / PAGE_SIZE));

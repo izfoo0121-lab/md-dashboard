@@ -22,10 +22,7 @@ function extractFunction(name) {
   throw new Error(`Could not extract ${name}`);
 }
 
-assert(
-  html.includes('Download Full Debtor List'),
-  'Debtors tab should expose a full debtor list download button'
-);
+assert(html.includes('Full debtor list'), 'Debtors tab should expose the full debtor list menu item');
 
 const context = {
   DATA: {
@@ -40,6 +37,7 @@ const context = {
               debtor_type: 'SH-Shop',
               phone: '+601111',
               area: 'GRP 2A',
+              address: '1 CANONICAL ROAD',
               account_status: 'account_active',
               account_status_label: 'Active',
               account_active: true,
@@ -95,10 +93,19 @@ const context = {
   visibleDebtorCampaigns(debtor) {
     return debtor.campaigns || [];
   },
-  formatCampaignFocPackage() {
+  formatCampaignFocPackage(campaign) {
+    if (
+      campaign?.converted === false &&
+      campaign?.status === 'pending' &&
+      campaign?.current_ctn === 0 &&
+      campaign?.current_rm === 0
+    ) {
+      return 'Planning reset: pending / 0 CTN / RM 0';
+    }
     return 'FOC: SKNR x 2 packs';
   },
   newSkuKpiEntryCount(debtor) {
+    if (debtor.is_future_planning === true) return debtor.new_sku_count;
     return debtor.debtor_code === '300-A001' ? 12 : 0;
   },
 };
@@ -118,12 +125,44 @@ vm.runInContext([
   extractFunction('debtorBirthdayThisMonthExportValue'),
   extractFunction('debtorAccountStatusExportValue'),
   extractFunction('debtorAreaExportValue'),
+  extractFunction('futureDebtorPlanningCopy'),
   extractFunction('buildFullDebtorExportRows'),
+  extractFunction('debtorExportColumnWidths'),
 ].join('\n'), context);
 
 const rows = context.buildFullDebtorExportRows('BEN', context.DATA);
+const expectedExportKeys = [
+  'Agent',
+  'Debtor Code',
+  'Company Name',
+  'Debtor Type',
+  'Phone',
+  'Area',
+  'Account Status',
+  'Dashboard Status',
+  'VIP',
+  'Birthday',
+  'Birthday This Month',
+  'Current Month CTN',
+  'M-1 CTN',
+  'M-2 CTN',
+  'M-3 CTN',
+  'Last Purchase Date',
+  'New SKU Count',
+  'Active Campaigns',
+  'Campaign FOC Package / Notes',
+  'Flag Status / Reason',
+  'Address',
+];
+const expectedExportWidths = [10, 14, 36, 18, 16, 14, 18, 18, 5, 12, 12, 14, 10, 10, 10, 16, 12, 30, 36, 20, 42];
 
 assert.strictEqual(rows.length, 2, 'full debtor export should ignore active filters and pagination');
+assert.deepStrictEqual(Object.keys(rows[0]), expectedExportKeys, 'debtor export keys and order should remain stable');
+assert.deepStrictEqual(
+  JSON.parse(JSON.stringify(context.debtorExportColumnWidths())).map(column => column.wch),
+  expectedExportWidths,
+  'debtor export should retain the exact 21 workbook widths'
+);
 assert.deepStrictEqual(
   rows.map(row => row['Debtor Code']),
   ['300-A001', '300-B002'],
@@ -150,6 +189,105 @@ assert.strictEqual(
   'full debtor export should not include other-agent debtor records'
 );
 
+const constrainedRows = context.buildFullDebtorExportRows('BEN', context.DATA, [
+  { debtor_code: ' 300-b002 ', company_name: 'FORGED B' },
+  context.DATA.agents.CJ.debtor_cards.debtors[0],
+  { code: '300-A001', company_name: 'FORGED A' },
+  { debtor_code: '300-B002' },
+  { debtor_code: '300-UNKNOWN' },
+]);
+assert.deepStrictEqual(
+  Array.from(constrainedRows, row => row['Debtor Code']),
+  ['300-B002', '300-A001'],
+  'filtered override should preserve requested canonical-code order and dedupe matches'
+);
+assert.deepStrictEqual(
+  Array.from(constrainedRows, row => row['Company Name']),
+  ['KEDAI B', 'KEDAI A'],
+  'filtered override should use canonical selected-agent values instead of override objects'
+);
+assert.strictEqual(
+  constrainedRows.some(row => row['Company Name'] === 'OTHER AGENT'),
+  false,
+  'filtered override must drop foreign-agent debtor codes'
+);
+
+const canonicalFallbackStatusDebtor = {
+  ...context.DATA.agents.BEN.debtor_cards.debtors[1],
+  debtor_code: '300-D004',
+  company_name: 'KEDAI D',
+  status: 'reactivation',
+};
+const futureViewData = {
+  ...context.DATA,
+  is_future_view: true,
+  agents: {
+    ...context.DATA.agents,
+    BEN: {
+      ...context.DATA.agents.BEN,
+      debtor_cards: {
+        ...context.DATA.agents.BEN.debtor_cards,
+        debtors: [
+          ...context.DATA.agents.BEN.debtor_cards.debtors,
+          canonicalFallbackStatusDebtor,
+        ],
+      },
+    },
+  },
+};
+const futurePlanningOverride = context.futureDebtorPlanningCopy(
+  context.DATA.agents.BEN.debtor_cards.debtors[0]
+);
+const futureFallbackStatusOverride = context.futureDebtorPlanningCopy(canonicalFallbackStatusDebtor);
+futurePlanningOverride.debtor_code = ' 300-a001 ';
+futurePlanningOverride.company_name = 'FORGED FUTURE NAME';
+futurePlanningOverride.debtor_type = 'FORGED TYPE';
+futurePlanningOverride.phone = '+609999';
+futurePlanningOverride.address = 'FORGED ADDRESS';
+const futurePlanningRows = context.buildFullDebtorExportRows(
+  'BEN',
+  futureViewData,
+  [futurePlanningOverride, futureFallbackStatusOverride]
+);
+assert.deepStrictEqual(
+  {
+    code: futurePlanningRows[0]?.['Debtor Code'],
+    company: futurePlanningRows[0]?.['Company Name'],
+    debtorType: futurePlanningRows[0]?.['Debtor Type'],
+    phone: futurePlanningRows[0]?.['Phone'],
+    address: futurePlanningRows[0]?.['Address'],
+    status: futurePlanningRows[0]?.['Dashboard Status'],
+    currentCtn: futurePlanningRows[0]?.['Current Month CTN'],
+    newSkuCount: futurePlanningRows[0]?.['New SKU Count'],
+    campaigns: futurePlanningRows[0]?.['Active Campaigns'],
+    campaignNotes: futurePlanningRows[0]?.['Campaign FOC Package / Notes'],
+  },
+  {
+    code: '300-A001',
+    company: 'KEDAI A',
+    debtorType: 'SH-Shop',
+    phone: '+601111',
+    address: '1 CANONICAL ROAD',
+    status: 'pending',
+    currentCtn: 0,
+    newSkuCount: 0,
+    campaigns: 'SUKUN FOC',
+    campaignNotes: 'Planning reset: pending / 0 CTN / RM 0',
+  },
+  'future-view filtered export should retain canonical identity and planning-copy values'
+);
+assert.deepStrictEqual(
+  {
+    accountStatus: futurePlanningRows[1]?.['Account Status'],
+    dashboardStatus: futurePlanningRows[1]?.['Dashboard Status'],
+  },
+  {
+    accountStatus: 'reactivation',
+    dashboardStatus: 'pending',
+  },
+  'future-view filtered export should preserve the canonical Account Status fallback while using planning Dashboard Status'
+);
+
 const fallbackCalls = [];
 const fallbackContext = {
   DATA: context.DATA,
@@ -164,6 +302,9 @@ const fallbackContext = {
   visibleDebtorCampaigns: context.visibleDebtorCampaigns,
   formatCampaignFocPackage: context.formatCampaignFocPackage,
   newSkuKpiEntryCount: context.newSkuKpiEntryCount,
+  getCurrentDebtorExportView() {
+    return { agent: 'BEN', month: 'Jun 26', debtors: context.DATA.agents.BEN.debtor_cards.debtors, active: false };
+  },
 };
 vm.createContext(fallbackContext);
 vm.runInContext([
@@ -187,6 +328,8 @@ vm.runInContext([
   extractFunction('exportRowsAsCsv'),
   extractFunction('exportRowsAsWorkbook'),
   extractFunction('buildFullDebtorExportRows'),
+  extractFunction('debtorExportColumnWidths'),
+  extractFunction('exportDebtorRows'),
   extractFunction('exportFullDebtorListExcel'),
 ].join('\n'), fallbackContext);
 
@@ -213,6 +356,57 @@ assert.strictEqual(
   fallbackCalls.some(call => call[0] === 'alert'),
   false,
   'missing XLSX should not block agents with an alert-only failure',
+);
+
+const xlsxCalls = [];
+const worksheet = {};
+const workbook = {};
+fallbackContext.XLSX = {
+  utils: {
+    json_to_sheet(workbookRows) {
+      xlsxCalls.push(['json_to_sheet', Array.from(workbookRows)]);
+      return worksheet;
+    },
+    book_new() {
+      xlsxCalls.push(['book_new']);
+      return workbook;
+    },
+    book_append_sheet(workbookArg, worksheetArg, sheetName) {
+      xlsxCalls.push(['book_append_sheet', workbookArg, worksheetArg, sheetName]);
+    },
+  },
+  writeFile(workbookArg, filename) {
+    xlsxCalls.push(['writeFile', workbookArg, filename]);
+  },
+};
+const csvDownloadCountBeforeXlsx = fallbackCalls.filter(call => call[0] === 'downloadTextFile').length;
+vm.runInContext('exportFullDebtorListExcel()', fallbackContext);
+assert.strictEqual(xlsxCalls[0][0], 'json_to_sheet');
+assert.strictEqual(xlsxCalls[0][1].length, 2);
+assert.deepStrictEqual(
+  JSON.parse(JSON.stringify(worksheet['!cols'])).map(column => column.wch),
+  expectedExportWidths
+);
+assert.deepStrictEqual(xlsxCalls[2], ['book_append_sheet', workbook, worksheet, 'Full Debtor List']);
+assert.deepStrictEqual(xlsxCalls[3], ['writeFile', workbook, 'MD_Full_Debtor_List_BEN_Jun_26.xlsx']);
+assert.strictEqual(
+  fallbackCalls.filter(call => call[0] === 'downloadTextFile').length,
+  csvDownloadCountBeforeXlsx,
+  'successful SheetJS export should not invoke the CSV fallback'
+);
+
+fallbackContext.getCurrentDebtorExportView = () => null;
+const fallbackCallCountBeforeStale = fallbackCalls.length;
+vm.runInContext('exportFullDebtorListExcel()', fallbackContext);
+assert.strictEqual(
+  fallbackCalls.length,
+  fallbackCallCountBeforeStale + 1,
+  'stale full export should only add one alert call'
+);
+assert.deepStrictEqual(
+  fallbackCalls.at(-1),
+  ['alert', 'Debtor list is still loading.'],
+  'full export should block while the current agent/month debtor view is stale'
 );
 
 console.log('sales_full_debtor_export.test.cjs passed');
