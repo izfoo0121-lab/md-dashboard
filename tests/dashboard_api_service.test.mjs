@@ -19,6 +19,7 @@ const NOW = Date.parse('2026-07-14T12:00:00.000Z');
 const MANAGER_AGENT = 'GT138888';
 const LOGIN_WINDOW_MS = 15 * 60 * 1_000;
 const ACTIVE_GENERATION = '00000000-0000-4000-8000-000000000002';
+const STALE_GENERATION = '00000000-0000-4000-8000-000000000001';
 
 
 async function makeDeps() {
@@ -71,6 +72,8 @@ async function makeDeps() {
     ['CJ', { active: true }],
   ]);
   const sharedRow = {
+    month: 'Jul 26',
+    generation_id: ACTIVE_GENERATION,
     shared_payload: {
       current_month: 'Jul 26',
       team: { sales: 200 },
@@ -83,6 +86,8 @@ async function makeDeps() {
   };
   const agentRows = [
     {
+      month: 'Jul 26',
+      generation_id: ACTIVE_GENERATION,
       agent: 'BEN',
       agent_payload: {
         agents: {
@@ -95,6 +100,8 @@ async function makeDeps() {
       },
     },
     {
+      month: 'Jul 26',
+      generation_id: ACTIVE_GENERATION,
       agent: 'CJ',
       agent_payload: {
         agents: {
@@ -176,6 +183,8 @@ async function makeDeps() {
         const resolvedArtifactKey = artifactKey ?? month;
         return resolvedArtifactKey === 'debtor_analysis'
           ? {
+              month_key: 'Jul 26',
+              generation_id: ACTIVE_GENERATION,
               artifact_key: resolvedArtifactKey,
               payload: {
                 current_month: 'Jul 26',
@@ -404,6 +413,8 @@ test('data rejects an agent supplied by the browser that differs from the sessio
 test('data rejects an agent row whose payload belongs to a different agent', async () => {
   const dependencies = await makeDeps();
   dependencies.snapshots.getAgent = async () => ({
+    month: 'Jul 26',
+    generation_id: ACTIVE_GENERATION,
     agent: 'BEN',
     agent_payload: {
       agents: {
@@ -627,6 +638,115 @@ test('all snapshot resources are read from one resolved active generation', asyn
 });
 
 
+test('missing active generation fails before any snapshot row is read', async () => {
+  const dependencies = await makeDeps();
+  dependencies.snapshots.getActive = async () => null;
+
+  await assert.rejects(
+    () => handleData(
+      { sessionToken: 'ben-token', month: 'Jul 26' },
+      dependencies,
+    ),
+    (error) => error?.status === 404 && error?.code === 'month_not_found',
+  );
+  assert.deepEqual(dependencies.state.snapshotReads, []);
+});
+
+
+test('snapshot readers reject rows outside the resolved active generation', async (t) => {
+  await t.test('shared snapshot', async () => {
+    const dependencies = await makeDeps();
+    const getShared = dependencies.snapshots.getShared;
+    dependencies.snapshots.getShared = async (...args) => ({
+      ...await getShared(...args),
+      generation_id: STALE_GENERATION,
+    });
+
+    await assert.rejects(
+      () => handleData(
+        { sessionToken: 'ben-token', month: 'Jul 26' },
+        dependencies,
+      ),
+      (error) => error?.status === 503 && error?.code === 'data_unavailable',
+    );
+  });
+
+  await t.test('agent snapshot', async () => {
+    const dependencies = await makeDeps();
+    const getAgent = dependencies.snapshots.getAgent;
+    dependencies.snapshots.getAgent = async (...args) => ({
+      ...await getAgent(...args),
+      generation_id: STALE_GENERATION,
+    });
+
+    await assert.rejects(
+      () => handleData(
+        { sessionToken: 'ben-token', month: 'Jul 26' },
+        dependencies,
+      ),
+      (error) => error?.status === 503 && error?.code === 'data_unavailable',
+    );
+  });
+
+  await t.test('manager agent list', async () => {
+    const dependencies = await makeDeps();
+    const listAgents = dependencies.snapshots.listAgents;
+    dependencies.snapshots.listAgents = async (...args) => {
+      const rows = await listAgents(...args);
+      rows[0].generation_id = STALE_GENERATION;
+      return rows;
+    };
+
+    await assert.rejects(
+      () => handleData(
+        { sessionToken: 'manager-token', month: 'Jul 26' },
+        dependencies,
+      ),
+      (error) => error?.status === 503 && error?.code === 'data_unavailable',
+    );
+  });
+
+  await t.test('manager artifact', async () => {
+    const dependencies = await makeDeps();
+    const getArtifact = dependencies.artifacts.get;
+    dependencies.artifacts.get = async (...args) => ({
+      ...await getArtifact(...args),
+      generation_id: STALE_GENERATION,
+      payload: null,
+    });
+
+    await assert.rejects(
+      () => handleData(
+        {
+          sessionToken: 'manager-token',
+          month: 'Jul 26',
+          dataset: 'debtor_analysis',
+        },
+        dependencies,
+      ),
+      (error) => error?.status === 503 && error?.code === 'data_unavailable',
+    );
+  });
+
+  await t.test('sync agent snapshot', async () => {
+    const dependencies = await makeDeps();
+    const getAgent = dependencies.snapshots.getAgent;
+    dependencies.snapshots.getAgent = async (...args) => ({
+      ...await getAgent(...args),
+      generation_id: STALE_GENERATION,
+    });
+
+    await assert.rejects(
+      () => handleSync(
+        { sessionToken: 'ben-token', month: 'Jul 26' },
+        dependencies,
+      ),
+      (error) => error?.status === 503 && error?.code === 'data_unavailable',
+    );
+  });
+});
+
+
 test('manager PIN list excludes the manager row and save returns no PIN', async () => {
   const dependencies = await makeDeps();
 
@@ -801,5 +921,20 @@ test('edge dependencies query only the resolved active generation', () => {
   );
   assert.ok(
     (indexSource.match(/\.eq\('generation_id',\s*generationId\)/g) ?? []).length >= 4,
+  );
+  assert.match(
+    indexSource,
+    /\.select\('month,generation_id,shared_payload,manager_support_payload'\)/,
+  );
+  assert.ok(
+    (
+      indexSource.match(
+        /\.select\('month,generation_id,agent,agent_payload'\)/g,
+      ) ?? []
+    ).length >= 2,
+  );
+  assert.match(
+    indexSource,
+    /\.select\('month_key,generation_id,artifact_key,payload'\)/,
   );
 });

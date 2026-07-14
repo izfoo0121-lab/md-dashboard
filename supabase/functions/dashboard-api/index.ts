@@ -110,7 +110,7 @@ function buildDependencies() {
       getShared: (month: string, generationId: string) => unwrap(
         client
           .from('dashboard_snapshots')
-          .select('shared_payload,manager_support_payload')
+          .select('month,generation_id,shared_payload,manager_support_payload')
           .eq('month', month)
           .eq('generation_id', generationId)
           .maybeSingle(),
@@ -118,7 +118,7 @@ function buildDependencies() {
       getAgent: (month: string, generationId: string, agent: string) => unwrap(
         client
           .from('dashboard_agent_snapshots')
-          .select('agent,agent_payload')
+          .select('month,generation_id,agent,agent_payload')
           .eq('month', month)
           .eq('generation_id', generationId)
           .eq('agent', agent)
@@ -127,7 +127,7 @@ function buildDependencies() {
       listAgents: (month: string, generationId: string) => unwrap(
         client
           .from('dashboard_agent_snapshots')
-          .select('agent,agent_payload')
+          .select('month,generation_id,agent,agent_payload')
           .eq('month', month)
           .eq('generation_id', generationId)
           .order('agent'),
@@ -146,7 +146,7 @@ function buildDependencies() {
       get: (month: string, generationId: string, artifactKey: string) => unwrap(
         client
           .from('dashboard_manager_artifacts')
-          .select('artifact_key,payload')
+          .select('month_key,generation_id,artifact_key,payload')
           .eq('month_key', month)
           .eq('generation_id', generationId)
           .eq('artifact_key', artifactKey)

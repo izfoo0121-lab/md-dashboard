@@ -262,11 +262,52 @@ async function activeGeneration(month, deps, unavailableMessage) {
   const generationId = String(active.generation_id ?? '').trim();
   if (
     !generationId
-    || (active.month_key != null && String(active.month_key) !== month)
+    || String(active.month_key ?? '') !== month
   ) {
     throw new ApiError(503, unavailableMessage, 'data_unavailable');
   }
   return generationId;
+}
+
+
+function requireGenerationRow(
+  row,
+  monthField,
+  month,
+  generationId,
+  unavailableMessage,
+) {
+  if (
+    !row
+    || String(row[monthField] ?? '') !== month
+    || String(row.generation_id ?? '') !== generationId
+  ) {
+    throw new ApiError(503, unavailableMessage, 'data_unavailable');
+  }
+  return row;
+}
+
+
+function requireGenerationRows(
+  rows,
+  monthField,
+  month,
+  generationId,
+  unavailableMessage,
+) {
+  if (!Array.isArray(rows)) {
+    throw new ApiError(503, unavailableMessage, 'data_unavailable');
+  }
+  for (const row of rows) {
+    requireGenerationRow(
+      row,
+      monthField,
+      month,
+      generationId,
+      unavailableMessage,
+    );
+  }
+  return rows;
 }
 
 
@@ -338,6 +379,13 @@ async function loadDashboardData(session, monthValue, deps) {
     'dashboard data unavailable',
   );
   if (!shared) throw new ApiError(404, 'dashboard month not found', 'month_not_found');
+  requireGenerationRow(
+    shared,
+    'month',
+    month,
+    generationId,
+    'dashboard data unavailable',
+  );
 
   let data;
   if (session.role === 'manager') {
@@ -345,6 +393,13 @@ async function loadDashboardData(session, monthValue, deps) {
       deps,
       'manager snapshot lookup',
       () => deps.snapshots.listAgents(month, generationId),
+      'dashboard data unavailable',
+    );
+    requireGenerationRows(
+      rows,
+      'month',
+      month,
+      generationId,
       'dashboard data unavailable',
     );
     data = assembleManagerData(shared, rows);
@@ -356,6 +411,13 @@ async function loadDashboardData(session, monthValue, deps) {
       'dashboard data unavailable',
     );
     if (!row) throw new ApiError(404, 'agent snapshot not found', 'data_not_found');
+    requireGenerationRow(
+      row,
+      'month',
+      month,
+      generationId,
+      'dashboard data unavailable',
+    );
     data = assembleAgentData(shared, row);
   }
 
@@ -490,7 +552,17 @@ export async function handleData(input, deps) {
     () => deps.artifacts.get(month, generationId, 'debtor_analysis'),
     'manager data unavailable',
   );
-  if (!artifact?.payload) {
+  if (!artifact) {
+    throw new ApiError(404, 'debtor analysis not found', 'data_not_found');
+  }
+  requireGenerationRow(
+    artifact,
+    'month_key',
+    month,
+    generationId,
+    'manager data unavailable',
+  );
+  if (!artifact.payload) {
     throw new ApiError(404, 'debtor analysis not found', 'data_not_found');
   }
   const months = await availableMonths(deps);
@@ -578,6 +650,13 @@ export async function handleSync(input, deps) {
     if (!agentSnapshot) {
       throw new ApiError(404, 'agent snapshot not found', 'data_not_found');
     }
+    requireGenerationRow(
+      agentSnapshot,
+      'month',
+      month,
+      generationId,
+      'dashboard sync unavailable',
+    );
   }
   const state = await dependencyCall(
     deps,
