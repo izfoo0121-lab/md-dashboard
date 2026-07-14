@@ -261,20 +261,12 @@ function activeAttempt(row, now) {
 }
 
 
-async function recordFailedLogin(bucketKey, existing, deps) {
-  const now = currentTime(deps);
-  const inWindow = activeAttempt(existing, now);
-  const row = {
-    bucket_key: bucketKey,
-    window_started_at: inWindow
-      ? existing.window_started_at
-      : new Date(now).toISOString(),
-    failures: inWindow ? Number(existing.failures || 0) + 1 : 1,
-  };
+async function recordFailedLogin(bucketKey, deps) {
+  const attemptedAt = new Date(currentTime(deps)).toISOString();
   await dependencyCall(
     deps,
     'login attempt update',
-    () => deps.loginAttempts.save(row),
+    () => deps.loginAttempts.increment(bucketKey, attemptedAt),
     'authentication unavailable',
   );
 }
@@ -307,7 +299,7 @@ export async function handleLogin(input, deps) {
       )
     : null;
   if (!pinRow || pinRow.active === false) {
-    await recordFailedLogin(bucketKey, attempt, deps);
+    await recordFailedLogin(bucketKey, deps);
     throw new ApiError(401, 'invalid PIN', 'invalid_pin');
   }
 

@@ -5,6 +5,7 @@ import { ApiError, handleAction, sha256 } from './service.mjs';
 
 
 const MAX_BODY_BYTES = 64 * 1024;
+const LOGIN_WINDOW_SECONDS = 15 * 60;
 let cachedDependencies: ReturnType<typeof buildDependencies> | undefined;
 
 
@@ -145,10 +146,12 @@ function buildDependencies() {
           .eq('bucket_key', bucketKey)
           .maybeSingle(),
       ),
-      save: (row: Record<string, unknown>) => unwrap(
-        client
-          .from('dashboard_login_attempts')
-          .upsert(row, { onConflict: 'bucket_key' }),
+      increment: (bucketKey: string, attemptedAt: string) => unwrap(
+        client.rpc('dashboard_record_login_failure', {
+          p_bucket_key: bucketKey,
+          p_attempted_at: attemptedAt,
+          p_window_seconds: LOGIN_WINDOW_SECONDS,
+        }),
       ),
       delete: (bucketKey: string) => unwrap(
         client

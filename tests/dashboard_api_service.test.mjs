@@ -16,6 +16,7 @@ import {
 
 const NOW = Date.parse('2026-07-14T12:00:00.000Z');
 const MANAGER_AGENT = 'GT138888';
+const LOGIN_WINDOW_MS = 15 * 60 * 1_000;
 
 
 async function makeDeps() {
@@ -24,6 +25,7 @@ async function makeDeps() {
   const touchedSessions = [];
   const deletedSessions = [];
   const attempts = new Map();
+  const loginAttemptCalls = { increment: 0, save: 0 };
   const savedPins = [];
   const syncLoads = [];
 
@@ -158,7 +160,27 @@ async function makeDeps() {
     },
     loginAttempts: {
       get: async (bucketKey) => attempts.get(bucketKey) ?? null,
-      save: async (row) => attempts.set(row.bucket_key, structuredClone(row)),
+      increment: async (bucketKey, attemptedAt) => {
+        loginAttemptCalls.increment += 1;
+        const now = Date.parse(attemptedAt);
+        const existing = attempts.get(bucketKey);
+        const startedAt = Date.parse(existing?.window_started_at ?? '');
+        const inWindow = Number.isFinite(startedAt)
+          && now - startedAt < LOGIN_WINDOW_MS;
+        const row = {
+          bucket_key: bucketKey,
+          window_started_at: inWindow
+            ? existing.window_started_at
+            : attemptedAt,
+          failures: inWindow ? Number(existing.failures || 0) + 1 : 1,
+        };
+        attempts.set(bucketKey, structuredClone(row));
+        return structuredClone(row);
+      },
+      save: async (row) => {
+        loginAttemptCalls.save += 1;
+        attempts.set(row.bucket_key, structuredClone(row));
+      },
       delete: async (bucketKey) => attempts.delete(bucketKey),
     },
     sync: {
@@ -178,6 +200,7 @@ async function makeDeps() {
     attempts,
     createdSessions,
     deletedSessions,
+    loginAttemptCalls,
     savedPins,
     sessionRows,
     syncLoads,
@@ -295,9 +318,41 @@ test('five failed PIN attempts block the network bucket for 15 minutes', async (
   }
 
   assert.equal(dependencies.state.attempts.get('hashed-bucket').failures, 5);
+  assert.deepEqual(
+    dependencies.state.loginAttemptCalls,
+    { increment: 5, save: 0 },
+  );
   await assert.rejects(
     () => handleLogin(
       { pin: '1001', month: 'Jul 26', bucket: 'hashed-bucket' },
+      dependencies,
+    ),
+    /rate limit/,
+  );
+});
+
+
+test('five concurrent failed PIN attempts atomically block the network bucket', async () => {
+  const dependencies = await makeDeps();
+
+  const failures = await Promise.allSettled(
+    Array.from({ length: 5 }, () => handleLogin(
+      { pin: '0000', month: 'Jul 26', bucket: 'concurrent-bucket' },
+      dependencies,
+    )),
+  );
+
+  assert.equal(failures.every((result) => (
+    result.status === 'rejected' && /invalid PIN/u.test(result.reason.message)
+  )), true);
+  assert.equal(dependencies.state.attempts.get('concurrent-bucket').failures, 5);
+  assert.deepEqual(
+    dependencies.state.loginAttemptCalls,
+    { increment: 5, save: 0 },
+  );
+  await assert.rejects(
+    () => handleLogin(
+      { pin: '1001', month: 'Jul 26', bucket: 'concurrent-bucket' },
       dependencies,
     ),
     /rate limit/,
@@ -528,6 +583,7 @@ test('edge entrypoint and config explicitly use POST/OPTIONS custom session auth
   assert.match(indexSource, /request\.method !== 'POST'/);
   assert.match(indexSource, /SUPABASE_SERVICE_ROLE_KEY/);
   assert.match(indexSource, /DASHBOARD_RATE_LIMIT_SALT/);
+  assert.match(indexSource, /\.rpc\(\s*'dashboard_record_login_failure'/);
   assert.match(configSource, /\[functions\.dashboard-api\]/);
   assert.match(configSource, /verify_jwt\s*=\s*false/);
 });

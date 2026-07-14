@@ -1,6 +1,6 @@
 begin;
 
-select plan(15);
+select plan(19);
 
 select has_table('public', 'dashboard_snapshots');
 select has_table('public', 'dashboard_agent_snapshots');
@@ -20,6 +20,47 @@ select has_column(
   'public',
   'dashboard_snapshots',
   'manager_support_payload'
+);
+select has_function(
+  'public',
+  'dashboard_record_login_failure',
+  array['text', 'timestamp with time zone', 'integer']
+);
+select is(
+  (
+    select failures
+    from public.dashboard_record_login_failure(
+      'pgtap-bucket',
+      '2026-07-14T12:00:00Z'::timestamptz,
+      900
+    )
+  ),
+  1,
+  'first failed login starts the bucket window'
+);
+select is(
+  (
+    select failures
+    from public.dashboard_record_login_failure(
+      'pgtap-bucket',
+      '2026-07-14T12:00:01Z'::timestamptz,
+      900
+    )
+  ),
+  2,
+  'a failure in the active window increments atomically'
+);
+select is(
+  (
+    select failures
+    from public.dashboard_record_login_failure(
+      'pgtap-bucket',
+      '2026-07-14T12:15:01Z'::timestamptz,
+      900
+    )
+  ),
+  1,
+  'a failure after the window starts a new counter'
 );
 
 select * from finish();

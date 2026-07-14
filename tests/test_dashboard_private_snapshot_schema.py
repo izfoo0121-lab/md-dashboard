@@ -4,6 +4,9 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = ROOT / "migrations" / "2026-07-14_dashboard_private_snapshots.sql"
+LOGIN_ATTEMPT_RPC_MIGRATION = (
+    ROOT / "migrations" / "2026-07-14_dashboard_login_attempt_rpc.sql"
+)
 
 
 class DashboardPrivateSnapshotSchemaTests(unittest.TestCase):
@@ -48,6 +51,32 @@ class DashboardPrivateSnapshotSchemaTests(unittest.TestCase):
                 )
 
         self.assertNotIn("create policy", sql)
+
+    def test_login_failure_rpc_is_atomic_and_idempotently_declared(self):
+        self.assertTrue(
+            LOGIN_ATTEMPT_RPC_MIGRATION.is_file(),
+            f"missing migration: {LOGIN_ATTEMPT_RPC_MIGRATION.name}",
+        )
+        sql = " ".join(
+            LOGIN_ATTEMPT_RPC_MIGRATION.read_text(encoding="utf-8")
+            .lower()
+            .split()
+        )
+
+        self.assertIn(
+            "create or replace function public.dashboard_record_login_failure",
+            sql,
+        )
+        self.assertIn("insert into public.dashboard_login_attempts", sql)
+        self.assertIn(
+            "on conflict on constraint dashboard_login_attempts_pkey do update",
+            sql,
+        )
+        self.assertIn("current_attempt.failures + 1", sql)
+        self.assertIn(
+            "grant execute on function public.dashboard_record_login_failure",
+            sql,
+        )
 
 
 if __name__ == "__main__":
