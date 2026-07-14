@@ -76,7 +76,48 @@ def sample_snapshot():
         "working_days": {"total": 27},
         "group_brand_targets": {"BEN": {"ZLB": 10}},
         "team": {"sales": 200},
-        "config": {"currency": "MYR"},
+        "config": {
+            "zlb_brands": ["EVO", "BISON"],
+            "brand_config": {
+                "EVO": ["EVO-A", "EVO-B"],
+                "BISON": ["BISON-A"],
+            },
+            "sku_rules_snapshot": {
+                "version": "2026-07-14",
+                "new_sku_groups": {
+                    "EVO": {
+                        "label": "Evolution",
+                        "item_codes": ["EVO-A"],
+                        "item_groups": ["EVO"],
+                        "item_code_prefixes": ["EVO"],
+                        "item_group_prefixes": ["EV"],
+                        "manager_pin": "RULE-MANAGER-9988",
+                    }
+                },
+                "other_sku_groups": {
+                    "CMLT": {
+                        "label": "CMLT",
+                        "item_codes": ["CMLT"],
+                        "access_secret": "RULE-ACCESS-SECRET",
+                    }
+                },
+                "future_rule_secret": "FUTURE-RULE-SECRET",
+            },
+            "sku_rules": {
+                "new_sku_groups": {
+                    "BISON": {
+                        "label": "Bison",
+                        "item_codes": ["BISON-A"],
+                        "admin_pin": "RULE-ADMIN-8877",
+                    }
+                }
+            },
+            "group_incentive": "RM 100",
+            "agent_pins": {"BEN": "1001", "CJ": "1002"},
+            "manager_pin": "9988",
+            "admin_pin": "8877",
+            "future_access_secret": "UNKNOWN-FUTURE-SECRET",
+        },
         "campaign_group_progress": sample_campaign_group_progress(),
         "birthday_by_month": {"Jul 26": ["CJ debtor"]},
         "brand_penetration_candidates": ["CJ debtor"],
@@ -293,6 +334,64 @@ class SnapshotContractTests(unittest.TestCase):
         self.assertNotIn("campaign_group_progress", shared)
         self.assertNotIn("birthday_by_month", shared)
         self.assertNotIn("brand_penetration_candidates", shared)
+
+    def test_config_projection_recursively_excludes_credentials_and_unknown_keys(self):
+        bundle = split_snapshot(sample_snapshot())
+        shared = bundle["shared"]["shared_payload"]
+        assembled_agent = {
+            **shared,
+            **bundle["agents"]["BEN"]["agent_payload"],
+        }
+        manager_support = bundle["shared"]["manager_support_payload"]
+
+        for label, payload in {
+            "shared": shared,
+            "agent": assembled_agent,
+            "manager_support": manager_support,
+        }.items():
+            encoded = json.dumps(payload, sort_keys=True)
+            with self.subTest(label=label):
+                for forbidden in (
+                    "agent_pins",
+                    "manager_pin",
+                    "admin_pin",
+                    "access_secret",
+                    "future_access_secret",
+                    "1001",
+                    "1002",
+                    "9988",
+                    "8877",
+                    "RULE-MANAGER-9988",
+                    "RULE-ADMIN-8877",
+                    "RULE-ACCESS-SECRET",
+                    "FUTURE-RULE-SECRET",
+                    "UNKNOWN-FUTURE-SECRET",
+                ):
+                    self.assertNotIn(forbidden, encoded)
+
+                config = payload["config"]
+                self.assertEqual(
+                    {
+                        "zlb_brands",
+                        "brand_config",
+                        "sku_rules_snapshot",
+                        "sku_rules",
+                        "group_incentive",
+                    },
+                    set(config),
+                )
+                self.assertEqual(["EVO", "BISON"], config["zlb_brands"])
+                self.assertEqual(
+                    ["EVO-A", "EVO-B"],
+                    config["brand_config"]["EVO"],
+                )
+                self.assertEqual(
+                    ["EVO-A"],
+                    config["sku_rules_snapshot"]["new_sku_groups"]["EVO"][
+                        "item_codes"
+                    ],
+                )
+                self.assertEqual("RM 100", config["group_incentive"])
 
     def test_manager_support_does_not_duplicate_agents(self):
         support = split_snapshot(sample_snapshot())["shared"][
