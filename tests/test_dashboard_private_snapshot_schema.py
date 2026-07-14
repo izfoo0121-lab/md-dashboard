@@ -262,6 +262,29 @@ class DashboardPrivateSnapshotSchemaTests(unittest.TestCase):
             sql,
         )
 
+    def test_upgrade_rejects_duplicate_pins_before_declaring_uniqueness(self):
+        self.assertTrue(UPGRADE_MIGRATION.is_file())
+        sql = _normalized_sql(UPGRADE_MIGRATION)
+
+        duplicate_check = "group by pin having count(*) > 1"
+        unique_index = (
+            "create unique index if not exists dashboard_agent_pins_pin_uidx "
+            "on public.agent_pins(pin)"
+        )
+        self.assertIn("create table if not exists public.agent_pins", sql)
+        self.assertIn(duplicate_check, sql)
+        self.assertIn(
+            "duplicate agent pin values must be resolved before secure gateway upgrade",
+            sql,
+        )
+        self.assertIn(unique_index, sql)
+        self.assertLess(sql.index(duplicate_check), sql.index(unique_index))
+        self.assertIn("alter table public.agent_pins enable row level security", sql)
+        self.assertIn(
+            "revoke all on public.agent_pins from anon, authenticated",
+            sql,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

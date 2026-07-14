@@ -454,18 +454,19 @@ async function authenticatePin(pin, deps) {
       );
       const validFormat = /^\d{4}$/u.test(pin);
       let matched = null;
+      let matchCount = 0;
       for (let index = 0; index < rows.length; index += 1) {
-        const row = rows[index];
-        const hasAgent = String(row?.agent ?? '').trim() !== '';
-        if (
-          matches[index]
-          && validFormat
-          && hasAgent
-          && row.active !== false
-          && matched === null
-        ) {
-          matched = row;
+        if (matches[index]) {
+          matchCount += 1;
+          matched = rows[index];
         }
+      }
+      if (!validFormat || matchCount !== 1) return null;
+      if (
+        String(matched?.agent ?? '').trim() === ''
+        || matched.active === false
+      ) {
+        return null;
       }
       return matched;
     },
@@ -618,6 +619,22 @@ export async function handleManagerPinsSave(input, deps) {
   }
   if (!/^\d{4}$/u.test(pin)) {
     throw new ApiError(400, 'PIN must contain four digits', 'invalid_pin');
+  }
+  const pinOwners = await dependencyCall(
+    deps,
+    'PIN conflict lookup',
+    async () => {
+      const rows = await deps.pins.list();
+      if (!Array.isArray(rows)) throw new Error('malformed PIN conflict rows');
+      return rows.filter((row) => String(row?.pin ?? '') === pin);
+    },
+    'PIN save unavailable',
+  );
+  const hasConflict = pinOwners.some(
+    (row) => String(row?.agent ?? '').trim().toUpperCase() !== agent,
+  );
+  if (hasConflict) {
+    throw new ApiError(409, 'PIN is unavailable', 'pin_conflict');
   }
   await dependencyCall(
     deps,

@@ -1,5 +1,31 @@
 begin;
 
+create table if not exists public.agent_pins (
+  agent text primary key,
+  pin text not null
+);
+
+do $$
+begin
+  if exists (
+    select 1
+    from public.agent_pins
+    group by pin
+    having count(*) > 1
+  ) then
+    raise exception
+      'duplicate agent PIN values must be resolved before secure gateway upgrade'
+      using errcode = '23505';
+  end if;
+end;
+$$;
+
+create unique index if not exists dashboard_agent_pins_pin_uidx
+  on public.agent_pins(pin);
+
+alter table public.agent_pins enable row level security;
+revoke all on public.agent_pins from anon, authenticated;
+
 alter table public.dashboard_snapshots
   add column if not exists generation_id uuid;
 alter table public.dashboard_agent_snapshots

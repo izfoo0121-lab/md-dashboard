@@ -353,6 +353,44 @@ test('login verifies the full server-side PIN candidate set with generic failure
 });
 
 
+test('login rejects a PIN shared by multiple peer agents', async () => {
+  const dependencies = await makeDeps();
+  dependencies.pins.listForAuthentication = async () => [
+    { agent: 'BEN', pin: '1001' },
+    { agent: 'CJ', pin: '1001' },
+    { agent: MANAGER_AGENT, pin: '9999' },
+  ];
+
+  await assert.rejects(
+    () => handleLogin(
+      { pin: '1001', month: 'Jul 26', bucket: 'duplicate-peer-pin' },
+      dependencies,
+    ),
+    (error) => error?.status === 401 && error?.code === 'invalid_pin',
+  );
+  assert.deepEqual(dependencies.state.createdSessions, []);
+});
+
+
+test('login rejects a manager PIN shared by any peer agent', async () => {
+  const dependencies = await makeDeps();
+  dependencies.pins.listForAuthentication = async () => [
+    { agent: MANAGER_AGENT, pin: '9999' },
+    { agent: 'BEN', pin: '9999' },
+    { agent: 'CJ', pin: '1002' },
+  ];
+
+  await assert.rejects(
+    () => handleLogin(
+      { pin: '9999', month: 'Jul 26', bucket: 'duplicate-manager-pin' },
+      dependencies,
+    ),
+    (error) => error?.status === 401 && error?.code === 'invalid_pin',
+  );
+  assert.deepEqual(dependencies.state.createdSessions, []);
+});
+
+
 test('data rejects expired sessions', async () => {
   const dependencies = await makeDeps();
 
@@ -785,6 +823,55 @@ test('manager PIN save cannot replace the manager credential', async () => {
     ),
     /manager PIN cannot be changed/,
   );
+});
+
+
+test('manager PIN save rejects a PIN assigned to another agent', async () => {
+  const dependencies = await makeDeps();
+
+  await assert.rejects(
+    () => handleManagerPinsSave(
+      {
+        sessionToken: 'manager-token',
+        payload: { agent: 'BEN', pin: '1002' },
+      },
+      dependencies,
+    ),
+    (error) => (
+      error?.status === 409
+      && error?.code === 'pin_conflict'
+      && error?.message === 'PIN is unavailable'
+      && !error.message.includes('CJ')
+    ),
+  );
+  assert.deepEqual(dependencies.state.savedPins, []);
+});
+
+
+test('manager PIN save allows the same PIN owner and an unused replacement', async () => {
+  const dependencies = await makeDeps();
+
+  const unchanged = await handleManagerPinsSave(
+    {
+      sessionToken: 'manager-token',
+      payload: { agent: 'BEN', pin: '1001' },
+    },
+    dependencies,
+  );
+  const updated = await handleManagerPinsSave(
+    {
+      sessionToken: 'manager-token',
+      payload: { agent: 'BEN', pin: '1234' },
+    },
+    dependencies,
+  );
+
+  assert.deepEqual(unchanged, { saved: true, agent: 'BEN' });
+  assert.deepEqual(updated, { saved: true, agent: 'BEN' });
+  assert.deepEqual(dependencies.state.savedPins, [
+    { agent: 'BEN', pin: '1001' },
+    { agent: 'BEN', pin: '1234' },
+  ]);
 });
 
 
