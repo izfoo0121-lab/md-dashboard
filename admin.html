@@ -1523,6 +1523,8 @@ async function bootAdminDashboard() {
 }
 
 function clearAdminProtectedState() {
+  if (typeof ADMIN_SESSION_GENERATION === 'number') ADMIN_SESSION_GENERATION += 1;
+  ADMIN_PIN_CACHE = {};
   DASH_DATA = {};
   CONFIG = null;
   ADMIN_AVAILABLE_MONTHS = [];
@@ -2047,7 +2049,7 @@ function populateMonthDropdowns() {
   const selected = opts.includes(month) ? month : defaultSel;
   ADMIN_ACTIVE_MONTH = selected;
 
-  ['admin-working-month', 'kpi-month-select', 'bulk-month-select', 'kpi-manual-month', 'group-sp-month', 'archive-month-select'].forEach(id => {
+  ['admin-working-month', 'kpi-month-select', 'bulk-month-select', 'kpi-manual-month', 'group-sp-month'].forEach(id => {
     setMonthSelectOptions(document.getElementById(id), opts, selected);
   });
 
@@ -2095,6 +2097,9 @@ async function adminWorkingMonthSelectChanged(nextMonth) {
   const normalized = helper ? helper.normalizeMonth(nextMonth) : nextMonth;
   if (!normalized || normalized === ADMIN_ACTIVE_MONTH) return;
   const previousMonth = ADMIN_ACTIVE_MONTH;
+  const previousData = DASH_DATA;
+  const previousAvailableMonths = ADMIN_AVAILABLE_MONTHS.slice();
+  const previousDirty = ADMIN_DIRTY;
   const selector = document.getElementById('admin-working-month');
 
   if (ADMIN_DIRTY && !confirm('You have unsaved Admin edits. Change Working Month anyway?')) {
@@ -2138,6 +2143,10 @@ async function adminWorkingMonthSelectChanged(nextMonth) {
   } catch (e) {
     console.warn('[admin month] protected transition failed:', e);
     ADMIN_ACTIVE_MONTH = previousMonth;
+    DASH_DATA = previousData;
+    ADMIN_AVAILABLE_MONTHS = previousAvailableMonths;
+    ADMIN_DIRTY = previousDirty;
+    updateAdminDirtyIndicator();
     if (helper && previousMonth) helper.setWorkingMonth(previousMonth, { silent: true });
     if (selector) selector.value = previousMonth;
     showToast(`Could not load ${normalized}: ${e?.message || 'unknown error'}`, 'error');
@@ -2285,6 +2294,7 @@ async function connectExistingGist() {
 
 // ── PIN Management ─────────────────────────────────────────────────────────
 let ADMIN_PIN_CACHE = {};
+let ADMIN_SESSION_GENERATION = 0;
 
 // ═══════════════════════════════════════════════════════════════════════
 // KPI Manual Entry (new_accounts + vip_count + event + campaign + birthday)
@@ -2592,6 +2602,7 @@ async function saveKpiManual() {
 }
 
 async function renderPinForm() {
+  const generation = typeof ADMIN_SESSION_GENERATION === 'number' ? ADMIN_SESSION_GENERATION : 0;
   const container = document.getElementById('pin-management-form');
   if (!container) return;
   container.innerHTML = '<div style="font-family:var(--mono);font-size:10px;color:var(--ink3);padding:10px;">Loading protected PIN list...</div>';
@@ -2599,6 +2610,7 @@ async function renderPinForm() {
   let rows;
   try {
     const response = await DashboardApi.listAgentPins();
+    if (generation !== (typeof ADMIN_SESSION_GENERATION === 'number' ? ADMIN_SESSION_GENERATION : 0)) return;
     rows = Array.isArray(response?.pins) ? response.pins : [];
   } catch (error) {
     console.warn('[PINs] protected list failed', error);
@@ -2635,6 +2647,7 @@ async function renderPinForm() {
 }
 
 async function savePins() {
+  const generation = typeof ADMIN_SESSION_GENERATION === 'number' ? ADMIN_SESSION_GENERATION : 0;
   const agents = getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}));
   const changes = [];
   const usedPins = new Map();
@@ -2657,7 +2670,9 @@ async function savePins() {
 
   try {
     for (const { agent, pin } of changes) {
+      if (generation !== (typeof ADMIN_SESSION_GENERATION === 'number' ? ADMIN_SESSION_GENERATION : 0)) return;
       await DashboardApi.saveAgentPin(agent, pin);
+      if (generation !== (typeof ADMIN_SESSION_GENERATION === 'number' ? ADMIN_SESSION_GENERATION : 0)) return;
       ADMIN_PIN_CACHE[agent] = pin;
     }
   } catch (error) {
@@ -4416,7 +4431,7 @@ async function loadArchiveMonths() {
     sel.innerHTML = '<option value="">No months available</option>';
     return;
   }
-  months.slice().reverse().forEach(month => {
+  months.forEach(month => {
     const opt = document.createElement('option');
     opt.value = month;
     opt.textContent = month;
