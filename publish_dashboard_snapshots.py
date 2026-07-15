@@ -142,7 +142,7 @@ class SupabaseRestTransport:
         ),
     }
 
-    def __init__(self, base_url, service_key, timeout=30, opener=None):
+    def __init__(self, base_url, service_key, timeout=180, opener=None):
         self.base_url = str(base_url).rstrip("/")
         self.service_key = service_key
         self.timeout = timeout
