@@ -138,11 +138,7 @@ assert.strictEqual(Object.keys(futureCopy.new_sku_status || {}).length, 0, 'Futu
 assert.strictEqual(futureCopy.ctn_cur, 0, 'Future planning debtor copy should zero selected-month CTN');
 assert.strictEqual(futureCopy.canggih_ctn_cur, 0, 'Future planning debtor copy should zero selected-month CCOM CTN');
 assert.strictEqual(futureCopy.eightcom_ctn_cur, 0, 'Future planning debtor copy should zero selected-month 8COM CTN');
-assert.strictEqual(
-  context.isNoCcomBuyer(futureCopy),
-  true,
-  'Future planning should carry the authorized base month into M-1 for the CCOM 未拿 three-month lookback'
-);
+assert.strictEqual(context.isNoCcomBuyer(futureCopy), false, 'Future planning debtor copy should not appear in CCOM 未拿 before current-month sales data exists');
 assert.strictEqual(futureCopy.is_pending_activation, false, 'Future planning debtor copy should not carry prior-month pending activation flags');
 assert.strictEqual(futureCopy.campaigns[0].converted, false, 'Future planning campaign copy should reset conversion state');
 

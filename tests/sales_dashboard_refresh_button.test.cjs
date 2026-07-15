@@ -50,14 +50,9 @@ function createContext(overrides = {}) {
 assert(html.includes('id="btn-force-refresh"'), 'Sales Dashboard should render a visible Refresh button');
 assert(html.includes('onclick="forceRefreshDashboard()"'), 'Refresh button should call forceRefreshDashboard');
 
-const clearDataCachesSource = extractFunction('clearDashboardDataCaches');
-assert.doesNotMatch(
-  clearDataCachesSource,
-  /DEBTOR_ANALYSIS_CACHE|MONTH_SNAPSHOT_CACHE|DEBTOR_["']\s*\+\s*["']ANALYSIS_CACHE|MONTH_["']\s*\+\s*["']SNAPSHOT_CACHE/,
-  'Refresh must not retain or disguise retired public snapshot caches'
-);
-
 const clearContext = {
+  DEBTOR_ANALYSIS_CACHE: { records: [{ debtor: '300-A001' }] },
+  MONTH_SNAPSHOT_CACHE: { jul26: { current_month: 'Jul 26' } },
   SALES_LIVE_STATIC_CONFIG_CACHE: { zlb_brands: ['SUKUN'] },
   localStorage: {
     removed: [],
@@ -66,9 +61,19 @@ const clearContext = {
   console: { warn() {} },
 };
 vm.createContext(clearContext);
-vm.runInContext(clearDataCachesSource, clearContext);
+vm.runInContext(extractFunction('clearDashboardDataCaches'), clearContext);
 clearContext.clearDashboardDataCaches();
 
+assert.strictEqual(
+  clearContext.DEBTOR_ANALYSIS_CACHE,
+  undefined,
+  'Refresh should clear debtor analysis cache so debtor/sku analysis JSON can be refetched'
+);
+assert.strictEqual(
+  Object.keys(clearContext.MONTH_SNAPSHOT_CACHE).length,
+  0,
+  'Refresh should clear month snapshot cache so selected month JSON can be refetched'
+);
 assert.strictEqual(
   clearContext.SALES_LIVE_STATIC_CONFIG_CACHE,
   undefined,

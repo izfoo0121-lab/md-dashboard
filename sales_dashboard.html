@@ -11,7 +11,6 @@ const SALES_DASHBOARD_BUILD = '20260714-filtered-export-1';
 const SALES_DASHBOARD_VERSION_PATH = 'dashboard_version.json';
 </script>
 <script src="admin_context.js"></script>
-<script src="dashboard_api.js"></script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
 <title>Touro MD Sales Dashboard</title>
 <style>
@@ -547,32 +546,35 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 
 <script>
 // ── Agent PINs — set via Admin ─────────────────────────────────────────
-// Authentication is delegated to dashboard_api.js.
+// Format: { AGENT_NAME: '4-digit-pin' }
+// Admin manages these in targets.json under 'agent_pins'
+const AGENT_PINS = (()=>{
+  try {
+    const pins = DATA_PINS || {};  // injected after data loads
+    return pins;
+  } catch { return {}; }
+})();
+
+// Fallback default PINs (overridden by targets.json)
+const DEFAULT_PINS = {
+  'BEN':'1001','CJ':'1002','JACKY':'1003','JAMES':'1004',
+  'JW':'1005','KEAN':'1006','KEE':'1007','KF':'1008',
+  'KI-MI':'1009','KW':'1010','LEON':'1011','NMK':'1012',
+  'YI':'1013','SAM':'1014',
+  // Admin bypass
+  'GT138888':'0000'
+};
+
 const AGENT_ACCESS_SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
 const AGENT_ACCESS_SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
 
-DashboardApi.configure({
-  endpoint: `${AGENT_ACCESS_SUPABASE_URL}/functions/v1/dashboard-api`,
-  publishableKey: AGENT_ACCESS_SUPABASE_KEY,
-  clientVersion: SALES_DASHBOARD_BUILD,
-});
-
 let _pin = '';
 let _pinLocked = false;
-let _pinAttemptSequence = 0;
-let _pinLockOwner = 0;
 
 function currentAccessMonth() {
   return DATA?.current_month
     || (window.MDAdminContext ? MDAdminContext.getWorkingMonth() : '')
     || new Date().toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-}
-
-function selectedDashboardMonth() {
-  const explicitMonth = typeof explicitUrlMonthLabel === 'function'
-    ? explicitUrlMonthLabel()
-    : '';
-  return explicitMonth || currentAccessMonth();
 }
 
 async function fetchSupabaseJson(path) {
@@ -899,22 +901,46 @@ const SalesLiveCampaignSync = (() => {
   return { apply };
 })();
 
-function showPinError(message, attemptSequence = 0) {
+async function isAgentAccessAllowedForMonth(agent, month = currentAccessMonth()) {
+  if (!agent || agent === 'GT138888') return true;
+  try {
+    const [monthlyRows, agentRows] = await Promise.all([
+      fetchSupabaseJson(`targets_monthly?select=active&month=eq.${encodeURIComponent(month)}&agent=eq.${encodeURIComponent(agent)}&limit=1`),
+      fetchSupabaseJson(`targets_agents?select=active&agent=eq.${encodeURIComponent(agent)}&limit=1`)
+    ]);
+    if (monthlyRows?.length && typeof monthlyRows[0].active === 'boolean') {
+      return monthlyRows[0].active !== false;
+    }
+    if (agentRows?.length && typeof agentRows[0].active === 'boolean') {
+      return agentRows[0].active !== false;
+    }
+  } catch (e) {
+    console.warn('[agent access] Supabase check failed, allowing fallback access:', e.message);
+  }
+  return true;
+}
+
+function showPinError(message) {
   for (let i=0;i<4;i++) {
     const d = document.getElementById('pd'+i);
     d.className='pin-dot err';
   }
   document.getElementById('pin-err').textContent = message;
   setTimeout(()=>{
-    if (attemptSequence && _pinAttemptSequence !== attemptSequence) return;
-    updatePinDisplay();
+    _pin=''; _pinLocked=false; updatePinDisplay();
   }, 1200);
 }
 
-function restoreAgentSession(agent) {
-  if (authenticatedRole === 'agent' && agent === authenticatedAgent) {
+async function restoreAgentSession(agent) {
+  if (!agent || agent === 'GT138888') return;
+  if (await isAgentAccessAllowedForMonth(agent)) {
     lockToAgent(agent);
+    return;
   }
+  sessionStorage.removeItem('md_auth');
+  sessionStorage.removeItem('md_agent');
+  document.getElementById('pin-gate').style.display = 'flex';
+  showPinError(`${agent} access is off for ${currentAccessMonth()}`);
 }
 
 function pinPress(k) {
@@ -933,91 +959,89 @@ function updatePinDisplay() {
     const d = document.getElementById('pd'+i);
     d.className = 'pin-dot' + (_pin.length > i ? ' filled' : '');
   }
+  // Show matching agent name as hint
   const hint = document.getElementById('pin-name-hint');
   const err  = document.getElementById('pin-err');
   err.textContent = '';
-  hint.textContent = '';
+  const allPins = Object.assign({}, DEFAULT_PINS);
+  const match = Object.entries(allPins).find(([,p])=>p===_pin);
+  hint.textContent = match && _pin.length===4 ? '' : '';
 }
 
 async function checkPin() {
-  const pinAttempt = ++_pinAttemptSequence;
-  _pinLockOwner = pinAttempt;
   _pinLocked = true;
-  try {
-    const submittedPin = _pin;
-    _pin = '';
-    updatePinDisplay();
-    const selectedMonth = selectedDashboardMonth();
-    const transitionToken = beginDebtorExportTransition({
-      kind: 'login',
-      requestedMonthSlug: monthSlug(selectedMonth),
-      desiredAgent: '',
-    });
-    let result;
-    try {
-      const publishedMonths = await fetchAvailableMonthLabels();
-      if (!isCurrentDebtorExportTransition(transitionToken)) return false;
-      const baseMonth = resolvePublishedBaseMonth(selectedMonth, publishedMonths);
-      result = await DashboardApi.login(submittedPin, baseMonth);
-      if (!isCurrentDebtorExportTransition(transitionToken)) return false;
-      const loadedMonth = result.data?.current_month || result.month || baseMonth;
-      const preparedData = await prepareAuthorizedInitialMonthData(
-        result.data,
-        selectedMonth,
-        loadedMonth,
-        transitionToken
-      );
-      if (!preparedData || !isCurrentDebtorExportTransition(transitionToken)) return false;
-      commitDashboardEnvelope(
-        { ...result, data: preparedData },
-        {
-          agent: result.agent,
-          role: result.role,
-          desiredAgent: result.agent,
-          requestedSlug: monthSlug(preparedData.current_month || loadedMonth),
-        }
-      );
-      if (!isCurrentDebtorExportTransition(transitionToken)) return false;
-      await initializeDashboardAfterCommit();
-      if (!isCurrentDebtorExportTransition(transitionToken)) return false;
-      completeDebtorExportTransition(transitionToken);
-    } catch (e) {
-      if (!isCurrentDebtorExportTransition(transitionToken)) return false;
-      try {
-        if (typeof DashboardApi.logout === 'function') await DashboardApi.logout();
-      } catch (logoutError) {
-        console.warn('[login] Failed session was cleared locally after logout error:', logoutError?.message || logoutError);
-      }
-      clearProtectedDashboardState();
-      completeDebtorExportTransition(transitionToken);
-      showPinError(e?.message || 'Login failed', pinAttempt);
-      return false;
-    }
+  const allPins = Object.assign({}, DEFAULT_PINS);
 
+  // Try to load from targets.json if available (legacy)
+  try {
+    const fromTargets = (typeof DATA !== 'undefined' && DATA.config?.agent_pins) || {};
+    Object.assign(allPins, fromTargets);
+  } catch {}
+
+  // Try to fetch LIVE PINs from Supabase (admin may have changed since last bat run)
+  try {
+    const SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/agent_pins?select=agent,pin`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    if (r.ok) {
+      const rows = await r.json();
+      rows.forEach(row => { allPins[row.agent] = row.pin; });
+      console.log(`[PIN] Fetched ${rows.length} live PINs from Supabase`);
+    }
+  } catch (e) {
+    console.warn('[PIN] Supabase fetch failed, using cached:', e.message);
+  }
+
+  const match = Object.entries(allPins).find(([,p])=>p===_pin);
+
+  if (match) {
+    const agentName = match[0];
+    if (agentName !== 'GT138888' && !(await isAgentAccessAllowedForMonth(agentName))) {
+      showPinError(`${agentName} access is off for ${currentAccessMonth()}`);
+      return;
+    }
+    // Flash green
     for (let i=0;i<4;i++) {
       const d = document.getElementById('pd'+i);
-      if (d) d.className='pin-dot ok';
+      d.className='pin-dot ok';
     }
-    const hint = document.getElementById('pin-name-hint');
-    if (hint) hint.textContent = result.role === 'manager' ? 'MANAGER' : result.agent;
-    const gate = document.getElementById('pin-gate');
-    if (gate) gate.style.display = 'none';
-    return true;
-  } finally {
-    if (_pinLockOwner === pinAttempt) {
-      _pinLockOwner = 0;
-      _pinLocked = false;
+    document.getElementById('pin-name-hint').textContent = agentName === 'GT138888' ? 'ADMIN' : agentName;
+    setTimeout(()=>{
+      document.getElementById('pin-gate').style.display = 'none';
+      // Lock to agent if not admin
+      if (agentName !== 'GT138888') {
+        lockToAgent(agentName);
+      }
+      sessionStorage.setItem('md_agent', agentName);
+      sessionStorage.setItem('md_auth', '1');
+    }, 600);
+  } else {
+    // Wrong PIN
+    showPinError('Wrong PIN - try again');
+    return;
+    for (let i=0;i<4;i++) {
+      const d = document.getElementById('pd'+i);
+      d.className='pin-dot err';
     }
+    document.getElementById('pin-err').textContent = 'Wrong PIN — try again';
+    setTimeout(()=>{
+      _pin=''; _pinLocked=false; updatePinDisplay();
+    }, 1000);
   }
 }
 
 function lockToAgent(agentName) {
+  // Auto-select agent and hide the dropdown for non-admins
   const sel = document.getElementById('agent-select');
   if (sel) {
     sel.value = agentName;
-    sel.style.pointerEvents='none';
+    // Hide dropdown so agent can't switch to others
+    sel.closest('.agent-select')?.style && (sel.style.pointerEvents='none');
     sel.style.opacity = '0.7';
   }
+  // Also trigger agent selection
   selectAgent(agentName);
 }
 
@@ -1067,24 +1091,29 @@ function initContentSize() {
 window.addEventListener('DOMContentLoaded', ()=>{
   initTheme();
   initContentSize();
+  if (sessionStorage.getItem('md_auth') === '1') {
+    const agent = sessionStorage.getItem('md_agent');
+    document.getElementById('pin-gate').style.display = 'none';
+    if (agent && agent !== 'GT138888') {
+      // Will lock after data loads
+      window._pendingAgent = agent;
+    }
+  }
 });
 
 // ── Logout ────────────────────────────────────────────────────────────────
 // Clears session + reloads page. PIN gate will show on reload.
-async function doAgentLogout() {
-  try {
-    await DashboardApi.logout();
-  } catch (e) {
-    console.warn('[logout] API request failed; local session was still cleared:', e?.message || e);
-  } finally {
-    clearProtectedDashboardState();
-    location.reload();
-  }
+function doAgentLogout() {
+  sessionStorage.removeItem('md_auth');
+  sessionStorage.removeItem('md_agent');
+  location.reload();
 }
 
 // ── Force Refresh ─────────────────────────────────────────────────────────
 // Clears read-only dashboard caches, then reloads the active month data.
 function clearDashboardDataCaches() {
+  try { DEBTOR_ANALYSIS_CACHE = undefined; } catch {}
+  try { MONTH_SNAPSHOT_CACHE = {}; } catch {}
   try { SALES_LIVE_STATIC_CONFIG_CACHE = undefined; } catch {}
   try {
     localStorage.removeItem('md_gist_cache');
@@ -1481,9 +1510,6 @@ function updateSyncStatus() {
 // ── State ──────────────────────────────────────────────────────────────────
 let DATA = null;
 let currentAgent = null;
-let authenticatedAgent = null;
-let authenticatedRole = null;
-let AVAILABLE_MONTHS = [];
 let currentView = 'debtors';
 let filters = { status: 'all', special: null, pending_activation: null, type: 'all', brand: 'all' };
 let currentPage = 1;
@@ -1507,212 +1533,6 @@ let debtorExportViewState = createEmptyDebtorExportViewState();
 let debtorExportTransitionVersion = 0;
 let debtorExportPendingTransition = null;
 let debtorDownloadMenuEventsBound = false;
-
-function clearProtectedDashboardDom() {
-  const debtorList = document.getElementById('debtor-list');
-  if (debtorList) {
-    debtorList.innerHTML = '';
-    if (debtorList.style) debtorList.style.display = '';
-  }
-
-  const debtorSearch = document.getElementById('debtor-search');
-  if (debtorSearch) debtorSearch.value = '';
-  const agentSelect = document.getElementById('agent-select');
-  if (agentSelect) {
-    agentSelect.innerHTML = '<option value="">-- Select Agent --</option>';
-    agentSelect.value = '';
-    if (agentSelect.style) {
-      agentSelect.style.pointerEvents = '';
-      agentSelect.style.opacity = '';
-    }
-  }
-  const monthSelector = document.getElementById('month-selector-agent');
-  if (monthSelector) {
-    monthSelector.innerHTML = '';
-    monthSelector.value = '';
-    if (monthSelector.style) monthSelector.style.display = 'none';
-  }
-
-  const resetText = (id, value) => {
-    const node = document.getElementById(id);
-    if (node) node.textContent = value;
-  };
-  ['sum-total','sum-active','sum-reactiv','sum-rate','sum-rate-detail'].forEach(id => resetText(id, '-'));
-  resetText('sum-flags', '0');
-  resetText('month-badge', '');
-  resetText('day-prog', '');
-  resetText('pin-name-hint', '');
-  resetText('page-info', '');
-  resetText('debtor-export-match-count', 'Select agent or wait for loading');
-  resetText('debtor-export-filter-labels', 'Protected debtor data cleared');
-  resetText('debtor-filtered-export-count', '0');
-  resetText('debtor-full-export-count', '0');
-  resetText('debtor-filtered-export-help', 'Loading debtor list');
-
-  ['debtor-export-filtered','debtor-export-full','btn-prev','btn-next'].forEach(id => {
-    const button = document.getElementById(id);
-    if (button) button.disabled = true;
-  });
-  const downloadMenu = document.getElementById('debtor-download-menu');
-  if (downloadMenu) downloadMenu.hidden = true;
-  const downloadToggle = document.getElementById('debtor-download-toggle');
-  if (downloadToggle && typeof downloadToggle.setAttribute === 'function') {
-    downloadToggle.setAttribute('aria-expanded', 'false');
-  }
-
-  ['global-search-results','brand-banner','sum-total-delta'].forEach(id => {
-    const node = document.getElementById(id);
-    if (node && typeof node.remove === 'function') node.remove();
-  });
-
-  const protectedHtmlIds = [
-    'tier-cards',
-    'monthly-personal-card',
-    'sku-trend-table',
-    'brand-cards',
-    'newbie-content',
-    'aging-content',
-    'group-content',
-    'kpi-content',
-    'camps-content',
-    'cd-list',
-    'ctn-tt-items',
-  ];
-  protectedHtmlIds.forEach(id => {
-    const node = document.getElementById(id);
-    if (node) node.innerHTML = '';
-  });
-
-  const protectedTextDefaults = {
-    'prog-main-pct': '\u2014',
-    'prog-meta': 'Select an agent',
-    'prog-ctn': '\u2014',
-    'prog-gap': '',
-    'tot-paid': '\u2014',
-    'tot-ga': '\u2014',
-    'tot-ma': '\u2014',
-    '8com-paid': '\u2014',
-    '8com-unpaid': '\u2014',
-    'total-comm': 'RM 0.00',
-    'brands-status': 'Select an agent',
-    'cd-title': 'Campaigns',
-    'cd-sub': '',
-    'sheet-debtor-name': '\u2014',
-    'ctn-tt-title': '\u2014',
-    'ctn-tt-sub': '\u2014',
-  };
-  Object.entries(protectedTextDefaults).forEach(([id, value]) => resetText(id, value));
-
-  const progressionBar = document.getElementById('prog-main-bar');
-  if (progressionBar && progressionBar.style) progressionBar.style.width = '0%';
-  ['camps-filter-bar','camps-export-bar'].forEach(id => {
-    const node = document.getElementById(id);
-    if (node && node.style) node.style.display = 'none';
-  });
-  const campFilterBar = document.getElementById('camps-filter-bar');
-  if (campFilterBar) {
-    campFilterBar.innerHTML = '<span style="font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-right:8px;">Filter:</span>';
-  }
-  const typeFilterRow = document.getElementById('type-filter-row');
-  if (typeFilterRow) {
-    typeFilterRow.innerHTML = '<span style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 2px;text-transform:uppercase;letter-spacing:.08em;">Type:</span><button class="filter-chip active" data-type="all" onclick="setTypeFilter(\'all\',this)">All</button>';
-  }
-  const flagNote = document.getElementById('flag-note');
-  if (flagNote) flagNote.value = '';
-  const flagSubmit = document.getElementById('flag-submit-btn');
-  if (flagSubmit) flagSubmit.disabled = true;
-  ['event-input','bday-actual-input'].forEach(id => {
-    const node = document.getElementById(id);
-    if (node) node.value = '';
-  });
-  ['event-target-hint','bday-target-display'].forEach(id => resetText(id, ''));
-  ['flag-sheet-overlay','camp-detail-overlay','bday-sheet-overlay','event-sheet-overlay'].forEach(id => {
-    const node = document.getElementById(id);
-    if (node?.classList && typeof node.classList.remove === 'function') node.classList.remove('open');
-  });
-  const ctnOverlay = document.getElementById('ctn-tooltip-overlay');
-  if (ctnOverlay?.style) ctnOverlay.style.display = 'none';
-  ['camp-claim-modal','camp-undo-toast'].forEach(id => {
-    const node = document.getElementById(id);
-    if (node && typeof node.remove === 'function') node.remove();
-  });
-  if (typeof document.querySelectorAll === 'function') {
-    document.querySelectorAll('[data-protected-agent-overlay="true"]').forEach(node => {
-      if (node && typeof node.remove === 'function') node.remove();
-    });
-    document.querySelectorAll('.flag-option').forEach(node => {
-      if (node?.classList && typeof node.classList.remove === 'function') node.classList.remove('selected');
-    });
-  }
-  if (document.body?.style) document.body.style.overflow = '';
-  const gate = document.getElementById('pin-gate');
-  if (gate && gate.style) gate.style.display = 'flex';
-}
-
-function clearProtectedDashboardState() {
-  if (typeof debtorExportTransitionVersion !== 'undefined') debtorExportTransitionVersion += 1;
-  if (typeof debtorExportPendingTransition !== 'undefined') debtorExportPendingTransition = null;
-  DATA = null;
-  currentAgent = null;
-  authenticatedAgent = null;
-  authenticatedRole = null;
-  AVAILABLE_MONTHS = [];
-  MONTHS_WITH_DATA = [];
-  CURRENT_MONTH_SLUG = 'current';
-  _lastUnpurchasedExport = null;
-  _lastCampsExport = null;
-  _pin = '';
-  _pinLocked = false;
-  _pinLockOwner = 0;
-  if (typeof _flagAgent !== 'undefined') _flagAgent = null;
-  if (typeof _flagCode !== 'undefined') _flagCode = null;
-  if (typeof _flagReason !== 'undefined') _flagReason = null;
-  if (typeof _campDetailDebtor !== 'undefined') _campDetailDebtor = null;
-  if (typeof _campUndoTimer !== 'undefined' && _campUndoTimer) {
-    clearTimeout(_campUndoTimer);
-    _campUndoTimer = null;
-  }
-  if (typeof window !== 'undefined' && window._ctnBreakdowns) delete window._ctnBreakdowns;
-  if (typeof BIRTHDAY_OVERRIDES_BY_MONTH !== 'undefined') BIRTHDAY_OVERRIDES_BY_MONTH = {};
-  if (typeof SALES_LIVE_STATIC_CONFIG_CACHE !== 'undefined') SALES_LIVE_STATIC_CONFIG_CACHE = undefined;
-  if (typeof openBrandPenetration !== 'undefined') openBrandPenetration.clear();
-  if (typeof resetDebtorExportView === 'function') resetDebtorExportView();
-  clearProtectedDashboardDom();
-  if (typeof updateDebtorExportMenu === 'function') updateDebtorExportMenu();
-
-  try {
-    sessionStorage.removeItem('md_auth');
-    sessionStorage.removeItem('md_agent');
-  } catch {}
-
-  try {
-    const protectedKeys = [];
-    for (let index = 0; index < localStorage.length; index += 1) {
-      const key = localStorage.key(index);
-      if (key) protectedKeys.push(key);
-    }
-    const protectedPrefixes = [
-      'camp_claim_',
-      'camp_status_',
-      'touro_debtor_flags',
-      'md_scores_',
-      'md_gist_cache',
-      'kpi_manual',
-      'bday_gift_',
-      'bday_note_',
-      'kpi_birthday_',
-      'kpi_event_',
-    ];
-    const lastAgentKey = typeof LAST_AGENT_KEY === 'undefined'
-      ? 'md_sales_selected_agent'
-      : LAST_AGENT_KEY;
-    protectedKeys
-      .filter(key => key === lastAgentKey || protectedPrefixes.some(prefix => key.startsWith(prefix)))
-      .forEach(key => localStorage.removeItem(key));
-  } catch (e) {
-    console.warn('[dashboard] protected cache clear skipped:', e);
-  }
-}
 
 function createEmptyDebtorExportViewState() {
   return { agent: '', month: '', debtors: [], labels: [], active: false };
@@ -2345,42 +2165,14 @@ function getRealWorldMonthLabel() {
 }
 
 async function fetchAvailableMonthLabels() {
-  if (Array.isArray(AVAILABLE_MONTHS) && AVAILABLE_MONTHS.length) {
-    return AVAILABLE_MONTHS.slice();
-  }
-
-  let response;
   try {
-    response = await fetch('months_index.json', { cache: 'no-store' });
-  } catch (error) {
-    throw new Error('Published dashboard month index is unavailable. Please try again later.');
+    const r = await fetch('months_index.json?v=' + Date.now());
+    if (!r.ok) return [];
+    const months = await r.json();
+    return Array.isArray(months) ? months : [];
+  } catch(e) {
+    return [];
   }
-  if (!response.ok) {
-    throw new Error('Published dashboard month index is unavailable. Please try again later.');
-  }
-
-  let payload;
-  try {
-    payload = await response.json();
-  } catch (error) {
-    throw new Error('Published dashboard month index is invalid. Please try again later.');
-  }
-  const rows = Array.isArray(payload)
-    ? payload
-    : (Array.isArray(payload?.months) ? payload.months : []);
-  const months = [];
-  rows.forEach(row => {
-    const label = typeof row === 'string'
-      ? row.trim()
-      : String(row?.label || row?.month || '').trim();
-    if (monthSortKey(label) === -Infinity || months.includes(label)) return;
-    months.push(label);
-  });
-  if (!months.length) {
-    throw new Error('No published dashboard months are available. Please try again later.');
-  }
-  AVAILABLE_MONTHS = months.slice();
-  return months;
 }
 
 function normalizeDashboardVersionPayload(payload) {
@@ -2446,32 +2238,6 @@ function monthSortKey(label) {
   const idx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(parts[0]);
   const yy = Number(parts[1]);
   return idx < 0 || !Number.isFinite(yy) ? -Infinity : yy * 12 + idx;
-}
-
-function resolvePublishedBaseMonth(requestedMonth, publishedMonths) {
-  const bySortKey = new Map();
-  (publishedMonths || []).forEach(month => {
-    const label = String(month || '').trim();
-    const sortKey = monthSortKey(label);
-    if (sortKey !== -Infinity) bySortKey.set(sortKey, label);
-  });
-  const sorted = Array.from(bySortKey.entries()).sort((a, b) => a[0] - b[0]);
-  if (!sorted.length) {
-    throw new Error('No published dashboard months are available. Please try again later.');
-  }
-
-  const requestedKey = monthSortKey(requestedMonth);
-  if (requestedKey === -Infinity) {
-    throw new Error(`Requested dashboard month is invalid: ${requestedMonth || 'unknown'}`);
-  }
-  if (bySortKey.has(requestedKey)) {
-    return bySortKey.get(requestedKey);
-  }
-  const notAfter = sorted.filter(([sortKey]) => sortKey <= requestedKey);
-  if (!notAfter.length) {
-    throw new Error(`No published dashboard month is available at or before ${requestedMonth}`);
-  }
-  return notAfter[notAfter.length - 1][1];
 }
 
 function latestAvailableMonth(months, fallback) {
@@ -2588,72 +2354,12 @@ function futureDebtorSummaryStats(agData = {}, debtors = []) {
   };
 }
 
-function futureDebtorPlanningCopy(debtor = {}, options = {}) {
-  const planningOptions = options && typeof options === 'object' && !Array.isArray(options)
-    ? options
-    : {};
-  const dashboardData = typeof DATA !== 'undefined' ? DATA : null;
-  const baseMonth = planningOptions.baseMonth || dashboardData?.planning_base_month || '';
-  const targetMonth = planningOptions.targetMonth || dashboardData?.current_month || '';
-  const monthKey = value => {
-    const parts = String(value || '').trim().split(/\s+/);
-    const monthIndex = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-      .indexOf(parts[0]);
-    const year = Number(parts[1]);
-    return monthIndex < 0 || !Number.isFinite(year) ? null : year * 12 + monthIndex;
-  };
-  const baseKey = monthKey(baseMonth);
-  const targetKey = monthKey(targetMonth);
-  const monthGap = baseKey !== null && targetKey !== null && targetKey > baseKey
-    ? targetKey - baseKey
-    : 1;
-
-  const planningDebtor = { ...debtor };
-  const shiftSeries = keys => {
-    const hasSeries = keys[0] === 'ctn_cur'
-      || keys.some(key => Object.prototype.hasOwnProperty.call(debtor, key));
-    if (!hasSeries) return;
-    let values = keys.map(key => Number(debtor[key] || 0));
-    for (let step = 0; step < monthGap; step += 1) {
-      values = [0, values[0], values[1], values[2]];
-    }
-    keys.forEach((key, index) => {
-      planningDebtor[key] = values[index];
-    });
-  };
-  [
-    ['ctn_cur','ctn_prev1','ctn_prev2','ctn_prev3'],
-    ['canggih_ctn_cur','canggih_ctn_prev1','canggih_ctn_prev2','canggih_ctn_prev3'],
-    ['eightcom_ctn_cur','eightcom_ctn_prev1','eightcom_ctn_prev2','eightcom_ctn_prev3'],
-    ['rm_cur','rm_prev1','rm_prev2','rm_prev3'],
-    ['invoice_count_cur','invoice_count_prev1','invoice_count_prev2','invoice_count_prev3'],
-  ].forEach(shiftSeries);
-
+function futureDebtorPlanningCopy(debtor = {}) {
   const campaigns = Array.isArray(debtor.campaigns)
-    ? debtor.campaigns.map(c => ({
-        ...c,
-        converted: false,
-        status: 'pending',
-        conversion_status: 'pending',
-        linked_status: 'not_converted',
-        linked_stage1_actual: false,
-        linked_stage2_actual: false,
-        current_ctn: 0,
-        current_paid_ctn: 0,
-        current_invoice_ctn: 0,
-        current_unpaid_ctn: 0,
-        current_rm: 0,
-        ctn_this_month: 0,
-        progress_ctn: 0,
-        qualifying_ctn: 0,
-        conversion_ctn: 0,
-        current_order_count: 0,
-        current_invoice_count: 0,
-        current_unpaid_count: 0,
-      }))
+    ? debtor.campaigns.map(c => ({ ...c, converted: false, current_ctn: 0, current_rm: 0, status: c.status || 'pending' }))
     : [];
   return {
-    ...planningDebtor,
+    ...debtor,
     status: 'pending',
     is_pending_activation: false,
     ctn_cur: 0,
@@ -2670,7 +2376,37 @@ function futureDebtorPlanningCopy(debtor = {}, options = {}) {
 }
 
 // ── Month Selector ─────────────────────────────────────────────────────────
+let CURRENT_MONTH_FILE = 'dashboard_data.json'; // default
 let CURRENT_MONTH_SLUG = 'current'; // tracks selected month slug
+let DEBTOR_ANALYSIS_CACHE = undefined;
+let MONTH_SNAPSHOT_CACHE = {};
+
+async function loadDebtorAnalysisData() {
+  if (DEBTOR_ANALYSIS_CACHE !== undefined) return DEBTOR_ANALYSIS_CACHE;
+  try {
+    const r = await fetch('debtor_analysis_data.json?v=' + Date.now());
+    if (!r.ok) throw new Error('debtor analysis unavailable');
+    DEBTOR_ANALYSIS_CACHE = await r.json();
+  } catch(e) {
+    DEBTOR_ANALYSIS_CACHE = null;
+  }
+  return DEBTOR_ANALYSIS_CACHE;
+}
+
+async function loadMonthSnapshotData(monthLabel) {
+  if (monthLabel && monthLabel === DATA?.current_month) return DATA;
+  const slug = monthSlug(monthLabel);
+  if (!slug) return null;
+  if (Object.prototype.hasOwnProperty.call(MONTH_SNAPSHOT_CACHE, slug)) return MONTH_SNAPSHOT_CACHE[slug];
+  try {
+    const r = await fetch(`data_${slug}.json?v=` + Date.now());
+    if (!r.ok) throw new Error('month snapshot unavailable');
+    MONTH_SNAPSHOT_CACHE[slug] = await r.json();
+  } catch(e) {
+    MONTH_SNAPSHOT_CACHE[slug] = null;
+  }
+  return MONTH_SNAPSHOT_CACHE[slug];
+}
 
 const SALES_LIVE_STATIC_CONFIG_KEYS = ['brand_config', 'zlb_brands', 'sku_rules'];
 let SALES_LIVE_STATIC_CONFIG_CACHE = undefined;
@@ -2836,8 +2572,41 @@ function mergeAmountIntoBreakdownRows(existingRows, analysisRows) {
 }
 
 async function enrichMonthBreakdownsFromAnalysis(data = DATA) {
-  // Gateway snapshots already contain the authorized month breakdown shape.
-  return data;
+  const analysis = await loadDebtorAnalysisData();
+  if (!analysis?.records?.length || !data?.agents) return;
+  const curMonth = data.current_month || analysis.current_month || '';
+  const monthLabels = [-3, -2, -1, 0].map(offset => shiftedMonthLabel(curMonth, offset)).filter(Boolean);
+  if (!monthLabels.length) return;
+  const monthSet = new Set(monthLabels);
+  const byDebtor = {};
+  const snapshotByMonth = {};
+
+  analysis.records.forEach(row => {
+    if (!row?.debtor_code || !monthSet.has(row.month)) return;
+    byDebtor[row.debtor_code] ||= {};
+    byDebtor[row.debtor_code][row.month] ||= [];
+    byDebtor[row.debtor_code][row.month].push(row);
+  });
+
+  for (const label of monthLabels) {
+    const snapshotData = label === data.current_month ? data : await loadMonthSnapshotData(label);
+    snapshotByMonth[label] = monthSnapshotIndex(snapshotData, label);
+  }
+
+  Object.values(data.agents || {}).forEach(agentData => {
+    const debtors = agentData?.debtor_cards?.debtors || [];
+    debtors.forEach(d => {
+      const debtorRows = byDebtor[d.debtor_code] || {};
+      d.month_breakdown ||= {};
+      monthLabels.forEach(label => {
+        const snapshotRows = snapshotByMonth[label]?.[d.debtor_code] || [];
+        const baseRows = snapshotRows.length ? snapshotRows : (d.month_breakdown[label] || []);
+        d.month_breakdown[label] = mergeAmountIntoBreakdownRows(baseRows, debtorRows[label] || []);
+      });
+      const prev3 = d.month_breakdown[monthLabels[0]] || [];
+      if (d.ctn_prev3 === undefined) d.ctn_prev3 = prev3.reduce((sum, row) => sum + (Number(row.ctn) || 0), 0);
+    });
+  });
 }
 
 async function loadMonthIndex(preloadedMonths) {
@@ -2849,12 +2618,6 @@ async function loadMonthIndex(preloadedMonths) {
     // if not already present, to enable future view.
     const realCurrent = getRealWorldMonthLabel();
     if (!months.includes(realCurrent)) months.push(realCurrent);
-    const selectedPlanningMonth = DATA?.current_month || '';
-    if (selectedPlanningMonth && !months.some(month =>
-      monthSlug(month) === monthSlug(selectedPlanningMonth)
-    )) {
-      months.push(selectedPlanningMonth);
-    }
     if (!months || months.length < 2) return; // only show if >1 month
 
     const sel = document.getElementById('month-selector-agent');
@@ -2869,155 +2632,9 @@ async function loadMonthIndex(preloadedMonths) {
   } catch(e) {}
 }
 
-function commitDashboardEnvelope(result, options = {}) {
-  const nextData = result?.data;
-  if (!nextData || typeof nextData !== 'object' || Array.isArray(nextData)) {
-    throw new Error('Dashboard API returned invalid data');
-  }
-
-  if (options.agent != null || options.role != null) {
-    const nextAgent = String(options.agent || '').trim();
-    const nextRole = String(options.role || '').trim();
-    if (!nextAgent || !['agent', 'manager'].includes(nextRole)) {
-      throw new Error('Dashboard API returned invalid identity metadata');
-    }
-    authenticatedAgent = nextAgent;
-    authenticatedRole = nextRole;
-  }
-  if (!authenticatedAgent || !['agent', 'manager'].includes(authenticatedRole)) {
-    throw new Error('Authenticated dashboard identity is unavailable');
-  }
-
-  const nextMonths = Array.isArray(result.availableMonths)
-    ? result.availableMonths.map(month => String(month || '').trim()).filter(Boolean)
-    : [];
-  const dataAgents = Object.keys(nextData.agents || {});
-  let selectedAgent = '';
-  if (authenticatedRole === 'agent') {
-    if (dataAgents.length !== 1 || dataAgents[0] !== authenticatedAgent) {
-      DATA = null;
-      currentAgent = null;
-      AVAILABLE_MONTHS = [];
-      MONTHS_WITH_DATA = [];
-      throw new Error('Dashboard API returned invalid authenticated agent scope');
-    }
-    selectedAgent = authenticatedAgent;
-  } else {
-    const desiredAgent = String(options.desiredAgent || currentAgent || '').trim();
-    selectedAgent = dataAgents.includes(desiredAgent) ? desiredAgent : '';
-  }
-
-  DATA = nextData;
-  AVAILABLE_MONTHS = nextMonths;
-  MONTHS_WITH_DATA = nextMonths.map(month => monthSlug(month));
-  CURRENT_MONTH_SLUG = options.requestedSlug
-    || monthSlug(result.month || nextData.current_month || '')
-    || 'current';
-  currentAgent = selectedAgent;
-  return DATA;
-}
-
-function retainFutureGeneratedCampaignFallbacks(data, month) {
-  const generatedCampaigns = Array.isArray(data?.campaigns) ? data.campaigns : [];
-  const generatedById = new Map(
-    generatedCampaigns
-      .filter(campaign => campaign?.id)
-      .map(campaign => [campaign.id, campaign])
-  );
-  const retainedIds = new Set();
-  data.campaigns = generatedCampaigns.filter(campaign => {
-    const retained = shouldIncludeLiveCampaignForSales(campaign, month);
-    if (retained) retainedIds.add(campaign.id);
-    return retained;
-  });
-
-  Object.values(data?.agents || {}).forEach(agentData => {
-    (agentData?.debtor_cards?.debtors || []).forEach(debtor => {
-      if (!Array.isArray(debtor.campaigns)) return;
-      debtor.campaigns = debtor.campaigns.filter(campaign => {
-        const campaignId = campaign?.id;
-        if (campaignId && generatedById.has(campaignId)) return retainedIds.has(campaignId);
-        return shouldIncludeLiveCampaignForSales(campaign, month);
-      });
-    });
-  });
-  return data;
-}
-
-async function prepareAuthorizedInitialMonthData(data, requestedMonth, loadedMonth, transitionToken) {
-  const requestedKey = monthSortKey(requestedMonth);
-  const loadedKey = monthSortKey(loadedMonth);
-  let nextData = data;
-  if (requestedKey !== -Infinity && loadedKey !== -Infinity && requestedKey > loadedKey) {
-    nextData = typeof structuredClone === 'function'
-      ? structuredClone(data)
-      : JSON.parse(JSON.stringify(data));
-    nextData.planning_base_month = loadedMonth;
-    nextData.current_month = requestedMonth;
-    nextData.is_future_view = true;
-    retainFutureGeneratedCampaignFallbacks(nextData, requestedMonth);
-  } else {
-    delete nextData.planning_base_month;
-    nextData.is_future_view = false;
-  }
-  return prepareAuthorizedDashboardData(nextData, transitionToken);
-}
-
-async function prepareAuthorizedDashboardData(data, transitionToken) {
-  if (!data || typeof data !== 'object' || Array.isArray(data)) {
-    throw new Error('Dashboard API returned invalid data');
-  }
-  const isCurrent = () => transitionToken == null
-    || isCurrentDebtorExportTransition(transitionToken);
-  if (!isCurrent()) return null;
-  await applySalesLiveStaticConfig(data);
-  if (!isCurrent()) return null;
-  await enrichMonthBreakdownsFromAnalysis(data);
-  if (!isCurrent()) return null;
-  await SupabaseKpiSync.apply(data);
-  if (!isCurrent()) return null;
-  await ensureBirthdayOverridesForMonth(data.current_month || '');
-  if (!isCurrent()) return null;
-  await SalesLiveCampaignSync.apply(data);
-  if (!isCurrent()) return null;
-  if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
-    await GistSync.syncToLocal(data.current_month || '');
-    if (!isCurrent()) return null;
-  }
-  return data;
-}
-
-async function initializeDashboardAfterCommit() {
-  applyBirthdayTargetsToAgentKpi();
-  init();
-  if (DATA?.is_future_view) {
-    const dayProg = document.getElementById('day-prog');
-    if (dayProg) dayProg.textContent = 'Future view - data pending';
-  }
-  await loadMonthIndex(AVAILABLE_MONTHS);
-  cleanDashboardCacheBusterParam();
-}
-
-function isDashboardAuthorizationError(error) {
-  const status = Number(error?.status);
-  if (status === 401 || status === 403) return true;
-  const code = String(error?.code || '').trim().toLowerCase();
-  return [
-    'access_denied',
-    'forbidden',
-    'invalid_session',
-    'session_expired',
-    'session_invalid',
-    'session_rejected',
-    'session_required',
-    'unauthorized',
-  ].includes(code);
-}
-
 async function switchMonth(slug) {
   const requestedSlug = slug || 'current';
-  const beginMonthTransition = beginDebtorExportTransition;
-  const transitionToken = beginMonthTransition({
+  const transitionToken = beginDebtorExportTransition({
     kind: 'month',
     requestedMonthSlug: requestedSlug,
     desiredAgent: currentAgent || '',
@@ -3027,10 +2644,7 @@ async function switchMonth(slug) {
   const previousMonthSlug = CURRENT_MONTH_SLUG;
   // Read selected agent directly from DOM before anything changes
   const agSel = document.getElementById('agent-select');
-  const lockedAgentRole = typeof authenticatedRole !== 'undefined' && authenticatedRole === 'agent';
-  const prevAgent = lockedAgentRole
-    ? authenticatedAgent
-    : ((agSel && agSel.value) ? agSel.value : (currentAgent || ''));
+  const prevAgent = (agSel && agSel.value) ? agSel.value : (currentAgent || '');
   updateDebtorExportTransitionDesiredAgent(transitionToken, prevAgent);
   const pendingMonthSelector = document.getElementById('month-selector-agent');
   if (pendingMonthSelector && previousMonthSlug) pendingMonthSelector.value = previousMonthSlug;
@@ -3038,34 +2652,32 @@ async function switchMonth(slug) {
     ? (DATA?.current_month || '')
     : monthLabelFromSlug(requestedSlug);
   try {
-    // Future view: reload a real authorized month, then derive planning state locally.
+    // Future view: selected month has no generated data file yet.
+    // Reuse currently loaded DATA, override metadata, and render forward-looking items.
     if (requestedSlug !== 'current' && !MONTHS_WITH_DATA.includes(requestedSlug) && DATA) {
-      const availableBaseMonths = AVAILABLE_MONTHS.filter(month =>
-        MONTHS_WITH_DATA.includes(monthSlug(month))
-      );
-      const baseMonth = resolvePublishedBaseMonth(requestedMonth, availableBaseMonths);
-      if (!baseMonth || monthSlug(baseMonth) === requestedSlug) {
-        throw new Error('Authorized base month is unavailable for future planning');
-      }
-      const result = await DashboardApi.loadData(baseMonth);
-      if (!isCurrentDebtorExportTransition(transitionToken)) return;
       const nextData = typeof structuredClone === 'function'
-        ? structuredClone(result.data)
-        : JSON.parse(JSON.stringify(result.data));
-      nextData.planning_base_month = result.data?.current_month || result.month || baseMonth;
-      nextData.current_month = requestedMonth;
+        ? structuredClone(DATA)
+        : JSON.parse(JSON.stringify(DATA));
+      nextData.current_month = monthLabelFromSlug(requestedSlug);
       nextData.is_future_view = true;
-      retainFutureGeneratedCampaignFallbacks(nextData, requestedMonth);
 
-      const preparedData = await prepareAuthorizedDashboardData(nextData, transitionToken);
-      if (!preparedData || !isCurrentDebtorExportTransition(transitionToken)) return;
-      const selectedAgent = lockedAgentRole
-        ? authenticatedAgent
-        : resolveDebtorExportTransitionAgent(transitionToken, preparedData, prevAgent);
-      commitDashboardEnvelope(
-        { ...result, data: preparedData },
-        { desiredAgent: selectedAgent, requestedSlug }
-      );
+      await applySalesLiveStaticConfig(nextData);
+      if (!isCurrentDebtorExportTransition(transitionToken)) return;
+      await SupabaseKpiSync.apply(nextData);
+      if (!isCurrentDebtorExportTransition(transitionToken)) return;
+      await ensureBirthdayOverridesForMonth(nextData.current_month || '');
+      if (!isCurrentDebtorExportTransition(transitionToken)) return;
+      await SalesLiveCampaignSync.apply(nextData);
+      if (!isCurrentDebtorExportTransition(transitionToken)) return;
+      if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+        await GistSync.syncToLocal(nextData.current_month || '');
+        if (!isCurrentDebtorExportTransition(transitionToken)) return;
+      }
+
+      const selectedAgent = resolveDebtorExportTransitionAgent(transitionToken, nextData, prevAgent);
+      DATA = nextData;
+      CURRENT_MONTH_SLUG = requestedSlug;
+      currentAgent = selectedAgent;
       if (window.MDAdminContext) {
         MDAdminContext.setWorkingMonth(DATA.current_month || requestedMonth, { silent: true });
       }
@@ -3098,27 +2710,34 @@ async function switchMonth(slug) {
       return;
     }
 
-    const result = await DashboardApi.loadData(requestedMonth);
+    const url = requestedSlug === 'current' || !requestedSlug
+      ? 'dashboard_data.json?v=' + Date.now()
+      : `data_${requestedSlug}.json?v=` + Date.now();
+    const r = await fetch(url);
     if (!isCurrentDebtorExportTransition(transitionToken)) return;
-    const nextData = typeof prepareAuthorizedDashboardData === 'function'
-      ? await prepareAuthorizedDashboardData(result.data, transitionToken)
-      : result.data;
-    if (!nextData || !isCurrentDebtorExportTransition(transitionToken)) return;
+    if (!r.ok) throw new Error('Not found');
+    const nextData = await r.json();
+    if (!isCurrentDebtorExportTransition(transitionToken)) return;
     nextData.is_future_view = false;
-    delete nextData.planning_base_month;
-    const selectedAgent = lockedAgentRole
-      ? authenticatedAgent
-      : resolveDebtorExportTransitionAgent(transitionToken, nextData, prevAgent);
-    if (typeof commitDashboardEnvelope === 'function') {
-      commitDashboardEnvelope(
-        { ...result, data: nextData },
-        { desiredAgent: selectedAgent, requestedSlug }
-      );
-    } else {
-      DATA = nextData;
-      CURRENT_MONTH_SLUG = requestedSlug;
-      currentAgent = selectedAgent;
+    await applySalesLiveStaticConfig(nextData);
+    if (!isCurrentDebtorExportTransition(transitionToken)) return;
+    await enrichMonthBreakdownsFromAnalysis(nextData);
+    if (!isCurrentDebtorExportTransition(transitionToken)) return;
+    await SupabaseKpiSync.apply(nextData);
+    if (!isCurrentDebtorExportTransition(transitionToken)) return;
+    await ensureBirthdayOverridesForMonth(nextData.current_month || '');
+    if (!isCurrentDebtorExportTransition(transitionToken)) return;
+    await SalesLiveCampaignSync.apply(nextData);
+    if (!isCurrentDebtorExportTransition(transitionToken)) return;
+    if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+      await GistSync.syncToLocal(nextData.current_month || '');
+      if (!isCurrentDebtorExportTransition(transitionToken)) return;
     }
+
+    const selectedAgent = resolveDebtorExportTransitionAgent(transitionToken, nextData, prevAgent);
+    DATA = nextData;
+    CURRENT_MONTH_SLUG = requestedSlug;
+    currentAgent = selectedAgent;
     if (window.MDAdminContext) MDAdminContext.setWorkingMonth(DATA.current_month || requestedMonth, { silent: true });
     applyBirthdayTargetsToAgentKpi();
 
@@ -3170,18 +2789,6 @@ async function switchMonth(slug) {
     updateFutureViewBanner();
   } catch(e) {
     if (!isCurrentDebtorExportTransition(transitionToken)) return;
-
-    if (isDashboardAuthorizationError(e)) {
-      try {
-        await DashboardApi.logout();
-      } catch (logoutError) {
-        console.warn('[month] Rejected session was cleared locally after logout error:', logoutError?.message || logoutError);
-      }
-      clearProtectedDashboardState();
-      completeDebtorExportTransition(transitionToken);
-      showPinError(e?.message || 'Dashboard session is no longer authorized');
-      return false;
-    }
 
     DATA = previousData;
     CURRENT_MONTH_SLUG = previousMonthSlug;
@@ -3240,64 +2847,53 @@ async function switchMonth(slug) {
 
 // ── Load Data ──────────────────────────────────────────────────────────────
 async function loadData() {
-  const transitionToken = beginDebtorExportTransition({
-    kind: 'load',
-    requestedMonthSlug: '',
-    desiredAgent: currentAgent || authenticatedAgent || '',
-  });
   try {
-    if (await refreshIfStaleDashboardVersion()) {
-      completeDebtorExportTransition(transitionToken);
-      return false;
-    }
+    if (await refreshIfStaleDashboardVersion()) return;
     const months = await fetchAvailableMonthLabels();
     const realMonth = getRealWorldMonthLabel();
     const explicitMonth = explicitUrlMonthLabel();
-    const requestedMonth = chooseInitialMonthLabel(months, realMonth, explicitMonth);
-    const hasPreferredMonthData = months.some(month =>
-      monthSortKey(month) === monthSortKey(requestedMonth)
-    );
-    const shouldShowFutureMonth = !hasPreferredMonthData;
-    const baseMonth = resolvePublishedBaseMonth(requestedMonth, months);
-    const requestedViewMonth = shouldShowFutureMonth ? requestedMonth : baseMonth;
-    const result = await DashboardApi.loadData(baseMonth);
-    if (!isCurrentDebtorExportTransition(transitionToken)) return false;
-    const loadedMonth = result.data?.current_month || result.month || baseMonth;
-    const nextData = await prepareAuthorizedInitialMonthData(
-      result.data,
-      requestedViewMonth,
-      loadedMonth,
-      transitionToken
-    );
-    if (!nextData || !isCurrentDebtorExportTransition(transitionToken)) return false;
-    const loadedSlug = monthSlug(nextData.current_month || loadedMonth);
-    const desiredAgent = authenticatedRole === 'agent'
-      ? authenticatedAgent
-      : (currentAgent || getLastAgentSelection());
-    commitDashboardEnvelope(
-      { ...result, data: nextData },
-      { desiredAgent, requestedSlug: loadedSlug }
-    );
-    if (window.MDAdminContext) {
-      MDAdminContext.setWorkingMonth(DATA.current_month || requestedMonth, { silent: true });
+    const preferredMonth = chooseInitialMonthLabel(months, realMonth, explicitMonth);
+    const preferredSlug = monthSlug(preferredMonth);
+    const hasPreferredMonthData = months.some(m => monthSlug(m) === preferredSlug);
+    const initialUrl = hasPreferredMonthData
+      ? `data_${preferredSlug}.json?v=` + Date.now()
+      : 'dashboard_data.json?v=' + Date.now();
+
+    const r = await fetch(initialUrl);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    DATA = await r.json();
+    const loadedSlug = monthSlug(DATA?.current_month || '');
+    const shouldShowFutureMonth = !hasPreferredMonthData && preferredSlug && preferredSlug !== loadedSlug;
+    CURRENT_MONTH_SLUG = hasPreferredMonthData ? preferredSlug : (shouldShowFutureMonth ? preferredSlug : loadedSlug);
+    if (shouldShowFutureMonth) {
+      DATA.current_month = preferredMonth;
+      DATA.is_future_view = true;
+    } else {
+      DATA.is_future_view = false;
     }
-    await initializeDashboardAfterCommit();
-    if (!isCurrentDebtorExportTransition(transitionToken)) return false;
-    completeDebtorExportTransition(transitionToken);
-    const gate = document.getElementById('pin-gate');
-    if (gate) gate.style.display = 'none';
-    return true;
+    if (window.MDAdminContext) MDAdminContext.setWorkingMonth(DATA.current_month || preferredMonth, { silent: true });
+    await applySalesLiveStaticConfig(DATA);
+    await enrichMonthBreakdownsFromAnalysis();
+    // Fetch kpi_manual overrides from Supabase BEFORE init() so first render shows correct values
+    await SupabaseKpiSync.apply(DATA);
+    await ensureBirthdayOverridesForMonth(DATA.current_month || '');
+    await SalesLiveCampaignSync.apply(DATA);
+    if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+      await GistSync.syncToLocal(DATA.current_month || '');
+    }
+    applyBirthdayTargetsToAgentKpi();
+    init();
+    if (DATA.is_future_view) {
+      const dayProg = document.getElementById('day-prog');
+      if (dayProg) dayProg.textContent = 'Future view · data pending';
+    }
+    loadMonthIndex(months); // load month dropdown after data ready
+    cleanDashboardCacheBusterParam();
   } catch(e) {
-    if (!isCurrentDebtorExportTransition(transitionToken)) return false;
-    try {
-      await DashboardApi.logout();
-    } catch {}
-    clearProtectedDashboardState();
-    completeDebtorExportTransition(transitionToken);
-    const gate = document.getElementById('pin-gate');
-    if (gate) gate.style.display = 'flex';
-    showPinError(e?.message || 'Could not load dashboard data');
-    return false;
+    document.body.innerHTML = `<div style="padding:40px;text-align:center;font-family:monospace;color:#ff5f5f;">
+      ❌ Could not load dashboard data<br>
+      <small style="color:#7070a0;">${e.message}</small>
+    </div>`;
   }
 }
 
@@ -3586,6 +3182,11 @@ function init() {
     }).catch(()=>{});
   }
 
+  // Apply agent lock after data loads (session restore)
+  if (window._pendingAgent) {
+    setTimeout(()=>{ restoreAgentSession(window._pendingAgent); window._pendingAgent=null; }, 300);
+  }
+
   // Last update
   if (DATA.generated_at) {
     const dt = new Date(DATA.generated_at);
@@ -3596,7 +3197,6 @@ function init() {
 
   // Agent dropdown
   const sel = document.getElementById('agent-select');
-  sel.innerHTML = '<option value="">- Select Agent -</option>';
   Object.keys(DATA.agents || {}).sort().forEach(a => {
     const opt = document.createElement('option');
     opt.value = a; opt.textContent = a;
@@ -3605,8 +3205,8 @@ function init() {
 
   // Render group targets immediately
   renderGroupBrandTargets();
-  if (authenticatedRole === 'agent') restoreAgentSession(authenticatedAgent);
-  else restoreLastAgentSelection();
+  if (!window._pendingAgent) restoreLastAgentSelection();
+  else renderNoAgentState();
 
   // Update sync status indicator
   try { updateSyncStatus(); } catch {}
@@ -3813,24 +3413,11 @@ function jumpToAgent(agent, debtorCode) {
 }
 
 function selectAgent(agent) {
-  const role = typeof authenticatedRole === 'undefined' ? '' : authenticatedRole;
-  const lockedAgent = typeof authenticatedAgent === 'undefined' ? '' : authenticatedAgent;
-  if (role === 'agent' && agent !== lockedAgent) {
-    const lockedSelect = document.getElementById('agent-select');
-    if (lockedSelect) lockedSelect.value = lockedAgent;
-    return false;
-  }
-  if (agent && !Object.prototype.hasOwnProperty.call(DATA?.agents || {}, agent)) {
-    const authorizedSelect = document.getElementById('agent-select');
-    if (authorizedSelect) authorizedSelect.value = currentAgent || '';
-    return false;
-  }
   const pendingTransition = getDebtorExportTransition();
   const pendingMonthTransition = pendingTransition?.kind === 'month' ? pendingTransition : null;
-  const beginAgentTransition = beginDebtorExportTransition;
   const transitionToken = pendingMonthTransition
     ? pendingMonthTransition.token
-    : beginAgentTransition({
+    : beginDebtorExportTransition({
         kind: 'agent',
         requestedMonthSlug: CURRENT_MONTH_SLUG || 'current',
         desiredAgent: agent,
@@ -3879,36 +3466,40 @@ function selectAgent(agent) {
     return;
   }
 
-  const debtorCards = DATA?.agents?.[agent]?.debtor_cards;
-  if (debtorCards && (!debtorCards.debtors || debtorCards.debtors.length === 0)) {
-    const month = DATA.current_month || monthLabelFromSlug(CURRENT_MONTH_SLUG);
-    const request = DashboardApi.loadData(month);
-    return request
-      .then(async result => {
-        if (!isCurrentDebtorExportTransition(transitionToken)) return;
-        const nextData = typeof prepareAuthorizedDashboardData === 'function'
-          ? await prepareAuthorizedDashboardData(result.data, transitionToken)
-          : result.data;
-        if (!nextData || !isCurrentDebtorExportTransition(transitionToken)) return;
-        if (typeof commitDashboardEnvelope === 'function') {
-          commitDashboardEnvelope(
-            { ...result, data: nextData },
-            { desiredAgent: agent, requestedSlug: CURRENT_MONTH_SLUG }
-          );
-        } else {
-          DATA = nextData;
-          currentAgent = agent;
-        }
-        completeDebtorExportTransition(transitionToken);
-        renderAll();
-      })
-      .catch(e => {
-        if (!isCurrentDebtorExportTransition(transitionToken)) return;
-        completeDebtorExportTransition(transitionToken);
-        renderAll();
-        alert(`Could not refresh debtors for ${agent}. Select the agent again to retry.`);
-        console.error('Failed to refresh authorized debtor data:', e);
-      });
+  // If debtors not loaded yet, fetch from GitHub
+  const dc = DATA?.agents?.[agent]?.debtor_cards;
+  if (dc && (!dc.debtors || dc.debtors.length === 0)) {
+    const repoRaw = window.REPO_RAW || '';
+    if (repoRaw) {
+      const fallbackUrl = (CURRENT_MONTH_SLUG && CURRENT_MONTH_SLUG !== 'current')
+        ? `data_${CURRENT_MONTH_SLUG}.json?v=` + Date.now()
+        : 'dashboard_data.json?v=' + Date.now();
+      return fetch(fallbackUrl)
+        .then(r => {
+          if (!isCurrentDebtorExportTransition(transitionToken)) return null;
+          if (!r.ok) throw new Error('Not found');
+          return r.json();
+        })
+        .then(fullData => {
+          if (!fullData || !isCurrentDebtorExportTransition(transitionToken)) return;
+          // Merge debtors into current DATA
+          Object.keys(fullData.agents || {}).forEach(a => {
+            if (DATA.agents[a]) {
+              DATA.agents[a].debtor_cards.debtors =
+                fullData.agents[a]?.debtor_cards?.debtors || [];
+            }
+          });
+          completeDebtorExportTransition(transitionToken);
+          renderAll();
+        })
+        .catch(e => {
+          if (!isCurrentDebtorExportTransition(transitionToken)) return;
+          completeDebtorExportTransition(transitionToken);
+          renderAll();
+          alert(`Could not load debtors for ${agent}. Select the agent again to retry.`);
+          console.error('Failed to load debtors:', e);
+        });
+    }
   }
 
   // Reset all filter rows
@@ -6011,21 +5602,10 @@ function exportRowsAsWorkbook(rows, sheetName, xlsxFilename, csvFilename, column
 function buildFullDebtorExportRows(agent, data, debtorOverride = null) {
   const selectedAgent = safeExportText(agent || currentAgent);
   const agentData = data && data.agents && selectedAgent ? data.agents[selectedAgent] : null;
-  const sourceDebtors = agentData && agentData.debtor_cards && Array.isArray(agentData.debtor_cards.debtors)
+  const canonicalDebtors = agentData && agentData.debtor_cards && Array.isArray(agentData.debtor_cards.debtors)
     ? agentData.debtor_cards.debtors
     : [];
   const canonicalAccountStatusByDebtor = new WeakMap();
-  const futurePlanningOptions = {
-    baseMonth: data?.planning_base_month,
-    targetMonth: data?.current_month,
-  };
-  const canonicalDebtors = data?.is_future_view === true
-    ? sourceDebtors.map(debtor => {
-        const planningDebtor = futureDebtorPlanningCopy(debtor, futurePlanningOptions);
-        canonicalAccountStatusByDebtor.set(planningDebtor, debtorAccountStatusExportValue(debtor));
-        return planningDebtor;
-      })
-    : sourceDebtors;
   let debtors = canonicalDebtors;
   if (Array.isArray(debtorOverride)) {
     const canonicalByCode = new Map();
@@ -6064,10 +5644,7 @@ function buildFullDebtorExportRows(agent, data, debtorOverride = null) {
         campaigns: override.campaigns,
       } : canonical;
       if (useFuturePlanningOverride) {
-        const canonicalAccountStatus = canonicalAccountStatusByDebtor.has(canonical)
-          ? canonicalAccountStatusByDebtor.get(canonical)
-          : debtorAccountStatusExportValue(canonical);
-        canonicalAccountStatusByDebtor.set(selectedDebtor, canonicalAccountStatus);
+        canonicalAccountStatusByDebtor.set(selectedDebtor, debtorAccountStatusExportValue(canonical));
       }
       debtors.push(selectedDebtor);
     });
@@ -6808,10 +6385,7 @@ function renderDebtors() {
   }
   const agData  = DATA.agents[currentAgent]?.debtor_cards || {};
   const debtors = DATA.is_future_view
-    ? (agData.debtors || []).map(debtor => futureDebtorPlanningCopy(debtor, {
-        baseMonth: DATA.planning_base_month,
-        targetMonth: DATA.current_month,
-      }))
+    ? (agData.debtors || []).map(futureDebtorPlanningCopy)
     : (agData.debtors || []);
   const birthdayCodeSet = birthdayCodeSetForCurrentAgent();
 
@@ -8528,13 +8102,7 @@ function renderCamps() {
   // Rebuild filter chips based on this agent's actual running campaigns
   renderCampFilterChips();
 
-  const sourceDebtors = DATA.agents[currentAgent]?.debtor_cards?.debtors || [];
-  const debtors = DATA.is_future_view
-    ? sourceDebtors.map(debtor => futureDebtorPlanningCopy(debtor, {
-        baseMonth: DATA.planning_base_month,
-        targetMonth: DATA.current_month,
-      }))
-    : sourceDebtors;
+  const debtors  = DATA.agents[currentAgent]?.debtor_cards?.debtors || [];
   const statuses = getCampStatuses();
 
   // Collect all unique campaigns this agent has
@@ -9276,7 +8844,6 @@ function toggleCampClaim(event, debtorCode, campId, debtorName, promoText, campT
   const existing = getCampClaims(currentAgent, campId, debtorCode, cleanStage);
   const claimInfo = campaignClaimInfo(existing);
   const overlay = document.createElement('div');
-  overlay.setAttribute('data-protected-agent-overlay', 'true');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:0;';
 
   const submittedAt = existing?.ts ? `<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:6px;">Last update: ${campEsc(existing.ts)}</div>` : '';
@@ -9409,7 +8976,6 @@ const UNABLE_REASONS = [
 function openUnableModal(event, debtorCode, campId, debtorName, campType) {
   event.stopPropagation();
   const overlay = document.createElement('div');
-  overlay.setAttribute('data-protected-agent-overlay', 'true');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:0;';
   const reasonOpts = UNABLE_REASONS.map(r =>
     '<option value="' + r.value + '">' + r.label + '</option>'
@@ -9484,7 +9050,6 @@ function toggleBdayGift(debtorCode, debtorName, event) {
 
   // Build popup
   const overlay = document.createElement('div');
-  overlay.setAttribute('data-protected-agent-overlay', 'true');
   overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;`;
   overlay.innerHTML = `
     <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:340px;width:100%;">
@@ -9661,18 +9226,7 @@ async function saveEventCount() {
 }
 
 // ── Boot ───────────────────────────────────────────────────────────────────
-async function bootSalesDashboard() {
-  const identity = DashboardApi.restoreSession();
-  if (!identity) {
-    clearProtectedDashboardState();
-    const gate = document.getElementById('pin-gate');
-    if (gate) gate.style.display = 'flex';
-    return false;
-  }
-  authenticatedAgent = identity.agent;
-  authenticatedRole = identity.role;
-  return loadData();
-}
+loadData();
 
 // ── GistSync Module (Supabase-backed) ─────────────────────────────────
 /**
@@ -10278,8 +9832,6 @@ if (typeof module !== 'undefined') module.exports = GistSync;
 
 // Export for use in other files
 if (typeof module !== 'undefined') module.exports = GistSync;
-
-bootSalesDashboard();
 
 </script>
 </body>
