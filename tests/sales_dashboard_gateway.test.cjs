@@ -1839,7 +1839,44 @@ test('DashboardApi authorization failure clears session, protected state, DOM, a
     'month-selector-agent': makeElement({ value: 'jun26' }),
     'day-prog': makeElement({ textContent: 'Day 1 of 20' }),
     'pin-gate': makeElement({ style: { display: 'none' } }),
+    'pin-name-hint': makeElement({ textContent: 'BEN' }),
+    'flag-note': makeElement({ value: 'private transfer note for 300-SECRET' }),
+    'flag-submit-btn': makeElement({ disabled: false }),
+    'camps-filter-bar': makeElement({ innerHTML: '<span>Filter:</span><button>SECRET CAMPAIGN</button>' }),
+    'type-filter-row': makeElement({ innerHTML: '<span>Type:</span><button>SECRET TYPE (99)</button>' }),
+    'event-input': makeElement({ value: '48' }),
+    'event-target-hint': makeElement({ textContent: 'Monthly target: 50 phone numbers' }),
+    'bday-target-display': makeElement({ textContent: '12' }),
+    'bday-actual-input': makeElement({ value: '7' }),
   };
+  const makeOpenOverlay = () => {
+    const overlay = makeElement();
+    overlay.classList = {
+      remove(name) {
+        if (name === 'open') overlay.closed = true;
+      },
+    };
+    return overlay;
+  };
+  elements['event-sheet-overlay'] = makeOpenOverlay();
+  elements['bday-sheet-overlay'] = makeOpenOverlay();
+  const protectedOverlays = [makeElement(), makeElement(), makeElement()];
+  const protectedPanelIds = [
+    'tier-cards',
+    'monthly-personal-card',
+    'sku-trend-table',
+    'brand-cards',
+    'newbie-content',
+    'aging-content',
+    'group-content',
+    'kpi-content',
+    'camps-content',
+    'cd-list',
+    'ctn-tt-items',
+  ];
+  protectedPanelIds.forEach(id => {
+    elements[id] = makeElement({ innerHTML: `<div>${id}-300-SECRET-+601234-INVOICE-9</div>` });
+  });
   const calls = { alerts: [], api: [], errors: [], logout: 0, render: 0 };
   let transitionVersion = 0;
   const context = {
@@ -1886,6 +1923,9 @@ test('DashboardApi authorization failure clears session, protected state, DOM, a
       getElementById(id) {
         return elements[id] || null;
       },
+      querySelectorAll(selector) {
+        return selector === '[data-protected-agent-overlay="true"]' ? protectedOverlays : [];
+      },
     },
     isCurrentDebtorExportTransition(token) {
       return token === transitionVersion;
@@ -1909,7 +1949,13 @@ test('DashboardApi authorization failure clears session, protected state, DOM, a
     updateDebtorExportMenu() {},
     updateDebtorExportTransitionDesiredAgent() {},
     updateFutureViewBanner() {},
-    window: {},
+    window: {
+      _ctnBreakdowns: {
+        BEN_300_SECRET: {
+          'Jul 26': [{ item: 'SKNR', ctn: 3, amount: 123, agent: 'BEN' }],
+        },
+      },
+    },
   };
   vm.createContext(context);
   vm.runInContext([
@@ -1923,6 +1969,7 @@ test('DashboardApi authorization failure clears session, protected state, DOM, a
     'var filters = globalThis.filters;',
     'var _lastUnpurchasedExport = { sensitive: true };',
     'var _lastCampsExport = { sensitive: true };',
+    'var _campDetailDebtor = "300-SECRET";',
     "var _pin = '';",
     'var _pinLocked = false;',
     'var _pinLockOwner = 0;',
@@ -1952,9 +1999,26 @@ test('DashboardApi authorization failure clears session, protected state, DOM, a
   assert.equal(context.authenticatedAgent, null);
   assert.equal(context.authenticatedRole, null);
   assert.equal(elements['debtor-list'].innerHTML, '');
+  protectedPanelIds.forEach(id => {
+    assert.equal(elements[id].innerHTML, '', `${id} should be scrubbed after authorization failure`);
+  });
   assert.equal(elements['debtor-export-filtered'].disabled, true);
   assert.equal(elements['debtor-export-full'].disabled, true);
   assert.equal(elements['pin-gate'].style.display, 'flex');
+  assert.equal(elements['pin-name-hint'].textContent, '');
+  assert.equal(elements['flag-note'].value, '');
+  assert.equal(elements['flag-submit-btn'].disabled, true);
+  assert.doesNotMatch(elements['camps-filter-bar'].innerHTML, /SECRET/);
+  assert.doesNotMatch(elements['type-filter-row'].innerHTML, /SECRET|\(99\)/);
+  assert.equal(elements['event-input'].value, '');
+  assert.equal(elements['event-target-hint'].textContent, '');
+  assert.equal(elements['bday-target-display'].textContent, '');
+  assert.equal(elements['bday-actual-input'].value, '');
+  assert.equal(elements['event-sheet-overlay'].closed, true);
+  assert.equal(elements['bday-sheet-overlay'].closed, true);
+  assert.equal(context.window._ctnBreakdowns, undefined);
+  assert.equal(vm.runInContext('_campDetailDebtor', context), null);
+  protectedOverlays.forEach(overlay => assert.equal(overlay.removed, true));
   assert.equal(localStorage.values.has('md_gist_cache'), false);
   assert.equal(sessionStorage.values.has('md_dashboard_session'), false);
 });
@@ -2103,6 +2167,25 @@ test('logout clears API session and protected dashboard state', async () => {
       this.values.delete(key);
     },
   };
+  const protectedPanelIds = [
+    'tier-cards',
+    'monthly-personal-card',
+    'sku-trend-table',
+    'brand-cards',
+    'newbie-content',
+    'aging-content',
+    'group-content',
+    'kpi-content',
+    'camps-content',
+    'cd-list',
+    'ctn-tt-items',
+  ];
+  const elements = Object.fromEntries(protectedPanelIds.map(id => [id, {
+    innerHTML: `<div>${id}-300-LOGOUT-+609999-INVOICE-77</div>`,
+    style: {},
+  }]));
+  elements['debtor-list'] = { innerHTML: '<div>300-LOGOUT</div>', style: {} };
+  elements['pin-gate'] = { style: { display: 'none' } };
   const context = {
     DATA: { sensitive: true },
     AVAILABLE_MONTHS: ['Jul 26'],
@@ -2119,8 +2202,8 @@ test('logout clears API session and protected dashboard state', async () => {
       },
     },
     document: {
-      getElementById() {
-        return null;
+      getElementById(id) {
+        return elements[id] || null;
       },
     },
     localStorage,
@@ -2143,6 +2226,8 @@ test('logout clears API session and protected dashboard state', async () => {
     'var currentAgent = globalThis.currentAgent;',
     'var BIRTHDAY_OVERRIDES_BY_MONTH = globalThis.BIRTHDAY_OVERRIDES_BY_MONTH;',
     'var SALES_LIVE_STATIC_CONFIG_CACHE = globalThis.SALES_LIVE_STATIC_CONFIG_CACHE;',
+    'var debtorExportTransitionVersion = 4;',
+    'var debtorExportPendingTransition = { token: 4, kind: "month" };',
     "var _pin = '1001';",
     'var _pinLocked = true;',
     'var _pinLockOwner = 1;',
@@ -2169,4 +2254,121 @@ test('logout clears API session and protected dashboard state', async () => {
   assert.equal(sessionStorage.values.has('md_auth'), false);
   assert.equal(sessionStorage.values.has('md_agent'), false);
   assert.equal(context.reloaded, true);
+  assert.equal(elements['debtor-list'].innerHTML, '');
+  protectedPanelIds.forEach(id => {
+    assert.equal(elements[id].innerHTML, '', `${id} should be scrubbed after logout`);
+  });
+  assert.equal(vm.runInContext('debtorExportPendingTransition', context), null);
+  assert.equal(vm.runInContext('debtorExportTransitionVersion', context), 5);
+});
+
+
+test('logout invalidates pending month transitions so late resolve or reject cannot restore protected data', async () => {
+  for (const outcome of ['resolve', 'reject']) {
+    const request = createDeferred();
+    const elements = {
+      'agent-select': { value: 'BEN' },
+      'month-selector-agent': { value: 'jun26', style: {} },
+      'debtor-list': { innerHTML: '<div>300-RACE-SECRET</div>', style: {} },
+      'aging-content': { innerHTML: '<div>300-RACE +601111 INV-123</div>', style: {} },
+      'debtor-export-filtered': { disabled: false },
+      'debtor-export-full': { disabled: false },
+      'pin-gate': { style: { display: 'none' } },
+    };
+    let renderCalls = 0;
+    const context = {
+      DATA: dashboardData('Jun 26', { BEN: ['300-RACE-SECRET'] }),
+      AVAILABLE_MONTHS: ['Jun 26', 'Jul 26'],
+      CURRENT_MONTH_SLUG: 'jun26',
+      MONTHS_WITH_DATA: ['jun26', 'jul26'],
+      authenticatedAgent: 'BEN',
+      authenticatedRole: 'agent',
+      currentAgent: 'BEN',
+      filters: {},
+      BIRTHDAY_OVERRIDES_BY_MONTH: {},
+      SALES_LIVE_STATIC_CONFIG_CACHE: undefined,
+      DashboardApi: {
+        loadData() {
+          return request.promise;
+        },
+        async logout() {},
+      },
+      console: { warn() {} },
+      document: {
+        getElementById(id) {
+          return elements[id] || null;
+        },
+      },
+      localStorage: createStorage(),
+      location: { reload() {} },
+      monthLabelFromSlug: () => 'Jul 26',
+      openBrandPenetration: new Set(),
+      renderAll() {
+        renderCalls += 1;
+      },
+      resetDebtorExportView() {},
+      sessionStorage: createStorage(),
+      updateDebtorExportMenu() {},
+      window: {},
+    };
+    vm.createContext(context);
+    vm.runInContext([
+      'var DATA = globalThis.DATA;',
+      'var AVAILABLE_MONTHS = globalThis.AVAILABLE_MONTHS;',
+      'var CURRENT_MONTH_SLUG = globalThis.CURRENT_MONTH_SLUG;',
+      'var MONTHS_WITH_DATA = globalThis.MONTHS_WITH_DATA;',
+      'var authenticatedAgent = globalThis.authenticatedAgent;',
+      'var authenticatedRole = globalThis.authenticatedRole;',
+      'var currentAgent = globalThis.currentAgent;',
+      'var filters = globalThis.filters;',
+      'var debtorExportTransitionVersion = 0;',
+      'var debtorExportPendingTransition = null;',
+      'var debtorExportViewState = {};',
+      'var _lastUnpurchasedExport = null;',
+      'var _lastCampsExport = null;',
+      "var _pin = '';",
+      'var _pinLocked = false;',
+      'var _pinLockOwner = 0;',
+      "var dropCtnFilter = 'all';",
+      "var dropSkuFilter = 'all';",
+      "var gainCtnFilter = 'all';",
+      "var gainSkuFilter = 'all';",
+      "var nonvipTypeFilter = 'all';",
+      extractFunction('createEmptyDebtorExportViewState'),
+      extractFunction('beginDebtorExportTransition'),
+      extractFunction('getDebtorExportTransition'),
+      extractFunction('updateDebtorExportTransitionDesiredAgent'),
+      extractFunction('resolveDebtorExportTransitionAgent'),
+      extractFunction('isDebtorExportTransitionPending'),
+      extractFunction('isCurrentDebtorExportTransition'),
+      extractFunction('completeDebtorExportTransition'),
+      extractFunction('clearProtectedDashboardDom'),
+      extractFunction('clearProtectedDashboardState'),
+      extractFunction('doAgentLogout'),
+      extractFunction('switchMonth'),
+    ].join('\n'), context);
+
+    const monthPromise = context.switchMonth('jul26');
+    await Promise.resolve();
+    await context.doAgentLogout();
+    if (outcome === 'resolve') {
+      request.resolve({
+        month: 'Jul 26',
+        availableMonths: ['Jun 26', 'Jul 26'],
+        data: dashboardData('Jul 26', { BEN: ['300-LATE-SECRET'] }),
+      });
+    } else {
+      request.reject(new Error('late network failure'));
+    }
+    await monthPromise;
+
+    assert.equal(context.DATA, null, `${outcome}: protected DATA must stay cleared`);
+    assert.equal(context.currentAgent, null, `${outcome}: agent must stay cleared`);
+    assert.equal(elements['debtor-list'].innerHTML, '', `${outcome}: debtor DOM must stay cleared`);
+    assert.equal(elements['aging-content'].innerHTML, '', `${outcome}: aging DOM must stay cleared`);
+    assert.equal(elements['debtor-export-filtered'].disabled, true, `${outcome}: filtered export must stay disabled`);
+    assert.equal(elements['debtor-export-full'].disabled, true, `${outcome}: full export must stay disabled`);
+    assert.equal(renderCalls, 0, `${outcome}: stale transition must not render`);
+    assert.equal(context.isDebtorExportTransitionPending(), false, `${outcome}: transition must stay invalidated`);
+  }
 });
