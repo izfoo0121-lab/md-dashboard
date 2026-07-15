@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import time
 import uuid
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
@@ -164,17 +165,28 @@ class SupabaseRestTransport:
         if prefer:
             headers["Prefer"] = prefer
         body = canonical_json_bytes(payload) if payload is not None else None
-        request = Request(url, data=body, headers=headers, method=method)
-
-        try:
-            response = self._opener(request, timeout=self.timeout)
-        except HTTPError as error:
-            detail = error.read().decode("utf-8", errors="replace")[:500]
-            raise PublishTransportError(
-                f"{table} request failed with HTTP {error.code}: {detail}"
-            ) from error
-        except (TimeoutError, URLError) as error:
-            raise PublishTransportError(f"{table} request failed: {error}") from error
+        last_error = None
+        for attempt in range(3):
+            request = Request(url, data=body, headers=headers, method=method)
+            try:
+                response = self._opener(request, timeout=self.timeout)
+                break
+            except HTTPError as error:
+                detail = error.read().decode("utf-8", errors="replace")[:500]
+                last_error = PublishTransportError(
+                    f"{table} request failed with HTTP {error.code}: {detail}"
+                )
+                if error.code < 500 or attempt == 2:
+                    raise last_error from error
+            except (TimeoutError, URLError) as error:
+                last_error = PublishTransportError(
+                    f"{table} request failed: {error}"
+                )
+                if attempt == 2:
+                    raise last_error from error
+            time.sleep(2 ** attempt)
+        else:
+            raise last_error or PublishTransportError(f"{table} request failed")
 
         try:
             raw = response.read()
