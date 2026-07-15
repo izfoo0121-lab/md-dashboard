@@ -571,10 +571,26 @@ test('manager dashboard is assembled from manager support and every agent row', 
     dependencies,
   );
 
+  assert.equal(result.agent, MANAGER_AGENT);
+  assert.equal(result.role, 'manager');
   assert.deepEqual(Object.keys(result.data.agents).sort(), ['BEN', 'CJ']);
   assert.equal(result.data.current_month, 'Jul 26');
   assert.deepEqual(result.data.birthday_by_month, { 'Jul 26': ['manager-only'] });
   assert.equal(Object.hasOwn(result.data, 'safe_only'), false);
+});
+
+
+test('authenticated data responses carry server-authoritative agent identity', async () => {
+  const dependencies = await makeDeps();
+
+  const result = await handleData(
+    { sessionToken: 'ben-token', month: 'Jul 26' },
+    dependencies,
+  );
+
+  assert.equal(result.agent, 'BEN');
+  assert.equal(result.role, 'agent');
+  assert.deepEqual(Object.keys(result.data.agents), ['BEN']);
 });
 
 
@@ -626,6 +642,8 @@ test('manager can load debtor analysis without exposing it through dashboard dat
   );
 
   assert.equal(Object.hasOwn(dashboard.data, 'records'), false);
+  assert.equal(analysis.agent, MANAGER_AGENT);
+  assert.equal(analysis.role, 'manager');
   assert.deepEqual(analysis.data.records, [{ debtor_code: 'B001' }]);
 });
 

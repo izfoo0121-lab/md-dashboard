@@ -421,7 +421,13 @@ async function loadDashboardData(session, monthValue, deps) {
     data = assembleAgentData(shared, row);
   }
 
-  return { month, availableMonths: months, data };
+  return {
+    agent: session.agent,
+    role: session.role,
+    month,
+    availableMonths: months,
+    data,
+  };
 }
 
 
@@ -570,7 +576,13 @@ export async function handleData(input, deps) {
   if (String(artifact.payload.current_month ?? '').trim() !== month) {
     throw new ApiError(503, 'manager data unavailable', 'data_unavailable');
   }
-  return { month, availableMonths: months, data: artifact.payload };
+  return {
+    agent: session.agent,
+    role: session.role,
+    month,
+    availableMonths: months,
+    data: artifact.payload,
+  };
 }
 
 
