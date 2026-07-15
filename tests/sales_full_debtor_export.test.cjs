@@ -220,6 +220,8 @@ const canonicalFallbackStatusDebtor = {
 };
 const futureViewData = {
   ...context.DATA,
+  current_month: 'Jul 26',
+  planning_base_month: 'Jun 26',
   is_future_view: true,
   agents: {
     ...context.DATA.agents,
@@ -236,9 +238,13 @@ const futureViewData = {
   },
 };
 const futurePlanningOverride = context.futureDebtorPlanningCopy(
-  context.DATA.agents.BEN.debtor_cards.debtors[0]
+  context.DATA.agents.BEN.debtor_cards.debtors[0],
+  { baseMonth: 'Jun 26', targetMonth: 'Jul 26' }
 );
-const futureFallbackStatusOverride = context.futureDebtorPlanningCopy(canonicalFallbackStatusDebtor);
+const futureFallbackStatusOverride = context.futureDebtorPlanningCopy(
+  canonicalFallbackStatusDebtor,
+  { baseMonth: 'Jun 26', targetMonth: 'Jul 26' }
+);
 futurePlanningOverride.debtor_code = ' 300-a001 ';
 futurePlanningOverride.company_name = 'FORGED FUTURE NAME';
 futurePlanningOverride.debtor_type = 'FORGED TYPE';
@@ -286,6 +292,126 @@ assert.deepStrictEqual(
     dashboardStatus: 'pending',
   },
   'future-view filtered export should preserve the canonical Account Status fallback while using planning Dashboard Status'
+);
+
+const futureFullRows = context.buildFullDebtorExportRows('BEN', futureViewData);
+const fullFutureDebtor = futureFullRows.find(row => row['Debtor Code'] === '300-A001');
+const filteredFutureDebtor = futurePlanningRows.find(row => row['Debtor Code'] === '300-A001');
+const futureParityFields = [
+  'Dashboard Status',
+  'Current Month CTN',
+  'M-1 CTN',
+  'M-2 CTN',
+  'M-3 CTN',
+  'New SKU Count',
+  'Active Campaigns',
+  'Campaign FOC Package / Notes',
+];
+assert.deepStrictEqual(
+  Object.fromEntries(futureParityFields.map(field => [field, fullFutureDebtor?.[field]])),
+  Object.fromEntries(futureParityFields.map(field => [field, filteredFutureDebtor?.[field]])),
+  'future-view full and filtered exports should use the same planning-normalized debtor row'
+);
+assert.deepStrictEqual(
+  {
+    status: fullFutureDebtor?.['Dashboard Status'],
+    currentCtn: fullFutureDebtor?.['Current Month CTN'],
+    previous1Ctn: fullFutureDebtor?.['M-1 CTN'],
+    previous2Ctn: fullFutureDebtor?.['M-2 CTN'],
+    previous3Ctn: fullFutureDebtor?.['M-3 CTN'],
+    newSkuCount: fullFutureDebtor?.['New SKU Count'],
+    campaignNotes: fullFutureDebtor?.['Campaign FOC Package / Notes'],
+  },
+  {
+    status: 'pending',
+    currentCtn: 0,
+    previous1Ctn: 7,
+    previous2Ctn: 3,
+    previous3Ctn: 2,
+    newSkuCount: 0,
+    campaignNotes: 'Planning reset: pending / 0 CTN / RM 0',
+  },
+  'future-view full export should not leak the authorized base month current values'
+);
+
+const oneMonthPlanning = context.futureDebtorPlanningCopy({
+  ctn_cur: 12,
+  ctn_prev1: 9,
+  ctn_prev2: 6,
+  ctn_prev3: 3,
+  campaigns: [{
+    id: 'campaign-progress',
+    converted: true,
+    status: 'converted',
+    linked_status: 'rp_od_achieved',
+    linked_stage1_actual: true,
+    linked_stage2_actual: true,
+    current_ctn: 5,
+    current_paid_ctn: 5,
+    current_invoice_ctn: 7,
+    current_unpaid_ctn: 2,
+    current_rm: 410,
+    ctn_this_month: 7,
+    progress_ctn: 7,
+  }],
+}, { baseMonth: 'Jun 26', targetMonth: 'Jul 26' });
+assert.deepStrictEqual(
+  {
+    current: oneMonthPlanning.ctn_cur,
+    previous1: oneMonthPlanning.ctn_prev1,
+    previous2: oneMonthPlanning.ctn_prev2,
+    previous3: oneMonthPlanning.ctn_prev3,
+  },
+  { current: 0, previous1: 12, previous2: 9, previous3: 6 },
+  'one-month planning should shift the authorized base month into M-1'
+);
+assert.deepStrictEqual(
+  {
+    converted: oneMonthPlanning.campaigns[0].converted,
+    status: oneMonthPlanning.campaigns[0].status,
+    linkedStatus: oneMonthPlanning.campaigns[0].linked_status,
+    stage1: oneMonthPlanning.campaigns[0].linked_stage1_actual,
+    stage2: oneMonthPlanning.campaigns[0].linked_stage2_actual,
+    currentCtn: oneMonthPlanning.campaigns[0].current_ctn,
+    paidCtn: oneMonthPlanning.campaigns[0].current_paid_ctn,
+    invoiceCtn: oneMonthPlanning.campaigns[0].current_invoice_ctn,
+    unpaidCtn: oneMonthPlanning.campaigns[0].current_unpaid_ctn,
+    currentRm: oneMonthPlanning.campaigns[0].current_rm,
+    monthCtn: oneMonthPlanning.campaigns[0].ctn_this_month,
+    progressCtn: oneMonthPlanning.campaigns[0].progress_ctn,
+  },
+  {
+    converted: false,
+    status: 'pending',
+    linkedStatus: 'not_converted',
+    stage1: false,
+    stage2: false,
+    currentCtn: 0,
+    paidCtn: 0,
+    invoiceCtn: 0,
+    unpaidCtn: 0,
+    currentRm: 0,
+    monthCtn: 0,
+    progressCtn: 0,
+  },
+  'future planning should reset current-month campaign conversion and invoice progress'
+);
+
+const threeMonthPlanning = context.futureDebtorPlanningCopy({
+  ctn_cur: 12,
+  ctn_prev1: 9,
+  ctn_prev2: 6,
+  ctn_prev3: 3,
+}, { baseMonth: 'Jun 26', targetMonth: 'Sep 26' });
+assert.deepStrictEqual(
+  {
+    current: threeMonthPlanning.ctn_cur,
+    previous1: threeMonthPlanning.ctn_prev1,
+    previous2: threeMonthPlanning.ctn_prev2,
+    previous3: threeMonthPlanning.ctn_prev3,
+  },
+  { current: 0, previous1: 0, previous2: 0, previous3: 12 },
+  'multi-month planning should repeatedly shift the rolling window and zero unknown months'
 );
 
 const fallbackCalls = [];

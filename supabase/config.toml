@@ -1,0 +1,5 @@
+project_id = "md-dashboard"
+
+[functions.dashboard-api]
+verify_jwt = false
+entrypoint = "./functions/dashboard-api/index.ts"

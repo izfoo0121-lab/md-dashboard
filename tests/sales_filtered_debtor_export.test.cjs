@@ -1316,6 +1316,7 @@ function transitionMonthData(month, debtorCodes) {
   let transitionRenderNoAgentCalls = 0;
   const transitionContext = {
     DATA: transitionMonthData('Jun 26', ['300-OLD']),
+    AVAILABLE_MONTHS: ['Jun 26', 'Jul 26', 'Aug 26', 'Oct 26'],
     currentAgent: 'JAMES',
     filters: { status: 'all', special: null, pending_activation: null, type: 'all', brand: 'all' },
     currentPage: 1,
@@ -1335,10 +1336,26 @@ function transitionMonthData(month, debtorCodes) {
         return [];
       },
     },
-    fetch(url) {
-      const deferred = createDeferred();
-      transitionFetchRequests.push({ url, ...deferred });
-      return deferred.promise;
+    DashboardApi: {
+      loadData(month) {
+        const deferred = createDeferred();
+        transitionFetchRequests.push({ month, ...deferred });
+        return deferred.promise.then(async response => {
+          if (!response || typeof response !== 'object' || !Object.prototype.hasOwnProperty.call(response, 'ok')) {
+            return response;
+          }
+          if (!response.ok) throw new Error('Not found');
+          const data = await response.json();
+          return {
+            month: data.current_month || month,
+            availableMonths: transitionContext.AVAILABLE_MONTHS,
+            data,
+          };
+        });
+      },
+    },
+    fetch() {
+      throw new Error('generic snapshot fetch is forbidden');
     },
     monthLabelFromSlug(slug) {
       return {
@@ -1349,11 +1366,29 @@ function transitionMonthData(month, debtorCodes) {
         oct26: 'Oct 26',
       }[slug] || slug;
     },
+    monthSlug(month) {
+      return String(month || '').replace(' ', '').toLowerCase();
+    },
+    latestAvailableMonth(months, fallback) {
+      return months[months.length - 1] || fallback;
+    },
     applySalesLiveStaticConfig: async dataArg => dataArg,
     enrichMonthBreakdownsFromAnalysis: async dataArg => dataArg,
     SupabaseKpiSync: { apply: async dataArg => dataArg },
     ensureBirthdayOverridesForMonth: async () => ({}),
     SalesLiveCampaignSync: { apply: async () => 0 },
+    prepareAuthorizedDashboardData: async dataArg => dataArg,
+    commitDashboardEnvelope(result, options) {
+      transitionContext.DATA = result.data;
+      transitionContext.AVAILABLE_MONTHS = result.availableMonths || [];
+      transitionContext.MONTHS_WITH_DATA = transitionContext.AVAILABLE_MONTHS.map(
+        month => transitionContext.monthSlug(month)
+      );
+      transitionContext.CURRENT_MONTH_SLUG = options.requestedSlug;
+      transitionContext.currentAgent = result.data?.agents?.[options.desiredAgent]
+        ? options.desiredAgent
+        : '';
+    },
     applyBirthdayTargetsToAgentKpi() {},
     renderGroupBrandTargets() {},
     buildTypeChipRow() {},
@@ -1399,6 +1434,7 @@ function transitionMonthData(month, debtorCodes) {
   vm.createContext(transitionContext);
   vm.runInContext([
     'var DATA = globalThis.DATA;',
+    'var AVAILABLE_MONTHS = globalThis.AVAILABLE_MONTHS;',
     'var currentAgent = globalThis.currentAgent;',
     'var filters = globalThis.filters;',
     'var currentPage = globalThis.currentPage;',
@@ -1424,6 +1460,14 @@ function transitionMonthData(month, debtorCodes) {
     extractFunction('updateDebtorExportMenu'),
     extractFunction('exportFullDebtorListExcel'),
     extractFunction('exportFilteredDebtorListExcel'),
+    extractFunction('monthSortKey'),
+    extractFunction('resolvePublishedBaseMonth'),
+    extractFunction('isDashboardAuthorizationError'),
+    extractFunction('isCampaignActiveInMonth'),
+    extractFunction('monthLabelToIso'),
+    extractFunction('isHistoricalMonth'),
+    extractFunction('shouldIncludeLiveCampaignForSales'),
+    extractFunction('retainFutureGeneratedCampaignFallbacks'),
     extractFunction('selectAgent'),
     extractFunction('switchMonth'),
   ].join('\n'), transitionContext);
@@ -1514,13 +1558,19 @@ function transitionMonthData(month, debtorCodes) {
   assert.strictEqual(transitionContext.getCurrentDebtorExportView()?.month, 'Aug 26');
 
   const renderCountBeforeFuture = transitionRenderAllCalls;
+  const futureRequestStart = transitionFetchRequests.length;
   const futureSwitch = transitionContext.switchMonth('sep26');
+  const futureRequest = transitionFetchRequests[futureRequestStart];
   assert.strictEqual(transitionContext.isDebtorExportTransitionPending(), true);
   assert.strictEqual(
     transitionContext.DATA.current_month,
     'Aug 26',
     'future transition should prepare a separate view without mutating current DATA before awaits finish'
   );
+  futureRequest.resolve({
+    ok: true,
+    json: async () => transitionMonthData('Aug 26', ['300-AUG']),
+  });
   await futureSwitch;
   assert.strictEqual(transitionContext.isDebtorExportTransitionPending(), false);
   assert.strictEqual(transitionContext.DATA.current_month, 'Sep 26');
@@ -1529,8 +1579,9 @@ function transitionMonthData(month, debtorCodes) {
   assert.strictEqual(transitionContext.getCurrentDebtorExportView()?.month, 'Sep 26');
 
   const renderCountBeforeError = transitionRenderAllCalls;
+  const failedRequestStart = transitionFetchRequests.length;
   const failedSwitch = transitionContext.switchMonth('oct26');
-  const failedRequest = transitionFetchRequests[3];
+  const failedRequest = transitionFetchRequests[failedRequestStart];
   failedRequest.reject(new Error('network down'));
   await failedSwitch;
   assert.strictEqual(transitionContext.isDebtorExportTransitionPending(), false);
@@ -1775,10 +1826,22 @@ function transitionMonthData(month, debtorCodes) {
         return [];
       },
     },
-    fetch(url) {
-      const deferred = createDeferred();
-      agentFetchRequests.push({ url, ...deferred });
-      return deferred.promise;
+    DashboardApi: {
+      loadData(month) {
+        const deferred = createDeferred();
+        agentFetchRequests.push({ month, ...deferred });
+        return deferred.promise.then(async response => {
+          if (!response || typeof response !== 'object' || !Object.prototype.hasOwnProperty.call(response, 'ok')) {
+            return response;
+          }
+          if (!response.ok) throw new Error('Not found');
+          const data = await response.json();
+          return { month, availableMonths: [], data };
+        });
+      },
+    },
+    fetch() {
+      throw new Error('generic snapshot fetch is forbidden');
     },
     saveLastAgentSelection() {},
     resetUnpurchasedFilters() {},

@@ -177,6 +177,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="admin_context.js"></script>
+<script src="dashboard_api.js"></script>
 <script src="campaign_engine/campaign_model.js"></script>
 <script src="campaign_engine/campaign_listing.js"></script>
 <script src="campaign_engine/campaign_validation.js"></script>
@@ -192,9 +193,9 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
   <div class="login-box">
     <div class="login-title">MD ADMIN</div>
     <div class="login-sub">Marketing Target Input</div>
-    <input class="login-input" type="password" id="pw-input" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
-    <button class="login-btn" onclick="doLogin()">LOGIN</button>
-    <div class="login-err" id="login-err">Incorrect password</div>
+    <input class="login-input" type="password" id="pw-input" placeholder="4-digit manager PIN" inputmode="numeric" maxlength="4" autocomplete="one-time-code" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,4)">
+    <button class="login-btn" id="admin-login-btn" onclick="doLogin()">LOGIN</button>
+    <div class="login-err" id="login-err" role="alert">Manager PIN required</div>
   </div>
 </div>
 
@@ -487,7 +488,7 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
   <div id="tab-pins" class="tab-content">
     <div class="page-body">
       <div class="sec-header">🔑 Agent PINs</div>
-      <div class="sec-sub">Each agent uses their 4-digit PIN to login to the sales dashboard. Admin PIN 0000 gives full access. PINs are saved in targets.json.</div>
+      <div class="sec-sub">Each agent uses a four-digit PIN to sign in to the sales dashboard. Agent PINs are managed through the protected gateway; the manager PIN is kept separate.</div>
 
       <div class="admin-card">
         <div class="sec-divider">Live PINs (edit + save = instant)</div>
@@ -499,12 +500,12 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
       <div class="admin-card" style="margin-top:12px;">
         <div class="sec-divider">How it works</div>
         <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);line-height:1.7;">
-          • PINs live in Supabase <code>agent_pins</code> table (no bat re-run needed)<br>
-          • Agent opens sales_dashboard.html → PIN check hits Supabase live<br>
-          • Admin PIN 0121 (GT138888) → full access, can switch between all agents<br>
-          • Session persists until browser closed or agent taps ↪ Log out button<br>
-          • Change here → agents see new PIN on next login or page refresh<br>
-          • If Supabase unreachable: dashboard falls back to cached PINs, then DEFAULT_PINS
+          • PINs are available only through the protected manager gateway<br>
+          • Agents sign in on sales_dashboard.html with their assigned four-digit PIN<br>
+          • This editor never displays or changes the manager PIN<br>
+          • Session persists until the browser closes or the user taps Log out<br>
+          • Changes apply on the agent's next login or refresh<br>
+          • If the protected service is unavailable, PIN data stays hidden
         </div>
       </div>
     </div>
@@ -1400,18 +1401,151 @@ input:checked + .toggle-slider:before{transform:translateX(20px);}
 
 <script>
 // ── Auth ───────────────────────────────────────────────────────────────────
-const ADMIN_PW = 'touro2026'; // Change this password
+const ADMIN_DASHBOARD_BUILD = '20260715-admin-gateway-1';
+const ADMIN_ACCESS_SUPABASE_URL = 'https://rqitgmydcbyiygqjssrb.supabase.co';
+const ADMIN_ACCESS_SUPABASE_KEY = 'sb_publishable_8xb7ZaHyr3OF3WNEqufuDg_67spOIFw';
 
-function doLogin() {
-  // Password check temporarily disabled for review
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('main-app').style.display = 'block';
-  initAdmin();
+DashboardApi.configure({
+  endpoint: `${ADMIN_ACCESS_SUPABASE_URL}/functions/v1/dashboard-api`,
+  publishableKey: ADMIN_ACCESS_SUPABASE_KEY,
+  clientVersion: ADMIN_DASHBOARD_BUILD,
+});
+
+let ADMIN_LOGIN_IN_FLIGHT = false;
+let ADMIN_AVAILABLE_MONTHS = [];
+
+function getAdminRequestedMonth() {
+  const helper = window.MDAdminContext;
+  return helper?.urlMonth?.()
+    || helper?.currentMonthLabel?.()
+    || helper?.savedMonth?.()
+    || new Date().toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
 }
-function logout() {
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('main-app').style.display = 'none';
-  document.getElementById('pw-input').value = '';
+
+function showAdminLoginError(message) {
+  const error = document.getElementById('login-err');
+  if (!error) return;
+  error.textContent = String(message || 'Manager login failed');
+  error.style.display = 'block';
+}
+
+function setAdminLoginBusy(busy) {
+  const button = document.getElementById('admin-login-btn');
+  const input = document.getElementById('pw-input');
+  if (button) {
+    button.disabled = !!busy;
+    button.textContent = busy ? 'CHECKING...' : 'LOGIN';
+  }
+  if (input) input.disabled = !!busy;
+}
+
+function showAdminApp() {
+  const login = document.getElementById('login-screen');
+  const app = document.getElementById('main-app');
+  if (login) login.style.display = 'none';
+  if (app) app.style.display = 'block';
+  const error = document.getElementById('login-err');
+  if (error) error.style.display = 'none';
+}
+
+function registerAdminLoginEvents() {
+  const input = document.getElementById('pw-input');
+  if (!input || input.dataset.loginBound === '1') return;
+  input.dataset.loginBound = '1';
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Enter') doLogin();
+  });
+}
+
+async function doLogin() {
+  if (ADMIN_LOGIN_IN_FLIGHT) return false;
+  const input = document.getElementById('pw-input');
+  const pin = String(input?.value || '').trim();
+  if (!/^\d{4}$/.test(pin)) {
+    showAdminLoginError('Enter the four-digit manager PIN.');
+    return false;
+  }
+
+  ADMIN_LOGIN_IN_FLIGHT = true;
+  setAdminLoginBusy(true);
+  let authenticated = false;
+  try {
+    const authorizedEnvelope = await DashboardApi.login(pin, getAdminRequestedMonth());
+    authenticated = true;
+    if (authorizedEnvelope.role !== 'manager') {
+      showAdminLoginError('Manager access is required for Admin.');
+      await logout();
+      return false;
+    }
+    await initAdmin(authorizedEnvelope);
+    showAdminApp();
+    if (input) input.value = '';
+    return true;
+  } catch (error) {
+    if (authenticated) {
+      showAdminLoginError(error?.message || 'Manager login failed.');
+      await logout();
+      return false;
+    }
+    showAdminLoginError(error?.message || 'Manager login failed.');
+    return false;
+  } finally {
+    ADMIN_LOGIN_IN_FLIGHT = false;
+    setAdminLoginBusy(false);
+  }
+}
+
+async function bootAdminDashboard() {
+  const identity = DashboardApi.restoreSession();
+  if (!identity) return false;
+  if (identity.role !== 'manager') {
+    showAdminLoginError('Manager access is required for Admin.');
+    await logout();
+    return false;
+  }
+
+  setAdminLoginBusy(true);
+  try {
+    const authorizedEnvelope = await DashboardApi.loadData(getAdminRequestedMonth());
+    if (authorizedEnvelope.role !== 'manager') {
+      throw new Error('Manager access is required for Admin.');
+    }
+    await initAdmin(authorizedEnvelope);
+    showAdminApp();
+    return true;
+  } catch (error) {
+    showAdminLoginError(error?.message || 'Manager session could not be restored.');
+    await logout();
+    return false;
+  } finally {
+    setAdminLoginBusy(false);
+  }
+}
+
+function clearAdminProtectedState() {
+  if (typeof ADMIN_SESSION_GENERATION === 'number') ADMIN_SESSION_GENERATION += 1;
+  ADMIN_PIN_CACHE = {};
+  DASH_DATA = {};
+  CONFIG = null;
+  ADMIN_AVAILABLE_MONTHS = [];
+  LAST_TARGETS_IMPORT = null;
+  if (typeof CAMPAIGNS_DATA !== 'undefined') CAMPAIGNS_DATA = { campaigns: [] };
+  const app = document.getElementById('main-app');
+  if (app) {
+    app.style.display = 'none';
+    app.innerHTML = '';
+  }
+}
+
+async function logout() {
+  clearAdminProtectedState();
+  try {
+    await DashboardApi.logout();
+  } catch (error) {
+    console.warn('[Admin] logout request failed:', error);
+  } finally {
+    location.reload();
+  }
 }
 
 // ── State ──────────────────────────────────────────────────────────────────
@@ -1915,7 +2049,7 @@ function populateMonthDropdowns() {
   const selected = opts.includes(month) ? month : defaultSel;
   ADMIN_ACTIVE_MONTH = selected;
 
-  ['admin-working-month', 'kpi-month-select', 'bulk-month-select', 'kpi-manual-month', 'group-sp-month', 'archive-month-select'].forEach(id => {
+  ['admin-working-month', 'kpi-month-select', 'bulk-month-select', 'kpi-manual-month', 'group-sp-month'].forEach(id => {
     setMonthSelectOptions(document.getElementById(id), opts, selected);
   });
 
@@ -1962,24 +2096,39 @@ async function adminWorkingMonthSelectChanged(nextMonth) {
   const helper = window.MDAdminContext;
   const normalized = helper ? helper.normalizeMonth(nextMonth) : nextMonth;
   if (!normalized || normalized === ADMIN_ACTIVE_MONTH) return;
+  const previousMonth = ADMIN_ACTIVE_MONTH;
+  const previousData = DASH_DATA;
+  const previousAvailableMonths = ADMIN_AVAILABLE_MONTHS.slice();
+  const previousDirty = ADMIN_DIRTY;
+  const selector = document.getElementById('admin-working-month');
 
   if (ADMIN_DIRTY && !confirm('You have unsaved Admin edits. Change Working Month anyway?')) {
-    const sel = document.getElementById('admin-working-month');
-    if (sel) sel.value = ADMIN_ACTIVE_MONTH;
+    if (selector) selector.value = ADMIN_ACTIVE_MONTH;
     return;
   }
 
-  ADMIN_ACTIVE_MONTH = helper ? helper.setWorkingMonth(normalized) : normalized;
-  ADMIN_DIRTY = false;
-  updateAdminDirtyIndicator();
+  if (selector) selector.disabled = true;
   try {
+    const authorizedEnvelope = await DashboardApi.loadData(normalized);
+    if (authorizedEnvelope?.role !== 'manager') {
+      const error = new Error('Manager access is required for Admin.');
+      error.status = 403;
+      throw error;
+    }
+    if (!authorizedEnvelope?.data || typeof authorizedEnvelope.data !== 'object') {
+      throw new Error(`Protected dashboard data is unavailable for ${normalized}.`);
+    }
+    ADMIN_AVAILABLE_MONTHS = Array.isArray(authorizedEnvelope.availableMonths)
+      ? authorizedEnvelope.availableMonths.map(month => String(month || '').trim()).filter(Boolean)
+      : [];
+    DASH_DATA = authorizedEnvelope.data;
+    ADMIN_ACTIVE_MONTH = helper ? helper.setWorkingMonth(normalized) : normalized;
+    ADMIN_DIRTY = false;
+    updateAdminDirtyIndicator();
     LAST_SAVED_AT = null;
     SAVE_STATE = 'unknown';
     updateSaveStatus();
-  } catch (_) {}
-  populateMonthDropdowns();
-
-  try {
+    populateMonthDropdowns();
     await refreshAgentDependentViews();
     renderSKUForms();
     renderKPIWeights();
@@ -1992,7 +2141,18 @@ async function adminWorkingMonthSelectChanged(nextMonth) {
     if (document.getElementById('tab-leave_records')?.classList.contains('active')) loadLeaveRecords();
     if (document.getElementById('tab-archive')?.classList.contains('active')) refreshArchiveList();
   } catch (e) {
-    console.warn('[admin month] refresh failed:', e);
+    console.warn('[admin month] protected transition failed:', e);
+    ADMIN_ACTIVE_MONTH = previousMonth;
+    DASH_DATA = previousData;
+    ADMIN_AVAILABLE_MONTHS = previousAvailableMonths;
+    ADMIN_DIRTY = previousDirty;
+    updateAdminDirtyIndicator();
+    if (helper && previousMonth) helper.setWorkingMonth(previousMonth, { silent: true });
+    if (selector) selector.value = previousMonth;
+    showToast(`Could not load ${normalized}: ${e?.message || 'unknown error'}`, 'error');
+    if (e?.status === 401 || e?.status === 403) await logout();
+  } finally {
+    if (selector) selector.disabled = false;
   }
 }
 
@@ -2039,12 +2199,14 @@ function registerAdminDirtyTracking() {
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    populateMonthDropdowns();
+    registerAdminLoginEvents();
     registerAdminDirtyTracking();
+    bootAdminDashboard();
   });
 } else {
-  populateMonthDropdowns();
+  registerAdminLoginEvents();
   registerAdminDirtyTracking();
+  bootAdminDashboard();
 }
 
 // ── Gist Setup Functions ──────────────────────────────────────────────────
@@ -2131,13 +2293,8 @@ async function connectExistingGist() {
 }
 
 // ── PIN Management ─────────────────────────────────────────────────────────
-const DEFAULT_AGENT_PINS = {
-  'BEN':'1001','CJ':'1002','JACKY':'1003','JAMES':'1004',
-  'JW':'1005','KEAN':'1006','KEE':'1007','KF':'1008',
-  'KI-MI':'1009','KW':'1010','LEON':'1011','NMK':'1012',
-  'YI':'1013','SAM':'1014',
-  'GT138888':'0000'
-};
+let ADMIN_PIN_CACHE = {};
+let ADMIN_SESSION_GENERATION = 0;
 
 // ═══════════════════════════════════════════════════════════════════════
 // KPI Manual Entry (new_accounts + vip_count + event + campaign + birthday)
@@ -2445,42 +2602,43 @@ async function saveKpiManual() {
 }
 
 async function renderPinForm() {
+  const generation = typeof ADMIN_SESSION_GENERATION === 'number' ? ADMIN_SESSION_GENERATION : 0;
   const container = document.getElementById('pin-management-form');
   if (!container) return;
+  container.innerHTML = '<div style="font-family:var(--mono);font-size:10px;color:var(--ink3);padding:10px;">Loading protected PIN list...</div>';
 
-  // Try to load fresh PINs from Supabase first
-  let pinsFromSupabase = null;
+  let rows;
   try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/agent_pins?select=agent,pin`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-    });
-    if (r.ok) {
-      const rows = await r.json();
-      pinsFromSupabase = {};
-      rows.forEach(row => { if (row.agent && row.pin) pinsFromSupabase[row.agent] = row.pin; });
+    const response = await DashboardApi.listAgentPins();
+    if (generation !== (typeof ADMIN_SESSION_GENERATION === 'number' ? ADMIN_SESSION_GENERATION : 0)) return;
+    rows = Array.isArray(response?.pins) ? response.pins : [];
+  } catch (error) {
+    console.warn('[PINs] protected list failed', error);
+    if (error?.status === 401 || error?.status === 403) {
+      await logout();
+      return;
     }
-  } catch(e) { console.warn('[PINs] Supabase fetch failed', e); }
+    container.innerHTML = '<div style="padding:10px;background:rgba(200,56,26,.08);border:1px solid rgba(200,56,26,.3);border-radius:8px;font-family:var(--mono);font-size:10px;color:var(--accent);">PIN list is unavailable. No cached or default PINs are shown.</div>';
+    return;
+  }
 
-  // Merge: Supabase (live) > CONFIG.agent_pins (targets.json) > DEFAULT
-  const saved = Object.assign({}, DEFAULT_AGENT_PINS, CONFIG.agent_pins || {}, pinsFromSupabase || {});
+  const saved = Object.fromEntries(rows
+    .map(row => [String(row?.agent || '').trim().toUpperCase(), String(row?.pin || '')])
+    .filter(([agent, pin]) => agent && /^\d{4}$/.test(pin)));
   const agents = getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}));
-  const allAgents = [...agents, 'GT138888'];
+  ADMIN_PIN_CACHE = Object.fromEntries(agents.map(agent => [agent, saved[agent] || '']));
 
   container.innerHTML = `
-    <div style="padding:10px;background:${pinsFromSupabase ? 'rgba(61,220,132,.08)' : 'rgba(255,165,0,.08)'};border:1px solid ${pinsFromSupabase ? 'rgba(61,220,132,.3)' : 'rgba(255,165,0,.3)'};border-radius:8px;margin-bottom:12px;font-family:var(--mono);font-size:10px;">
-      ${pinsFromSupabase
-        ? `✓ Loaded ${Object.keys(pinsFromSupabase).length} PINs from Supabase (live)`
-        : '⚠ Supabase unreachable — showing local/default PINs. Changes will not persist until connection recovers.'}
+    <div style="padding:10px;background:rgba(61,220,132,.08);border:1px solid rgba(61,220,132,.3);border-radius:8px;margin-bottom:12px;font-family:var(--mono);font-size:10px;">
+      ✓ Loaded ${Object.keys(saved).length} agent PINs through the protected manager gateway. The manager PIN is not exposed here.
     </div>
-  ` + allAgents.map(agent => {
-    const pin = saved[agent] || DEFAULT_AGENT_PINS[agent] || '';
-    const isAdmin = agent === 'GT138888';
+  ` + agents.map(agent => {
+    const pin = saved[agent] || '';
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
       <div>
-        <div style="font-family:var(--mono);font-size:13px;font-weight:600;color:${isAdmin?'var(--accent)':'var(--ink)'};">${isAdmin?'👑 ADMIN (GT138888)':agent}</div>
-        ${isAdmin?'<div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">Full access — can switch all agents</div>':''}
+        <div style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink);">${kpiAdminEscape(agent)}</div>
       </div>
-      <input type="text" id="pin_${agent}" value="${pin}" maxlength="4" pattern="[0-9]{4}"
+      <input type="text" id="pin_${kpiAdminEscape(agent)}" value="${kpiAdminEscape(pin)}" maxlength="4" pattern="[0-9]{4}"
         placeholder="4 digits"
         style="width:80px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--ink);font-family:var(--mono);font-size:16px;font-weight:700;padding:8px;text-align:center;letter-spacing:.2em;"
         oninput="this.value=this.value.replace(/[^0-9]/g,'').substring(0,4)">
@@ -2489,48 +2647,47 @@ async function renderPinForm() {
 }
 
 async function savePins() {
-  const agents = [...getMdAdminScopedAgents(Object.keys(CONFIG.agents || {})), 'GT138888'];
-  const pins = {};
-  agents.forEach(agent => {
-    const el = document.getElementById('pin_' + agent);
-    if (el && el.value.length === 4) pins[agent] = el.value;
-  });
-
-  if (Object.keys(pins).length === 0) { alert('No valid PINs to save'); return; }
-
-  // Save to Supabase (primary, live)
-  const rows = Object.entries(pins).map(([agent, pin]) => ({
-    agent, pin, updated_at: new Date().toISOString(), updated_by: 'admin_ui'
-  }));
-
+  const generation = typeof ADMIN_SESSION_GENERATION === 'number' ? ADMIN_SESSION_GENERATION : 0;
+  const agents = getMdAdminScopedAgents(Object.keys(CONFIG.agents || {}));
+  const changes = [];
+  const usedPins = new Map();
   try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/agent_pins?on_conflict=agent`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates,return=minimal'
-      },
-      body: JSON.stringify(rows)
+    agents.forEach(agent => {
+      const el = document.getElementById('pin_' + agent);
+      const pin = String(el?.value || '').trim();
+      if (!pin) return;
+      if (!/^\d{4}$/.test(pin)) throw new Error(`${agent}: PIN must contain four digits`);
+      if (usedPins.has(pin)) throw new Error(`${agent}: PIN duplicates ${usedPins.get(pin)}`);
+      usedPins.set(pin, agent);
+      if (ADMIN_PIN_CACHE[agent] !== pin) changes.push({ agent, pin });
     });
-    if (!r.ok) {
-      const err = await r.text();
-      alert('Supabase save failed: ' + r.status + ' — ' + err.slice(0, 200));
-      return;
-    }
-  } catch (e) {
-    alert('Network error: ' + e.message);
+  } catch (error) {
+    alert(error.message);
     return;
   }
 
-  // Also update local CONFIG (so any legacy code still using targets.json sees the change)
-  CONFIG.agent_pins = pins;
-  try { saveAll(); } catch {}  // best-effort
+  if (changes.length === 0) { alert('No PIN changes to save'); return; }
+
+  try {
+    for (const { agent, pin } of changes) {
+      if (generation !== (typeof ADMIN_SESSION_GENERATION === 'number' ? ADMIN_SESSION_GENERATION : 0)) return;
+      await DashboardApi.saveAgentPin(agent, pin);
+      if (generation !== (typeof ADMIN_SESSION_GENERATION === 'number' ? ADMIN_SESSION_GENERATION : 0)) return;
+      ADMIN_PIN_CACHE[agent] = pin;
+    }
+  } catch (error) {
+    if (error?.status === 401 || error?.status === 403) {
+      await logout();
+      return;
+    }
+    alert('PIN save failed: ' + (error?.message || 'unknown error'));
+    await renderPinForm();
+    return;
+  }
 
   const toast = document.getElementById('save-toast-pins');
   if (toast) {
-    toast.textContent = `✓ Saved ${Object.keys(pins).length} PINs to Supabase — agents will see change on next login or sync`;
+    toast.textContent = `✓ Saved ${changes.length} PIN change(s) through the protected gateway`;
     toast.style.display = 'block';
     setTimeout(() => toast.style.display = 'none', 4000);
   }
@@ -2575,25 +2732,28 @@ async function forcePush() {
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
-async function initAdmin() {
-  // Dashboard output is a safe bootstrap for the existing GRP 2A roster when
-  // upgrading an install that predates the persistent agent registry.
-  try {
-    const rd = await fetch('dashboard_data.json?v='+Date.now());
-    DASH_DATA = await rd.json();
-  } catch(e) { DASH_DATA = {}; }
-
-  // Phase C: Load targets from Supabase first (source of truth), file as fallback.
-  CONFIG = await loadConfigFromSupabase();
-  if (!CONFIG || !CONFIG.agents || !Object.keys(CONFIG.agents).length) {
-    console.warn('Supabase load empty, falling back to targets.json');
-    try {
-      const r = await fetch('targets.json?v='+Date.now());
-      CONFIG = await r.json();
-    } catch(e) {
-      CONFIG = buildDefaultConfig();
-    }
+async function loadAdminConfiguration() {
+  let config = await loadConfigFromSupabase();
+  if (!config || !config.agents || !Object.keys(config.agents).length) {
+    console.warn('Supabase config load empty; using non-sensitive defaults');
+    config = buildDefaultConfig();
   }
+  if (config && typeof config === 'object') delete config.agent_pins;
+  return config;
+}
+
+async function initAdmin(authorizedEnvelope) {
+  if (!authorizedEnvelope || authorizedEnvelope.role !== 'manager') {
+    throw new Error('Manager access is required for Admin.');
+  }
+  if (!authorizedEnvelope?.data || typeof authorizedEnvelope.data !== 'object') {
+    throw new Error('Authorized dashboard data is unavailable.');
+  }
+  ADMIN_AVAILABLE_MONTHS = Array.isArray(authorizedEnvelope.availableMonths)
+    ? authorizedEnvelope.availableMonths.map(month => String(month || '').trim()).filter(Boolean)
+    : [];
+  DASH_DATA = authorizedEnvelope.data;
+  CONFIG = await loadAdminConfiguration();
   ensureMdAgentRegistry(CONFIG, Object.keys(DASH_DATA?.agents || {}));
   if (!ADMIN_ALL_TARGET_AGENT_CODES.size) {
     ADMIN_ALL_TARGET_AGENT_CODES = new Set(Object.keys(CONFIG.agents || {}).map(normalizeMdAgentCode));
@@ -4263,23 +4423,20 @@ function setNBAcc(i, field, val) {
 
 // ── Monthly Archive ────────────────────────────────────────────────────────
 async function loadArchiveMonths() {
-  // Populate month dropdown from months_index.json
-  try {
-    const r = await fetch('months_index.json?t=' + Date.now(), {cache: 'no-store'});
-    if (!r.ok) throw new Error('months_index.json not found');
-    const months = await r.json();
-    const sel = document.getElementById('archive-month-select');
-    sel.innerHTML = '';
-    // Most recent first
-    months.slice().reverse().forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m;
-      opt.textContent = m;
-      sel.appendChild(opt);
-    });
-  } catch (e) {
-    document.getElementById('archive-month-select').innerHTML = '<option value="">No months available</option>';
+  const sel = document.getElementById('archive-month-select');
+  if (!sel) return;
+  const months = Array.isArray(ADMIN_AVAILABLE_MONTHS) ? ADMIN_AVAILABLE_MONTHS : [];
+  sel.innerHTML = '';
+  if (!months.length) {
+    sel.innerHTML = '<option value="">No months available</option>';
+    return;
   }
+  months.forEach(month => {
+    const opt = document.createElement('option');
+    opt.value = month;
+    opt.textContent = month;
+    sel.appendChild(opt);
+  });
 }
 
 async function archiveSelectedMonth() {
@@ -4292,25 +4449,27 @@ async function archiveSelectedMonth() {
 
   status.innerHTML = `<span style="color:#666;">Archiving ${month}...</span>`;
 
-  // Load the monthly data file
-  const slug = month.replace(' ', '').toLowerCase();
   let data;
   try {
-    const r = await fetch(`data_${slug}.json?t=` + Date.now(), {cache: 'no-store'});
-    if (!r.ok) {
-      // Fallback to dashboard_data.json
-      const r2 = await fetch(`dashboard_data.json?t=` + Date.now(), {cache: 'no-store'});
-      if (!r2.ok) throw new Error('Neither data file available');
-      data = await r2.json();
-      const actualMonth = data?.meta?.current_month || data?.current_month;
-      if (actualMonth !== month) {
-        status.innerHTML = `<span style="color:#c8381a;">⚠ Dashboard shows ${actualMonth}, not ${month}. Cannot archive.</span>`;
-        return;
-      }
-    } else {
-      data = await r.json();
+    const authorizedEnvelope = await DashboardApi.loadData(month);
+    if (authorizedEnvelope?.role !== 'manager') {
+      const error = new Error('Manager access is required for Admin.');
+      error.status = 403;
+      throw error;
+    }
+    ADMIN_AVAILABLE_MONTHS = Array.isArray(authorizedEnvelope.availableMonths)
+      ? authorizedEnvelope.availableMonths.map(value => String(value || '').trim()).filter(Boolean)
+      : [];
+    data = authorizedEnvelope?.data;
+    const actualMonth = data?.meta?.current_month || data?.current_month;
+    if (!data || actualMonth !== month) {
+      throw new Error(`Protected dashboard returned ${actualMonth || 'no month'} instead of ${month}`);
     }
   } catch (e) {
+    if (e?.status === 401 || e?.status === 403) {
+      await logout();
+      return;
+    }
     status.innerHTML = `<span style="color:#c8381a;">❌ Failed to load data: ${e.message}</span>`;
     return;
   }
@@ -6179,12 +6338,6 @@ async function saveAllToSupabase() {
   }
 
   // ── 3. AGENT PINS ─────────────────────────────────────
-  const pins = CONFIG.agent_pins || {};
-  const pinRows = Object.entries(pins).map(([agent, pin]) => ({
-    agent, pin: String(pin),
-  }));
-  await upsert('targets_pins', pinRows, 'agent');
-
   // ── 4. BIRTHDAY OVERRIDES ─────────────────────────────
   const bday = CONFIG.birthday_overrides || {};
   const bdayRows = [];
@@ -6285,10 +6438,9 @@ async function loadConfigFromSupabase() {
   };
 
   try {
-    const [agents, monthly, pins, bday, gbt, staticRows, snaps] = await Promise.all([
+    const [agents, monthly, bday, gbt, staticRows, snaps] = await Promise.all([
       fetchTable('targets_agents'),
       fetchTable('targets_monthly'),
-      fetchTable('targets_pins'),
       fetchTable('targets_birthday_overrides'),
       fetchTable('targets_group_brand'),
       fetchTable('targets_static'),
@@ -6343,11 +6495,6 @@ async function loadConfigFromSupabase() {
     });
 
     // 3. Agent pins
-    cfg.agent_pins = {};
-    pins.forEach(r => {
-      if (r.agent === 'GT138888' || cfg.agents[r.agent]) cfg.agent_pins[r.agent] = r.pin;
-    });
-
     // 4. Birthday overrides
     cfg.birthday_overrides = {};
     bday.forEach(r => {
@@ -6373,7 +6520,7 @@ async function loadConfigFromSupabase() {
     if (Object.keys(monthlySnaps).length) cfg.monthly_snapshots = monthlySnaps;
     if (Object.keys(penSnaps).length) cfg.penetration_snapshots = penSnaps;
 
-    console.log(`✅ Loaded from Supabase: ${agents.length} agents, ${monthly.length} monthly rows, ${pins.length} pins`);
+    console.log(`✅ Loaded from Supabase: ${agents.length} agents, ${monthly.length} monthly rows`);
     return cfg;
   } catch (e) {
     console.error('loadConfigFromSupabase failed:', e);
@@ -6388,6 +6535,7 @@ function importJSON(input) {
   reader.onload = e => {
     try {
       CONFIG = JSON.parse(e.target.result);
+      delete CONFIG.agent_pins;
       normalizeAdminConfigDefaults();
       renderAgentForms();
       renderNewbieForms();
@@ -9326,7 +9474,7 @@ function generateBrandPenetrationCandidates() {
     : (Array.isArray(genericCurrent[brand]) ? genericCurrent[brand] : (brand === 'IFACE' && Array.isArray(DASH_DATA?.iface_campaign_candidates) ? DASH_DATA.iface_campaign_candidates : []));
   const preview = document.getElementById('camp-file-preview');
   if (!candidates.length) {
-    if (preview) preview.innerHTML = `<span style="color:var(--accent);">No generated ${kpiAdminEscape(brand)} candidates found in dashboard_data.json. Run update_dashboard.bat after report data is ready, or upload the confirmed debtor list.</span>`;
+    if (preview) preview.innerHTML = `<span style="color:var(--accent);">No generated ${kpiAdminEscape(brand)} candidates found in the protected dashboard snapshot. Run update_dashboard.bat after report data is ready, or upload the confirmed debtor list.</span>`;
     return;
   }
   _campFileDebtors = candidates.map(row => {
@@ -10695,11 +10843,6 @@ function saveCampaignsJSON() {
   const blob=new Blob([JSON.stringify(CAMPAIGNS_DATA,null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='campaigns.json';a.click();
 }
-
-// ── pw-input listener ──────────────────────────────────────────────────────
-document.getElementById('pw-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') doLogin();
-});
 
 /**
  * MIRACLE-奇迹 MD Dashboard — Supabase Sync Module
