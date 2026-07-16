@@ -1,6 +1,12 @@
 {
   "_comment": "MD Sales Dashboard — loaded from Supabase",
   "_loaded_at": "2026-07-10T16:11:32.156302",
+  "md_agent_registry": {
+    "HUA": {
+      "group": "grp2a",
+      "start_month": "Jul 26"
+    }
+  },
   "agents": {
     "CALSON": {
       "is_newbie": false,
