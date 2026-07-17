@@ -39,6 +39,7 @@ vm.runInContext([
   'const blockFutureViewAction = globalThis.blockFutureViewAction;',
   extractFunction('normalizeCampClaimStage'),
   extractFunction('campClaimStageLabel'),
+  extractFunction('campaignClaimStagePrefix'),
   extractFunction('campClaimStorageSuffix'),
   extractFunction('getCampClaimKey'),
   extractFunction('getCampClaims'),
@@ -50,6 +51,26 @@ assert.strictEqual(context.normalizeCampClaimStage(null), 1, 'Blank stage should
 assert.strictEqual(context.normalizeCampClaimStage('2'), 2, 'String stage 2 should normalize to number 2');
 assert.strictEqual(context.campClaimStageLabel(1), '1ST OD', 'Stage 1 should display as 1ST OD');
 assert.strictEqual(context.campClaimStageLabel(2), 'RP OD', 'Stage 2 should display as RP OD');
+assert.strictEqual(
+  context.campaignClaimStagePrefix('free_sample', 1),
+  '',
+  'Normal FOC campaigns such as CM7 should not display a conversion stage label'
+);
+assert.strictEqual(
+  context.campaignClaimStagePrefix('birthday_gift', 1),
+  '',
+  'Birthday campaigns should not display a conversion stage label'
+);
+assert.strictEqual(
+  context.campaignClaimStagePrefix('conversion_simple', 1),
+  '1ST OD',
+  'Conversion campaigns should retain the Stage 1 label'
+);
+assert.strictEqual(
+  context.campaignClaimStagePrefix('conversion_tiered', 2),
+  'RP OD',
+  'Conversion campaigns should retain the Stage 2 label'
+);
 
 const legacyKey = 'camp_claim_Jul26_KI-MI_camp_sukun_300-A001';
 assert.strictEqual(
