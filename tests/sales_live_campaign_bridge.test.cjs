@@ -8,24 +8,37 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'sales_dashboard.html'),
 function extractFunction(name) {
   const start = html.indexOf(`function ${name}`);
   assert(start >= 0, `${name} should exist`);
-  let depth = 0;
-  let seenBody = false;
+  let parenDepth = 0;
+  let bodyStart = -1;
   for (let i = start; i < html.length; i += 1) {
+    const ch = html[i];
+    if (ch === '(') parenDepth += 1;
+    else if (ch === ')') parenDepth -= 1;
+    else if (ch === '{' && parenDepth === 0) {
+      bodyStart = i;
+      break;
+    }
+  }
+  assert(bodyStart >= 0, `${name} should have a function body`);
+  let depth = 0;
+  for (let i = bodyStart; i < html.length; i += 1) {
     const ch = html[i];
     if (ch === '{') {
       depth += 1;
-      seenBody = true;
     } else if (ch === '}') {
       depth -= 1;
-      if (seenBody && depth === 0) return html.slice(start, i + 1);
+      if (depth === 0) return html.slice(start, i + 1);
     }
   }
   throw new Error(`Could not extract ${name}`);
 }
 
 assert(html.includes('fetchLiveCampaignDataForSales'), 'Sales Dashboard should fetch live Supabase campaigns');
-assert(html.includes('campaign_debtors?select=*'), 'Sales Dashboard should read live campaign debtor enrollment rows');
-assert(html.includes('SalesLiveCampaignSync.apply(DATA)'), 'Sales Dashboard should apply live campaigns before rendering');
+assert(!html.includes('campaign_debtors?select=*'), 'Sales Dashboard should not read the full campaign debtor table');
+const liveCampaignFetchSource = extractFunction('fetchLiveCampaignDataForSales');
+assert(liveCampaignFetchSource.includes('campaign_id=in.('), 'Sales Dashboard should filter live campaign debtor reads by relevant campaign ids');
+assert(liveCampaignFetchSource.includes('agent=eq.'), 'Sales Dashboard should filter live campaign debtor reads by selected agent');
+assert(!extractFunction('loadData').includes('SalesLiveCampaignSync.apply(DATA)'), 'Sales Dashboard should not fetch live campaigns before agent login/selection');
 assert(html.includes('Campaign claim requests are allowed'), 'Future-view banner should clarify that campaign claims are allowed');
 assert(extractFunction('saveCampClaim').includes('allowCampaignClaim'), 'Campaign claim save should be allowed in future planning view');
 assert(extractFunction('removeCampClaim').includes('allowCampaignClaim'), 'Campaign claim removal should be allowed in future planning view');

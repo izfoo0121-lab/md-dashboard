@@ -1354,6 +1354,7 @@ function transitionMonthData(month, debtorCodes) {
     SupabaseKpiSync: { apply: async dataArg => dataArg },
     ensureBirthdayOverridesForMonth: async () => ({}),
     SalesLiveCampaignSync: { apply: async () => 0 },
+    refreshSalesLiveCampaignsForSelectedAgent: async () => 0,
     applyBirthdayTargetsToAgentKpi() {},
     renderGroupBrandTargets() {},
     buildTypeChipRow() {},
@@ -1798,6 +1799,7 @@ function transitionMonthData(month, debtorCodes) {
       agentExports.push(args);
     },
     closeDebtorDownloadMenu() {},
+    refreshSalesLiveCampaignsForSelectedAgent: async () => 0,
     console: { error(error) { agentErrors.push(error); } },
   };
   agentContext.renderAll = () => {

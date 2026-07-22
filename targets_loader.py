@@ -28,7 +28,22 @@ BACKUP_FILE = Path(os.getenv("MD_TARGETS_CACHE_FILE", str(BASE_DIR / ".cache" / 
 
 
 def _log(msg):
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
+    line = f"[{datetime.now().strftime('%H:%M:%S')}] {msg}"
+    try:
+        print(line)
+    except UnicodeEncodeError:
+        print(line.encode("ascii", errors="replace").decode("ascii"))
+
+
+def _fetch_table_rows(sb, table, *, required=False):
+    """Read one targets table without letting optional permissions discard core targets."""
+    try:
+        return sb.table(table).select("*").execute().data or []
+    except Exception as e:
+        if required:
+            raise
+        _log(f"WARNING: Skipping optional Supabase table {table}: {e}")
+        return []
 
 
 def _norm_agent_code(value):
@@ -104,7 +119,7 @@ def load_targets_from_supabase():
 
     try:
         # 1. Agents
-        rows = sb.table("targets_agents").select("*").execute().data
+        rows = _fetch_table_rows(sb, "targets_agents", required=True)
         agents = {}
         for r in rows:
             agent = r["agent"]
@@ -122,7 +137,7 @@ def load_targets_from_supabase():
         targets["agents"] = agents
 
         # 2. Monthly targets
-        rows = sb.table("targets_monthly").select("*").execute().data
+        rows = _fetch_table_rows(sb, "targets_monthly", required=True)
         monthly = {}
         for r in rows:
             month = r["month"]
@@ -147,11 +162,11 @@ def load_targets_from_supabase():
         targets["monthly_targets"] = monthly
 
         # 3. Agent pins
-        rows = sb.table("targets_pins").select("*").execute().data
+        rows = _fetch_table_rows(sb, "targets_pins")
         targets["agent_pins"] = {r["agent"]: r["pin"] for r in rows}
 
         # 4. Birthday overrides
-        rows = sb.table("targets_birthday_overrides").select("*").execute().data
+        rows = _fetch_table_rows(sb, "targets_birthday_overrides")
         bday = {}
         for r in rows:
             month = r.get("month")
@@ -163,16 +178,16 @@ def load_targets_from_supabase():
         targets["birthday_overrides"] = bday
 
         # 5. Group brand targets
-        rows = sb.table("targets_group_brand").select("*").execute().data
+        rows = _fetch_table_rows(sb, "targets_group_brand")
         targets["group_brand_targets"] = {r["brand"]: float(r["target_ctn"] or 0) for r in rows}
 
         # 6. Static config
-        rows = sb.table("targets_static").select("*").execute().data
+        rows = _fetch_table_rows(sb, "targets_static")
         for r in rows:
             targets[r["key"]] = r["value"]
 
         # 7. Snapshots
-        rows = sb.table("targets_snapshots").select("*").execute().data
+        rows = _fetch_table_rows(sb, "targets_snapshots")
         monthly_snaps = {}
         pen_snaps = {}
         for r in rows:

@@ -9,6 +9,56 @@ import targets_loader
 
 
 class TargetsLoaderTests(unittest.TestCase):
+    def test_optional_table_failure_keeps_core_agent_and_monthly_targets(self):
+        table_rows = {
+            "targets_agents": [{
+                "agent": "BEN",
+                "active": True,
+                "sales_progression": {"normal_t1": 850},
+            }],
+            "targets_monthly": [{
+                "month": "Jul 26",
+                "agent": "BEN",
+                "active": True,
+                "sales_progression": {"normal_t1": 900},
+            }],
+        }
+
+        class FakeQuery:
+            def __init__(self, table):
+                self.table = table
+
+            def select(self, _columns):
+                return self
+
+            def execute(self):
+                if self.table == "targets_pins":
+                    raise RuntimeError("permission denied for table targets_pins")
+                return type("Response", (), {"data": table_rows.get(self.table, [])})()
+
+        class FakeClient:
+            def table(self, name):
+                return FakeQuery(name)
+
+        original_has_supabase = targets_loader.HAS_SUPABASE
+        original_create_client = targets_loader.create_client
+        try:
+            targets_loader.HAS_SUPABASE = True
+            targets_loader.create_client = lambda *_args, **_kwargs: FakeClient()
+
+            result = targets_loader.load_targets_from_supabase()
+        finally:
+            targets_loader.HAS_SUPABASE = original_has_supabase
+            targets_loader.create_client = original_create_client
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result["agents"]["BEN"]["sales_progression"]["normal_t1"], 850)
+        self.assertEqual(
+            result["monthly_targets"]["Jul 26"]["BEN"]["sales_progression"]["normal_t1"],
+            900,
+        )
+        self.assertEqual(result["agent_pins"], {})
+
     def test_agent_replacements_apply_archive_and_inheritance(self):
         targets = {
             "agents": {
