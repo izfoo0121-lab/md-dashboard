@@ -10397,25 +10397,77 @@ function _activeAgentsForBulk() {
   return [];
 }
 
+function _bulkAgentReplacementPairs(month) {
+  const pairs = [];
+  const seen = new Set();
+  const selectedOrdinal = adminAgentMonthOrdinal(month);
+  const addPair = (predecessor, successor, fromMonth) => {
+    const oldAgent = String(predecessor || '').trim().toUpperCase();
+    const nextAgent = String(successor || '').trim().toUpperCase();
+    if (!oldAgent || !nextAgent || oldAgent === nextAgent) return;
+    const fromOrdinal = adminAgentMonthOrdinal(fromMonth);
+    if (selectedOrdinal !== null && fromOrdinal !== null && selectedOrdinal < fromOrdinal) return;
+    const key = `${oldAgent}|${nextAgent}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    pairs.push({ predecessor: oldAgent, successor: nextAgent });
+  };
+
+  Object.entries(CONFIG?.agent_replacements || {}).forEach(([predecessor, raw]) => {
+    const replacement = typeof raw === 'string' ? { successor: raw } : (raw || {});
+    addPair(
+      predecessor,
+      replacement.successor || replacement.replaced_by || replacement.agent,
+      replacement.from_month || replacement.inherit_from_month || replacement.month
+    );
+  });
+
+  Object.entries(CONFIG?.agents || {}).forEach(([agent, cfg]) => {
+    addPair(cfg?.inherits_from, agent, cfg?.inherit_from_month || cfg?.started_from_month);
+  });
+
+  return pairs;
+}
+
+function _bulkSourceAgentsForClaims(claimAgents, month) {
+  const allowedClaimAgents = new Set((claimAgents || []).map(a => String(a || '').trim().toUpperCase()).filter(Boolean));
+  const sourceToClaim = new Map();
+  allowedClaimAgents.forEach(agent => sourceToClaim.set(agent, agent));
+
+  _bulkAgentReplacementPairs(month).forEach(pair => {
+    if (allowedClaimAgents.has(pair.successor)) {
+      sourceToClaim.set(pair.predecessor, pair.successor);
+    }
+  });
+
+  return sourceToClaim;
+}
+
 // Check which debtor codes exist per agent + which are Personal (excluded from KPI)
 function _validateCodes(codes, selectedAgent) {
-  const agents = selectedAgent ? [selectedAgent] : _activeAgentsForBulk();
+  const month = document.getElementById('bulk-month-select')?.value || getAdminWorkingMonth();
+  const agents = selectedAgent ? [String(selectedAgent).trim().toUpperCase()] : _activeAgentsForBulk();
+  const sourceToClaimAgent = _bulkSourceAgentsForClaims(agents, month);
   const PERSONAL = new Set(['P-Personal','P-PERSONAL','personal','Personal','PERSONAL']);
   const valid = [];       // { agent, debtor_code, name, type }
   const notFound = [];    // codes not matched to any selected agent
   const personalSkipped = []; // found but Personal type
 
   const codesSet = new Set(codes.map(c => c.trim().toUpperCase()));
+  const seenClaimRows = new Set();
 
-  agents.forEach(agent => {
-    const debtors = DASH_DATA?.agents?.[agent]?.debtor_cards?.debtors || [];
+  sourceToClaimAgent.forEach((claimAgent, sourceAgent) => {
+    const debtors = DASH_DATA?.agents?.[sourceAgent]?.debtor_cards?.debtors || [];
     debtors.forEach(d => {
       const code = (d.debtor_code || '').toUpperCase();
       if (codesSet.has(code)) {
+        const rowKey = `${claimAgent}|${code}`;
+        if (seenClaimRows.has(rowKey)) return;
+        seenClaimRows.add(rowKey);
         if (PERSONAL.has(d.debtor_type)) {
-          personalSkipped.push({ agent, code, name: d.company_name, type: d.debtor_type });
+          personalSkipped.push({ agent: claimAgent, sourceAgent, code, name: d.company_name, type: d.debtor_type });
         } else {
-          valid.push({ agent, code, name: d.company_name, type: d.debtor_type });
+          valid.push({ agent: claimAgent, sourceAgent, code, name: d.company_name, type: d.debtor_type });
         }
       }
     });
