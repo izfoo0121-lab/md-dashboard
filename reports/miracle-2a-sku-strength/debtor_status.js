@@ -6131,39 +6131,39 @@ window.debtorStatusData = {
     "stateStatus": [
       {
         "state": "Pahang",
-        "total": 475,
-        "active": 469,
+        "total": 492,
+        "active": 486,
         "inactive": 0,
         "missing": 6,
-        "activeRate": 98.7,
-        "sales": 1396566.12
+        "activeRate": 98.8,
+        "sales": 1495934.24
       },
       {
         "state": "Terengganu",
-        "total": 370,
-        "active": 367,
+        "total": 373,
+        "active": 369,
         "inactive": 0,
-        "missing": 3,
-        "activeRate": 99.2,
-        "sales": 613453.0
+        "missing": 4,
+        "activeRate": 98.9,
+        "sales": 652357.5
       },
       {
         "state": "Kelantan",
-        "total": 259,
-        "active": 257,
+        "total": 260,
+        "active": 258,
         "inactive": 0,
         "missing": 2,
         "activeRate": 99.2,
-        "sales": 309370.98
+        "sales": 329457.38
       },
       {
         "state": "GRP 2A",
-        "total": 151,
-        "active": 149,
+        "total": 153,
+        "active": 150,
         "inactive": 0,
-        "missing": 2,
-        "activeRate": 98.7,
-        "sales": 202848.88
+        "missing": 3,
+        "activeRate": 98.0,
+        "sales": 226485.13
       }
     ],
     "agentStatus": [
@@ -6175,17 +6175,17 @@ window.debtorStatusData = {
         "inactive": 0,
         "missing": 2,
         "activeRate": 97.8,
-        "sales": 150877.78
+        "sales": 170410.03
       },
       {
         "state": "GRP 2A",
         "agent": "SAM",
-        "total": 60,
-        "active": 60,
+        "total": 62,
+        "active": 61,
         "inactive": 0,
-        "missing": 0,
-        "activeRate": 100.0,
-        "sales": 51971.1
+        "missing": 1,
+        "activeRate": 98.4,
+        "sales": 56075.1
       },
       {
         "state": "Kelantan",
@@ -6195,17 +6195,17 @@ window.debtorStatusData = {
         "inactive": 0,
         "missing": 0,
         "activeRate": 100.0,
-        "sales": 21061.25
+        "sales": 21889.25
       },
       {
         "state": "Kelantan",
         "agent": "JACKY",
-        "total": 96,
-        "active": 95,
+        "total": 97,
+        "active": 96,
         "inactive": 0,
         "missing": 1,
         "activeRate": 99.0,
-        "sales": 223117.73
+        "sales": 238506.13
       },
       {
         "state": "Kelantan",
@@ -6215,87 +6215,87 @@ window.debtorStatusData = {
         "inactive": 0,
         "missing": 1,
         "activeRate": 99.0,
-        "sales": 65192.0
+        "sales": 69062.0
       },
       {
         "state": "Pahang",
         "agent": "CJ",
-        "total": 94,
-        "active": 91,
+        "total": 95,
+        "active": 92,
         "inactive": 0,
         "missing": 3,
         "activeRate": 96.8,
-        "sales": 351652.34
+        "sales": 393374.59
       },
       {
         "state": "Pahang",
         "agent": "KEE",
-        "total": 80,
-        "active": 80,
+        "total": 90,
+        "active": 90,
         "inactive": 0,
         "missing": 0,
         "activeRate": 100.0,
-        "sales": 253506.1
+        "sales": 259076.75
       },
       {
         "state": "Pahang",
         "agent": "KW",
-        "total": 99,
-        "active": 99,
+        "total": 100,
+        "active": 100,
         "inactive": 0,
         "missing": 0,
         "activeRate": 100.0,
-        "sales": 326744.9
+        "sales": 350881.9
       },
       {
         "state": "Pahang",
         "agent": "LEON",
-        "total": 102,
-        "active": 100,
+        "total": 104,
+        "active": 102,
         "inactive": 0,
         "missing": 2,
-        "activeRate": 98.0,
-        "sales": 215587.89
+        "activeRate": 98.1,
+        "sales": 225418.89
       },
       {
         "state": "Pahang",
         "agent": "XIAN",
-        "total": 100,
-        "active": 99,
+        "total": 103,
+        "active": 102,
         "inactive": 0,
         "missing": 1,
         "activeRate": 99.0,
-        "sales": 249074.89
+        "sales": 267182.11
       },
       {
         "state": "Terengganu",
         "agent": "JAMES",
-        "total": 129,
-        "active": 129,
+        "total": 130,
+        "active": 130,
         "inactive": 0,
         "missing": 0,
         "activeRate": 100.0,
-        "sales": 125874.5
+        "sales": 140255.5
       },
       {
         "state": "Terengganu",
         "agent": "KF",
-        "total": 139,
-        "active": 137,
+        "total": 140,
+        "active": 138,
         "inactive": 0,
         "missing": 2,
         "activeRate": 98.6,
-        "sales": 301881.0
+        "sales": 312650.5
       },
       {
         "state": "Terengganu",
         "agent": "NMK",
-        "total": 104,
+        "total": 105,
         "active": 103,
         "inactive": 0,
-        "missing": 1,
-        "activeRate": 99.0,
-        "sales": 185697.5
+        "missing": 2,
+        "activeRate": 98.1,
+        "sales": 199451.5
       }
     ],
     "watchlist": [
@@ -6329,6 +6329,20 @@ window.debtorStatusData = {
       },
       {
         "state": "Pahang",
+        "agent": "CJ",
+        "code": "3EV-R0460",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 1032.0,
+        "qty": 21.0,
+        "docs": 2,
+        "topSku": "SKNR",
+        "lastDate": "2026-07-24"
+      },
+      {
+        "state": "Pahang",
         "agent": "LEON",
         "code": "300-D339",
         "name": "",
@@ -6340,20 +6354,6 @@ window.debtorStatusData = {
         "docs": 1,
         "topSku": "CM-002",
         "lastDate": "2026-07-23"
-      },
-      {
-        "state": "Pahang",
-        "agent": "CJ",
-        "code": "3EV-R0460",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 740.0,
-        "qty": 15.0,
-        "docs": 1,
-        "topSku": "SKNR",
-        "lastDate": "2026-07-08"
       },
       {
         "state": "Terengganu",
@@ -6440,6 +6440,20 @@ window.debtorStatusData = {
         "lastDate": "2026-07-22"
       },
       {
+        "state": "GRP 2A",
+        "agent": "SAM",
+        "code": "3EV-R0653",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 228.0,
+        "qty": 4.0,
+        "docs": 1,
+        "topSku": "CM-002",
+        "lastDate": "2026-07-24"
+      },
+      {
         "state": "Kelantan",
         "agent": "KI-MI",
         "code": "300-KM199",
@@ -6452,6 +6466,20 @@ window.debtorStatusData = {
         "docs": 1,
         "topSku": "JDB",
         "lastDate": "2026-07-22"
+      },
+      {
+        "state": "Terengganu",
+        "agent": "NMK",
+        "code": "3EV-Q1389",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 171.0,
+        "qty": 3.0,
+        "docs": 1,
+        "topSku": "CMX",
+        "lastDate": "2026-07-24"
       },
       {
         "state": "Pahang",
@@ -6487,21 +6515,21 @@ window.debtorStatusData = {
     "stateStatus": [
       {
         "state": "Pahang",
-        "total": 795,
-        "active": 746,
+        "total": 796,
+        "active": 747,
         "inactive": 0,
         "missing": 49,
         "activeRate": 93.8,
-        "sales": 13219629.9
+        "sales": 13318998.02
       },
       {
         "state": "Terengganu",
-        "total": 614,
+        "total": 615,
         "active": 580,
         "inactive": 0,
-        "missing": 34,
-        "activeRate": 94.5,
-        "sales": 5703173.5
+        "missing": 35,
+        "activeRate": 94.3,
+        "sales": 5742078.0
       },
       {
         "state": "Kelantan",
@@ -6510,16 +6538,16 @@ window.debtorStatusData = {
         "inactive": 0,
         "missing": 77,
         "activeRate": 85.7,
-        "sales": 3678079.09
+        "sales": 3698165.49
       },
       {
         "state": "GRP 2A",
-        "total": 182,
+        "total": 183,
         "active": 180,
         "inactive": 0,
-        "missing": 2,
-        "activeRate": 98.9,
-        "sales": 377822.98
+        "missing": 3,
+        "activeRate": 98.4,
+        "sales": 401459.23
       }
     ],
     "agentStatus": [
@@ -6531,17 +6559,17 @@ window.debtorStatusData = {
         "inactive": 0,
         "missing": 2,
         "activeRate": 97.8,
-        "sales": 150877.78
+        "sales": 170410.03
       },
       {
         "state": "GRP 2A",
         "agent": "SAM",
-        "total": 91,
+        "total": 92,
         "active": 91,
         "inactive": 0,
-        "missing": 0,
-        "activeRate": 100.0,
-        "sales": 226945.2
+        "missing": 1,
+        "activeRate": 98.9,
+        "sales": 231049.2
       },
       {
         "state": "Kelantan",
@@ -6551,7 +6579,7 @@ window.debtorStatusData = {
         "inactive": 0,
         "missing": 1,
         "activeRate": 99.0,
-        "sales": 294740.55
+        "sales": 295568.55
       },
       {
         "state": "Kelantan",
@@ -6561,7 +6589,7 @@ window.debtorStatusData = {
         "inactive": 0,
         "missing": 9,
         "activeRate": 93.2,
-        "sales": 1879066.35
+        "sales": 1894454.75
       },
       {
         "state": "Kelantan",
@@ -6571,7 +6599,7 @@ window.debtorStatusData = {
         "inactive": 0,
         "missing": 9,
         "activeRate": 94.7,
-        "sales": 515387.5
+        "sales": 519257.5
       },
       {
         "state": "Kelantan",
@@ -6591,17 +6619,17 @@ window.debtorStatusData = {
         "inactive": 0,
         "missing": 19,
         "activeRate": 86.4,
-        "sales": 3566426.98
+        "sales": 3608149.23
       },
       {
         "state": "Pahang",
         "agent": "KEE",
-        "total": 185,
-        "active": 181,
+        "total": 186,
+        "active": 182,
         "inactive": 0,
         "missing": 4,
         "activeRate": 97.8,
-        "sales": 2747753.36
+        "sales": 2753324.01
       },
       {
         "state": "Pahang",
@@ -6611,7 +6639,7 @@ window.debtorStatusData = {
         "inactive": 0,
         "missing": 7,
         "activeRate": 95.3,
-        "sales": 3749420.25
+        "sales": 3773557.25
       },
       {
         "state": "Pahang",
@@ -6621,7 +6649,7 @@ window.debtorStatusData = {
         "inactive": 0,
         "missing": 20,
         "activeRate": 89.6,
-        "sales": 2315035.89
+        "sales": 2324866.89
       },
       {
         "state": "Pahang",
@@ -6631,7 +6659,7 @@ window.debtorStatusData = {
         "inactive": 0,
         "missing": 1,
         "activeRate": 99.3,
-        "sales": 840993.42
+        "sales": 859100.64
       },
       {
         "state": "Terengganu",
@@ -6641,7 +6669,7 @@ window.debtorStatusData = {
         "inactive": 0,
         "missing": 10,
         "activeRate": 95.2,
-        "sales": 1424305.5
+        "sales": 1438686.5
       },
       {
         "state": "Terengganu",
@@ -6651,17 +6679,17 @@ window.debtorStatusData = {
         "inactive": 0,
         "missing": 14,
         "activeRate": 94.5,
-        "sales": 2817039.5
+        "sales": 2827809.0
       },
       {
         "state": "Terengganu",
         "agent": "NMK",
-        "total": 166,
+        "total": 167,
         "active": 155,
         "inactive": 0,
-        "missing": 11,
-        "activeRate": 93.4,
-        "sales": 1461828.5
+        "missing": 12,
+        "activeRate": 92.8,
+        "sales": 1475582.5
       }
     ],
     "watchlist": [
@@ -6905,6 +6933,20 @@ window.debtorStatusData = {
       },
       {
         "state": "Pahang",
+        "agent": "CJ",
+        "code": "3EV-R0460",
+        "name": "",
+        "maintAgent": "",
+        "maintType": "",
+        "status": "Missing",
+        "sales": 4026.0,
+        "qty": 83.0,
+        "docs": 8,
+        "topSku": "SKNR",
+        "lastDate": "2026-07-24"
+      },
+      {
+        "state": "Pahang",
         "agent": "LEON",
         "code": "3EV-Q0203",
         "name": "",
@@ -6930,20 +6972,6 @@ window.debtorStatusData = {
         "docs": 4,
         "topSku": "CM-002",
         "lastDate": "2026-02-06"
-      },
-      {
-        "state": "Pahang",
-        "agent": "CJ",
-        "code": "3EV-R0460",
-        "name": "",
-        "maintAgent": "",
-        "maintType": "",
-        "status": "Missing",
-        "sales": 3734.0,
-        "qty": 77.0,
-        "docs": 7,
-        "topSku": "SKNR",
-        "lastDate": "2026-07-08"
       },
       {
         "state": "Pahang",
