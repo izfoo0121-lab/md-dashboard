@@ -4282,6 +4282,7 @@ function isNoCcomBuyer(d) {
 
 function isThreeMonthNoCcomOrder(d) {
   return !isPersonalDebtor(d)
+    && !isRecentNewDebtorForMonth(d, DATA?.current_month || '')
     && canggihCtn(d, 'cur') <= 0
     && canggihCtn(d, 'prev1') <= 0
     && canggihCtn(d, 'prev2') <= 0;
@@ -4527,6 +4528,13 @@ function skuRecencyMonths(monthLabel = DATA?.current_month || '') {
   };
 }
 
+function isRecentNewDebtorForMonth(d, monthLabel = DATA?.current_month || '') {
+  const months = new Set(skuRecencyMonths(monthLabel).all);
+  const openMonth = String(d?.open_month || d?.openMonth || '').trim();
+  if (openMonth) return months.has(openMonth);
+  return d?.is_new === true;
+}
+
 function matchesSkuItemSelection(itemValue, skuItem) {
   const code = normalizeSkuItemCode(itemValue);
   const wanted = normalizeSkuItemCode(skuItem);
@@ -4565,6 +4573,7 @@ function summarizeDebtorSkuRecency(d, skuItem, monthLabel = DATA?.current_month 
 }
 
 function matchesSkuRecencyMode(d, skuItem, mode = 'not_bought', monthLabel = DATA?.current_month || '') {
+  if (isRecentNewDebtorForMonth(d, monthLabel)) return false;
   const summary = summarizeDebtorSkuRecency(d, skuItem, monthLabel);
   if (mode === 'bought_3m') return summary.prev3Ctn > 0;
   return summary.totalCtn <= 0;
@@ -5506,6 +5515,7 @@ function renderUnpurchasedMode(debtors) {
   const eligible = (debtors || []).filter(d =>
     getDebtorType(d) &&
     !PERSONAL.some(p => getDebtorType(d).includes(p)) &&
+    !isRecentNewDebtorForMonth(d, DATA?.current_month || '') &&
     d.dm_active !== false
   );
 

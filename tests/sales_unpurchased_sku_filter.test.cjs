@@ -56,10 +56,15 @@ vm.createContext(context);
   'newSkuDisplayLabel',
   'getConfiguredNewSkuItems',
   'getConfiguredNewSkuPrefixes',
+  'getDebtorType',
+  'isPersonalDebtor',
+  'canggihCtn',
+  'isThreeMonthNoCcomOrder',
   'getDebtorPurchaseBreakdown',
   'debtorBreakdownRowsForMonth',
   'getUnpurchasedSkuCatalog',
   'skuRecencyMonths',
+  'isRecentNewDebtorForMonth',
   'matchesSkuItemSelection',
   'skuCtnInMonth',
   'summarizeDebtorSkuRecency',
@@ -147,6 +152,27 @@ const rows = {
       'Apr 26': [],
       'Mar 26': []
     }
+  },
+  recentNewAccount: {
+    debtor_code: '300-N007',
+    open_month: 'May 26',
+    is_new: true,
+    month_breakdown: {
+      'Jun 26': [],
+      'May 26': [],
+      'Apr 26': [],
+      'Mar 26': []
+    }
+  },
+  legacyRecentNewAccount: {
+    debtor_code: '300-N008',
+    is_new: true,
+    month_breakdown: {
+      'Jun 26': [],
+      'May 26': [],
+      'Apr 26': [],
+      'Mar 26': []
+    }
   }
 };
 
@@ -199,6 +225,45 @@ assert.strictEqual(
   context.matchesSkuRecencyMode(rows.configuredPrefixBuyer, 'XYZ-P', 'bought_3m', 'Jun 26'),
   true,
   'configured SKU prefix selections should work in bought-within-3-months mode'
+);
+assert.strictEqual(
+  context.isRecentNewDebtorForMonth(rows.recentNewAccount, 'Jun 26'),
+  true,
+  'debtors opened inside the current plus previous three months should be treated as recent new accounts'
+);
+assert.strictEqual(
+  context.matchesSkuRecencyMode(rows.recentNewAccount, 'SKNR', 'not_bought', 'Jun 26'),
+  false,
+  'SKU 未购买 should exclude recent new accounts because they do not have a full three-month buying history'
+);
+assert.strictEqual(
+  context.matchesSkuRecencyMode(rows.legacyRecentNewAccount, 'SKNR', 'not_bought', 'Jun 26'),
+  false,
+  'SKU 未购买 should also exclude legacy rows flagged as is_new when open_month is unavailable'
+);
+assert.strictEqual(
+  context.isThreeMonthNoCcomOrder({
+    debtor_code: '300-OLD1',
+    debtor_type: 'SH-Shop',
+    canggih_ctn_cur: 0,
+    canggih_ctn_prev1: 0,
+    canggih_ctn_prev2: 0
+  }),
+  true,
+  '三个月未开单 should include established non-Personal debtors with no Canggih/CCOM CTN'
+);
+assert.strictEqual(
+  context.isThreeMonthNoCcomOrder({
+    debtor_code: '300-NEW1',
+    debtor_type: 'SH-Shop',
+    open_month: 'May 26',
+    is_new: true,
+    canggih_ctn_cur: 0,
+    canggih_ctn_prev1: 0,
+    canggih_ctn_prev2: 0
+  }),
+  false,
+  '三个月未开单 should exclude recent new accounts without enough lookback history'
 );
 
 console.log('sales_unpurchased_sku_filter.test.cjs passed');

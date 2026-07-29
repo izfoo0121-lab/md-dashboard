@@ -706,6 +706,7 @@ Object.defineProperty(unpurchasedNoSkuList, 'innerHTML', {
   },
 });
 const unpurchasedNoSkuContext = {
+  DATA: { current_month: 'Jul 26' },
   document: {
     getElementById(id) {
       assert.strictEqual(id, 'debtor-list', 'no-SKU branch should only render the debtor list');
@@ -728,6 +729,7 @@ const unpurchasedNoSkuContext = {
 vm.createContext(unpurchasedNoSkuContext);
 vm.runInContext([
   extractFunction('getDebtorType'),
+  'function isRecentNewDebtorForMonth() { return false; }',
   extractFunction('renderUnpurchasedMode'),
 ].join('\n'), unpurchasedNoSkuContext);
 unpurchasedNoSkuContext.renderUnpurchasedMode([
