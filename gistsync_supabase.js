@@ -152,7 +152,7 @@ const GistSync = (() => {
 
     if (fileKey.startsWith('claims_')) {
       const month = _monthFromSlug(fileKey.replace('claims_',''));
-      const r = await _restAll(`claims?select=*&month=eq.${encodeURIComponent(month)}`);
+      const r = await _restAll(`claims?select=*&month=eq.${encodeURIComponent(month)}&stage=eq.1`);
       if (!r.ok) return null;
       const out = {};
       (r.data||[]).forEach(row => {
@@ -216,11 +216,12 @@ const GistSync = (() => {
           remark: v.remark || '',
           bulk  : !!v.bulk,
           actor : v.actor || 'agent',
-          ts    : v.ts || new Date().toISOString()
+          ts    : v.ts || new Date().toISOString(),
+          stage : Number.isFinite(Number(v.stage)) ? Number(v.stage) : 1
         };
       });
       if (!rows.length) return true;
-      const r = await _rest('claims?on_conflict=month,agent,camp_id,debtor_code', {
+      const r = await _rest('claims?on_conflict=month,agent,camp_id,debtor_code,stage', {
         method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates' }, body: rows
       });
       _setCacheBucket(fileKey, data);
@@ -272,7 +273,8 @@ const GistSync = (() => {
     const lsKey = `camp_claim_${slug}_${key}`;
 
     // Fire-and-forget localStorage first (instant UX)
-    localStorage.setItem(lsKey, JSON.stringify(claimData));
+    const payload = { ...claimData, stage: 1 };
+    localStorage.setItem(lsKey, JSON.stringify(payload));
 
     // Upsert to Supabase
     const row = {
@@ -281,9 +283,10 @@ const GistSync = (() => {
       remark: claimData.remark || '',
       bulk  : !!claimData.bulk,
       actor : claimData.actor || 'agent',
-      ts    : claimData.ts || new Date().toISOString()
+      ts    : claimData.ts || new Date().toISOString(),
+      stage : 1
     };
-    _rest('claims?on_conflict=month,agent,camp_id,debtor_code', {
+    _rest('claims?on_conflict=month,agent,camp_id,debtor_code,stage', {
       method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body:[row]
     }).catch(()=>{});
 
@@ -291,7 +294,7 @@ const GistSync = (() => {
     const cache = getCache();
     const fk = `claims_${slug}`;
     if (!cache[fk]) cache[fk] = {};
-    cache[fk][key] = claimData;
+    cache[fk][key] = payload;
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch {}
   }
 
@@ -300,7 +303,7 @@ const GistSync = (() => {
     const key  = `${agent}_${campId}_${debtorCode}`;
     localStorage.removeItem(`camp_claim_${slug}_${key}`);
 
-    _rest(`claims?month=eq.${encodeURIComponent(month)}&agent=eq.${encodeURIComponent(agent)}&camp_id=eq.${encodeURIComponent(campId)}&debtor_code=eq.${encodeURIComponent(debtorCode)}`, {
+    _rest(`claims?month=eq.${encodeURIComponent(month)}&agent=eq.${encodeURIComponent(agent)}&camp_id=eq.${encodeURIComponent(campId)}&debtor_code=eq.${encodeURIComponent(debtorCode)}&stage=eq.1`, {
       method: 'DELETE'
     }).catch(()=>{});
 
@@ -381,7 +384,7 @@ const GistSync = (() => {
 
     try {
       const [claimsRes, flagsRes, kpiRes] = await Promise.all([
-        _restAll(`claims?select=*&month=eq.${encodeURIComponent(month)}`),
+        _restAll(`claims?select=*&month=eq.${encodeURIComponent(month)}&stage=eq.1`),
         _restAll(`flags?select=*&month=eq.${encodeURIComponent(month)}`),
         _restAll(`kpi_scores?select=*&month=eq.${encodeURIComponent(month)}`)
       ]);

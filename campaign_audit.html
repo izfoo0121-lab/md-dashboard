@@ -817,7 +817,7 @@ async function saveAudit(month, agent, campId, debtorCode, auditData, stage = 1)
   // Determine target status for Supabase
   let newStatus;
   if (!auditData.status || auditData.status === 'undo') newStatus = 'submitted';
-  else if (auditData.status === 'verified') newStatus = 'processed';
+  else if (auditData.status === 'verified') newStatus = 'verified';
   else if (auditData.status === 'rejected') newStatus = 'rejected';
   else newStatus = 'submitted';
 

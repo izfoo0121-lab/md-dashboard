@@ -29,8 +29,8 @@ function extractFunction(name) {
 
 const confirmBulkMarkSource = extractFunction('confirmBulkMark');
 assert(
-  !confirmBulkMarkSource.includes('on_conflict=month,agent,camp_id,debtor_code,stage'),
-  'Bulk mark should use the deployed claims unique key without stage'
+  confirmBulkMarkSource.includes('on_conflict=month,agent,camp_id,debtor_code,stage'),
+  'Bulk mark should use the stage-aware claims unique key'
 );
 assert(
   confirmBulkMarkSource.includes('buildBulkClaimRows'),
@@ -68,17 +68,19 @@ vm.runInContext(extractFunction('buildBulkClaimRows'), context);
     'debtor_code',
     'month',
     'remark',
+    'stage',
     'status',
     'ts',
-  ].sort(), 'Bulk mark Supabase rows should match deployed claims columns');
+  ].sort(), 'Bulk mark Supabase rows should include the stage-aware claims columns');
+  assert.strictEqual(rows[0].stage, 1, 'Bulk mark should write legacy/default claims as Stage 1');
 
   await context._fetchExistingClaims('Jul 26', 'birthday_gift_auto', ['BEN'], ['300-BY250']);
   assert.strictEqual(calls.length, 1, 'Bulk mark preview should query claims once');
   const decodedUrl = decodeURIComponent(calls[0].url);
   assert(decodedUrl.includes('/claims?'), 'Bulk mark preview should query the claims table');
   assert(
-    !decodedUrl.includes('stage'),
-    'Bulk mark preview should not select or filter claims.stage because deployed schema does not have it'
+    decodedUrl.includes('stage=eq.1'),
+    'Bulk mark preview should check existing Stage 1 claims only'
   );
 
   console.log('admin_bulk_mark_claim_schema.test.cjs passed');
